@@ -8,9 +8,28 @@ if (typeof dns.setDefaultResultOrder === 'function') {
     dns.setDefaultResultOrder('ipv4first');
 }
 
-const connectionString = process.env.DATABASE_URL;
+let connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
     throw new Error('DATABASE_URL não definido (ver .env)');
+}
+
+/**
+ * Alguns ambientes (ex.: Railway) podem falhar com `SELF_SIGNED_CERT_IN_CHAIN` dependendo da combinação
+ * pg + pg-connection-string + sslmode. O próprio driver sugere usar `uselibpqcompat=true&sslmode=require`.
+ * Fazemos isso automaticamente quando a URL já pede SSL e ainda não ativou compatibilidade.
+ */
+try {
+    const u = new URL(connectionString);
+    const sslmode = (u.searchParams.get('sslmode') || '').toLowerCase();
+    const wantsSsl = sslmode === 'require' || sslmode === 'prefer' || sslmode === 'verify-ca' || sslmode === 'verify-full';
+    const hasCompat = (u.searchParams.get('uselibpqcompat') || '').toLowerCase() === 'true';
+    if (wantsSsl && !hasCompat) {
+        u.searchParams.set('uselibpqcompat', 'true');
+        if (!sslmode) u.searchParams.set('sslmode', 'require');
+        connectionString = u.toString();
+    }
+} catch {
+    // Se a URL não for parseável via WHATWG URL, mantemos como veio.
 }
 
 export const pool = new Pool({
