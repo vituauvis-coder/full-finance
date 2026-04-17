@@ -232,6 +232,17 @@ app.use(
 
 app.use('/uploads', express.static(UPLOAD_DIR));
 
+/** Diagnóstico Railway/produção: se der 502, abra GET /api/health no browser (db: true = Postgres OK). */
+app.get('/api/health', async (req, res) => {
+    try {
+        await query('SELECT 1');
+        res.json({ ok: true, db: true });
+    } catch (err) {
+        console.error('[api/health]', err.message);
+        res.status(503).json({ ok: false, db: false, error: 'database_unavailable' });
+    }
+});
+
 const storage = multer.diskStorage({
     destination(req, file, cb) {
         cb(null, path.join(UPLOAD_DIR, 'profile_pictures'));
@@ -271,50 +282,63 @@ async function requireAdmin(req, res, next) {
 
 // --- Auth ---
 app.post('/api/auth/register', async (req, res) => {
-    const { name, email, password } = req.body || {};
-    if (!name || !email || !password) {
-        return res.status(400).json({ error: 'Dados incompletos' });
-    }
-    const em = String(email).trim().toLowerCase();
-    if (password.length < 6) {
-        return res.status(400).json({ code: 'auth/weak-password', error: 'Senha fraca' });
-    }
-    const passwordHash = bcrypt.hashSync(password, 10);
-    const user = await withTransaction(async (client) => {
-        const { rows: dupRows } = await client.query(`SELECT id FROM users WHERE email = $1`, [em]);
-        if (dupRows[0]) {
-            const e = new Error('Email em uso');
-            e.statusCode = 400;
-            e.code = 'auth/email-already-in-use';
-            throw e;
+    try {
+        const { name, email, password } = req.body || {};
+        if (!name || !email || !password) {
+            return res.status(400).json({ error: 'Dados incompletos' });
         }
-        const { rows } = await client.query(
-            `INSERT INTO users (email, name, password_hash, currency, has_completed_tour, role)
-             VALUES ($1, $2, $3, 'BRL', false, $4)
-             RETURNING id, email, role`,
-            [em, String(name).trim(), passwordHash, ROLE_USER]
-        );
-        return rows[0];
-    });
-    req.session.userId = user.id;
-    res.json({ user: publicAuthUser(user) });
+        const em = String(email).trim().toLowerCase();
+        if (password.length < 6) {
+            return res.status(400).json({ code: 'auth/weak-password', error: 'Senha fraca' });
+        }
+        const passwordHash = bcrypt.hashSync(password, 10);
+        const user = await withTransaction(async (client) => {
+            const { rows: dupRows } = await client.query(`SELECT id FROM users WHERE email = $1`, [em]);
+            if (dupRows[0]) {
+                const e = new Error('Email em uso');
+                e.statusCode = 400;
+                e.code = 'auth/email-already-in-use';
+                throw e;
+            }
+            const { rows } = await client.query(
+                `INSERT INTO users (email, name, password_hash, currency, has_completed_tour, role)
+                 VALUES ($1, $2, $3, 'BRL', false, $4)
+                 RETURNING id, email, role`,
+                [em, String(name).trim(), passwordHash, ROLE_USER]
+            );
+            return rows[0];
+        });
+        req.session.userId = user.id;
+        res.json({ user: publicAuthUser(user) });
+    } catch (e) {
+        console.error('[auth/register]', e);
+        if (e.statusCode === 400 && e.code === 'auth/email-already-in-use') {
+            return res.status(400).json({ code: e.code, error: 'Email em uso' });
+        }
+        res.status(500).json({ error: 'Erro ao registrar' });
+    }
 });
 
 app.post('/api/auth/login', async (req, res) => {
-    const { email, password } = req.body || {};
-    const em = String(email || '').trim().toLowerCase();
-    const { rows } = await query(
-        `SELECT id, email, role, password_hash AS "passwordHash"
-         FROM users
-         WHERE email = $1`,
-        [em]
-    );
-    const user = rows[0] || null;
-    if (!user || !bcrypt.compareSync(String(password || ''), user.passwordHash)) {
-        return res.status(401).json({ code: 'auth/wrong-password', error: 'Email ou senha incorretos' });
+    try {
+        const { email, password } = req.body || {};
+        const em = String(email || '').trim().toLowerCase();
+        const { rows } = await query(
+            `SELECT id, email, role, password_hash AS "passwordHash"
+             FROM users
+             WHERE email = $1`,
+            [em]
+        );
+        const user = rows[0] || null;
+        if (!user || !bcrypt.compareSync(String(password || ''), user.passwordHash)) {
+            return res.status(401).json({ code: 'auth/wrong-password', error: 'Email ou senha incorretos' });
+        }
+        req.session.userId = user.id;
+        res.json({ user: publicAuthUser(user) });
+    } catch (e) {
+        console.error('[auth/login]', e);
+        res.status(500).json({ error: 'Erro ao entrar' });
     }
-    req.session.userId = user.id;
-    res.json({ user: publicAuthUser(user) });
 });
 
 app.post('/api/auth/logout', (req, res) => {
