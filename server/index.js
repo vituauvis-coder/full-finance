@@ -292,28 +292,24 @@ app.post('/api/auth/register', async (req, res) => {
             return res.status(400).json({ code: 'auth/weak-password', error: 'Senha fraca' });
         }
         const passwordHash = bcrypt.hashSync(password, 10);
-        const user = await withTransaction(async (client) => {
-            const { rows: dupRows } = await client.query(`SELECT id FROM users WHERE email = $1`, [em]);
-            if (dupRows[0]) {
-                const e = new Error('Email em uso');
-                e.statusCode = 400;
-                e.code = 'auth/email-already-in-use';
-                throw e;
-            }
-            const { rows } = await client.query(
-                `INSERT INTO users (email, name, password_hash, currency, has_completed_tour, role)
-                 VALUES ($1, $2, $3, 'BRL', false, $4)
-                 RETURNING id, email, role`,
-                [em, String(name).trim(), passwordHash, ROLE_USER]
-            );
-            return rows[0];
-        });
+        /** Uma única query (sem BEGIN/COMMIT): compatível com PgBouncer modo transação do Supabase (:6543). */
+        const { rows } = await query(
+            `INSERT INTO users (email, name, password_hash, currency, has_completed_tour, role)
+             VALUES ($1, $2, $3, 'BRL', false, $4)
+             ON CONFLICT (email) DO NOTHING
+             RETURNING id, email, role`,
+            [em, String(name).trim(), passwordHash, ROLE_USER]
+        );
+        if (!rows[0]) {
+            return res.status(400).json({ code: 'auth/email-already-in-use', error: 'Email em uso' });
+        }
+        const user = rows[0];
         req.session.userId = user.id;
         res.json({ user: publicAuthUser(user) });
     } catch (e) {
-        console.error('[auth/register]', e);
-        if (e.statusCode === 400 && e.code === 'auth/email-already-in-use') {
-            return res.status(400).json({ code: e.code, error: 'Email em uso' });
+        console.error('[auth/register]', e.message, e.code, e.detail || '');
+        if (e.code === '23505') {
+            return res.status(400).json({ code: 'auth/email-already-in-use', error: 'Email em uso' });
         }
         res.status(500).json({ error: 'Erro ao registrar' });
     }

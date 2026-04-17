@@ -1,13 +1,15 @@
 import 'dotenv/config';
 import pg from 'pg';
- 
+
 const { Pool } = pg;
- 
-const DATABASE_URL = process.env.DATABASE_URL;
+
+/** API Node (Railway): preferir conexão direta ao Postgres (Supabase :5432) em vez do pooler transacional (:6543), que pode falhar com BEGIN/COMMIT e prepared statements. */
+const DATABASE_URL =
+    process.env.DATABASE_DIRECT_URL || process.env.DIRECT_URL || process.env.DATABASE_URL;
 if (!DATABASE_URL) {
     throw new Error('DATABASE_URL não definido (ver .env)');
 }
- 
+
 export const pool = new Pool({
     connectionString: DATABASE_URL,
     ssl: { rejectUnauthorized: false }
