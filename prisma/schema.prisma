@@ -1,0 +1,300 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String       @id @default(uuid())
+  email            String       @unique
+  name             String
+  passwordHash     String
+  createdAt        DateTime     @default(now())
+  currency         String       @default("BRL")
+  hasCompletedTour Boolean      @default(false)
+  profilePhotoURL  String?
+  /** USER | ADMIN — SQL Server não suporta enum nativo no Prisma. */
+  role             String       @default("USER")
+  /** JSON: preferências de caixa (ex.: confirmação manual de débito de faturas/parcelas). */
+  financePreferences String?    @db.NVarChar(Max)
+
+  accounts         Account[]
+  expenses         Expense[]
+  gains            Gain[]
+  goals            Goal[]
+  investments      Investment[]
+  debts            Debt[]
+  debtUpdates      DebtUpdate[]
+  adminLogs        AdminLog[]
+  feedbacks        Feedback[]
+  categories       Category[]
+  subcategories    Subcategory[]
+  balanceSnapshots BalanceSnapshot[]
+  kanbanCards      KanbanCard[]
+  splitRequestsSent     ExpenseSplitRequest[] @relation("SplitRequester")
+  splitRequestsReceived ExpenseSplitRequest[] @relation("SplitRecipient")
+}
+
+model Account {
+  id             String       @id @default(uuid())
+  userId         String
+  name           String
+  type           String
+  initialBalance Float?       @default(0)
+  holderName     String?
+  plasticTone    String?
+  plasticColor   String?
+  limit          Float?
+  closeDay       Int?
+  dueDay         Int?
+  /** Cartão (crédito ou débito): conta bancária à qual o plástico está vinculado. Débito espelha o saldo desta conta. */
+  linkedAccountId String?
+  linkedAccount   Account?    @relation("DebitCardLinkedAccount", fields: [linkedAccountId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  linkedDebitCards Account[]  @relation("DebitCardLinkedAccount")
+
+  user           User         @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  expenses       Expense[]
+  gains          Gain[]
+  investments    Investment[]
+}
+
+model Expense {
+  id               String   @id @default(uuid())
+  userId           String
+  accountId        String
+  category         String
+  subcategory      String?  @db.NVarChar(200)
+  amount           Float
+  description      String
+  date             DateTime
+  /** Momento em que o lançamento foi salvo no app (parcelas de empréstimo anteriores a isso não entram como «pagas» no automático). */
+  createdAt        DateTime @default(now())
+  isPaid           Boolean  @default(true)
+  isInvestment     Boolean  @default(false)
+  /** Número de parcelas na compra (cartão de crédito); null se não aplicável. */
+  installmentCount Int?
+  /** JSON array de chaves de período (YYYY-MM-DD ou YYYY-MM) marcadas como pagas para débito no saldo. */
+  cashOutConfirmedPeriods String? @db.NVarChar(Max)
+  /** Legado: despesa única «mensal fixa»; séries usam `recurrenceGroupId` + um lançamento por mês. */
+  recurringMonthly Boolean @default(false)
+  /** Mesmo UUID em todos os meses criados de uma vez (saída recorrente no ano). */
+  recurrenceGroupId String? @db.NVarChar(36)
+  /** ID da solicitação de rateio quando esta saída é a parte do destinatário. */
+  splitRequestId    String? @unique @db.NVarChar(36)
+
+  user             User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  account          Account  @relation(fields: [accountId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  splitRequest     ExpenseSplitRequest? @relation("RecipientExpense", fields: [splitRequestId], references: [id])
+  splitRequestsFromSource ExpenseSplitRequest[] @relation("SourceExpenseSplits")
+
+  @@index([userId, recurrenceGroupId])
+}
+
+model Gain {
+  id          String   @id @default(uuid())
+  userId      String
+  accountId   String
+  category    String
+  subcategory String?  @db.NVarChar(200)
+  amount      Float
+  description String
+  date        DateTime
+  isPaid      Boolean  @default(true)
+  /** Mesmo UUID em todos os meses criados de uma vez como série recorrente no ano. */
+  recurrenceGroupId String? @db.NVarChar(36)
+  /** Compra original quando o ganho é extorno parcial de rateio. */
+  relatedExpenseId  String? @db.NVarChar(36)
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  account     Account  @relation(fields: [accountId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([userId, recurrenceGroupId])
+  @@index([relatedExpenseId])
+}
+
+/** Solicitação de divisão de uma saída entre usuários da plataforma. */
+model ExpenseSplitRequest {
+  id                        String   @id @default(uuid())
+  sourceExpenseId           String
+  requesterUserId           String
+  recipientUserId           String
+  amount                    Float
+  /** Conta do solicitante onde entra o extorno após o aceite. */
+  requesterCreditAccountId  String?
+  /** PENDING | ACCEPTED | REJECTED | CANCELLED */
+  status                    String   @default("PENDING") @db.NVarChar(20)
+  senderProofUrl            String?  @db.NVarChar(Max)
+  createdGainId             String?
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  sourceExpense   Expense  @relation("SourceExpenseSplits", fields: [sourceExpenseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  requester       User     @relation("SplitRequester", fields: [requesterUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  recipient       User     @relation("SplitRecipient", fields: [recipientUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  recipientExpense Expense? @relation("RecipientExpense")
+
+  @@index([recipientUserId, status])
+  @@index([requesterUserId, status])
+  @@index([sourceExpenseId])
+}
+
+model Goal {
+  id               String   @id @default(uuid())
+  userId           String
+  name             String
+  targetAmount     Float
+  currentAmount    Float    @default(0)
+  /** Tema visual e categoria (ex.: viagem, casa, educacao). */
+  goalType         String   @default("outro")
+  /** JSON: array de IDs de contas vinculadas, ex.: ["uuid1","uuid2"]. */
+  linkedAccountIds String?  @db.NVarChar(Max)
+
+  user             User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model Investment {
+  id              String   @id @default(uuid())
+  userId          String
+  name            String
+  category        String
+  institution     String?
+  currentValue    Float    @default(0)
+  notes           String?
+  linkedAccountId String?
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  linkedAccount   Account? @relation(fields: [linkedAccountId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model Debt {
+  id        String   @id @default(uuid())
+  userId    String
+  company   String   @db.NVarChar(200)
+  notes     String?  @db.NVarChar(Max)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  /** Se true, a dívida foi resolvida (não aparece por padrão). */
+  isClosed  Boolean  @default(false)
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  updates   DebtUpdate[]
+
+  @@index([userId, isClosed])
+}
+
+model DebtUpdate {
+  id          String   @id @default(uuid())
+  userId      String
+  debtId      String
+  date        DateTime
+  amount      Float
+  description String?  @db.NVarChar(300)
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  debt        Debt     @relation(fields: [debtId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([userId, date])
+  @@index([debtId, date])
+}
+
+model AdminLog {
+  id        String   @id @default(uuid())
+  userId    String
+  action    String
+  details   String?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model Feedback {
+  id        String   @id @default(uuid())
+  userId    String
+  message   String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model Category {
+  id          String   @id @default(uuid())
+  userId      String
+  name        String   @db.NVarChar(200)
+  /** EXPENSE | GAIN — string (SQL Server não usa enum nativo no Prisma). */
+  type        String   @default("EXPENSE") @db.NVarChar(20)
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User          @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  subcategories Subcategory[]
+}
+
+model Subcategory {
+  id          String   @id @default(uuid())
+  userId      String
+  categoryId  String
+  name        String   @db.NVarChar(200)
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/** Saldo total (contas não-cartão + investimentos) por dia; um registro por usuário e data (upsert). */
+model BalanceSnapshot {
+  id           String   @id @default(uuid())
+  userId       String
+  date         DateTime @db.Date
+  totalBalance Float
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+/** Cards do kanban de bugs e sugestões de melhorias - compartilhado entre todos usuários */
+model KanbanCard {
+  id          String   @id @default(uuid())
+  title       String   @db.NVarChar(200)
+  /** bug | melhoria */
+  type        String   @default("melhoria") @db.NVarChar(20)
+  /** backlog | ativo | teste | finalizado */
+  column      String   @default("backlog") @db.NVarChar(20)
+
+  // Campos comuns
+  description String?  @db.NVarChar(Max)
+  image       String?  @db.NVarChar(Max)
+
+  // Campos específicos para BUG
+  screen      String?  @db.NVarChar(200)
+  steps       String?  @db.NVarChar(Max)
+  expected    String?  @db.NVarChar(Max)
+  actual      String?  @db.NVarChar(Max)
+
+  // Campos específicos para MELHORIA
+  benefit     String?  @db.NVarChar(Max)
+
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  creator User @relation(fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([column])
+  @@index([type])
+  @@index([createdAt])
+}

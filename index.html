@@ -1,0 +1,2049 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+        (function () {
+            try {
+                if (localStorage.getItem('fullfinan-theme') === 'dark') {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                }
+            } catch (e) { /* ignore */ }
+        })();
+    </script>
+    <title>Full Finanças - Controle Financeiro Completo</title>
+
+    <!-- Favicon -->
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/table-pagination.css">
+    <link rel="stylesheet" href="css/table-filters.css">
+    <link rel="stylesheet" href="css/filter-drawer.css">
+    <link rel="stylesheet" href="css/table-sort.css">
+    <link rel="stylesheet" href="css/header-notifications.css">
+    <link rel="stylesheet" href="css/auth.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/modal-forms.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/pages/accounts.css">
+    <link rel="stylesheet" href="css/pages/goals.css">
+    <link rel="stylesheet" href="css/pages/reports.css">
+    <link rel="stylesheet" href="css/pages/tools.css">
+    <link rel="stylesheet" href="css/pages/profile.css">
+    <link rel="stylesheet" href="css/pages/support.css">
+    <link rel="stylesheet" href="css/pages/investments.css">
+    <link rel="stylesheet" href="css/pages/debts.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="css/theme-dark.css">
+
+    <!-- Chart.js (pinned for plugin compatibility) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <!-- Treemap plugin (Chart.js) -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-treemap@3.1.0/dist/chartjs-chart-treemap.min.js"></script>
+
+    <!-- jsPDF & html2pdf -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <!-- SheetJS (XLSX) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+
+<body>
+
+    <!-- Toast Container para Notificações -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Tela de Carregamento -->
+    <div id="loader" class="loader-container">
+        <div class="loader"></div>
+    </div>
+
+    <!-- Container da Aplicação -->
+    <div id="app" class="app-container hidden">
+
+        <!-- Landing Page / Tela de Login -->
+        <div id="auth-container" class="auth-container">
+
+            <!-- Hero + Login (lado a lado no desktop) -->
+            <section class="landing-hero landing-hero--split" aria-label="Apresentação e acesso">
+                <div class="hero-bg-layer" aria-hidden="true"></div>
+                <div class="hero-orbs" aria-hidden="true">
+                    <span class="hero-orb hero-orb--1"></span>
+                    <span class="hero-orb hero-orb--2"></span>
+                    <span class="hero-orb hero-orb--3"></span>
+                </div>
+                <div class="landing-hero-inner">
+                    <div class="hero-content hero-content--left">
+                        <div class="hero-intro">
+                            <h1 class="hero-title"><span class="hero-title-gradient">Full Finanças</span></h1>
+                            <p class="hero-lead">Contas, metas, investimentos e relatórios no mesmo painel. Veja o fluxo do seu dinheiro e antecipe decisões — sem planilhas soltas nem lembretes espalhados.</p>
+                        </div>
+                        <ul class="hero-points" aria-label="Principais benefícios">
+                            <li>
+                                <i class="fas fa-circle-check" aria-hidden="true"></i>
+                                <span>Saldo, categorias e gráficos em tempo real</span>
+                            </li>
+                            <li>
+                                <i class="fas fa-circle-check" aria-hidden="true"></i>
+                                <span>Relatórios e exportação em PDF ou Excel</span>
+                            </li>
+                            <li>
+                                <i class="fas fa-circle-check" aria-hidden="true"></i>
+                                <span>Conta gratuita — entre em segundos ao lado</span>
+                            </li>
+                        </ul>
+                        <div class="hero-buttons hero-buttons--split">
+                            <button type="button" class="btn-hero-secondary" onclick="smoothScrollTo('features-section')">
+                                Explorar recursos <i class="fas fa-arrow-down" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="auth-section" class="hero-auth-panel">
+                        <div class="auth-box auth-box--hero">
+                            <header class="auth-form-header">
+                                <h2 id="auth-heading" class="auth-title">Acesse sua conta</h2>
+                                <p class="auth-subtitle">Entre com email e senha ou crie uma conta gratuita em segundos.</p>
+                            </header>
+
+                            <!-- Formulário de Login -->
+                            <form id="login-form" class="auth-form" novalidate>
+                                <div class="auth-field">
+                                    <label class="auth-label" for="login-email">Email</label>
+                                    <div class="auth-input-wrap">
+                                        <i class="fas fa-envelope auth-input-icon" aria-hidden="true"></i>
+                                        <input type="email" id="login-email" name="login-email" placeholder="voce@email.com"
+                                            autocomplete="email" required>
+                                    </div>
+                                </div>
+                                <div class="auth-field">
+                                    <label class="auth-label" for="login-password">Senha</label>
+                                    <div class="password-wrapper">
+                                        <div class="auth-input-wrap auth-input-wrap--password">
+                                            <i class="fas fa-lock auth-input-icon" aria-hidden="true"></i>
+                                            <input type="password" id="login-password" name="login-password"
+                                                placeholder="••••••••" autocomplete="current-password" required>
+                                        </div>
+                                        <button type="button" id="password-toggle" class="password-toggle"
+                                            title="Mostrar ou ocultar senha" aria-label="Mostrar ou ocultar senha">
+                                            <i class="fas fa-eye" aria-hidden="true"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <button type="submit" class="auth-submit">
+                                    <span>Entrar</span>
+                                    <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                                </button>
+                                <p class="auth-toggle">Não tem conta? <a href="#" id="show-register">Criar conta</a></p>
+                            </form>
+
+                            <!-- Formulário de Registro -->
+                            <form id="register-form" class="auth-form hidden" novalidate>
+                                <div class="auth-field">
+                                    <label class="auth-label" for="register-name">Nome completo</label>
+                                    <div class="auth-input-wrap">
+                                        <i class="fas fa-user auth-input-icon" aria-hidden="true"></i>
+                                        <input type="text" id="register-name" name="register-name" placeholder="Seu nome"
+                                            autocomplete="name" required>
+                                    </div>
+                                </div>
+                                <div class="auth-field">
+                                    <label class="auth-label" for="register-email">Email</label>
+                                    <div class="auth-input-wrap">
+                                        <i class="fas fa-envelope auth-input-icon" aria-hidden="true"></i>
+                                        <input type="email" id="register-email" name="register-email"
+                                            placeholder="voce@email.com" autocomplete="email" required>
+                                    </div>
+                                </div>
+                                <div class="auth-field">
+                                    <label class="auth-label" for="register-password">Senha</label>
+                                    <div class="auth-input-wrap">
+                                        <i class="fas fa-lock auth-input-icon" aria-hidden="true"></i>
+                                        <input type="password" id="register-password" name="register-password"
+                                            placeholder="Mínimo 6 caracteres" autocomplete="new-password" required>
+                                    </div>
+                                </div>
+                                <div class="auth-field">
+                                    <label class="auth-label" for="register-confirm-password">Confirmar senha</label>
+                                    <div class="auth-input-wrap">
+                                        <i class="fas fa-lock auth-input-icon" aria-hidden="true"></i>
+                                        <input type="password" id="register-confirm-password"
+                                            name="register-confirm-password" placeholder="Repita a senha"
+                                            autocomplete="new-password" required>
+                                    </div>
+                                </div>
+                                <button type="submit" class="auth-submit">
+                                    <span>Criar conta grátis</span>
+                                    <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                                </button>
+                                <p class="auth-toggle">Já tem conta? <a href="#" id="show-login">Fazer login</a></p>
+                            </form>
+                            <p id="auth-error" class="error-message" role="alert"></p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Features Section -->
+            <section id="features-section" class="landing-features">
+                <h2>Por que usar Full Finanças?</h2>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-chart-pie"></i></div>
+                        <h3>Dashboard Intuitivo</h3>
+                        <p>Visualize seu saldo, entradas e saídas em um único lugar com gráficos claros.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-wallet"></i></div>
+                        <h3>Múltiplas Contas</h3>
+                        <p>Gerencie várias contas bancárias, carteiras e cartões em um só app.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-bullseye"></i></div>
+                        <h3>Metas financeiras</h3>
+                        <p>Defina objetivos e acompanhe seu progresso rumo ao que importa para você.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-file-invoice-dollar"></i></div>
+                        <h3>Relatórios Detalhados</h3>
+                        <p>Exporte relatórios em PDF e Excel para ter controle completo.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-mobile-alt"></i></div>
+                        <h3>100% Responsivo</h3>
+                        <p>Use no celular, tablet ou computador com a mesma experiência.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-lock"></i></div>
+                        <h3>Seguro & Privado</h3>
+                        <p>Seus dados ficam no seu ambiente local quando você usa a API no seu computador.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Footer -->
+            <footer class="landing-footer">
+                <p>Criado por <strong>Victor Alves</strong></p>
+                <p class="footer-version">Full Finanças v1.0</p>
+            </footer>
+        </div>
+
+        <!-- Conteúdo Principal (Pós-login) -->
+        <div id="main-content" class="main-content hidden">
+            <!-- Menu Lateral -->
+            <div id="sidebar-overlay" class="sidebar-overlay hidden"></div>
+            <div class="sidebar-shell">
+            <nav class="sidebar" id="app-sidebar" aria-label="Menu principal">
+                <div class="sidebar-profile-row">
+                <button type="button" id="user-info" class="user-info" aria-label="Abrir Meu Perfil">
+                    <div class="sidebar-user-card">
+                        <div class="user-photo user-photo--sidebar" aria-hidden="true">
+                            <img id="sidebar-user-photo"
+                                src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%23e2e8f0'/><text x='50' y='55' text-anchor='middle' font-size='30' fill='%2394a3b8'>👤</text></svg>"
+                                alt="">
+                        </div>
+                        <div class="sidebar-user-meta">
+                            <span class="sidebar-user-label">Minha conta</span>
+                            <span id="user-name-display" class="sidebar-user-name"></span>
+                        </div>
+                    </div>
+                </button>
+                </div>
+                <ul class="sidebar-menu">
+                    <li><a href="#" class="nav-link active" data-page="dashboard" title="Dashboard"><i
+                                class="fas fa-chart-pie"></i><span class="sidebar-nav-label">Dashboard</span></a></li>
+                    <li><a href="#" class="nav-link" data-page="gains" title="Entradas"><i
+                                class="fas fa-arrow-up"></i><span class="sidebar-nav-label">Entradas</span></a></li>
+                    <li><a href="#" class="nav-link" data-page="expenses" title="Saídas"><i
+                                class="fas fa-arrow-down"></i><span class="sidebar-nav-label">Saídas</span></a></li>
+                    <li><a href="#" class="nav-link" data-page="accounts" title="Contas"><i class="fas fa-wallet"></i><span
+                                class="sidebar-nav-label">Contas</span></a></li>
+                    <li><a href="#" class="nav-link" data-page="cards" title="Cartões"><i
+                                class="fas fa-credit-card"></i><span class="sidebar-nav-label">Cartões</span></a></li>
+                    <li><a href="#" class="nav-link" data-page="investments" title="Investimentos"><i
+                                class="fas fa-chart-line"></i><span class="sidebar-nav-label">Investimentos</span></a>
+                    </li>
+                    <li><a href="#" class="nav-link" data-page="goals" title="Objetivos"><i
+                                class="fas fa-flag-checkered"></i><span class="sidebar-nav-label">Objetivos</span></a>
+                    </li>
+                    <li><a href="#" class="nav-link" data-page="debts" title="Dívidas"><i
+                                class="fas fa-triangle-exclamation"></i><span class="sidebar-nav-label">Dívidas</span></a></li>
+                    <li><a href="#" class="nav-link" data-page="tools" title="Ferramentas"><i
+                                class="fas fa-tools"></i><span class="sidebar-nav-label">Ferramentas</span></a></li>
+                    <li class="hidden"><a href="#" class="nav-link" data-page="support" title="Apoie o Projeto"><i
+                                class="fas fa-heart"></i><span class="sidebar-nav-label">Apoie o Projeto</span></a></li>
+                </ul>
+                <div class="sidebar-footer">
+                    <button type="button" id="logout-btn" title="Sair"><i class="fas fa-sign-out-alt"></i><span
+                            class="sidebar-footer-label">Sair</span></button>
+                    <a href="./admin/" id="admin-panel-link" class="btn-admin hidden" title="Painel Admin">
+                        <i class="fas fa-user-shield"></i><span class="sidebar-footer-label">Painel Admin</span>
+                    </a>
+                </div>
+            </nav>
+            <button type="button" id="sidebar-collapse-toggle" class="sidebar-collapse-toggle sidebar-edge-tab"
+                aria-expanded="true" aria-controls="app-sidebar" title="Recolher menu">
+                <i class="fas fa-chevron-left" aria-hidden="true"></i>
+            </button>
+            </div>
+
+            <!-- Área de Conteúdo da Página -->
+            <main class="page-content">
+                <button id="menu-toggle-btn" class="menu-toggle-btn"><i class="fas fa-bars"></i></button>
+                <div class="fab-group" aria-label="Lançamentos rápidos">
+                    <button type="button" id="quick-add-expense-btn" class="fab fab-expense" title="Nova saída">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    <button type="button" id="quick-add-gain-btn" class="fab fab-gain" title="Nova entrada">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+
+                <!-- Header Mobile-Friendly -->
+                <header class="app-header">
+                    <div class="header-left">
+                        <div class="header-page-heading" id="header-page-heading" aria-live="polite">
+                            <span class="header-page-emoji" id="current-page-emoji" aria-hidden="true"><i
+                                    class="fas fa-chart-pie" aria-hidden="true"></i></span>
+                            <span class="header-page-title" id="current-page-title">Dashboard</span>
+                        </div>
+                    </div>
+                    <div class="header-right">
+                        <div class="header-notifications">
+                            <button type="button" class="header-btn" id="notifications-btn" title="Avisos"
+                                aria-expanded="false" aria-haspopup="true" aria-controls="notifications-panel">
+                                <i class="fas fa-bell" aria-hidden="true"></i>
+                                <span class="notification-badge hidden" aria-label="Quantidade de avisos">0</span>
+                            </button>
+                            <div id="notifications-panel" class="notifications-panel hidden" role="menu"
+                                aria-label="Avisos do sininho">
+                                <div class="notifications-panel-head">
+                                    <span class="notifications-panel-title">Avisos</span>
+                                    <span class="notifications-panel-hint">Faturas, investimentos e lançamentos</span>
+                                </div>
+                                <ul id="notifications-list" class="notifications-list" role="none"></ul>
+                                <p id="notifications-empty" class="notifications-empty hidden" role="status">Nenhum aviso
+                                    no momento.</p>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+
+                <!-- Seção do Dashboard -->
+                <section id="dashboard-page" class="page active">
+                    <!-- Cards de Resumo -->
+                    <div class="summary-cards">
+                        <div class="card">
+                            <div class="card-icon income"><i class="fas fa-arrow-up"></i></div>
+                            <div class="card-content">
+                                <h3 id="monthly-income-title">Entradas do Mês</h3>
+                                <p id="monthly-income">R$ 0,00</p>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-icon expense"><i class="fas fa-arrow-down"></i></div>
+                            <div class="card-content">
+                                <h3 id="monthly-expenses-title">Saídas do Mês</h3>
+                                <p id="monthly-expenses">R$ 0,00</p>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-icon investments"><i class="fas fa-chart-line"></i></div>
+                            <div class="card-content">
+                                <h3 id="dashboard-investments-title">Investimentos (aportes)</h3>
+                                <p id="dashboard-investments-total">R$ 0,00</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="dashboard-pending-cash-outs" class="dashboard-pending-cash-outs hidden" aria-live="polite">
+                        <h3 class="dashboard-pending-title"><i class="fas fa-receipt"></i> Pagamentos a confirmar no saldo</h3>
+                        <p class="dashboard-pending-hint">Registrados nas saídas do mês; o saldo só é atualizado após marcar como pago (conforme o perfil).</p>
+                        <ul id="dashboard-pending-cash-outs-list" class="dashboard-pending-list"></ul>
+                    </div>
+
+                    <div class="dashboard-reports-section" id="dashboard-reports-section">
+                        <div class="reports-filters">
+                            <label for="period-filter">Período:</label>
+                            <select id="period-filter" class="period-select">
+                                <option value="current-month">Este Mês</option>
+                                <option value="last-month">Mês Passado</option>
+                                <option value="current-year" selected>Este Ano</option>
+                            </select>
+                        </div>
+                        <div class="dashboard-reports-charts-grid">
+                            <div class="reports-chart-container" id="dashboard-reports-pie">
+                                <div class="reports-chart-header">
+                                    <h3 id="reports-chart-title">Distribuição das saídas</h3>
+                                    <div class="chart-type-toggle" role="group" aria-label="Tipo de gráfico: saídas por categoria">
+                                        <button type="button" class="chart-type-btn" data-chart="expensesByCategory" data-type="pie" aria-label="Exibir como pizza" title="Pizza">
+                                            <span class="chart-type-icon" aria-hidden="true">◔</span>
+                                        </button>
+                                        <button type="button" class="chart-type-btn" data-chart="expensesByCategory" data-type="bar" aria-label="Exibir como colunas" title="Colunas">
+                                            <span class="chart-type-icon" aria-hidden="true">▮</span>
+                                        </button>
+                                        <button type="button" class="chart-type-btn" data-chart="expensesByCategory" data-type="treemap" aria-label="Exibir como treemap" title="Treemap">
+                                            <span class="chart-type-icon" aria-hidden="true">▦</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <p class="reports-chart-hint">Categoria por coluna; faixas empilhadas = subcategorias.</p>
+                                <div class="chart-wrapper">
+                                    <canvas id="reports-chart"></canvas>
+                                </div>
+                            </div>
+                            <div class="reports-chart-container" id="financial-progression-card">
+                                <div class="reports-chart-header">
+                                    <h3 id="financial-progression-title">Fluxo mensal e patrimônio</h3>
+                                    <div class="chart-type-toggle" role="group" aria-label="Tipo de gráfico: fluxo e patrimônio">
+                                        <button type="button" class="chart-type-btn" data-chart="financialProgression" data-type="line" aria-label="Exibir como linhas" title="Linhas">
+                                            <span class="chart-type-icon" aria-hidden="true">〰</span>
+                                        </button>
+                                        <button type="button" class="chart-type-btn" data-chart="financialProgression" data-type="bar" aria-label="Exibir como colunas" title="Colunas">
+                                            <span class="chart-type-icon" aria-hidden="true">▮</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <p class="reports-chart-hint">Entradas, saídas, investimentos e sobra; meses futuros em projeção.</p>
+                                <div class="chart-wrapper chart-wrapper--tall">
+                                    <canvas id="financial-progression-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Listas -->
+                    <div class="dashboard-grid">
+                        <div class="list-container">
+                            <h3>Última atividade</h3>
+                            <ul id="recent-activity-list">
+                                <!-- Saídas e entradas recentes via JS -->
+                            </ul>
+                        </div>
+                        <div class="list-container">
+                            <h3>Faturas Próximas</h3>
+                            <ul id="upcoming-invoices-list">
+                                <!-- Faturas serão inseridas via JS -->
+                            </ul>
+                        </div>
+                    </div>
+                    <!-- Rodapé BETA -->
+                    <footer class="beta-footer">
+                        <span>Full Finanças - Projeto em Desenvolvimento (BETA 2)</span>
+                    </footer>
+                </section>
+
+                <!-- Saídas -->
+                <section id="expenses-page" class="page hidden">
+                    <div class="actions-bar">
+                        <div class="actions-bar__start">
+                            <button type="button" id="add-expense-btn" class="btn-primary"><i class="fas fa-plus"></i>
+                                Nova saída</button>
+                            <button type="button" id="expenses-filter-open-btn" class="btn-secondary filter-drawer-trigger"
+                                aria-expanded="false" aria-controls="expenses-filter-drawer" title="Filtrar lista">
+                                <i class="fas fa-filter" aria-hidden="true"></i> Filtros
+                            </button>
+                        </div>
+                    </div>
+                    <div class="reports-filters">
+                        <label for="expenses-period-filter">Período:</label>
+                        <select id="expenses-period-filter" class="period-select" aria-label="Período da lista de saídas">
+                            <option value="current-month" selected>Este Mês</option>
+                            <option value="last-month">Mês Passado</option>
+                            <option value="current-year">Este Ano</option>
+                        </select>
+                    </div>
+                    <div class="summary-cards movements-summary" aria-label="Resumo de saídas">
+                        <div class="card">
+                            <div class="card-icon expense movements-summary-card-icon" id="expenses-summary-month-icon"><i class="fas fa-calendar-day" aria-hidden="true"></i></div>
+                            <div class="card-content">
+                                <h3 id="expenses-summary-month-title">Saídas esse mês</h3>
+                                <p id="expenses-summary-month">—</p>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-icon expense movements-summary-card-icon" id="expenses-summary-top-cat-icon"><i class="fas fa-tags" aria-hidden="true"></i></div>
+                            <div class="card-content">
+                                <h3 id="expenses-summary-top-cat-title">Principal categoria do mês</h3>
+                                <p id="expenses-summary-top-cat">—</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="expense-splits-outgoing-panel" class="expense-splits-panel hidden" aria-live="polite"></div>
+                    <div class="table-container">
+                        <div id="expenses-pagination" class="table-pagination-host"></div>
+                        <table id="expenses-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col" class="sortable-th" data-sort-key="date"><button type="button" class="sortable-th__btn">Data <i class="fas fa-sort sortable-th__icon" aria-hidden="true"></i></button></th>
+                                    <th scope="col" class="sortable-th" data-sort-key="description"><button type="button" class="sortable-th__btn">Descrição <i class="fas fa-sort sortable-th__icon" aria-hidden="true"></i></button></th>
+                                    <th scope="col" class="sortable-th" data-sort-key="category"><button type="button" class="sortable-th__btn">Categoria <i class="fas fa-sort sortable-th__icon" aria-hidden="true"></i></button></th>
+                                    <th scope="col" class="sortable-th" data-sort-key="account"><button type="button" class="sortable-th__btn">Conta <i class="fas fa-sort sortable-th__icon" aria-hidden="true"></i></button></th>
+                                    <th scope="col" class="sortable-th" data-sort-key="amount"><button type="button" class="sortable-th__btn">Valor <i class="fas fa-sort sortable-th__icon" aria-hidden="true"></i></button></th>
+                                    <th scope="col" class="sortable-th" data-sort-key="status"><button type="button" class="sortable-th__btn">Status <i class="fas fa-sort sortable-th__icon" aria-hidden="true"></i></button></th>
+                                    <th scope="col">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Entradas -->
+                <section id="gains-page" class="page hidden">
+                    <div class="actions-bar">
+                        <div class="actions-bar__start">
+                            <button type="button" id="add-gain-btn" class="btn-primary"><i class="fas fa-plus"></i> Nova
+                                entrada</button>
+                            <button type="button" id="gains-filter-open-btn" class="btn-secondary filter-drawer-trigger"
+                                aria-expanded="false" aria-controls="gains-filter-drawer" title="Filtrar lista">
+                                <i class="fas fa-filter" aria-hidden="true"></i> Filtros
+                            </button>
+                        </div>
+                    </div>
+                    <div class="reports-filters">
+                        <label for="gains-period-filter">Período:</label>
+                        <select id="gains-period-filter" class="period-select" aria-label="Período da lista de entradas">
+                            <option value="current-month" selected>Este Mês</option>
+                            <option value="last-month">Mês Passado</option>
+                            <option value="current-year">Este Ano</option>
+                        </select>
+                    </div>
+                    <div class="summary-cards movements-summary" aria-label="Resumo de entradas">
+                        <div class="card">
+                            <div class="card-icon income movements-summary-card-icon" id="gains-summary-year-icon"
+                                title=""><i class="fas fa-calendar" aria-hidden="true"></i></div>
+                            <div class="card-content">
+                                <h3 id="gains-summary-year-title">Entradas no período</h3>
+                                <p id="gains-summary-year">—</p>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-icon income movements-summary-card-icon" id="gains-summary-month-icon"><i class="fas fa-calendar-day" aria-hidden="true"></i></div>
+                            <div class="card-content">
+                                <h3 id="gains-summary-month-title">Entradas (detalhe)</h3>
+                                <p id="gains-summary-month">—</p>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-icon income movements-summary-card-icon" id="gains-summary-top-cat-icon"><i class="fas fa-tags" aria-hidden="true"></i></div>
+                            <div class="card-content">
+                                <h3 id="gains-summary-top-cat-title">Principal categoria</h3>
+                                <p id="gains-summary-top-cat">—</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <div id="gains-pagination" class="table-pagination-host"></div>
+                        <table id="gains-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col" class="sortable-th" data-sort-key="date"><button type="button" class="sortable-th__btn">Data <i class="fas fa-sort sortable-th__icon" aria-hidden="true"></i></button></th>
+                                    <th scope="col" class="sortable-th" data-sort-key="description"><button type="button" class="sortable-th__btn">Descrição <i class="fas fa-sort sortable-th__icon" aria-hidden="true"></i></button></th>
+                                    <th scope="col" class="sortable-th" data-sort-key="category"><button type="button" class="sortable-th__btn">Categoria <i class="fas fa-sort sortable-th__icon" aria-hidden="true"></i></button></th>
+                                    <th scope="col" class="sortable-th" data-sort-key="account"><button type="button" class="sortable-th__btn">Conta <i class="fas fa-sort sortable-th__icon" aria-hidden="true"></i></button></th>
+                                    <th scope="col" class="sortable-th" data-sort-key="amount"><button type="button" class="sortable-th__btn">Valor <i class="fas fa-sort sortable-th__icon" aria-hidden="true"></i></button></th>
+                                    <th scope="col">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Seção de Contas -->
+                <section id="accounts-page" class="page hidden accounts-page">
+                    <div class="actions-bar accounts-page__actions">
+                        <button id="add-account-btn" class="btn-primary"><i class="fas fa-plus"></i> Nova Conta</button>
+                    </div>
+                    <div id="accounts-list" class="accounts-grid accounts-page__grid">
+                        <!-- Cards de conta via JS -->
+                    </div>
+                </section>
+
+                <!-- Seção de Cartões (crédito e débito) -->
+                <section id="cards-page" class="page hidden cards-page">
+                    <div class="actions-bar">
+                        <button type="button" id="add-credit-card-btn" class="btn-primary"><i class="fas fa-plus"></i>
+                            Novo cartão</button>
+                    </div>
+                    <div class="summary-cards movements-summary cards-page__summary" aria-label="Resumo dos cartões">
+                        <div class="card">
+                            <div class="card-icon expense"><i class="fas fa-hand-holding-usd" aria-hidden="true"></i></div>
+                            <div class="card-content">
+                                <h3>Parcelado em aberto</h3>
+                                <p id="cards-summary-open-installments">—</p>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-icon"><i class="fas fa-calendar-check" aria-hidden="true"></i></div>
+                            <div class="card-content">
+                                <h3 id="cards-summary-current-label">Total no mês atual</h3>
+                                <p id="cards-summary-current-month">—</p>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-icon"><i class="fas fa-calendar-plus" aria-hidden="true"></i></div>
+                            <div class="card-content">
+                                <h3 id="cards-summary-next-label">Total no próximo mês</h3>
+                                <p id="cards-summary-next-month">—</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="credit-cards-list" class="credit-cards-page">
+                        <!-- Cartões inseridos via JS -->
+                    </div>
+                </section>
+
+                <!-- Seção de Objetivos -->
+                <section id="goals-page" class="page hidden goals-page">
+                    <div class="actions-bar goals-page__actions">
+                        <button type="button" id="add-goal-btn" class="btn-primary"><i class="fas fa-plus"></i> Novo objetivo</button>
+                    </div>
+                    <div id="goals-list" class="goals-grid goals-page__grid">
+                        <!-- Cards de objetivos via JS -->
+                    </div>
+                </section>
+
+                <!-- Investimentos -->
+                <section id="investments-page" class="page hidden">
+                    <div class="actions-bar">
+                        <button type="button" id="add-investment-btn" class="btn-primary"><i class="fas fa-plus"></i>
+                            Novo investimento</button>
+                    </div>
+                    <div class="summary-cards movements-summary investments-summary" aria-label="Resumo de investimentos">
+                        <div class="card">
+                            <div class="card-icon investments"><i class="fas fa-calendar" aria-hidden="true"></i></div>
+                            <div class="card-content">
+                                <h3>Posição total</h3>
+                                <p id="investments-summary-total">—</p>
+                                <span class="card-metric-hint">Soma dos valores atuais das posições cadastradas</span>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-icon investments"><i class="fas fa-calendar-day" aria-hidden="true"></i></div>
+                            <div class="card-content">
+                                <h3>Ativos na carteira</h3>
+                                <p id="investments-summary-count">—</p>
+                                <span class="card-metric-hint">Quantidade de posições com valor cadastrado</span>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-icon investments"><i class="fas fa-chart-line" aria-hidden="true"></i></div>
+                            <div class="card-content">
+                                <h3>Média por ativo</h3>
+                                <p id="investments-summary-avg">—</p>
+                                <span class="card-metric-hint">Valor médio do valor atual entre os ativos</span>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-icon investments"><i class="fas fa-tags" aria-hidden="true"></i></div>
+                            <div class="card-content">
+                                <h3>Principal categoria</h3>
+                                <p id="investments-summary-top-cat">—</p>
+                                <span class="card-metric-hint" id="investments-summary-top-cat-hint"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="investments-list" class="investments-grid">
+                        <!-- Cards de posições ou estado vazio via JS -->
+                    </div>
+                </section>
+
+                <!-- Dívidas -->
+                <section id="debts-page" class="page hidden">
+                    <div class="actions-bar">
+                        <h2>Dívidas</h2>
+                        <button id="add-debt-update-btn" class="btn-primary" type="button">
+                            <i class="fas fa-plus"></i> Nova dívida
+                        </button>
+                    </div>
+
+                    <div class="reports-chart-container">
+                        <div class="reports-chart-header">
+                            <h3>Evolução das dívidas (mês a mês)</h3>
+                        </div>
+                        <p class="reports-chart-hint">Cada linha representa uma empresa. O ponto do mês mostra o último valor registrado naquele mês (quando houver).</p>
+                        <div class="chart-wrapper chart-wrapper--tall">
+                            <canvas id="debts-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table id="debt-updates-table">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Empresa</th>
+                                    <th>Valor</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="debt-updates-tbody">
+                                <!-- Inserido via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section id="tools-page" class="page hidden">
+                    <!-- Kanban de Sugestões de Melhorias -->
+                    <div class="tools-card kanban-container">
+                        <div class="kanban-header">
+                            <div class="kanban-title-section">
+                                <h3><i class="fas fa-columns"></i> Bugs & Melhorias</h3>
+                                <p class="tools-description">Reporte bugs ou sugira melhorias para o sistema.</p>
+                            </div>
+                            <button id="btn-add-kanban-card" class="btn-primary">
+                                <i class="fas fa-plus"></i> Novo Item
+                            </button>
+                        </div>
+
+                        <div class="kanban-board">
+                            <div class="kanban-column" data-column="backlog">
+                                <div class="kanban-column-header">
+                                    <span class="kanban-column-title">Backlog</span>
+                                    <span class="kanban-column-count" data-column="backlog">0</span>
+                                </div>
+                                <div class="kanban-column-body" id="kanban-backlog">
+                                    <!-- Cards serão inseridos via JS -->
+                                </div>
+                            </div>
+
+                            <div class="kanban-column" data-column="ativo">
+                                <div class="kanban-column-header">
+                                    <span class="kanban-column-title">Ativo</span>
+                                    <span class="kanban-column-count" data-column="ativo">0</span>
+                                </div>
+                                <div class="kanban-column-body" id="kanban-ativo">
+                                    <!-- Cards serão inseridos via JS -->
+                                </div>
+                            </div>
+
+                            <div class="kanban-column" data-column="teste">
+                                <div class="kanban-column-header">
+                                    <span class="kanban-column-title">Teste</span>
+                                    <span class="kanban-column-count" data-column="teste">0</span>
+                                </div>
+                                <div class="kanban-column-body" id="kanban-teste">
+                                    <!-- Cards serão inseridos via JS -->
+                                </div>
+                            </div>
+
+                            <div class="kanban-column" data-column="finalizado">
+                                <div class="kanban-column-header">
+                                    <span class="kanban-column-title">Finalizado</span>
+                                    <span class="kanban-column-count" data-column="finalizado">0</span>
+                                </div>
+                                <div class="kanban-column-body" id="kanban-finalizado">
+                                    <!-- Cards serão inseridos via JS -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Modal para adicionar/editar card -->
+                    <div id="kanban-modal" class="modal-container hidden">
+                        <div class="modal-content modal-kanban-form">
+                            <button class="modal-close-btn" aria-label="Fechar">&times;</button>
+                            <h3 id="kanban-modal-title"><i class="fas fa-plus-circle"></i> Novo Item</h3>
+
+                            <!-- Tabs de seleção de tipo -->
+                            <div class="kanban-type-tabs">
+                                <button type="button" class="kanban-tab-btn active" data-type="bug">
+                                    <i class="fas fa-bug"></i> Bug
+                                </button>
+                                <button type="button" class="kanban-tab-btn" data-type="melhoria">
+                                    <i class="fas fa-lightbulb"></i> Melhoria
+                                </button>
+                            </div>
+
+                            <form id="kanban-form" style="display: flex; flex-direction: column; gap: 1rem;">
+                                <input type="hidden" id="kanban-card-id">
+                                <input type="hidden" id="kanban-card-type" value="bug">
+
+                                <!-- Título -->
+                                <div class="form-group kanban-title-group">
+                                    <label for="kanban-card-title">TÍTULO</label>
+                                    <input type="text" id="kanban-card-title" required maxlength="200"
+                                        placeholder="Resumo do bug ou melhoria">
+                                </div>
+
+                                <!-- Campos específicos para BUG -->
+                                <div id="kanban-bug-fields" class="kanban-fields-section">
+                                    <div class="form-group">
+                                        <label for="kanban-bug-screen">TELA/SCREEN *</label>
+                                        <input type="text" id="kanban-bug-screen" maxlength="200"
+                                            placeholder="Ex: Dashboard, Login">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="kanban-bug-steps">PASSOS PARA REPRODUZIR *</label>
+                                        <textarea id="kanban-bug-steps" rows="3"
+                                            placeholder="1. Acesse a tela X&#10;2. Clique no botão Y&#10;3. Observe o erro..."></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="kanban-bug-expected">COMPORTAMENTO ESPERADO</label>
+                                        <textarea id="kanban-bug-expected" rows="2"
+                                            placeholder="O que deveria acontecer?"></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="kanban-bug-actual">COMPORTAMENTO ATUAL *</label>
+                                        <textarea id="kanban-bug-actual" rows="2"
+                                            placeholder="O que está acontecendo?"></textarea>
+                                    </div>
+                                    <div class="form-group kanban-image-upload">
+                                        <label for="kanban-card-image-bug" class="kanban-upload-label">
+                                            <span class="upload-icon"><i class="fas fa-camera"></i></span>
+                                            <span>Adicionar evidência</span>
+                                        </label>
+                                        <input type="file" id="kanban-card-image-bug" class="kanban-file-input" accept="image/*">
+                                        <div id="kanban-image-preview-bug" class="kanban-image-preview hidden">
+                                            <img id="kanban-preview-img-bug" src="" alt="Preview">
+                                            <button type="button" id="kanban-remove-image-bug" class="btn-icon">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Campos específicos para MELHORIA -->
+                                <div id="kanban-melhoria-fields" class="kanban-fields-section hidden">
+                                    <div class="form-group">
+                                        <label for="kanban-melhoria-desc">DESCRIÇÃO DA MELHORIA *</label>
+                                        <textarea id="kanban-melhoria-desc" rows="3"
+                                            placeholder="Descreva detalhadamente a melhoria sugerida..."></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="kanban-melhoria-benefit">BENEFÍCIO ESPERADO</label>
+                                        <textarea id="kanban-melhoria-benefit" rows="2"
+                                            placeholder="Qual o benefício dessa melhoria?"></textarea>
+                                    </div>
+                                    <div class="form-group kanban-image-upload">
+                                        <label for="kanban-card-image-melhoria" class="kanban-upload-label">
+                                            <span class="upload-icon"><i class="fas fa-camera"></i></span>
+                                            <span>Adicionar imagem</span>
+                                        </label>
+                                        <input type="file" id="kanban-card-image-melhoria" class="kanban-file-input" accept="image/*">
+                                        <div id="kanban-image-preview-melhoria" class="kanban-image-preview hidden">
+                                            <img id="kanban-preview-img-melhoria" src="" alt="Preview">
+                                            <button type="button" id="kanban-remove-image-melhoria" class="btn-icon">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <input type="hidden" id="kanban-card-image-data">
+
+                                <div class="form-actions">
+                                    <button type="submit" class="btn-primary">Salvar</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Modal de Visualização de Imagem -->
+                    <div id="kanban-image-modal" class="modal-container hidden">
+                        <div class="modal-overlay"></div>
+                        <div class="modal-content modal-lg">
+                            <button class="modal-close-btn" aria-label="Fechar">&times;</button>
+                            <div class="kanban-image-viewer">
+                                <img id="kanban-viewer-img" src="" alt="Imagem ampliada">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Modal de Visualização do Card -->
+                    <div id="kanban-view-modal" class="modal-container hidden">
+                        <div class="modal-content modal-kanban-view">
+                            <button class="modal-close-btn" aria-label="Fechar">&times;</button>
+
+                            <div class="kanban-view-compact">
+                                <!-- Header: Tipo + Status + Data (1 linha) -->
+                                <div class="kanban-view-header-row">
+                                    <span id="kanban-view-card-type" class="kanban-view-tag"></span>
+                                    <span id="kanban-view-card-column" class="kanban-view-tag"></span>
+                                    <span id="kanban-view-card-date" class="kanban-view-meta-text"></span>
+                                </div>
+
+                                <!-- Imagem (se houver) -->
+                                <div id="kanban-view-card-image-container" class="kanban-view-image-section hidden">
+                                    <img id="kanban-view-card-image" src="" alt="Imagem">
+                                </div>
+
+                                <!-- Título destacado -->
+                                <h4 id="kanban-view-card-title" class="kanban-view-title-compact"></h4>
+
+                                <!-- Conteúdo em 2 colunas -->
+                                <div class="kanban-view-grid">
+                                    <!-- BUG -->
+                                    <div id="kanban-view-bug-fields" class="kanban-view-col hidden">
+                                        <div class="kanban-view-item">
+                                            <span class="kanban-view-label">Tela:</span>
+                                            <span id="kanban-view-screen" class="kanban-view-text"></span>
+                                        </div>
+                                        <div class="kanban-view-item full-width">
+                                            <span class="kanban-view-label">Passos:</span>
+                                            <p id="kanban-view-steps" class="kanban-view-text-pre"></p>
+                                        </div>
+                                        <div class="kanban-view-item">
+                                            <span class="kanban-view-label">Esperado:</span>
+                                            <span id="kanban-view-expected" class="kanban-view-text"></span>
+                                        </div>
+                                        <div class="kanban-view-item">
+                                            <span class="kanban-view-label">Atual:</span>
+                                            <span id="kanban-view-actual" class="kanban-view-text"></span>
+                                        </div>
+                                    </div>
+
+                                    <!-- MELHORIA -->
+                                    <div id="kanban-view-melhoria-fields" class="kanban-view-col hidden">
+                                        <div class="kanban-view-item full-width">
+                                            <span class="kanban-view-label">Descrição:</span>
+                                            <p id="kanban-view-melhoria-desc" class="kanban-view-text-pre"></p>
+                                        </div>
+                                        <div class="kanban-view-item">
+                                            <span class="kanban-view-label">Benefício:</span>
+                                            <span id="kanban-view-benefit" class="kanban-view-text"></span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Footer: Autor + Botão -->
+                                <div class="kanban-view-footer-compact">
+                                    <span id="kanban-view-card-author" class="kanban-view-author"></span>
+                                    <button type="button" class="btn-primary" id="kanban-view-edit-btn">Editar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Calculadora de Juros Compostos -->
+                    <div class="tools-card">
+                        <h3><i class="fas fa-calculator"></i> Calculadora de Juros Compostos</h3>
+                        <p class="tools-description">Calcule o crescimento do seu investimento com juros compostos e
+                            aportes mensais.</p>
+
+                        <form id="compound-interest-form" class="calculator-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="initial-amount">Valor Inicial (R$)</label>
+                                    <input type="number" id="initial-amount" step="0.01" min="0" placeholder="0,00"
+                                        required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="monthly-contribution">Aporte Mensal (R$)</label>
+                                    <input type="number" id="monthly-contribution" step="0.01" min="0"
+                                        placeholder="0,00" required>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="interest-rate">Taxa de Juros (% ao ano)</label>
+                                    <input type="number" id="interest-rate" step="0.01" min="0" max="100"
+                                        placeholder="0,00" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="period-years">Período (em anos)</label>
+                                    <input type="number" id="period-years" step="0.1" min="0.1" max="100"
+                                        placeholder="0" required>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn-primary calculator-btn">
+                                <i class="fas fa-calculator"></i> Calcular
+                            </button>
+                        </form>
+
+                        <div id="calculator-results" class="calculator-results hidden">
+                            <h4>Resultados do Investimento</h4>
+                            <div class="results-grid">
+                                <div class="result-item">
+                                    <span class="result-label">Valor Total Investido:</span>
+                                    <span id="total-invested" class="result-value"></span>
+                                </div>
+                                <div class="result-item">
+                                    <span class="result-label">Total em Juros:</span>
+                                    <span id="total-interest" class="result-value interest"></span>
+                                </div>
+                                <div class="result-item highlight">
+                                    <span class="result-label">Valor Final Acumulado:</span>
+                                    <span id="final-amount" class="result-value final"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Seção de Perfil do Usuário -->
+                <section id="profile-page" class="page hidden">
+                    <div class="profile-sections-grid">
+                    <!-- Seção de Informações Pessoais -->
+                    <div class="profile-section">
+                        <h3><i class="fas fa-user"></i> Informações Pessoais</h3>
+                        <div class="profile-card">
+                            <form id="profile-form" class="profile-form">
+                                <div class="form-group">
+                                    <label for="profile-email">Email</label>
+                                    <input type="email" id="profile-email" readonly>
+                                    <small>O email não pode ser alterado</small>
+                                </div>
+                                <div class="form-group">
+                                    <label for="profile-name">Nome Completo</label>
+                                    <input type="text" id="profile-name" placeholder="Seu nome completo" required>
+                                </div>
+                                <button type="submit" class="btn-primary">
+                                    <i class="fas fa-save"></i> Salvar Alterações
+                                </button>
+                            </form>
+                            <div id="profile-message" class="profile-message hidden"></div>
+                        </div>
+                    </div>
+
+                    <!-- Seção de Segurança -->
+                    <div class="profile-section">
+                        <h3><i class="fas fa-shield-alt"></i> Segurança</h3>
+                        <div class="profile-card">
+                            <form id="password-form" class="profile-form">
+                                <div class="form-group">
+                                    <label for="current-password">Senha Atual</label>
+                                    <input type="password" id="current-password" placeholder="Digite sua senha atual"
+                                        required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="new-password">Nova Senha</label>
+                                    <input type="password" id="new-password" placeholder="Digite a nova senha" required
+                                        minlength="6">
+                                    <small>Mínimo 6 caracteres</small>
+                                </div>
+                                <div class="form-group">
+                                    <label for="confirm-password">Confirmar Nova Senha</label>
+                                    <input type="password" id="confirm-password" placeholder="Confirme a nova senha"
+                                        required minlength="6">
+                                </div>
+                                <button type="submit" class="btn-primary">
+                                    <i class="fas fa-key"></i> Alterar Senha
+                                </button>
+                            </form>
+                            <div id="password-message" class="profile-message hidden"></div>
+                        </div>
+                    </div>
+
+                    <!-- Seção de Aparência e Personalização -->
+                    <div class="profile-section">
+                        <h3><i class="fas fa-palette"></i> Aparência e Personalização</h3>
+                        <div class="profile-card">
+                            <div class="profile-appearance-top">
+                            <div class="profile-photo-section">
+                                <h4>Foto de Perfil</h4>
+                                <div class="photo-upload-area">
+                                    <div class="current-photo">
+                                        <img id="profile-photo-preview"
+                                            src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%23e2e8f0'/><text x='50' y='55' text-anchor='middle' font-size='30' fill='%2394a3b8'>👤</text></svg>"
+                                            alt="Foto de Perfil">
+                                    </div>
+                                    <div class="photo-upload-controls">
+                                        <input type="file" id="profile-photo-input" accept="image/*" class="hidden">
+                                        <button type="button" id="change-photo-btn" class="btn-secondary">
+                                            <i class="fas fa-camera"></i> Alterar Foto
+                                        </button>
+                                        <button type="button" id="remove-photo-btn" class="btn-danger hidden">
+                                            <i class="fas fa-trash"></i> Remover
+                                        </button>
+                                    </div>
+                                    <div id="photo-upload-progress" class="upload-progress hidden">
+                                        <div class="spinner"></div>
+                                        <span>Enviando foto...</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="currency-section">
+                                <h4>Moeda Padrão</h4>
+                                <div class="form-group">
+                                    <label for="default-currency">Moeda Principal</label>
+                                    <select id="default-currency" class="currency-select">
+                                        <option value="BRL">Real Brasileiro (R$)</option>
+                                        <option value="USD">Dólar Americano ($)</option>
+                                        <option value="EUR">Euro (€)</option>
+                                    </select>
+                                    <small>Esta será a moeda exibida em toda a aplicação.</small>
+                                </div>
+                            </div>
+                            </div>
+
+                            <div class="theme-section">
+                                <h4>Tema da interface</h4>
+                                <div class="theme-toggle-row">
+                                    <span class="theme-toggle-label" id="theme-dark-label">Modo escuro</span>
+                                    <label class="theme-switch" for="theme-dark-toggle">
+                                        <input type="checkbox" id="theme-dark-toggle" aria-labelledby="theme-dark-label">
+                                        <span class="theme-slider"></span>
+                                    </label>
+                                </div>
+                                <small>Ativa cores escuras em toda a aplicação.</small>
+                            </div>
+
+                            <div id="personalization-message" class="profile-message hidden"></div>
+                        </div>
+                    </div>
+
+                    <!-- Preferências de caixa (débito no saldo) -->
+                    <div class="profile-section">
+                        <h3><i class="fas fa-wallet"></i> Caixa e pagamentos</h3>
+                        <div class="profile-card">
+                            <form id="finance-preferences-form" class="profile-form">
+                                <p class="finance-pref-intro">Quando ativado, parcelas de cartão, empréstimo e contas fixas mensais aparecem nas saídas do mês, mas o <strong>saldo</strong> só diminui após você marcar cada pagamento como pago (lista no dashboard).</p>
+                                <div class="form-group finance-pref-toggle">
+                                    <label class="checkbox-label" for="finance-pref-manual-enabled">
+                                        <input type="checkbox" id="finance-pref-manual-enabled" name="finance-pref-manual-enabled">
+                                        <span>Exigir confirmação manual para debitar do saldo</span>
+                                    </label>
+                                </div>
+                                <fieldset class="finance-pref-suboptions" id="finance-pref-suboptions" disabled>
+                                    <legend class="sr-only">Aplicar a</legend>
+                                    <div class="form-group">
+                                        <label class="checkbox-label" for="finance-pref-cc">
+                                            <input type="checkbox" id="finance-pref-cc" name="finance-pref-cc" checked>
+                                            <span>Fatura / parcelas no cartão de crédito</span>
+                                        </label>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="checkbox-label" for="finance-pref-loan">
+                                            <input type="checkbox" id="finance-pref-loan" name="finance-pref-loan" checked>
+                                            <span>Empréstimo (parcelas na conta)</span>
+                                        </label>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="checkbox-label" for="finance-pref-monthly">
+                                            <input type="checkbox" id="finance-pref-monthly" name="finance-pref-monthly" checked>
+                                            <span>Contas fixas mensais (marcadas na saída como «conta fixa mensal»)</span>
+                                        </label>
+                                    </div>
+                                </fieldset>
+                                <button type="submit" class="btn-primary">
+                                    <i class="fas fa-save"></i> Salvar preferências de caixa
+                                </button>
+                            </form>
+                            <div id="finance-preferences-message" class="profile-message hidden"></div>
+                        </div>
+                    </div>
+
+                    <!-- Seção Zona de Perigo -->
+                    <div class="profile-section danger-zone">
+                        <h3><i class="fas fa-exclamation-triangle"></i> Zona de Perigo</h3>
+                        <div class="profile-card danger-card">
+                            <div class="danger-warning">
+                                <h4>⚠️ Ações Destrutivas</h4>
+                                <p>As ações nesta seção são <strong>irreversíveis</strong> e resultarão na perda
+                                    permanente de todos os seus dados.</p>
+                            </div>
+
+                            <div class="danger-actions">
+                                <button type="button" id="delete-account-btn" class="btn-danger-large">
+                                    <i class="fas fa-trash-alt"></i> Deletar minha conta permanentemente
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    </div>
+                </section>
+
+                <!-- Seção Apoie o Projeto -->
+                <section id="support-page" class="page hidden">
+                    <div class="support-card">
+                        <div class="support-header">
+                            <h3>❤️ Obrigado por usar o Full Finanças!</h3>
+                            <p>Este projeto é desenvolvido com muito amor e dedicação para ajudar você a ter controle
+                                total das suas finanças. Se você gostou do projeto e quer apoiar seu desenvolvimento
+                                contínuo, considere fazer uma doação.</p>
+                        </div>
+
+                        <div class="support-content">
+                            <div class="pix-info">
+                                <h4><i class="fas fa-qrcode"></i> Doação via PIX</h4>
+                                <div class="pix-details">
+                                    <div class="pix-field">
+                                        <label>Nome:</label>
+                                        <span>Victor Alves Cordeiro</span>
+                                    </div>
+                                    <div class="pix-field">
+                                        <label>Chave PIX:</label>
+                                        <div class="pix-key-container">
+                                            <span id="pix-key">88988229312</span>
+                                            <button id="copy-pix-btn" class="btn-copy">
+                                                <i class="fas fa-copy"></i> Copiar Chave
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="copy-message" class="copy-message hidden">
+                                    <i class="fas fa-check"></i> Chave copiada!
+                                </div>
+                            </div>
+
+                            <div class="support-message">
+                                <h4>🎯 Como sua doação ajuda:</h4>
+                                <ul>
+                                    <li>• Desenvolvimento de novas funcionalidades</li>
+                                    <li>• Melhorias na interface e experiência do usuário</li>
+                                    <li>• Manutenção e atualizações de segurança</li>
+                                    <li>• Hospedagem e infraestrutura do projeto</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </main>
+
+            <!-- Painéis de filtro (saídas / entradas) — fora do <main> para sobreposição correta -->
+            <div id="expenses-filter-drawer" class="filter-drawer" aria-hidden="true" role="dialog" aria-modal="true"
+                aria-labelledby="expenses-filter-drawer-title">
+                <div class="filter-drawer__backdrop" data-filter-drawer-close tabindex="-1"></div>
+                <div class="filter-drawer__panel">
+                    <header class="filter-drawer__header">
+                        <h2 id="expenses-filter-drawer-title" class="filter-drawer__title">Filtrar saídas</h2>
+                        <button type="button" class="filter-drawer__close" data-filter-drawer-close
+                            aria-label="Fechar filtros"><i class="fas fa-times" aria-hidden="true"></i></button>
+                    </header>
+                    <div class="filter-drawer__body">
+                        <div class="filter-drawer-field">
+                            <label for="expenses-filter-q">Busca (data, descrição, categoria, conta, valor…)</label>
+                            <div class="table-filters__search">
+                                <i class="fas fa-search" aria-hidden="true"></i>
+                                <input type="search" id="expenses-filter-q" placeholder="Digite para filtrar…"
+                                    autocomplete="off" aria-label="Buscar saídas">
+                            </div>
+                        </div>
+                        <div class="filter-drawer-field">
+                            <label for="expenses-filter-category">Categoria</label>
+                            <select id="expenses-filter-category" class="table-filters__select" aria-label="Categoria">
+                                <option value="">Todas as categorias</option>
+                            </select>
+                        </div>
+                        <div class="filter-drawer-field">
+                            <label for="expenses-filter-account">Conta</label>
+                            <select id="expenses-filter-account" class="table-filters__select" aria-label="Conta">
+                                <option value="">Todas as contas</option>
+                            </select>
+                        </div>
+                    </div>
+                    <footer class="filter-drawer__footer">
+                        <button type="button" id="expenses-filter-clear" class="btn-secondary">Limpar filtros</button>
+                    </footer>
+                </div>
+            </div>
+
+            <div id="gains-filter-drawer" class="filter-drawer" aria-hidden="true" role="dialog" aria-modal="true"
+                aria-labelledby="gains-filter-drawer-title">
+                <div class="filter-drawer__backdrop" data-filter-drawer-close tabindex="-1"></div>
+                <div class="filter-drawer__panel">
+                    <header class="filter-drawer__header">
+                        <h2 id="gains-filter-drawer-title" class="filter-drawer__title">Filtrar entradas</h2>
+                        <button type="button" class="filter-drawer__close" data-filter-drawer-close
+                            aria-label="Fechar filtros"><i class="fas fa-times" aria-hidden="true"></i></button>
+                    </header>
+                    <div class="filter-drawer__body">
+                        <div class="filter-drawer-field">
+                            <label for="gains-filter-q">Busca (data, descrição, categoria, conta, valor…)</label>
+                            <div class="table-filters__search">
+                                <i class="fas fa-search" aria-hidden="true"></i>
+                                <input type="search" id="gains-filter-q" placeholder="Digite para filtrar…"
+                                    autocomplete="off" aria-label="Buscar entradas">
+                            </div>
+                        </div>
+                        <div class="filter-drawer-field">
+                            <label for="gains-filter-category">Categoria</label>
+                            <select id="gains-filter-category" class="table-filters__select" aria-label="Categoria">
+                                <option value="">Todas as categorias</option>
+                            </select>
+                        </div>
+                        <div class="filter-drawer-field">
+                            <label for="gains-filter-account">Conta</label>
+                            <select id="gains-filter-account" class="table-filters__select" aria-label="Conta">
+                                <option value="">Todas as contas</option>
+                            </select>
+                        </div>
+                    </div>
+                    <footer class="filter-drawer__footer">
+                        <button type="button" id="gains-filter-clear" class="btn-secondary">Limpar filtros</button>
+                    </footer>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aviso “em desenvolvimento”: blur em todo o app + painel centralizado na tela -->
+        <div id="feature-preview-global" class="feature-preview-global hidden" aria-hidden="true" data-preview-key="">
+            <div class="feature-preview-global__backdrop" aria-hidden="true"></div>
+            <div class="feature-preview-panel feature-preview-global__panel" role="alert">
+                <div class="feature-preview-panel__icon" aria-hidden="true"><i class="fas fa-screwdriver-wrench"></i></div>
+                <h3 class="feature-preview-panel__title" id="feature-preview-global-title">Em desenvolvimento</h3>
+                <p class="feature-preview-panel__text" id="feature-preview-global-text">Esta tela ainda está em desenvolvimento e passará por manutenção em breve. A funcionalidade completa será lançada numa atualização futura.</p>
+                <button type="button" class="btn-secondary feature-preview-dismiss">Entendi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: nova dívida — nome, início e valores mês a mês -->
+    <div id="debt-update-modal" class="modal-container hidden" role="dialog" aria-modal="true" aria-labelledby="debt-update-modal-title">
+        <div class="modal-content modal-content--debt-form">
+            <button type="button" class="modal-close-btn" aria-label="Fechar">&times;</button>
+            <h3 id="debt-update-modal-title">Nova dívida</h3>
+            <form id="debt-update-form">
+                <div class="form-group">
+                    <label for="debt-company">Nome / empresa</label>
+                    <input id="debt-company" name="debt-company" type="text" placeholder="Ex.: Banco X, loja Y…" required autocomplete="organization">
+                    <small>O mesmo nome agrupa o histórico no gráfico.</small>
+                </div>
+                <div class="form-group">
+                    <label for="debt-start-date">Data de início da dívida</label>
+                    <input id="debt-start-date" name="debt-start-date" type="date" required>
+                    <small>Depois de escolher a data, aparecem os meses para você preencher o valor de cada um.</small>
+                </div>
+                <div id="debt-monthly-section" class="debt-monthly-section hidden">
+                    <p id="debt-monthly-note" class="debt-monthly-note hidden" role="status"></p>
+                    <p class="debt-monthly-hint">Preencha só os meses em que tiver o valor. Use <strong>Remover</strong> para tirar um mês que não quiser registrar agora.</p>
+                    <div id="debt-monthly-rows" class="debt-monthly-rows"></div>
+                </div>
+                <div class="form-actions debt-update-form__actions">
+                    <button type="button" class="btn-secondary" data-close-modal="debt-update-modal">Cancelar</button>
+                    <button type="submit" class="btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: divisão de saída (criar solicitação) — layout alinhado a modal-forms (saída / entrada) -->
+    <div id="expense-split-modal" class="modal-container hidden" role="dialog" aria-modal="true" aria-labelledby="expense-split-modal-title">
+        <div class="modal-content modal-content--expense-split">
+            <button type="button" class="modal-close-btn" data-close-modal="expense-split-modal" aria-label="Fechar">&times;</button>
+            <h3 id="expense-split-modal-title"><i class="fas fa-users" aria-hidden="true"></i> Dividir saída</h3>
+            <form id="expense-split-form" style="display: flex; flex-direction: column; gap: 1rem;">
+                <input type="hidden" id="expense-split-source-id" name="expense-split-source-id">
+                <div id="expense-split-modal-summary" class="form-message info expense-split-modal__summary" role="status"></div>
+                <div class="form-group">
+                    <label for="expense-split-recipient-select">Usuário (e-mail cadastrado)</label>
+                    <select id="expense-split-recipient-select" name="expense-split-recipient-select" required>
+                        <option value="">Carregando lista…</option>
+                    </select>
+                </div>
+                <div class="expense-split-modal__grid">
+                    <div class="form-group">
+                        <label for="expense-split-amount">Valor da parte</label>
+                        <input type="number" id="expense-split-amount" step="0.01" min="0.01" required placeholder="R$ 0,00">
+                    </div>
+                    <div class="form-group">
+                        <label for="expense-split-credit-account">Conta para o extorno</label>
+                        <select id="expense-split-credit-account" required>
+                            <option value="">Selecione</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="expense-split-modal-existing-wrap" class="expense-split-modal-existing-wrap">
+                    <h4 class="expense-split-modal-existing-title">Divisões desta saída</h4>
+                    <div id="expense-split-modal-existing" class="expense-split-modal-existing" aria-live="polite"></div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" data-close-modal="expense-split-modal">Cancelar</button>
+                    <button type="submit" class="btn-primary">Enviar solicitação</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: divisões pendentes ao entrar (mesmo cartão / margens que «Dividir saída») -->
+    <div id="split-incoming-login-modal" class="modal-container hidden" role="dialog" aria-modal="true" aria-labelledby="split-incoming-login-title">
+        <div class="modal-content modal-content--expense-split modal-content--split-pending">
+            <button type="button" class="modal-close-btn" id="split-incoming-login-close" data-close-modal="split-incoming-login-modal" aria-label="Fechar">&times;</button>
+            <h3 id="split-incoming-login-title"><i class="fas fa-users" aria-hidden="true"></i> Divisões de despesas pendentes</h3>
+            <div class="split-incoming-login-body">
+                <div class="form-message info split-incoming-login-intro" role="status">
+                    Você tem solicitações para aceitar ou recusar. Ao aceitar, sua parte será lançada como saída e o solicitante receberá o extorno.
+                </div>
+                <ul id="split-incoming-login-list" class="split-incoming-login-list"></ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Saída -->
+    <div id="expense-modal" class="modal-container hidden">
+        <div class="modal-content">
+            <button type="button" class="modal-close-btn">&times;</button>
+            <h3 id="expense-modal-title">Nova saída</h3>
+            <form id="expense-form" style="display: flex; flex-direction: column; gap: 1rem;">
+                <input type="hidden" id="expense-id">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group expense-category-group">
+                        <label for="expense-category-select">Categoria</label>
+                        <select id="expense-category-select" required>
+                            <option value="">Selecione uma categoria</option>
+                        </select>
+                    </div>
+                    <div class="form-group expense-subcategory-group">
+                        <label for="expense-subcategory-select">Subcategoria</label>
+                        <select id="expense-subcategory-select">
+                            <option value="">Selecione uma categoria primeiro</option>
+                        </select>
+                        <div id="expense-subcategory-new-row" class="expense-subcategory-new-row hidden">
+                            <input type="text" id="expense-subcategory-new-input" placeholder="Nome da nova subcategoria"
+                                maxlength="80" autocomplete="off">
+                            <button type="button" id="expense-subcategory-new-save" class="btn-primary expense-subcategory-new-btn">Adicionar</button>
+                            <button type="button" id="expense-subcategory-new-cancel" class="btn-secondary expense-subcategory-new-btn">Cancelar</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group expense-description-group">
+                    <label for="expense-description">Descrição</label>
+                    <input type="text" id="expense-description" required
+                        placeholder="Escolha uma categoria acima; o exemplo de descrição muda conforme o tipo de gasto.">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label for="expense-amount">Valor</label>
+                        <input type="number" step="0.01" id="expense-amount" placeholder="R$ 0,00" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="expense-payment-method">Forma de pagamento</label>
+                        <select id="expense-payment-method" name="expense-payment-method" required>
+                            <option value="">Selecione</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="expense-loan-debit-account-row" class="form-group hidden">
+                    <label for="expense-loan-debit-account">Conta das parcelas</label>
+                    <select id="expense-loan-debit-account" name="expense-loan-debit-account">
+                        <option value="">Selecione a conta debitada</option>
+                    </select>
+                </div>
+                <div id="expense-date-recurring-grid" class="expense-date-recurring-grid">
+                    <div class="form-group">
+                        <label for="expense-date">Data</label>
+                        <input type="date" id="expense-date" required>
+                    </div>
+                    <div class="form-group expense-recurring-mode-row" id="expense-recurring-mode-row">
+                        <label for="expense-recurring-mode">RECORRENTE</label>
+                        <select id="expense-recurring-mode" name="expense-recurring-mode" class="expense-recurring-mode-select">
+                            <option value="0">Não</option>
+                            <option value="1">Sim</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="expense-installments-row" class="form-group hidden">
+                    <label for="expense-installments">Parcelas no cartão de crédito</label>
+                    <input type="number" id="expense-installments" min="1" max="99" step="1" value="1"
+                        inputmode="numeric" autocomplete="off">
+                    <small>Total de parcelas. O sistema calcula automaticamente quais já venceram com base na <strong>data da compra</strong>, no <strong>fechamento</strong> e no <strong>vencimento</strong> do cartão.</small>
+                </div>
+                <div id="expense-installment-preview" class="form-group hidden expense-installment-preview" aria-live="polite"></div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Confirmação de parcela (lista de saídas — modo confirmação manual) -->
+    <div id="confirm-installment-cash-out-modal" class="modal-container hidden">
+        <div class="modal-content confirm-installment-modal">
+            <button type="button" class="modal-close-btn" aria-label="Fechar">&times;</button>
+            <h3>Confirmar pagamento</h3>
+            <p id="confirm-installment-cash-out-message">
+                Deseja <strong>constar o pagamento</strong> desta parcela? O valor será descontado do saldo conforme a confirmação manual no perfil.
+            </p>
+            <div class="form-actions">
+                <button type="button" class="btn-secondary" id="confirm-installment-cash-out-cancel">Cancelar</button>
+                <button type="button" class="btn-primary" id="confirm-installment-cash-out-ok">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Entrada -->
+    <div id="gain-modal" class="modal-container hidden">
+        <div class="modal-content">
+            <button type="button" class="modal-close-btn">&times;</button>
+            <h3 id="gain-modal-title">Nova entrada</h3>
+            <form id="gain-form" style="display: flex; flex-direction: column; gap: 1rem;">
+                <input type="hidden" id="gain-id">
+                <div class="form-group gain-category-group">
+                    <label for="gain-category-select">Categoria</label>
+                    <select id="gain-category-select" required>
+                        <option value="">Selecione uma categoria</option>
+                    </select>
+                </div>
+                <div class="form-group gain-description-group">
+                    <label for="gain-description">Descrição</label>
+                    <input type="text" id="gain-description" required
+                        placeholder="Escolha uma categoria acima; o exemplo de descrição muda conforme o tipo de receita.">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label for="gain-amount">Valor</label>
+                        <input type="number" step="0.01" id="gain-amount" placeholder="R$ 0,00" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="gain-account">Conta</label>
+                        <select id="gain-account" required>
+                            <option value="">Selecione uma conta</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="gain-date-recurring-grid" class="expense-date-recurring-grid">
+                    <div class="form-group">
+                        <label for="gain-date">Data</label>
+                        <input type="date" id="gain-date" required>
+                    </div>
+                    <div class="form-group gain-recurring-mode-row" id="gain-recurring-row">
+                        <label for="gain-recurring-mode">RECORRENTE</label>
+                        <select id="gain-recurring-mode" name="gain-recurring-mode" class="expense-recurring-mode-select">
+                            <option value="0">Não</option>
+                            <option value="1">Sim</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <datalist id="common-categories">
+        <option value="Alimentação">
+        <option value="Assinaturas e streaming">
+        <option value="Educação">
+        <option value="Energia e água">
+        <option value="Freelance">
+        <option value="Lazer">
+        <option value="Moradia">
+        <option value="Pets">
+        <option value="Presentes e doações">
+        <option value="Roupas e calçados">
+        <option value="Saúde">
+        <option value="Salário">
+        <option value="Seguros">
+        <option value="Supermercado">
+        <option value="Transporte">
+        <option value="Viagens">
+        <option value="Investimentos e taxas">
+        <option value="Trabalho">
+        <option value="Outros">
+    </datalist>
+
+    <!-- Modal de Gerenciamento de Categorias -->
+    <div id="manage-categories-modal" class="modal-container hidden">
+        <div class="modal-content" style="max-width: 500px; padding: 0 1.5rem 1.5rem 1.5rem;">
+            <button type="button" class="modal-close-btn">&times;</button>
+            <h3 style="margin-bottom: 1rem; margin-top: 1rem;">Gerenciar Categorias</h3>
+            <div id="categories-list" style="max-height: 300px; overflow-y: auto; margin-bottom: 1rem; padding-right: 0.5rem;">
+                <!-- Lista de categorias -->
+            </div>
+            <button type="button" id="add-new-category-btn" class="btn-primary" style="width: 100%;">
+                <i class="fas fa-plus"></i> Nova Categoria
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal para Adicionar/Editar Categoria -->
+    <div id="category-form-modal" class="modal-container hidden">
+        <div class="modal-content" style="max-width: 350px;">
+            <button type="button" class="modal-close-btn">&times;</button>
+            <h3 id="category-form-title" style="margin-bottom: 1rem;">Nova Categoria</h3>
+            <div style="padding: 0 1.5rem 1.5rem 1.5rem;">
+                <div class="form-group">
+                    <label for="category-name-input">Nome da categoria</label>
+                    <input type="text" id="category-name-input" maxlength="80" placeholder="Ex: Alimentação" style="width: 100%;">
+                </div>
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label for="category-type-select">Tipo</label>
+                    <select id="category-type-select" style="width: 100%;">
+                        <option value="EXPENSE">Saída</option>
+                        <option value="GAIN">Entrada</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                    <button type="button" id="category-cancel-btn" class="btn-secondary" style="flex: 1;">Cancelar</button>
+                    <button type="button" id="category-save-btn" class="btn-primary" style="flex: 1;">Salvar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Adicionar/Editar Subcategoria -->
+    <div id="subcategory-form-modal" class="modal-container hidden">
+        <div class="modal-content" style="max-width: 350px;">
+            <button type="button" class="modal-close-btn">&times;</button>
+            <h3 id="subcategory-form-title" style="margin-bottom: 1rem;">Nova Subcategoria</h3>
+            <div style="padding: 0 1.5rem 1.5rem 1.5rem;">
+                <div class="form-group">
+                    <label for="subcategory-category-input">Categoria</label>
+                    <input type="text" id="subcategory-category-input" readonly style="width: 100%; background: #f5f5f5; color: #666;">
+                </div>
+                <div class="form-group">
+                    <label for="subcategory-name-input">Nome da subcategoria</label>
+                    <input type="text" id="subcategory-name-input" maxlength="80" placeholder="Ex: Restaurante" style="width: 100%;">
+                </div>
+                <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                    <button type="button" id="subcategory-cancel-btn" class="btn-secondary" style="flex: 1;">Cancelar</button>
+                    <button type="button" id="subcategory-save-btn" class="btn-primary" style="flex: 1;">Salvar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Adicionar/Editar Conta/Cartão -->
+    <div id="account-modal" class="modal-container hidden">
+        <div class="modal-content">
+            <button class="modal-close-btn">&times;</button>
+            <h3 id="account-modal-title">Nova Conta</h3>
+            <div id="account-message" class="form-message hidden"></div>
+            <form id="account-form">
+                <input type="hidden" id="account-id" name="account-id">
+                <div class="form-group">
+                    <label for="account-name" id="account-name-label">Nome da conta</label>
+                    <input type="text" id="account-name" name="account-name" placeholder="Ex: Conta principal, Carteira" required aria-required="true">
+                </div>
+                <div class="form-group" id="card-holder-group">
+                    <label for="card-holder-name" id="account-holder-label">Titular da conta</label>
+                    <input type="text" id="card-holder-name" name="card-holder-name" placeholder="Nome completo do titular" maxlength="120" autocomplete="name">
+                    <small id="account-holder-hint" class="form-hint hidden"></small>
+                </div>
+                <div class="form-group hidden" id="card-color-group">
+                    <span class="form-label-block" id="card-color-label">Cor do cartão</span>
+                    <div class="card-tone-picker container-items" role="radiogroup" aria-labelledby="card-color-label">
+                        <label class="card-tone-item" data-plastic="violet" title="Roxo" data-hex="#7c3aed">
+                            <input type="radio" name="card-plastic-tone" value="violet" checked>
+                        </label>
+                        <label class="card-tone-item" data-plastic="ocean" title="Azul oceano" data-hex="#0ea5e9">
+                            <input type="radio" name="card-plastic-tone" value="ocean">
+                        </label>
+                        <label class="card-tone-item" data-plastic="navy" title="Azul corporativo" data-hex="#1d4ed8">
+                            <input type="radio" name="card-plastic-tone" value="navy">
+                        </label>
+                        <label class="card-tone-item" data-plastic="gold" title="Dourado" data-hex="#d97706">
+                            <input type="radio" name="card-plastic-tone" value="gold">
+                        </label>
+                        <label class="card-tone-item" data-plastic="platinum" title="Prata / platina" data-hex="#cbd5e1">
+                            <input type="radio" name="card-plastic-tone" value="platinum">
+                        </label>
+                        <label class="card-tone-item" data-plastic="rosegold" title="Rose gold" data-hex="#c08497">
+                            <input type="radio" name="card-plastic-tone" value="rosegold">
+                        </label>
+                        <label class="card-tone-item" data-plastic="red" title="Vermelho" data-hex="#dc2626">
+                            <input type="radio" name="card-plastic-tone" value="red">
+                        </label>
+                        <label class="card-tone-item" data-plastic="burgundy" title="Bordô" data-hex="#991b1b">
+                            <input type="radio" name="card-plastic-tone" value="burgundy">
+                        </label>
+                        <label class="card-tone-item" data-plastic="green" title="Verde" data-hex="#10b981">
+                            <input type="radio" name="card-plastic-tone" value="green">
+                        </label>
+                        <label class="card-tone-item" data-plastic="graphite" title="Grafite" data-hex="#1e293b">
+                            <input type="radio" name="card-plastic-tone" value="graphite">
+                        </label>
+                        <label class="card-tone-item" data-plastic="midnight" title="Preto" data-hex="#171717">
+                            <input type="radio" name="card-plastic-tone" value="midnight">
+                        </label>
+                        <label class="card-tone-item card-tone-item--custom" title="Cor livre (gradiente)" data-hex="livre">
+                            <input type="radio" name="card-plastic-tone" value="custom">
+                        </label>
+                    </div>
+                    <div id="card-custom-color-row" class="card-custom-color-row hidden">
+                        <label for="card-plastic-color">Cor personalizada</label>
+                        <div class="card-custom-color-inputs">
+                            <input type="color" id="card-plastic-color" value="#7c3aed" aria-label="Selecionar cor do cartão">
+                        </div>
+                    </div>
+                    <small class="form-hint">Define o gradiente principal do cartão na lista.</small>
+                </div>
+                <div class="form-group" id="account-type-group">
+                    <label for="account-type">Tipo</label>
+                    <select id="account-type" name="account-type" required>
+                        <option value="conta_corrente">Conta Corrente</option>
+                        <option value="poupanca">Poupança</option>
+                        <option value="dinheiro">Dinheiro</option>
+                        <option value="investimento">Investimento</option>
+                        <option value="cartao_credito">Cartão de crédito</option>
+                        <option value="cartao_debito">Cartão de débito</option>
+                        <option value="outros">Outros</option>
+                    </select>
+                </div>
+                <div class="form-group" id="initial-balance-group">
+                    <label for="account-initial-balance">Saldo inicial</label>
+                    <input type="number" step="0.01" id="account-initial-balance" name="account-initial-balance" placeholder="0,00" inputmode="decimal" autocomplete="off" title="Pode ser zero se a conta estiver zerada">
+                </div>
+                <!-- Campos específicos para cartão de crédito -->
+                <div id="credit-card-fields" class="hidden">
+                    <div class="form-group">
+                        <label for="card-limit">Limite do Cartão</label>
+                        <input type="number" step="0.01" id="card-limit" name="card-limit" placeholder="R$ 1000,00">
+                    </div>
+                    <div class="form-group">
+                        <label for="card-closing-day">Dia do Fechamento</label>
+                        <input type="number" id="card-closing-day" name="card-closing-day" min="1" max="31" placeholder="Ex: 20">
+                    </div>
+                    <div class="form-group">
+                        <label for="card-due-day">Dia do Vencimento</label>
+                        <input type="number" id="card-due-day" name="card-due-day" min="1" max="31" placeholder="Ex: 28">
+                    </div>
+                </div>
+                <div id="card-linked-account-group" class="form-group hidden">
+                    <label for="card-linked-account">Conta à qual o cartão está vinculado</label>
+                    <select id="card-linked-account" name="card-linked-account">
+                        <option value="">Selecione a conta</option>
+                    </select>
+                    <small id="card-linked-hint" class="form-hint" data-hint-credit="Indique a conta corrente ou outra conta deste banco emissor. Obrigatório para cadastrar o cartão." data-hint-debit="O débito não tem saldo próprio: o valor exibido no plástico é o saldo desta conta."></small>
+                </div>
+                <button type="submit" class="btn-primary">Salvar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Investimento -->
+    <div id="investment-modal" class="modal-container hidden">
+        <div class="modal-content">
+            <button class="modal-close-btn" type="button">&times;</button>
+            <h3 id="investment-modal-title">Novo investimento</h3>
+            <div id="investment-message" class="form-message hidden"></div>
+            <form id="investment-form">
+                <input type="hidden" id="investment-id" name="investment-id" value="">
+                <div class="form-group">
+                    <label for="investment-name">Nome</label>
+                    <input type="text" id="investment-name" name="investment-name"
+                        placeholder="Ex: PETR4, Tesouro IPCA 2035, Fundo XYZ" required>
+                </div>
+                <div class="form-group">
+                    <label for="investment-category">Categoria</label>
+                    <select id="investment-category" name="investment-category" required>
+                        <option value="acao">Ação</option>
+                        <option value="fii">FII</option>
+                        <option value="renda_fixa">Renda fixa</option>
+                        <option value="fundo">Fundo</option>
+                        <option value="cripto">Cripto</option>
+                        <option value="outro">Outro</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="investment-institution">Instituição (opcional)</label>
+                    <input type="text" id="investment-institution" name="investment-institution"
+                        placeholder="Ex: Corretora, banco">
+                </div>
+                <div class="form-group">
+                    <label for="investment-current-value">Valor atual da posição (R$)</label>
+                    <input type="number" id="investment-current-value" name="investment-current-value" step="0.01"
+                        min="0" placeholder="0,00" required>
+                </div>
+                <div class="form-group">
+                    <label for="investment-linked-account">Conta custódia (opcional)</label>
+                    <select id="investment-linked-account" name="investment-linked-account">
+                        <option value="">Nenhuma</option>
+                    </select>
+                    <small>Onde o ativo está registrado (ex.: conta investimento).</small>
+                </div>
+                <div class="form-group">
+                    <label for="investment-notes">Observações (opcional)</label>
+                    <textarea id="investment-notes" name="investment-notes" rows="2"
+                        placeholder="Notas para você lembrar depois"></textarea>
+                </div>
+                <button type="submit" class="btn-primary">Salvar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para Adicionar/Editar Objetivo -->
+    <div id="goal-modal" class="modal-container hidden">
+        <div class="modal-content goal-modal">
+            <button type="button" class="modal-close-btn" aria-label="Fechar">&times;</button>
+            <h3 class="goal-modal__heading">
+                <i class="fas fa-bullseye" aria-hidden="true"></i>
+                <span id="goal-modal-title">Novo objetivo</span>
+            </h3>
+            <p id="goal-modal-subtitle" class="goal-modal__subtitle">Nome, tipo, valores e, se quiser, uma conta só para referência.</p>
+            <div id="goal-message" class="form-message hidden"></div>
+            <form id="goal-form" class="goal-form">
+                <input type="hidden" id="goal-id">
+                <div class="goal-form-fields">
+                    <div class="form-group goal-form-group--tight">
+                        <label for="goal-name">Nome</label>
+                        <input type="text" id="goal-name" name="goal-name" placeholder="Ex.: Viagem Nordeste, Cofrinho reforma…" required maxlength="120" autocomplete="off">
+                    </div>
+                    <fieldset class="goal-type-fieldset goal-type-fieldset--in-modal">
+                        <legend class="goal-type-fieldset__legend">Tipo</legend>
+                        <p class="goal-type-fieldset__hint">Define o estilo colorido do card na lista.</p>
+                        <div class="goal-type-grid" role="radiogroup" aria-label="Tipo do objetivo">
+                            <label class="goal-type-option">
+                                <input type="radio" name="goal-type" value="viagem">
+                                <span class="goal-type-option__card">
+                                    <span class="goal-type-option__decor" aria-hidden="true">✈️</span>
+                                    <span class="goal-type-option__label">Viagem</span>
+                                </span>
+                            </label>
+                            <label class="goal-type-option">
+                                <input type="radio" name="goal-type" value="casa">
+                                <span class="goal-type-option__card">
+                                    <span class="goal-type-option__decor" aria-hidden="true">🏠</span>
+                                    <span class="goal-type-option__label">Casa / imóvel</span>
+                                </span>
+                            </label>
+                            <label class="goal-type-option">
+                                <input type="radio" name="goal-type" value="veiculo">
+                                <span class="goal-type-option__card">
+                                    <span class="goal-type-option__decor" aria-hidden="true">🚗</span>
+                                    <span class="goal-type-option__label">Veículo</span>
+                                </span>
+                            </label>
+                            <label class="goal-type-option">
+                                <input type="radio" name="goal-type" value="educacao">
+                                <span class="goal-type-option__card">
+                                    <span class="goal-type-option__decor" aria-hidden="true">📚</span>
+                                    <span class="goal-type-option__label">Educação</span>
+                                </span>
+                            </label>
+                            <label class="goal-type-option">
+                                <input type="radio" name="goal-type" value="saude">
+                                <span class="goal-type-option__card">
+                                    <span class="goal-type-option__decor" aria-hidden="true">💚</span>
+                                    <span class="goal-type-option__label">Saúde</span>
+                                </span>
+                            </label>
+                            <label class="goal-type-option">
+                                <input type="radio" name="goal-type" value="aposentadoria">
+                                <span class="goal-type-option__card">
+                                    <span class="goal-type-option__decor" aria-hidden="true">☀️</span>
+                                    <span class="goal-type-option__label">Aposentadoria</span>
+                                </span>
+                            </label>
+                            <label class="goal-type-option">
+                                <input type="radio" name="goal-type" value="emergencia">
+                                <span class="goal-type-option__card">
+                                    <span class="goal-type-option__decor" aria-hidden="true">🛡️</span>
+                                    <span class="goal-type-option__label">Reserva</span>
+                                </span>
+                            </label>
+                            <label class="goal-type-option">
+                                <input type="radio" name="goal-type" value="outro" checked required>
+                                <span class="goal-type-option__card">
+                                    <span class="goal-type-option__decor" aria-hidden="true">✨</span>
+                                    <span class="goal-type-option__label">Outro</span>
+                                </span>
+                            </label>
+                        </div>
+                    </fieldset>
+                    <div class="goal-form-row">
+                        <div class="form-group">
+                            <label for="goal-target-amount">Meta (R$)</label>
+                            <input type="number" step="0.01" min="0.01" id="goal-target-amount" name="goal-target-amount" placeholder="0,00" inputmode="decimal" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="goal-current-amount">Já guardado (R$)</label>
+                            <input type="number" step="0.01" min="0" id="goal-current-amount" name="goal-current-amount" placeholder="0,00" value="0" inputmode="decimal">
+                        </div>
+                    </div>
+                    <p class="goal-form-note" role="note">
+                        <i class="fas fa-info-circle" aria-hidden="true"></i>
+                        O progresso do objetivo usa só <strong>Já guardado</strong>. O saldo da conta não entra automaticamente.
+                    </p>
+                    <div class="form-group goal-form-group--account">
+                        <label for="goal-account">Conta para referência <span class="goal-form-optional">(opcional)</span></label>
+                        <select id="goal-account" name="goal-account">
+                            <option value="">Nenhuma</option>
+                        </select>
+                        <small>Apenas para lembrar onde você guarda esse dinheiro.</small>
+                    </div>
+                </div>
+                <div class="goal-form-actions">
+                    <button type="submit" class="btn-primary goal-form-submit-btn">
+                        <i class="fas fa-check" aria-hidden="true"></i> Salvar objetivo
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Compras e lançamentos do cartão -->
+    <div id="card-purchases-modal" class="modal-container hidden">
+        <div class="modal-content card-purchases-modal">
+            <button type="button" class="modal-close-btn" aria-label="Fechar">&times;</button>
+            <header class="card-purchases-modal__header">
+                <div class="card-purchases-modal__head-main">
+                    <span class="card-purchases-modal__badge" id="card-purchases-modal-badge" aria-hidden="true"><i
+                            class="fas fa-credit-card"></i></span>
+                    <div class="card-purchases-modal__head-text">
+                        <h3 id="card-purchases-modal-title">Cartão</h3>
+                        <p id="card-purchases-modal-subtitle" class="card-purchases-modal__subtitle"></p>
+                    </div>
+                </div>
+                <div class="card-purchases-modal__actions" id="card-purchases-modal-actions">
+                    <button type="button" class="btn-secondary card-purchases-modal__action-btn btn-edit"
+                        id="card-purchases-modal-edit-btn" data-id="" title="Editar cartão" aria-label="Editar cartão">
+                        <i class="fas fa-pencil-alt" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="btn-secondary card-purchases-modal__action-btn btn-delete"
+                        id="card-purchases-modal-delete-btn" data-id="" title="Excluir cartão" aria-label="Excluir cartão">
+                        <i class="fas fa-trash-alt" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </header>
+            <div id="card-purchases-summary" class="card-purchases-summary"></div>
+            <section id="card-purchases-list-section" class="card-purchases-list-section" aria-labelledby="card-purchases-list-heading">
+                <div class="card-purchases-list-section__head">
+                    <h4 id="card-purchases-list-heading" class="card-purchases-list-section__title"><i
+                            class="fas fa-list-ul" aria-hidden="true"></i> Lançamentos</h4>
+                </div>
+                <div class="card-purchases-table-wrap">
+                <div class="table-filters table-filters--compact" id="card-purchases-filters-wrap">
+                    <div class="table-filters__row">
+                        <label class="table-filters__search">
+                            <i class="fas fa-search" aria-hidden="true"></i>
+                            <input type="search" id="card-purchases-filter-q" placeholder="Buscar compras…" autocomplete="off" aria-label="Buscar lançamentos do cartão">
+                        </label>
+                        <button type="button" id="card-purchases-filter-clear" class="btn-secondary table-filters__clear">Limpar</button>
+                    </div>
+                </div>
+                <div id="card-purchases-pagination" class="table-pagination-host"></div>
+                <table class="card-purchases-table" id="card-purchases-table">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="sortable-th" data-sort-key="date"><button type="button" class="sortable-th__btn">Data <i class="fas fa-sort sortable-th__icon" aria-hidden="true"></i></button></th>
+                            <th scope="col" class="sortable-th" data-sort-key="description"><button type="button" class="sortable-th__btn">Descrição <i class="fas fa-sort sortable-th__icon" aria-hidden="true"></i></button></th>
+                            <th scope="col" class="sortable-th" data-sort-key="category"><button type="button" class="sortable-th__btn">Categoria <i class="fas fa-sort sortable-th__icon" aria-hidden="true"></i></button></th>
+                            <th scope="col" class="sortable-th" data-sort-key="amount"><button type="button" class="sortable-th__btn">Valor <i class="fas fa-sort sortable-th__icon" aria-hidden="true"></i></button></th>
+                            <th scope="col" class="sortable-th" data-sort-key="installments"><button type="button" class="sortable-th__btn">Parcelas <i class="fas fa-sort sortable-th__icon" aria-hidden="true"></i></button></th>
+                            <th scope="col" class="sortable-th" data-sort-key="lastInstallment"><button type="button" class="sortable-th__btn">Última parcela (prev.) <i class="fas fa-sort sortable-th__icon" aria-hidden="true"></i></button></th>
+                            <th scope="col" class="sortable-th" data-sort-key="status"><button type="button" class="sortable-th__btn">Status <i class="fas fa-sort sortable-th__icon" aria-hidden="true"></i></button></th>
+                        </tr>
+                    </thead>
+                    <tbody id="card-purchases-tbody"></tbody>
+                </table>
+                </div>
+            </section>
+            <div id="card-purchases-empty" class="card-purchases-empty hidden" role="status">
+                <div class="card-purchases-empty__icon" aria-hidden="true"><i class="fas fa-receipt"></i></div>
+                <p class="card-purchases-empty__title">Nenhum lançamento neste cartão</p>
+                <p class="card-purchases-empty__hint">Registre saídas escolhendo este cartão como forma de pagamento.</p>
+            </div>
+            <p class="card-purchases-footnote"><small>A previsão da última parcela considera um mês entre cada parcela, a partir da data do lançamento.</small></p>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmação de Exclusão de Conta -->
+    <div id="delete-account-modal" class="modal-container hidden">
+        <div class="modal-content delete-account-modal">
+            <button class="modal-close-btn">&times;</button>
+            <h3><i class="fas fa-exclamation-triangle"></i> Confirmar Exclusão de Conta</h3>
+            <div class="modal-body">
+                <div class="delete-warning">
+                    <h4>⚠️ ATENÇÃO: Esta ação é IRREVERSÍVEL!</h4>
+                    <p>A exclusão da sua conta resultará na perda <strong>permanente</strong> de todos os seus dados:
+                    </p>
+                    <ul>
+                        <li>• Todas as suas contas bancárias</li>
+                        <li>• Todas as saídas e entradas registradas</li>
+                        <li>• Todas as metas</li>
+                        <li>• Todos os cartões de crédito</li>
+                        <li>• Sua foto de perfil</li>
+                        <li>• Todas as configurações personalizadas</li>
+                    </ul>
+                    <p><strong>Esta ação não pode ser desfeita.</strong></p>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirm-email">Para confirmar, digite seu email:</label>
+                    <input type="email" id="confirm-email" placeholder="Digite seu email completo" required>
+                    <small>Você deve digitar exatamente: <strong id="user-email-display"></strong></small>
+                </div>
+
+                <div id="delete-account-message" class="form-message hidden"></div>
+                <div class="delete-progress hidden">
+                    <div class="spinner"></div>
+                    <span>Excluindo sua conta e todos os dados...</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeModal(deleteAccountModal)">Cancelar</button>
+                <button type="button" id="confirm-delete-btn" class="btn-danger-large" disabled>
+                    <i class="fas fa-trash-alt"></i> Eu entendo as consequências, deletar minha conta
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts JS -->
+    <script type="module" src="js/app/main.js"></script>
+
+    <!-- Tour Guiado para Novos Usuários -->
+    <div id="tour-overlay" class="tour-overlay hidden"></div>
+    <div id="tour-tooltip" class="tour-tooltip hidden">
+        <div class="tour-tooltip-header">
+            <span id="tour-title"></span>
+            <button id="tour-close-btn" class="tour-close-btn" title="Pular Tour"
+                aria-label="Pular Tour">&times;</button>
+        </div>
+        <div id="tour-text" class="tour-tooltip-text"></div>
+        <div class="tour-progress"></div>
+        <div class="tour-tooltip-footer">
+            <button id="tour-prev-btn" class="tour-nav-btn" aria-label="Etapa anterior">Anterior</button>
+            <button id="tour-next-btn" class="tour-nav-btn" aria-label="Próxima etapa">Próximo</button>
+        </div>
+    </div>
+
+    <!-- Botão para Reiniciar Tour -->
+    <button id="restart-tour-btn" class="restart-tour-btn hidden" aria-label="Reiniciar tour guiado">
+        <i class="fas fa-redo-alt"></i>
+        Reiniciar Tour
+    </button>
+
+    <!-- Função de Scroll Suave Customizada -->
+    <script>
+        function smoothScrollTo(targetId) {
+            const target = document.getElementById(targetId);
+            if (!target) return;
+
+            const startPosition = window.pageYOffset;
+            const targetPosition = target.getBoundingClientRect().top + startPosition;
+            const distance = targetPosition - startPosition;
+            const duration = 1200; // 1.2 segundos
+            let startTime = null;
+
+            // Função de easing (ease-in-out)
+            function easeInOutCubic(t) {
+                return t < 0.5
+                    ? 4 * t * t * t
+                    : 1 - Math.pow(-2 * t + 2, 3) / 2;
+            }
+
+            function animation(currentTime) {
+                if (startTime === null) startTime = currentTime;
+                const timeElapsed = currentTime - startTime;
+                const progress = Math.min(timeElapsed / duration, 1);
+                const ease = easeInOutCubic(progress);
+
+                window.scrollTo(0, startPosition + distance * ease);
+
+                if (timeElapsed < duration) {
+                    requestAnimationFrame(animation);
+                }
+            }
+
+            requestAnimationFrame(animation);
+        }
+    </script>
+
+</body>
+
+</html>

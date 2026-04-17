@@ -1,0 +1,1552 @@
+/**
+ * Formulários em modais — criar/editar (transação, conta, investimento, meta, pagamento).
+ * Carregado após components.css
+ */
+
+/* --- Overlay --- */
+.modal-container {
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.modal-container.active {
+    animation: modalBackdropIn 0.25s ease;
+}
+
+@keyframes modalBackdropIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* --- Card do modal --- */
+.modal-content {
+    width: 100%;
+    max-width: 32rem;
+    padding: 0;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    box-shadow:
+        0 25px 50px -12px rgba(15, 23, 42, 0.2),
+        0 0 0 1px rgba(15, 23, 42, 0.04);
+    animation: modalContentIn 0.3s cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+
+@keyframes modalContentIn {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.modal-content::before {
+    content: '';
+    display: block;
+    height: 4px;
+    width: 100%;
+    background: linear-gradient(90deg, var(--primary-color) 0%, #6366f1 45%, var(--secondary-color) 100%);
+}
+
+.modal-content.delete-account-modal::before {
+    background: linear-gradient(90deg, #ef4444 0%, #f97316 100%);
+}
+
+/* --- Cabeçalho --- */
+.modal-content > h3 {
+    margin: 0;
+    padding: 1.35rem 1.5rem 1rem 1.5rem;
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.35;
+    color: var(--text-color);
+    border-bottom: 1px solid var(--border-color);
+    background: linear-gradient(180deg, rgba(124, 58, 237, 0.06) 0%, transparent 100%);
+}
+
+.modal-content > h3 i {
+    margin-right: 0.45rem;
+    color: var(--primary-color);
+    opacity: 0.95;
+}
+
+.modal-content.delete-account-modal > h3 {
+    background: linear-gradient(180deg, rgba(239, 68, 68, 0.08) 0%, transparent 100%);
+}
+
+.modal-content.delete-account-modal > h3 i {
+    color: var(--danger-color);
+}
+
+/* --- Fechar --- */
+.modal-close-btn {
+    top: 0.95rem;
+    right: 0.95rem;
+    width: 2.35rem;
+    height: 2.35rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    line-height: 1;
+    border-radius: 10px;
+    color: var(--text-light);
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease,
+        transform 0.15s ease;
+}
+
+.modal-close-btn:hover {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+}
+
+.modal-close-btn:active {
+    transform: scale(0.96);
+}
+
+/* --- Mensagens de formulário --- */
+.modal-content > .form-message {
+    margin: 0 1.5rem 0.75rem;
+}
+
+.modal-content .form-message:not(.hidden) {
+    display: block;
+    padding: 0.65rem 0.85rem;
+    border-radius: 10px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.45;
+}
+
+.modal-content .form-message.error,
+.modal-content .form-message.error:not(.hidden) {
+    background: rgba(239, 68, 68, 0.1);
+    color: #b91c1c;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.modal-content .form-message.success,
+.modal-content .form-message.success:not(.hidden) {
+    background: rgba(16, 185, 129, 0.1);
+    color: #047857;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.modal-content .form-message.info,
+.modal-content .form-message.info:not(.hidden) {
+    background: rgba(59, 130, 246, 0.08);
+    color: #1d4ed8;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+/* Modal «Dividir saída» — mesmo cartão / formulário que Nova saída / Nova entrada */
+.modal-content.modal-content--expense-split {
+    max-width: 28rem;
+}
+
+/* Divisões pendentes (pós-login): corpo com as mesmas margens internas do `form` dos outros modais */
+#split-incoming-login-modal .modal-content.modal-content--split-pending .split-incoming-login-body {
+    padding: 1.25rem 1.5rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+#split-incoming-login-modal .split-incoming-login-body .form-message.info.split-incoming-login-intro {
+    margin: 0;
+    align-self: stretch;
+}
+
+#split-incoming-login-modal .split-incoming-login-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+#expense-split-modal .modal-content form .form-message.info.expense-split-modal__summary {
+    margin: 0;
+    align-self: stretch;
+}
+
+#expense-split-modal .modal-content form .form-message.info.expense-split-modal__summary strong {
+    display: block;
+    margin-bottom: 0.35rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #1d4ed8;
+    opacity: 0.95;
+}
+
+#expense-split-modal .modal-content form .form-message.info.expense-split-modal__summary span {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    line-height: 1.45;
+    color: var(--text-color);
+}
+
+#expense-split-modal .expense-split-modal__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    align-items: start;
+}
+
+#expense-split-modal .expense-split-modal__grid .form-group {
+    margin-bottom: 0;
+}
+
+#expense-split-modal .expense-split-modal-existing-wrap {
+    margin: 0;
+    padding: 0.75rem 0.85rem;
+    border-radius: 12px;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    background: linear-gradient(180deg, rgba(124, 58, 237, 0.06) 0%, rgba(124, 58, 237, 0.02) 100%);
+}
+
+#expense-split-modal .expense-split-modal-existing-title {
+    margin: 0 0 0.35rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-light);
+}
+
+#expense-split-modal .expense-split-modal-existing-empty {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-muted, #64748b);
+}
+
+#expense-split-modal .expense-split-modal-existing__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.6rem;
+    padding: 0.4rem 0;
+    border-bottom: 1px dashed rgba(148, 163, 184, 0.35);
+    font-size: 0.85rem;
+}
+
+#expense-split-modal .expense-split-modal-existing__row:last-child {
+    border-bottom: none;
+}
+
+#expense-split-modal .expense-split-modal-existing__meta {
+    flex: 1;
+    min-width: 0;
+}
+
+#expense-split-modal .expense-split-status {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 0.15rem 0.45rem;
+    border-radius: 6px;
+    background: var(--bg-color);
+    color: var(--text-light);
+}
+
+#expense-split-modal .expense-split-status--pending {
+    background: rgba(245, 158, 11, 0.15);
+    color: #b45309;
+}
+
+#expense-split-modal .expense-split-status--accepted {
+    background: rgba(16, 185, 129, 0.12);
+    color: #047857;
+}
+
+#expense-split-modal .expense-split-status--rejected,
+#expense-split-modal .expense-split-status--cancelled {
+    background: rgba(148, 163, 184, 0.2);
+    color: var(--text-light);
+}
+
+#expense-split-modal .expense-split-modal-remove-btn {
+    font-size: 0.78rem;
+    padding: 0.3rem 0.55rem;
+    border-radius: 10px;
+}
+
+#expense-split-modal .expense-split-modal-locked {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    opacity: 0.85;
+}
+
+#expense-split-modal .expense-split-modal__hint {
+    margin: 0;
+    font-size: 0.8125rem;
+    line-height: 1.55;
+    color: var(--text-muted, #64748b);
+}
+
+[data-theme='dark'] #expense-split-modal .expense-split-modal__hint {
+    color: var(--text-light);
+    opacity: 0.92;
+}
+
+[data-theme='dark'] #expense-split-modal .modal-content form .form-message.info.expense-split-modal__summary strong {
+    color: #93c5fd;
+}
+
+[data-theme='dark'] #expense-split-modal .modal-content form .form-message.info.expense-split-modal__summary span {
+    color: var(--text-color);
+}
+
+@media (max-width: 520px) {
+    #expense-split-modal .expense-split-modal__grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* --- Formulário --- */
+.modal-content > form {
+    padding: 1.25rem 1.5rem 1.5rem;
+}
+
+.expense-date-recurring-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    align-items: start;
+    margin-bottom: 1.125rem;
+}
+
+.expense-date-recurring-grid--recurring-off {
+    grid-template-columns: 1fr;
+}
+
+.expense-date-recurring-grid .form-group {
+    margin-bottom: 0;
+}
+
+.modal-content .form-group {
+    margin-bottom: 1.125rem;
+}
+
+.modal-content .form-group label {
+    display: block;
+    margin-bottom: 0.4rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-light);
+}
+
+.modal-content .form-group input:not([type='checkbox']),
+.modal-content .form-group select,
+.modal-content .form-group textarea {
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.65rem 0.95rem;
+    border: 1.5px solid var(--border-color);
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    background-color: var(--bg-light);
+    color: var(--text-color);
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.modal-content .form-group textarea {
+    min-height: 5rem;
+    resize: vertical;
+    line-height: 1.45;
+}
+
+.modal-content .form-group input::placeholder,
+.modal-content .form-group textarea::placeholder {
+    color: #94a3b8;
+}
+
+.modal-content .form-group input:hover:not(:focus),
+.modal-content .form-group select:hover:not(:focus),
+.modal-content .form-group textarea:hover:not(:focus) {
+    border-color: #cbd5e1;
+}
+
+.modal-content .form-group input:focus,
+.modal-content .form-group select:focus,
+.modal-content .form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.18);
+}
+
+.modal-content .form-group select {
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    color-scheme: light;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.85rem center;
+    padding-right: 2.35rem;
+}
+
+/* Lista aberta do select — contraste legível (evita opções cinza “mortas”) */
+.modal-content .form-group select option {
+    background-color: #ffffff;
+    color: #0f172a;
+    font-weight: 500;
+}
+
+.modal-content .form-group select optgroup {
+    background-color: #f1f5f9;
+    color: #475569;
+    font-weight: 600;
+    font-style: normal;
+}
+
+/* --- Campos de data: alinhado aos demais inputs (evita ícone/calendar-picker maior que a linha) --- */
+.modal-content .form-group input[type='date'] {
+    cursor: pointer;
+    box-sizing: border-box;
+    min-height: 2.75rem;
+    padding: 0.65rem 2.25rem 0.65rem 0.95rem;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.03em;
+    accent-color: var(--primary-color);
+    color-scheme: light;
+}
+
+[data-theme='dark'] .modal-content .form-group input[type='date'] {
+    color-scheme: dark;
+}
+
+.modal-content .form-group input[type='date']::-webkit-datetime-edit {
+    padding: 0;
+    min-height: 0;
+}
+
+.modal-content .form-group input[type='date']::-webkit-datetime-edit-fields-wrapper {
+    padding: 0;
+}
+
+.modal-content .form-group input[type='date']::-webkit-datetime-edit-text {
+    color: var(--text-light);
+    padding: 0 0.1rem;
+}
+
+.modal-content .form-group input[type='date']::-webkit-datetime-edit-month-field,
+.modal-content .form-group input[type='date']::-webkit-datetime-edit-day-field,
+.modal-content .form-group input[type='date']::-webkit-datetime-edit-year-field {
+    padding: 0.05rem 0.22rem;
+    border-radius: 6px;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.modal-content .form-group input[type='date']:focus::-webkit-datetime-edit-month-field,
+.modal-content .form-group input[type='date']:focus::-webkit-datetime-edit-day-field,
+.modal-content .form-group input[type='date']:focus::-webkit-datetime-edit-year-field {
+    background-color: rgba(124, 58, 237, 0.12);
+    color: var(--text-color);
+}
+
+[data-theme='dark'] .modal-content .form-group input[type='date']:focus::-webkit-datetime-edit-month-field,
+[data-theme='dark'] .modal-content .form-group input[type='date']:focus::-webkit-datetime-edit-day-field,
+[data-theme='dark'] .modal-content .form-group input[type='date']:focus::-webkit-datetime-edit-year-field {
+    background-color: rgba(167, 139, 250, 0.15);
+}
+
+/* Ícone do calendário: tamanho contido para não forçar altura extra do campo */
+.modal-content .form-group input[type='date']::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    width: 1.65rem;
+    height: 1.65rem;
+    padding: 0;
+    margin: 0 0.4rem 0 0;
+    border-radius: 8px;
+    opacity: 0.92;
+    background-color: transparent;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237c3aed' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cpath d='M16 2v4M8 2v4M3 10h18'/%3E%3C/svg%3E");
+    background-size: 1.05rem 1.05rem;
+    background-repeat: no-repeat;
+    background-position: center;
+    flex-shrink: 0;
+    transition:
+        opacity 0.2s ease,
+        background-color 0.2s ease,
+        transform 0.15s ease;
+}
+
+.modal-content .form-group input[type='date']:hover::-webkit-calendar-picker-indicator {
+    opacity: 1;
+    background-color: rgba(124, 58, 237, 0.1);
+}
+
+.modal-content .form-group input[type='date']:focus::-webkit-calendar-picker-indicator {
+    opacity: 1;
+    background-color: rgba(124, 58, 237, 0.14);
+}
+
+.modal-content .form-group input[type='date']::-webkit-calendar-picker-indicator:active {
+    transform: scale(0.92);
+}
+
+[data-theme='dark'] .modal-content .form-group input[type='date']::-webkit-calendar-picker-indicator {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23c4b5fd' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cpath d='M16 2v4M8 2v4M3 10h18'/%3E%3C/svg%3E");
+}
+
+[data-theme='dark'] .modal-content .form-group input[type='date']:hover::-webkit-calendar-picker-indicator {
+    background-color: rgba(167, 139, 250, 0.14);
+}
+
+[data-theme='dark'] .modal-content .form-group input[type='date']:focus::-webkit-calendar-picker-indicator {
+    background-color: rgba(167, 139, 250, 0.2);
+}
+
+.modal-content .form-group small {
+    display: block;
+    margin-top: 0.4rem;
+    font-size: 0.78rem;
+    line-height: 1.4;
+    color: var(--text-light);
+}
+
+/* Checkbox — bloco destacado */
+.modal-content .form-group-checkbox {
+    padding: 0.85rem 1rem;
+    margin-bottom: 1.125rem;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    gap: 0.65rem;
+}
+
+.modal-content .form-group-checkbox label {
+    margin: 0;
+    text-transform: none;
+    letter-spacing: normal;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-color);
+    cursor: pointer;
+}
+
+.modal-content .form-group-checkbox input[type='checkbox'] {
+    width: 1.1rem;
+    height: 1.1rem;
+    min-height: auto;
+    accent-color: var(--primary-color);
+    cursor: pointer;
+}
+
+.modal-content #expense-payment-method {
+    width: 100%;
+}
+
+/* Cartão de crédito — subformulário */
+.modal-content #credit-card-fields:not(.hidden) {
+    margin-top: 0.25rem;
+    margin-bottom: 1rem;
+    padding: 1rem 1.1rem;
+    border-radius: 12px;
+    border: 1px dashed rgba(124, 58, 237, 0.35);
+    background: linear-gradient(145deg, rgba(124, 58, 237, 0.05), rgba(99, 102, 241, 0.03));
+}
+
+.modal-content #credit-card-fields .form-group:last-child {
+    margin-bottom: 0;
+}
+
+/* Segmentado (tipo de transação) */
+.modal-content .segmented-control {
+    border-radius: 10px;
+    border-width: 1.5px;
+    overflow: hidden;
+    background: var(--bg-color);
+}
+
+.modal-content .segmented-control .sg-btn {
+    transition:
+        background 0.2s ease,
+        color 0.2s ease;
+}
+
+.modal-content .segmented-control .sg-btn.active {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+/* Chips de categoria */
+.modal-content .category-chips-container {
+    margin-top: 0.65rem;
+}
+
+.modal-content .category-chip {
+    border-radius: 999px;
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.modal-content .category-chip:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.15);
+}
+
+/* Despesa: select de categoria + nova categoria */
+.modal-content .expense-category-new-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    margin-top: 0.5rem;
+}
+
+.modal-content .expense-category-new-row input[type='text'] {
+    flex: 1;
+    min-width: 160px;
+    margin-bottom: 0;
+}
+
+.modal-content .expense-category-new-btn {
+    padding: 0.5rem 0.85rem;
+    font-size: 0.875rem;
+    border-radius: 8px;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.modal-content #expense-category-select {
+    width: 100%;
+}
+
+/* Layout lado a lado para categoria e subcategoria */
+.modal-content .form-group-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    align-items: start;
+}
+
+.modal-content .form-group-row .form-group {
+    margin-bottom: 0;
+}
+
+.modal-content .form-group-row .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--text-primary, #374151);
+}
+
+.modal-content .form-group-row .form-group select {
+    width: 100%;
+    padding: 0.625rem 0.875rem;
+    border: 1px solid var(--border-color, #d1d5db);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    background-color: white;
+    transition: border-color 0.2s ease;
+}
+
+.modal-content .form-group-row .form-group select:focus {
+    outline: none;
+    border-color: var(--primary-color, #3b82f6);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Layout de 3 colunas para valor, data e forma de pagamento */
+.modal-content .form-group-row-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+    align-items: start;
+}
+
+.modal-content .form-group-row-3 .form-group {
+    margin-bottom: 0;
+}
+
+.modal-content .form-group-row-3 .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--text-primary, #374151);
+}
+
+.modal-content .form-group-row-3 .form-group input,
+.modal-content .form-group-row-3 .form-group select {
+    width: 100%;
+    padding: 0.625rem 0.875rem;
+    border: 1px solid var(--border-color, #d1d5db);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    background-color: white;
+    transition: border-color 0.2s ease;
+}
+
+.modal-content .form-group-row-3 .form-group input:focus,
+.modal-content .form-group-row-3 .form-group select:focus {
+    outline: none;
+    border-color: var(--primary-color, #3b82f6);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Responsivo: ajusta para 2 colunas em telas médias e 1 coluna em telas pequenas */
+@media (max-width: 768px) {
+    .modal-content .form-group-row-3 {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .modal-content .form-group-row {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .modal-content .form-group-row-3 {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+}
+
+/* Despesa: select de subcategoria + nova subcategoria */
+.modal-content .expense-subcategory-new-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    margin-top: 0.5rem;
+}
+
+.modal-content .expense-subcategory-new-row input[type='text'] {
+    flex: 1;
+    min-width: 160px;
+    margin-bottom: 0;
+}
+
+.modal-content .expense-subcategory-new-btn {
+    padding: 0.5rem 0.85rem;
+    font-size: 0.875rem;
+    border-radius: 8px;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+/* Validação (lançamento rápido etc.) */
+.modal-content .form-group.error input:not([type='checkbox']),
+.modal-content .form-group.error select,
+.modal-content .form-group.error textarea {
+    border-color: var(--danger-color);
+    background-color: rgba(239, 68, 68, 0.06);
+    box-shadow: none;
+}
+
+/* Botão principal (salvar) */
+.modal-content form > button.btn-primary[type='submit'] {
+    width: 100%;
+    margin-top: 0.25rem;
+    padding: 0.9rem 1.25rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    box-shadow: 0 4px 14px rgba(124, 58, 237, 0.28);
+    transition:
+        background-color 0.2s ease,
+        box-shadow 0.2s ease,
+        transform 0.15s ease;
+}
+
+.modal-content form > button.btn-primary[type='submit']:hover {
+    box-shadow: 0 6px 20px rgba(124, 58, 237, 0.35);
+    transform: translateY(-1px);
+}
+
+.modal-content form > button.btn-primary[type='submit']:active {
+    transform: translateY(0);
+}
+
+/* Dupla ação (Salvar + Salvar e novo) */
+.modal-content .form-actions {
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border-color);
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+
+.modal-content .form-actions .btn-primary,
+.modal-content .form-actions .btn-secondary {
+    padding: 0.85rem 0.75rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.88rem;
+}
+
+.modal-content .form-actions .btn-secondary {
+    border-width: 1.5px;
+}
+
+/* Confirmação de parcela (débito manual) — texto e botões com o mesmo respiro do título */
+.modal-content.confirm-installment-modal {
+    max-width: 420px;
+}
+
+.modal-content.confirm-installment-modal > p {
+    margin: 0;
+    padding: 1.15rem 1.5rem 0.5rem;
+    line-height: 1.55;
+    font-size: 0.9375rem;
+    color: var(--text-muted, #64748b);
+}
+
+.modal-content.confirm-installment-modal > .form-actions {
+    margin-top: 0;
+    padding: 1.2rem 1.5rem 1.55rem;
+    border-top: 1px solid var(--border-color);
+    background: linear-gradient(180deg, transparent 0%, rgba(124, 58, 237, 0.04) 100%);
+}
+
+/* Modal exclusão de conta */
+.modal-content.delete-account-modal .modal-body {
+    padding: 0 1.5rem 1rem;
+}
+
+.modal-content.delete-account-modal .modal-footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: flex-end;
+    padding: 1rem 1.5rem 1.5rem;
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-color);
+}
+
+.modal-content.delete-account-modal .delete-warning {
+    border-radius: 10px;
+}
+
+.modal-content.delete-account-modal .form-group label {
+    text-transform: none;
+    letter-spacing: normal;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+/* Tema escuro */
+[data-theme='dark'] .modal-container {
+    background: rgba(0, 0, 0, 0.65);
+}
+
+[data-theme='dark'] .modal-content {
+    border-color: rgba(71, 85, 105, 0.5);
+    box-shadow:
+        0 25px 50px -12px rgba(0, 0, 0, 0.55),
+        0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+[data-theme='dark'] .modal-content > h3 {
+    background: linear-gradient(180deg, rgba(124, 58, 237, 0.12) 0%, transparent 100%);
+}
+
+[data-theme='dark'] .modal-content .form-group input:not([type='checkbox']),
+[data-theme='dark'] .modal-content .form-group select,
+[data-theme='dark'] .modal-content .form-group textarea {
+    background-color: rgba(30, 41, 59, 0.6);
+    border-color: rgba(71, 85, 105, 0.8);
+}
+
+[data-theme='dark'] .modal-content .form-group select {
+    color-scheme: dark;
+}
+
+[data-theme='dark'] .modal-content .form-group select option {
+    background-color: #1e293b;
+    color: #f1f5f9;
+}
+
+[data-theme='dark'] .modal-content .form-group select optgroup {
+    background-color: #0f172a;
+    color: #94a3b8;
+}
+
+[data-theme='dark'] .modal-content .form-group-checkbox,
+[data-theme='dark'] .modal-content #credit-card-fields:not(.hidden) {
+    background: rgba(15, 23, 42, 0.5);
+}
+
+[data-theme='dark'] .modal-content.delete-account-modal .modal-footer {
+    background: rgba(15, 23, 42, 0.4);
+}
+
+/* Cor do cartão (swatches no modal de conta) */
+.form-label-block {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--text-color);
+}
+
+/* Seletor de cor do cartão — baseado em Recursos/colors (Uiverse / perspective tiles) */
+.card-tone-picker.container-items {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    row-gap: 0.55rem;
+    transform-style: preserve-3d;
+    transform: perspective(1000px);
+    padding: 0.35rem 0.15rem 0.5rem;
+}
+
+.card-tone-item {
+    position: relative;
+    flex-shrink: 0;
+    width: 32px;
+    height: 40px;
+    border: none;
+    outline: none;
+    margin: 0;
+    cursor: pointer;
+    transition:
+        transform 500ms cubic-bezier(0.175, 0.885, 0.32, 1.1),
+        opacity 0.2s ease;
+}
+
+.card-tone-item input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    margin: 0;
+}
+
+.card-tone-item::after {
+    position: absolute;
+    content: '';
+    inset: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    transform: scale(1.2);
+    pointer-events: none;
+    transition:
+        transform 500ms cubic-bezier(0.175, 0.885, 0.32, 1.1),
+        box-shadow 0.2s ease;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
+}
+
+/* Mesmos degradês de `.credit-card-plastic--*` em pages/accounts.css */
+.card-tone-item[data-plastic='violet']::after {
+    background: linear-gradient(135deg, #1e1b4b 0%, #5b21b6 42%, #7c3aed 88%);
+}
+
+.card-tone-item[data-plastic='ocean']::after {
+    background: linear-gradient(135deg, #0c4a6e 0%, #0369a1 45%, #0ea5e9 95%);
+}
+
+.card-tone-item[data-plastic='navy']::after {
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 38%, #1d4ed8 72%, #38bdf8 100%);
+}
+
+.card-tone-item[data-plastic='gold']::after {
+    background: linear-gradient(135deg, #713f12 0%, #b45309 35%, #d97706 65%, #fbbf24 92%, #fde68a 100%);
+}
+
+.card-tone-item[data-plastic='platinum']::after {
+    background: linear-gradient(135deg, #475569 0%, #94a3b8 38%, #e2e8f0 72%, #f8fafc 100%);
+}
+
+.card-tone-item[data-plastic='rosegold']::after {
+    background: linear-gradient(135deg, #4c1d2d 0%, #9f1239 40%, #c08497 72%, #fbcfe8 100%);
+}
+
+.card-tone-item[data-plastic='red']::after {
+    background: linear-gradient(135deg, #450a0a 0%, #991b1b 45%, #dc2626 78%, #f87171 100%);
+}
+
+.card-tone-item[data-plastic='burgundy']::after {
+    background: linear-gradient(135deg, #3f0d12 0%, #7f1d1d 42%, #991b1b 78%, #dc2626 100%);
+}
+
+.card-tone-item[data-plastic='green']::after {
+    background: linear-gradient(135deg, #064e3b 0%, #047857 42%, #10b981 78%, #6ee7b7 100%);
+}
+
+.card-tone-item[data-plastic='graphite']::after {
+    background: linear-gradient(135deg, #020617 0%, #0f172a 35%, #1e293b 70%, #334155 100%);
+}
+
+.card-tone-item[data-plastic='midnight']::after {
+    background: linear-gradient(135deg, #000000 0%, #0a0a0a 32%, #171717 62%, #404040 96%);
+}
+
+.card-tone-item.card-tone-item--custom::after {
+    background: conic-gradient(
+        from 0deg,
+        #ef4444,
+        #f97316,
+        #eab308,
+        #22c55e,
+        #06b6d4,
+        #6366f1,
+        #a855f7,
+        #ef4444
+    );
+}
+
+.card-tone-item::before {
+    position: absolute;
+    content: attr(data-hex);
+    left: 65%;
+    bottom: 52px;
+    font-size: 10px;
+    line-height: 1.2;
+    font-family: ui-monospace, monospace;
+    transform: translateX(-50%);
+    padding: 2px 0.35rem;
+    background-color: #ffffff;
+    color: #0f172a;
+    border-radius: 6px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: 500ms cubic-bezier(0.175, 0.885, 0.32, 1.1);
+    z-index: 5;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
+}
+
+.card-tone-item:hover {
+    transform: scale(1.45);
+    z-index: 20;
+}
+
+.card-tone-item:hover::before {
+    opacity: 1;
+    visibility: visible;
+}
+
+.card-tone-item:active::after {
+    transform: scale(1.08);
+}
+
+.card-tone-item:hover + .card-tone-item {
+    transform: scale(1.22);
+    z-index: 15;
+}
+
+.card-tone-item:hover + .card-tone-item + .card-tone-item {
+    transform: scale(1.1);
+    z-index: 10;
+}
+
+.card-tone-item:has(+ .card-tone-item:hover) {
+    transform: scale(1.22);
+    z-index: 15;
+}
+
+.card-tone-item:has(+ .card-tone-item + .card-tone-item:hover) {
+    transform: scale(1.1);
+    z-index: 10;
+}
+
+/* Cor ativa: destaque claro sobre as demais (camada + escala + anel) */
+.card-tone-picker .card-tone-item:not(:has(input:checked)) {
+    opacity: 0.88;
+}
+
+.card-tone-picker .card-tone-item:not(:has(input:checked)):hover {
+    opacity: 1;
+}
+
+.card-tone-picker .card-tone-item:has(input:checked) {
+    position: relative;
+    z-index: 35;
+    opacity: 1;
+}
+
+.card-tone-item:has(input:checked)::after {
+    box-shadow:
+        0 0 0 3px var(--bg-light, #fff),
+        0 0 0 6px var(--primary-color, #7c3aed),
+        0 10px 28px rgba(15, 23, 42, 0.38);
+    transform: scale(1.44);
+}
+
+.card-tone-item:has(input:checked):active::after {
+    transform: scale(1.32);
+}
+
+.card-tone-item:has(input:focus-visible)::after {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 3px;
+}
+
+.card-custom-color-row {
+    margin-top: 0.65rem;
+}
+
+.card-custom-color-row label {
+    display: block;
+    font-size: 0.88rem;
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+    color: var(--text-color);
+}
+
+.card-custom-color-inputs {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.card-custom-color-inputs input[type='color'] {
+    width: 3rem;
+    height: 2.5rem;
+    padding: 0;
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
+    cursor: pointer;
+    background: var(--bg-light);
+}
+
+.card-custom-color-inputs input[type='color']::-webkit-color-swatch-wrapper {
+    padding: 2px;
+}
+
+.card-custom-color-inputs input[type='color']::-webkit-color-swatch {
+    border: none;
+    border-radius: 6px;
+}
+
+[data-theme='dark'] .card-tone-item::before {
+    background-color: var(--bg-light, #1e293b);
+    color: var(--text-color, #f1f5f9);
+    border-color: rgba(148, 163, 184, 0.35);
+}
+
+[data-theme='dark'] .card-tone-item:has(input:checked)::after {
+    box-shadow:
+        0 0 0 3px var(--bg-light, #1e293b),
+        0 0 0 6px var(--primary-color, #a78bfa),
+        0 10px 32px rgba(0, 0, 0, 0.55);
+}
+
+#card-color-group .form-hint {
+    display: block;
+    margin-top: 0.45rem;
+}
+
+/* --- Formulários em grade: vários campos por linha no desktop; uma coluna no mobile --- */
+.modal-content > form > input[type='hidden'] {
+    display: none;
+}
+
+@media (min-width: 640px) {
+    .modal-content:not(.card-purchases-modal):not(.delete-account-modal) {
+        max-width: min(42rem, 94vw);
+    }
+
+    .modal-content > form {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        column-gap: 1rem;
+        row-gap: 1rem;
+    }
+
+    .modal-content > form .form-group {
+        margin-bottom: 0;
+    }
+
+    /* Ocupa a linha inteira (título longo, blocos, rodapé, etc.) */
+    .modal-content > form > .expense-category-group,
+    .modal-content > form > .form-group:has(textarea),
+    .modal-content > form > #card-color-group,
+    .modal-content > form > #credit-card-fields,
+    .modal-content > form > #card-linked-account-group,
+    .modal-content > form > #expense-installments-row:not(.hidden),
+    .modal-content > form > fieldset.form-group,
+    .modal-content > form > fieldset,
+    .modal-content > form > .goal-form-help,
+    .modal-content > form > .form-actions,
+    .modal-content > form > button.btn-primary[type='submit'],
+    .modal-content > form > .form-group.goal-form-row,
+    #goal-form > input[type='hidden'] + .form-group {
+        grid-column: 1 / -1;
+    }
+
+    /* Cadastro de cartão: select "Tipo de cartão" em linha inteira */
+    #account-form > #account-type-group.account-type-group--full-width {
+        grid-column: 1 / -1;
+    }
+
+    #gain-form > .form-group:has(#gain-account),
+    #investment-form > .form-group:has(#investment-linked-account) {
+        grid-column: 1 / -1;
+    }
+
+    /* Cartão de crédito no modal de conta: três campos lado a lado quando couber */
+    .modal-content #credit-card-fields:not(.hidden) {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.75rem 1rem;
+        align-items: end;
+    }
+
+    .modal-content #credit-card-fields:not(.hidden) .form-group {
+        margin-bottom: 0;
+    }
+
+    .modal-content form > button.btn-primary[type='submit'] {
+        margin-top: 0;
+    }
+
+    /* Um único botão na barra de ações: largura total */
+    .modal-content > form > .form-actions:has(> :only-child) {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (min-width: 640px) and (max-width: 720px) {
+    .modal-content #credit-card-fields:not(.hidden) {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .modal-content #credit-card-fields:not(.hidden) .form-group:last-child {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 639px) {
+    .modal-content .form-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .modal-content form > button.btn-primary[type='submit'] {
+        margin-top: 0.5rem;
+    }
+}
+
+/* --- Parcelas no cartão (pílulas de vencimento) --- */
+.installment-pills {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    align-items: center;
+    max-width: 100%;
+    vertical-align: middle;
+}
+
+.installment-pills--simple {
+    font-size: 0.85rem;
+}
+
+.installment-pill {
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 0.2rem 0.45rem;
+    border-radius: 6px;
+    line-height: 1.25;
+    white-space: nowrap;
+    text-transform: capitalize;
+}
+
+.installment-pill--paid {
+    background: rgba(16, 185, 129, 0.2);
+    color: #047857;
+}
+
+.installment-pill--pending {
+    background: rgba(148, 163, 184, 0.28);
+    color: #475569;
+}
+
+/* Pendente com vencimento no mês atual ou anterior (ainda não paga no fluxo de caixa) */
+.installment-pill--pending.installment-pill--due-or-past {
+    background: rgba(234, 179, 8, 0.32);
+    color: #a16207;
+    box-shadow: 0 0 0 1px rgba(202, 138, 4, 0.45);
+}
+
+.installment-pill--verbose {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.15rem 0.25rem;
+}
+
+.installment-pill__state {
+    font-weight: 700;
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.installment-pill__mon {
+    font-weight: 600;
+}
+
+.installment-pill__n {
+    font-size: 0.6rem;
+    font-weight: 700;
+    opacity: 0.92;
+}
+
+.expense-installment-pills-wrap {
+    max-width: 100%;
+}
+
+[data-theme='dark'] .installment-pill--paid {
+    background: rgba(16, 185, 129, 0.22);
+    color: #6ee7b7;
+}
+
+[data-theme='dark'] .installment-pill--pending {
+    background: rgba(148, 163, 184, 0.12);
+    color: #94a3b8;
+}
+
+[data-theme='dark'] .installment-pill--pending.installment-pill--due-or-past {
+    background: rgba(250, 204, 21, 0.18);
+    color: #fcd34d;
+    box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.35);
+}
+
+.expense-installment-preview {
+    margin-top: 0.35rem;
+}
+
+.installment-remaining-summary {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.65rem 0.75rem;
+    margin-bottom: 0.6rem;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.08), rgba(16, 185, 129, 0.06));
+    border: 1px solid rgba(124, 58, 237, 0.15);
+}
+
+.installment-remaining-ring {
+    position: relative;
+    flex-shrink: 0;
+    width: 52px;
+    height: 52px;
+}
+
+.installment-remaining-ring__svg {
+    display: block;
+}
+
+.installment-remaining-ring__track {
+    stroke: rgba(148, 163, 184, 0.45);
+    stroke-width: 4;
+}
+
+.installment-remaining-ring__progress {
+    stroke: var(--primary-color);
+    stroke-width: 4;
+    stroke-linecap: round;
+}
+
+.installment-remaining-ring__num {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    line-height: 1;
+    pointer-events: none;
+}
+
+.installment-remaining-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
+.installment-remaining-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--text-color);
+}
+
+.installment-remaining-line {
+    font-size: 0.8rem;
+    color: var(--text-light);
+}
+
+.installment-remaining-line strong {
+    color: var(--text-color);
+    font-weight: 700;
+}
+
+.installment-remaining-hint {
+    font-size: 0.72rem;
+    color: var(--text-light);
+    opacity: 0.92;
+}
+
+.installment-remaining-summary--with-append {
+    align-items: flex-start;
+}
+
+.installment-remaining-append {
+    margin-top: 0.4rem;
+    width: 100%;
+    min-width: 0;
+}
+
+.installment-remaining-append .expense-loan-month-tags {
+    margin-top: 0;
+}
+
+.installment-remaining-append .installment-pills {
+    margin-top: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+[data-theme='dark'] .installment-remaining-summary {
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.14), rgba(16, 185, 129, 0.08));
+    border-color: rgba(167, 139, 250, 0.22);
+}
+
+[data-theme='dark'] .installment-remaining-ring__track {
+    stroke: rgba(148, 163, 184, 0.28);
+}
+
+[data-theme='dark'] .installment-remaining-ring__num {
+    color: #c4b5fd;
+}
+
+/* Pílulas do cartão ficam dentro de .installment-remaining-append; só margem se estiverem soltas no preview */
+.expense-installment-preview > .installment-pills {
+    margin-top: 0.1rem;
+}
+
+/* Empréstimo — tags mensais clicáveis (cadastro) */
+.expense-loan-month-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    align-items: center;
+    margin-top: 0.15rem;
+}
+
+button.expense-loan-month-tag {
+    margin: 0;
+    padding: 0.22rem 0.5rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1.25;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    cursor: pointer;
+    text-transform: lowercase;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+
+button.expense-loan-month-tag:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+.expense-loan-month-tag--paid {
+    background: rgba(16, 185, 129, 0.22);
+    color: #047857;
+    border-color: rgba(16, 185, 129, 0.45);
+}
+
+.expense-loan-month-tag--pending {
+    background: rgba(148, 163, 184, 0.32);
+    color: #475569;
+    border-color: rgba(148, 163, 184, 0.45);
+}
+
+/* Pendente: mês do vencimento ≤ mês atual (não só o mês corrente) */
+.expense-loan-month-tag--pending.expense-loan-month-tag--current {
+    background: rgba(234, 179, 8, 0.35);
+    color: #a16207;
+    border-color: rgba(202, 138, 4, 0.55);
+}
+
+[data-theme='dark'] .expense-loan-month-tag--paid {
+    background: rgba(52, 211, 153, 0.2);
+    color: #6ee7b7;
+    border-color: rgba(52, 211, 153, 0.35);
+}
+
+[data-theme='dark'] .expense-loan-month-tag--pending {
+    background: rgba(148, 163, 184, 0.14);
+    color: #94a3b8;
+    border-color: rgba(148, 163, 184, 0.25);
+}
+
+[data-theme='dark'] .expense-loan-month-tag--pending.expense-loan-month-tag--current {
+    background: rgba(250, 204, 21, 0.2);
+    color: #fcd34d;
+    border-color: rgba(250, 204, 21, 0.4);
+}
+
+/* Despesa — empréstimo: forma de pagamento travada */
+#expense-form #expense-payment-method:disabled {
+    opacity: 0.92;
+    cursor: not-allowed;
+    background-color: var(--bg-light, #f1f5f9);
+    color: var(--text-color);
+}
+
+[data-theme='dark'] #expense-form #expense-payment-method:disabled {
+    background-color: rgba(15, 23, 42, 0.55);
+    color: var(--text-color, #e2e8f0);
+}
+
+/* Ganho — RECORRENTE (edição: só data; mesmo grid que despesas) */
+#gain-form .gain-recurring-row {
+    margin: 0;
+}
+
+#gain-form .gain-recurring-row.hidden {
+    display: none !important;
+}
+
+.gain-recurrence-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0.35rem;
+    font-size: 0.7rem;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    background: rgba(124, 58, 237, 0.15);
+    color: var(--primary-color-dark, #6d28d9);
+    vertical-align: middle;
+}

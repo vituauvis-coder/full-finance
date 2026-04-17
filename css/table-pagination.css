@@ -1,0 +1,89 @@
+/* Barra de paginação abaixo/acima das tabelas */
+
+.table-pagination-host {
+    margin-bottom: 0.75rem;
+}
+
+.table-pagination-host + .table-container table,
+.table-pagination-host + table {
+    margin-top: 0;
+}
+
+.card-purchases-table-wrap .table-pagination-host {
+    margin-bottom: 0.65rem;
+}
+
+.table-pagination {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.65rem 1rem;
+    padding: 0.55rem 0.75rem;
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    font-size: 0.875rem;
+}
+
+.table-pagination__size {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.table-pagination__size-label {
+    color: var(--text-light);
+    white-space: nowrap;
+}
+
+.table-pagination__select {
+    font-family: inherit;
+    font-size: 0.875rem;
+    padding: 0.35rem 0.5rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-light);
+    color: var(--text-color);
+    cursor: pointer;
+    min-width: 4.5rem;
+}
+
+.table-pagination__info {
+    flex: 1;
+    min-width: 12rem;
+    color: var(--text-color);
+    font-weight: 500;
+}
+
+.table-pagination__nav {
+    display: inline-flex;
+    gap: 0.35rem;
+}
+
+.table-pagination__btn {
+    width: 2.15rem;
+    height: 2.15rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-light);
+    color: var(--text-color);
+    cursor: pointer;
+    transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.table-pagination__btn:hover:not(:disabled) {
+    background: var(--border-color);
+}
+
+.table-pagination__btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+[data-theme='dark'] .table-pagination {
+    background: var(--bg-light);
+    border-color: var(--border-color);
+}

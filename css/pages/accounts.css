@@ -1,0 +1,1538 @@
+/* --- Página Contas (alinhada a Objetivos / Cartões) --- */
+.accounts-page__actions {
+    margin-bottom: 1.25rem;
+}
+
+.accounts-grid.accounts-page__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 0;
+}
+
+.accounts-empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 2.5rem 1.5rem;
+    border-radius: 16px;
+    border: 1px dashed var(--border-color);
+    background: var(--bg-color);
+    color: var(--text-light);
+}
+
+.accounts-empty-state__icon {
+    font-size: 2.5rem;
+    color: var(--primary-color);
+    opacity: 0.55;
+    margin-bottom: 0.75rem;
+}
+
+.accounts-empty-state__title {
+    margin: 0 0 0.35rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-color);
+}
+
+.accounts-empty-state__text {
+    margin: 0 auto;
+    max-width: 26rem;
+    font-size: 0.92rem;
+    line-height: 1.45;
+}
+
+/* Cards de conta — mesmo arranjo que .goal-card: faixa ilustrada + corpo (sem tema viagem/casa: arte financeira abstrata) */
+.account-card {
+    --acc-badge-bg: rgba(255, 255, 255, 0.92);
+    --acc-badge-fg: #334155;
+    --acc-action-fg: rgba(15, 23, 42, 0.55);
+    --acc-fin-a: #e0f2fe;
+    --acc-fin-b: #38bdf8;
+    --acc-fin-c: #0369a1;
+    --acc-bar: rgba(255, 255, 255, 0.5);
+    --acc-coin: #fcd34d;
+    --acc-coin-shine: #fef3c7;
+    --acc-grid: rgba(255, 255, 255, 0.14);
+    --acc-pillar: rgba(255, 255, 255, 0.28);
+    --acc-trend: rgba(255, 255, 255, 0.38);
+
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    border-radius: 20px;
+    overflow: hidden;
+    min-width: 0;
+    background: var(--bg-light);
+    box-shadow: var(--card-elevated-shadow);
+    transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.account-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--card-elevated-shadow-hover);
+}
+
+.account-card__scene {
+    position: relative;
+    width: 100%;
+    min-height: 158px;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.account-card__scene-art {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+}
+
+.account-card__scene-art > * {
+    position: absolute;
+}
+
+.account-card__fin-bg {
+    inset: 0;
+    background: linear-gradient(165deg, var(--acc-fin-a) 0%, var(--acc-fin-b) 52%, var(--acc-fin-c) 100%);
+    z-index: 0;
+}
+
+.account-card__fin-bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(125deg, rgba(255, 255, 255, 0.28) 0%, transparent 45%);
+    pointer-events: none;
+}
+
+.account-card__fin-grid {
+    inset: 0;
+    z-index: 1;
+    opacity: 0.55;
+    background-image:
+        linear-gradient(var(--acc-grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--acc-grid) 1px, transparent 1px);
+    background-size: 22px 22px;
+    pointer-events: none;
+}
+
+/* Colunas estilo instituição — só conta corrente */
+.account-card__fin-pillars {
+    display: none;
+    bottom: 10%;
+    left: 8%;
+    gap: 10px;
+    align-items: flex-end;
+    z-index: 2;
+    height: 38%;
+}
+
+.account-card__fin-pillars span {
+    width: 14px;
+    border-radius: 5px 5px 3px 3px;
+    background: linear-gradient(180deg, var(--acc-pillar), rgba(255, 255, 255, 0.12));
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.account-card__fin-pillars span:nth-child(1) {
+    height: 72%;
+}
+.account-card__fin-pillars span:nth-child(2) {
+    height: 100%;
+}
+.account-card__fin-pillars span:nth-child(3) {
+    height: 58%;
+}
+
+.account-card--tipo-cc .account-card__fin-pillars {
+    display: flex;
+}
+
+/* Mini gráfico de barras */
+.account-card__fin-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 5px;
+    bottom: 11%;
+    right: 10%;
+    height: 36%;
+    z-index: 3;
+    padding: 0 2px;
+}
+
+.account-card__fin-bars span {
+    width: 9px;
+    border-radius: 4px 4px 2px 2px;
+    background: linear-gradient(180deg, var(--acc-bar), rgba(255, 255, 255, 0.15));
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.account-card__fin-bars span:nth-child(1) {
+    height: 38%;
+}
+.account-card__fin-bars span:nth-child(2) {
+    height: 62%;
+}
+.account-card__fin-bars span:nth-child(3) {
+    height: 45%;
+}
+.account-card__fin-bars span:nth-child(4) {
+    height: 78%;
+}
+.account-card__fin-bars span:nth-child(5) {
+    height: 52%;
+}
+
+/* Moedas empilhadas (abstrato) */
+.account-card__fin-coins {
+    bottom: 14%;
+    left: 14%;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+}
+
+.account-card__fin-coins span {
+    width: 26px;
+    height: 9px;
+    border-radius: 50%;
+    margin-top: -3px;
+    background: radial-gradient(ellipse at 30% 30%, var(--acc-coin-shine), var(--acc-coin) 55%, #b45309 100%);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.account-card__fin-coins span:nth-child(1) {
+    z-index: 3;
+}
+.account-card__fin-coins span:nth-child(2) {
+    z-index: 2;
+}
+.account-card__fin-coins span:nth-child(3) {
+    z-index: 1;
+}
+
+.account-card--tipo-cc .account-card__fin-coins {
+    left: auto;
+    right: 12%;
+    bottom: 18%;
+}
+
+.account-card--tipo-cc .account-card__fin-bars {
+    right: auto;
+    left: 22%;
+}
+
+/* Linha de tendência ascendente */
+.account-card__fin-trend {
+    top: 22%;
+    left: 12%;
+    width: 42%;
+    height: 32px;
+    z-index: 2;
+    border: none;
+    border-bottom: 3px solid var(--acc-trend);
+    border-radius: 0 0 40% 0 / 0 0 18px 0;
+    transform: skewX(-8deg);
+    opacity: 0.85;
+    box-shadow: 0 3px 0 rgba(255, 255, 255, 0.12);
+}
+
+.account-card__scene-veil {
+    inset: 0;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0) 55%);
+    z-index: 4;
+    pointer-events: none;
+}
+
+.account-card__scene-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.7rem 0.85rem;
+    pointer-events: none;
+}
+
+.account-card__scene-overlay .account-card__badge,
+.account-card__scene-overlay .account-card__actions {
+    pointer-events: auto;
+}
+
+.account-card__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.28rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: var(--acc-badge-bg);
+    color: var(--acc-badge-fg);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+}
+
+.account-card__badge i {
+    font-size: 0.72rem;
+    opacity: 0.92;
+}
+
+.account-card__actions {
+    display: flex;
+    gap: 0.2rem;
+}
+
+.account-card__actions .btn-action {
+    padding: 0.35rem 0.45rem;
+    border-radius: 10px;
+    color: var(--acc-action-fg);
+    background: rgba(255, 255, 255, 0.88);
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+}
+
+.account-card__actions .btn-action:hover {
+    color: var(--primary-color);
+    background: #fff;
+}
+
+.account-card__actions .btn-delete:hover {
+    color: var(--danger-color);
+}
+
+.account-card__scene-icon {
+    position: absolute;
+    bottom: 0.4rem;
+    right: 0.65rem;
+    z-index: 5;
+    font-size: 2.75rem;
+    line-height: 1;
+    color: rgba(255, 255, 255, 0.38);
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.18));
+    pointer-events: none;
+}
+
+.account-card__body {
+    position: relative;
+    z-index: 3;
+    padding: 1rem 1.15rem 1.2rem;
+    color: var(--text-color);
+    background: var(--bg-light);
+    flex: 1;
+    border-top: 1px solid var(--border-color);
+}
+
+.account-card__title {
+    margin: 0 0 0.75rem;
+    font-size: 1.18rem;
+    font-weight: 800;
+    line-height: 1.25;
+    letter-spacing: -0.02em;
+    color: var(--text-color);
+}
+
+.account-card__holder {
+    margin: -0.35rem 0 0.65rem;
+    font-size: 0.82rem;
+    font-weight: 500;
+    line-height: 1.35;
+    color: var(--text-light);
+}
+
+.account-card__holder::before {
+    content: 'Titular: ';
+    font-weight: 600;
+    font-size: 0.68rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-light);
+    opacity: 0.85;
+}
+
+.account-card__balance-label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-light);
+    margin-bottom: 0.25rem;
+}
+
+.account-card__balance {
+    display: block;
+    font-size: 1.42rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.03em;
+    color: var(--text-color);
+}
+
+/* Paletas por tipo de conta (finanças) */
+.account-card--tipo-cc {
+    --acc-fin-a: #e0f2fe;
+    --acc-fin-b: #38bdf8;
+    --acc-fin-c: #0369a1;
+    --acc-bar: rgba(255, 255, 255, 0.55);
+    --acc-pillar: rgba(255, 255, 255, 0.42);
+}
+
+.account-card--tipo-poup {
+    --acc-fin-a: #d1fae5;
+    --acc-fin-b: #34d399;
+    --acc-fin-c: #047857;
+    --acc-bar: rgba(255, 255, 255, 0.5);
+    --acc-coin: #fde68a;
+    --acc-coin-shine: #fffbeb;
+}
+
+.account-card--tipo-din {
+    --acc-fin-a: #ecfccb;
+    --acc-fin-b: #84cc16;
+    --acc-fin-c: #3f6212;
+    --acc-bar: rgba(255, 255, 255, 0.48);
+    --acc-coin: #fde047;
+}
+
+.account-card--tipo-inv {
+    --acc-fin-a: #ede9fe;
+    --acc-fin-b: #8b5cf6;
+    --acc-fin-c: #5b21b6;
+    --acc-bar: rgba(255, 255, 255, 0.55);
+    --acc-trend: rgba(255, 255, 255, 0.45);
+}
+
+.account-card--tipo-out {
+    --acc-fin-a: #f1f5f9;
+    --acc-fin-b: #94a3b8;
+    --acc-fin-c: #334155;
+    --acc-bar: rgba(255, 255, 255, 0.4);
+    --acc-badge-fg: #f8fafc;
+    --acc-badge-bg: rgba(15, 23, 42, 0.35);
+    --acc-action-fg: rgba(248, 250, 252, 0.85);
+}
+
+.account-card--tipo-out .account-card__actions .btn-action {
+    background: rgba(15, 23, 42, 0.25);
+    color: rgba(248, 250, 252, 0.92);
+}
+
+.account-card--tipo-out .account-card__actions .btn-action:hover {
+    background: rgba(15, 23, 42, 0.4);
+    color: #fff;
+}
+
+.account-card--tipo-out .account-card__scene-icon {
+    color: rgba(248, 250, 252, 0.42);
+}
+
+/* Variação de matiz entre cards do mesmo tipo */
+.account-card--tint-1 .account-card__fin-bg {
+    filter: hue-rotate(6deg) saturate(1.05);
+}
+.account-card--tint-2 .account-card__fin-bg {
+    filter: hue-rotate(-8deg) saturate(1.08);
+}
+.account-card--tint-3 .account-card__fin-bg {
+    filter: hue-rotate(12deg) saturate(0.95);
+}
+.account-card--tint-4 .account-card__fin-bg {
+    filter: hue-rotate(-4deg) brightness(1.03);
+}
+
+.credit-cards-page {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.credit-cards-page--empty {
+    gap: 0;
+}
+
+.credit-cards-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.credit-cards-section__title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-color);
+    letter-spacing: 0.02em;
+    margin: 0;
+    padding-bottom: 0.35rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.credit-cards-section__empty {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-light);
+    padding: 0.15rem 0 0;
+}
+
+[data-theme='dark'] .credit-cards-section__title {
+    color: #e2e8f0;
+}
+
+.credit-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 0;
+}
+
+/* Wrapper: plástico + rodapé fora do cartão */
+.credit-card-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-width: 0;
+}
+
+/* Nome do cartão + Crédito/Débito (faixa superior do plástico) */
+.credit-card-plastic__branding {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.45rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.credit-card-plastic__product-name {
+    flex: 1;
+    min-width: 0;
+    font-size: clamp(0.72rem, 2vw, 0.88rem);
+    font-weight: 700;
+    color: rgba(248, 250, 252, 0.98);
+    text-align: right;
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+/* “Cartãozinho” — proporção similar ao ISO ID-1 (~1,586 : 1) */
+.credit-card-plastic {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1.586 / 1;
+    border-radius: 16px;
+    padding: 1.1rem 1.15rem 1rem;
+    color: #f8fafc;
+    overflow: hidden;
+    box-shadow:
+        0 4px 6px rgba(15, 23, 42, 0.12),
+        0 18px 40px rgba(15, 23, 42, 0.22);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.credit-card-card:hover .credit-card-plastic {
+    transform: translateY(-3px);
+    box-shadow:
+        0 8px 12px rgba(15, 23, 42, 0.15),
+        0 22px 48px rgba(76, 29, 149, 0.28);
+}
+
+.credit-card-plastic--violet {
+    background: linear-gradient(135deg, #1e1b4b 0%, #5b21b6 42%, #7c3aed 88%);
+}
+
+.credit-card-plastic--ocean {
+    background: linear-gradient(135deg, #0c4a6e 0%, #0369a1 45%, #0ea5e9 95%);
+}
+
+.credit-card-plastic--ember {
+    background: linear-gradient(135deg, #7c2d12 0%, #c2410c 48%, #ea580c 100%);
+}
+
+.credit-card-plastic--yellow {
+    background: linear-gradient(135deg, #713f12 0%, #ca8a04 42%, #eab308 78%, #fde047 100%);
+}
+
+.credit-card-plastic--red {
+    background: linear-gradient(135deg, #450a0a 0%, #991b1b 45%, #dc2626 78%, #f87171 100%);
+}
+
+.credit-card-plastic--green {
+    background: linear-gradient(135deg, #064e3b 0%, #047857 42%, #10b981 78%, #6ee7b7 100%);
+}
+
+.credit-card-plastic--gray {
+    background: linear-gradient(135deg, #334155 0%, #64748b 48%, #94a3b8 92%);
+}
+
+.credit-card-plastic--graphite {
+    background: linear-gradient(135deg, #020617 0%, #0f172a 35%, #1e293b 70%, #334155 100%);
+}
+
+.credit-card-plastic--navy {
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 38%, #1d4ed8 72%, #38bdf8 100%);
+}
+
+.credit-card-plastic--gold {
+    background: linear-gradient(135deg, #713f12 0%, #b45309 35%, #d97706 65%, #fbbf24 92%, #fde68a 100%);
+}
+
+.credit-card-plastic--platinum {
+    background: linear-gradient(135deg, #475569 0%, #94a3b8 38%, #e2e8f0 72%, #f8fafc 100%);
+}
+
+.credit-card-plastic--rosegold {
+    background: linear-gradient(135deg, #4c1d2d 0%, #9f1239 40%, #c08497 72%, #fbcfe8 100%);
+}
+
+.credit-card-plastic--burgundy {
+    background: linear-gradient(135deg, #3f0d12 0%, #7f1d1d 42%, #991b1b 78%, #dc2626 100%);
+}
+
+.credit-card-plastic--teal {
+    background: linear-gradient(135deg, #042f2e 0%, #0f766e 45%, #14b8a6 80%, #5eead4 100%);
+}
+
+.credit-card-plastic--midnight {
+    background: linear-gradient(135deg, #000000 0%, #0a0a0a 32%, #171717 62%, #404040 96%);
+}
+
+/* Cor livre: base só se não houver estilo inline (gradiente vem do JS) */
+.credit-card-plastic--custom {
+    background: linear-gradient(135deg, #312e81 0%, #7c3aed 50%, #a78bfa 100%);
+}
+
+.credit-card-plastic__shine {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        125deg,
+        rgba(255, 255, 255, 0.2) 0%,
+        transparent 38%,
+        transparent 58%,
+        rgba(255, 255, 255, 0.06) 100%
+    );
+    pointer-events: none;
+}
+
+.credit-card-plastic__top {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.credit-card-plastic__chip {
+    width: 44px;
+    height: 34px;
+    border-radius: 7px;
+    background: linear-gradient(145deg, #fde68a 0%, #d97706 55%, #92400e 100%);
+    box-shadow:
+        inset 0 2px 0 rgba(255, 255, 255, 0.45),
+        0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.credit-card-plastic__brand {
+    flex-shrink: 0;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.3rem 0.5rem;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(6px);
+    max-width: 38%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.credit-card-plastic__brand--muted {
+    opacity: 0.85;
+    text-transform: none;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+}
+
+.credit-card-plastic__number {
+    position: relative;
+    z-index: 1;
+    margin: 0.35rem 0 0;
+    font-family: ui-monospace, 'Cascadia Code', 'Segoe UI', monospace;
+    font-size: clamp(0.78rem, 2.1vw, 0.95rem);
+    letter-spacing: 0.14em;
+    opacity: 0.92;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.credit-card-plastic__holder-block {
+    position: relative;
+    z-index: 1;
+    margin-top: 0.35rem;
+}
+
+.credit-card-plastic__holder-label {
+    display: block;
+    font-size: 0.58rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0.75;
+    margin-bottom: 0.15rem;
+}
+
+.credit-card-plastic__holder-name {
+    display: block;
+    font-size: clamp(0.82rem, 2.4vw, 0.98rem);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    line-height: 1.25;
+    max-height: 2.5em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.credit-card-plastic__stats {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
+    margin-top: 0.5rem;
+    padding-top: 0.65rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.credit-card-plastic__stat-lbl {
+    display: block;
+    font-size: 0.58rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: 0.8;
+    margin-bottom: 0.15rem;
+}
+
+.credit-card-plastic__stat-val {
+    font-size: clamp(0.8rem, 2.2vw, 0.95rem);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.credit-card-plastic__stat-val--bill {
+    color: #fecaca;
+}
+
+/* Rodapé: datas (fora do plástico, estilo app) */
+.credit-card-footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    padding: 0 0.15rem;
+    font-size: 0.82rem;
+    color: var(--text-light);
+}
+
+.credit-card-footer span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.credit-card-footer i {
+    color: var(--primary-color);
+    opacity: 0.9;
+    font-size: 0.8rem;
+}
+
+.credit-cards-empty {
+    grid-column: 1 / -1;
+    padding: 2rem 1.75rem;
+    border-radius: 12px;
+    background: var(--bg-light);
+    border: 1px dashed var(--border-color);
+    text-align: center;
+    max-width: 36rem;
+    margin: 0 auto;
+}
+
+.credit-cards-empty .credit-cards-empty-icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 1rem;
+    border-radius: 14px;
+    background: rgba(124, 58, 237, 0.1);
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+}
+
+.credit-cards-empty p {
+    margin: 0 0 0.75rem;
+    color: var(--text-color);
+    line-height: 1.55;
+}
+
+.credit-cards-empty p:last-child {
+    margin-bottom: 0;
+    color: var(--text-light);
+    font-size: 0.95rem;
+}
+
+[data-theme='dark'] .credit-card-card:hover .credit-card-plastic {
+    box-shadow:
+        0 8px 14px rgba(0, 0, 0, 0.45),
+        0 24px 56px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme='dark'] .credit-cards-empty {
+    border-color: rgba(148, 163, 184, 0.35);
+}
+
+.credit-card-bill {
+    background-color: var(--bg-light);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 1.5rem;
+}
+
+.credit-card-bill-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.credit-card-bill-header h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.bill-details {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+}
+
+.bill-details div {
+    text-align: center;
+}
+
+.bill-details h4 {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-light);
+}
+
+.bill-details p {
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.bill-details .total {
+    color: var(--danger-color);
+}
+
+.bill-transactions-list {
+    list-style: none;
+    max-height: 200px;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.bill-transactions-list li {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    font-size: 0.9rem;
+}
+
+/* --- Empty State --- */
+.empty-state-small {
+    color: var(--text-light);
+    font-size: 0.98rem;
+    text-align: center;
+    padding: 1.2rem 0;
+}
+
+/* --- Relatórios: progressão gastos / ganhos / investimentos --- */
+#financial-progression-card {
+    margin-top: 2rem;
+    background: var(--bg-light);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 2rem 1.5rem;
+}
+.financial-progression-hint,
+.reports-chart-hint {
+    font-size: 0.88rem;
+    color: var(--text-light);
+    margin: 0 0 1.25rem;
+    line-height: 1.45;
+    max-width: 52rem;
+}
+#financial-progression-chart {
+    width: 100%;
+    min-height: 320px;
+    max-height: 420px;
+}
+
+/* --- Cartão: abrir lista de compras ao clicar --- */
+.credit-card-card--interactive {
+    cursor: pointer;
+}
+
+.credit-card-card--interactive:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 4px;
+    border-radius: 12px;
+}
+
+/* Modal: compras / lançamentos do cartão */
+.modal-content.card-purchases-modal {
+    max-width: min(960px, 96vw);
+    max-height: min(92vh, 920px);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    /* modal-forms.css zera padding do .modal-content; aqui recuperamos margem interna */
+    padding: 1.15rem 1.5rem 1.35rem;
+    box-sizing: border-box;
+}
+
+.card-purchases-modal__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-right: 2.5rem;
+    flex-wrap: wrap;
+}
+
+.card-purchases-modal__head-main {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.card-purchases-modal__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-shrink: 0;
+}
+
+.card-purchases-modal__action-btn {
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--text-light);
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.card-purchases-modal__action-btn:hover {
+    background: var(--bg-light);
+    color: var(--primary-color);
+    border-color: rgba(124, 58, 237, 0.35);
+}
+
+.card-purchases-modal__action-btn.btn-delete:hover {
+    color: var(--danger-color);
+    border-color: rgba(239, 68, 68, 0.4);
+}
+
+.card-purchases-modal__badge {
+    flex-shrink: 0;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+}
+
+.card-purchases-modal__badge--credit {
+    background: linear-gradient(145deg, #7c3aed, #5b21b6);
+}
+
+.card-purchases-modal__badge--debit {
+    background: linear-gradient(145deg, #2563eb, #1d4ed8);
+}
+
+.card-purchases-modal__head-text h3 {
+    margin: 0 0 0.25rem;
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--text-color);
+    line-height: 1.25;
+}
+
+.card-purchases-modal__subtitle {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-light);
+    line-height: 1.35;
+}
+
+.card-purchases-summary__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.card-purchases-summary__item {
+    background: var(--bg-color);
+    border-radius: 12px;
+    padding: 0.85rem 1rem 0.9rem;
+    border: 1px solid var(--border-color);
+    display: grid;
+    grid-template-columns: 1.85rem 1fr;
+    column-gap: 0.65rem;
+    row-gap: 0.2rem;
+    align-items: start;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.card-purchases-summary__icon {
+    grid-column: 1;
+    grid-row: 1 / -1;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 0.1rem;
+    color: var(--primary-color);
+    font-size: 1.05rem;
+    opacity: 0.95;
+}
+
+.card-purchases-summary__lbl {
+    grid-column: 2;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1.3;
+}
+
+.card-purchases-summary__val {
+    grid-column: 2;
+    font-size: 1.12rem;
+    font-weight: 700;
+    color: var(--text-color);
+    line-height: 1.25;
+}
+
+.card-purchases-summary__hint {
+    grid-column: 2;
+    font-size: 0.78rem;
+    color: var(--text-light);
+    line-height: 1.35;
+}
+
+.card-purchases-list-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    min-height: 0;
+}
+
+.card-purchases-list-section__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.card-purchases-list-section__title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-color);
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.card-purchases-list-section__title i {
+    color: var(--primary-color);
+    font-size: 0.95rem;
+    opacity: 0.9;
+}
+
+.card-purchases-table-wrap {
+    overflow: auto;
+    max-height: min(50vh, 420px);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-light);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.card-purchases-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+}
+
+.card-purchases-table th,
+.card-purchases-table td {
+    padding: 0.6rem 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: top;
+}
+
+.card-purchases-table th {
+    background: var(--bg-color);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    font-weight: 600;
+    color: var(--text-light);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    box-shadow: 0 1px 0 var(--border-color);
+}
+
+.card-purchases-table tbody tr:nth-child(even) {
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.card-purchases-row--pending {
+    box-shadow: inset 3px 0 0 0 rgba(245, 158, 11, 0.85);
+}
+
+.card-purchases-td-date time {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.card-purchases-td-desc {
+    max-width: 14rem;
+}
+
+.card-purchases-desc {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-break: break-word;
+}
+
+.card-purchases-td-cat {
+    color: var(--text-light);
+    font-size: 0.86rem;
+}
+
+.card-purchases-td-amount {
+    font-weight: 600;
+    white-space: nowrap;
+    color: var(--danger-color);
+    font-variant-numeric: tabular-nums;
+}
+
+.card-purchases-td-status {
+    white-space: nowrap;
+    vertical-align: middle;
+    width: 2.85rem;
+}
+
+/* Hover: detalhes do parcelamento (tabela despesas + modal do cartão) */
+.installment-ring-popover {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+    outline: none;
+}
+
+.installment-tooltip-panel {
+    position: fixed;
+    z-index: 10050;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    padding: 1rem 1.15rem 1.05rem;
+    border-radius: 12px;
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--card-elevated-shadow, var(--shadow));
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--text-color);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.12s ease, visibility 0.12s;
+    min-width: 240px;
+    max-width: min(380px, calc(100vw - 20px));
+}
+
+.installment-tooltip-panel--visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.installment-tooltip-head {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    padding-bottom: 0.75rem;
+    margin: 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.installment-tooltip-card {
+    font-weight: 700;
+    font-size: 0.95rem;
+    line-height: 1.35;
+    margin: 0;
+    color: var(--primary-color);
+}
+
+.installment-tooltip-desc {
+    margin: 0;
+    word-break: break-word;
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: var(--text-color);
+}
+
+.installment-tooltip-meta-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.installment-tooltip-meta {
+    margin: 0;
+    font-size: 0.75rem;
+    line-height: 1.45;
+    color: var(--text-light);
+}
+
+.installment-tooltip-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem 0.85rem;
+    border-radius: 10px;
+    background: rgba(124, 58, 237, 0.07);
+    border: 1px solid rgba(124, 58, 237, 0.14);
+}
+
+.installment-tooltip-line {
+    margin: 0;
+    line-height: 1.45;
+}
+
+.installment-tooltip-line--stats {
+    font-size: 0.8rem;
+}
+
+.installment-tooltip-line--per {
+    font-size: 0.88rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.installment-tooltip-line-label {
+    font-weight: 500;
+    font-size: 0.78em;
+    color: var(--text-light);
+    margin-left: 0.2em;
+}
+
+.installment-tooltip-pills-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    padding-top: 0.1rem;
+}
+
+.installment-tooltip-pills-title {
+    margin: 0;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-light);
+}
+
+.installment-tooltip-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+}
+
+.installment-tooltip-pill {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.22rem 0.45rem;
+    border-radius: 6px;
+    text-transform: capitalize;
+    line-height: 1.3;
+}
+
+button.installment-tooltip-pill.installment-tooltip-pill-btn {
+    font: inherit;
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin: 0;
+    border: none;
+    cursor: pointer;
+    text-align: center;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+button.installment-tooltip-pill.installment-tooltip-pill-btn:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+.installment-tooltip-pill--paid {
+    background: rgba(16, 185, 129, 0.2);
+    color: #047857;
+}
+
+.installment-tooltip-pill--pending {
+    background: rgba(148, 163, 184, 0.28);
+    color: #475569;
+}
+
+/* Status no cartão: só o anel (parcelas restantes), como no cadastro de despesa */
+.card-purchases-status-ring {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.card-purchases-status-ring--paid .installment-ring-compact__progress {
+    stroke: var(--secondary-color);
+}
+
+/* Parcela do mês corrente: verde = paga (regra de caixa), amarelo = em aberto */
+.card-purchases-status-ring .installment-ring-compact.installment-ring-compact--month-paid .installment-ring-compact__progress {
+    stroke: #10b981;
+}
+
+.card-purchases-status-ring .installment-ring-compact.installment-ring-compact--month-pending .installment-ring-compact__progress {
+    stroke: #eab308;
+}
+
+.card-purchases-status-ring .installment-ring-compact.installment-ring-compact--month-paid .installment-ring-compact__num {
+    color: #047857;
+}
+
+.card-purchases-status-ring .installment-ring-compact.installment-ring-compact--month-pending .installment-ring-compact__num {
+    color: #ca8a04;
+}
+
+.installment-ring-confirm-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font: inherit;
+    line-height: 0;
+    border-radius: 999px;
+}
+
+.installment-ring-confirm-btn:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+.installment-ring-popover__ring-wrap {
+    display: inline-flex;
+    line-height: 0;
+}
+
+/* Pendente e vencimento no mês atual ou anterior */
+.installment-tooltip-pill--current-month.installment-tooltip-pill--pending {
+    background: rgba(234, 179, 8, 0.28);
+    color: #a16207;
+    box-shadow: 0 0 0 1px rgba(202, 138, 4, 0.45);
+}
+
+.installment-tooltip-pill--current-month.installment-tooltip-pill--paid {
+    background: rgba(16, 185, 129, 0.28);
+    color: #047857;
+    box-shadow: 0 0 0 1px rgba(5, 150, 105, 0.4);
+}
+
+.installment-ring-compact {
+    line-height: 0;
+}
+
+.installment-ring-compact__inner {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+}
+
+.installment-ring-compact__svg {
+    display: block;
+}
+
+.installment-ring-compact__track {
+    stroke: rgba(148, 163, 184, 0.45);
+    stroke-width: 3.25;
+}
+
+.installment-ring-compact__progress {
+    stroke: var(--primary-color);
+    stroke-width: 3.25;
+    stroke-linecap: round;
+}
+
+.installment-ring-compact__num {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    line-height: 1;
+    pointer-events: none;
+}
+
+.installment-ring-compact--sm .installment-ring-compact__inner {
+    width: 26px;
+    height: 26px;
+}
+
+.installment-ring-compact--sm .installment-ring-compact__num {
+    font-size: 0.62rem;
+}
+
+.installment-ring-compact--sm .installment-ring-compact__track,
+.installment-ring-compact--sm .installment-ring-compact__progress {
+    stroke-width: 2.65;
+}
+
+.installment-ring-fallback--sm {
+    font-size: 0.68rem;
+    padding: 0.1rem 0.38rem;
+}
+
+.card-purchases-status-ring .installment-ring-fallback {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.card-purchases-status-ring--pending .installment-ring-fallback {
+    background: rgba(251, 191, 36, 0.22);
+    color: #b45309;
+}
+
+.card-purchases-status-ring--paid .installment-ring-fallback {
+    background: rgba(52, 211, 153, 0.18);
+    color: #047857;
+}
+
+.card-purchases-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.card-purchases-status--paid {
+    background: rgba(52, 211, 153, 0.18);
+    color: #047857;
+}
+
+.card-purchases-status--pending {
+    background: rgba(251, 191, 36, 0.22);
+    color: #b45309;
+}
+
+.card-purchases-empty {
+    text-align: center;
+    color: var(--text-light);
+    padding: 2rem 1.25rem 1.5rem;
+    margin: 0;
+    border-radius: 12px;
+    border: 1px dashed var(--border-color);
+    background: var(--bg-color);
+}
+
+.card-purchases-empty__icon {
+    font-size: 2.25rem;
+    color: var(--primary-color);
+    opacity: 0.55;
+    margin-bottom: 0.75rem;
+}
+
+.card-purchases-empty__title {
+    margin: 0 0 0.35rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-color);
+}
+
+.card-purchases-empty__hint {
+    margin: 0;
+    font-size: 0.88rem;
+    line-height: 1.45;
+    max-width: 22rem;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.card-purchases-empty.hidden {
+    display: none;
+}
+
+.card-purchases-footnote {
+    margin: 0;
+    color: var(--text-light);
+    font-size: 0.82rem;
+}

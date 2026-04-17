@@ -1,0 +1,3961 @@
+import {
+    canConfirmInstallmentPeriodForCashOut,
+    creditCardCashOutForCalendarMonth,
+    creditCardForecastForCalendarMonth,
+    creditCardInvoiceTotalForCycle,
+    getExpenseRemainingOpenAmount,
+    getDueDatesForExpenseListPeriod,
+    getParcelNumberInFullSchedule,
+    formatExpenseTableStatusBadgeHtml,
+    formatInstallmentPillsHtml,
+    formatInstallmentPopoverHtml,
+    formatInstallmentRemainingSummaryHtml,
+    formatInstallmentStatusPlain,
+    getInstallmentDueDates,
+    getInstallmentState,
+    getExpensePerInstallmentDisplayAmount,
+    getLoanInstallmentDueDates,
+    isCreditInstallmentFullyPaid,
+    isInstallmentDuePaidForCashOut,
+    isLoanExpense,
+    loanInstallmentCashOutForCalendarMonth
+} from '../../core/credit-installments.js';
+import { expenseContributionToCalendarMonth as expenseContributionToCurrentCalendarMonth } from '../../core/expense-calendar-month.js';
+import {
+    expenseCountsAsCashOut,
+    formatCurrency,
+    getBillingCycle,
+    isCardAccountType,
+    isCreditCardType,
+    movementDateToJsDate,
+    movementDateToUnixSeconds
+} from '../../core/utils.js';
+import { populateExpenseCategorySelect, populateExpenseSubcategorySelect, setupExpenseCategoryUi } from './expense-categories.js';
+import { populateGainCategorySelect, setupGainCategoryUi } from './gain-categories.js';
+import { setupFilterDrawer, closeFilterDrawer } from '../../shared/filter-drawer.js';
+import { openModal, closeModal, showMessage, showToast, navigateTo } from '../../shell/app-shell.js';
+import {
+    saveExpense,
+    saveGain,
+    saveAccount,
+    deleteAccount,
+    deleteExpense,
+    deleteGain,
+    confirmExpenseCashOut,
+    createExpenseSplitRequest,
+    acceptExpenseSplitRequest,
+    rejectExpenseSplitRequest,
+    cancelExpenseSplitRequest,
+    patchExpenseSplitProof,
+    uploadFile,
+    fetchUsersForSplit
+} from '../../services/firestore.js';
+import { TablePaginationController } from '../../shared/table-pagination.js';
+import {
+    nextSortState,
+    syncSortableTableHeaders,
+    sortExpenseRows,
+    sortGainRows,
+    sortCardPurchaseRows
+} from '../../shared/table-sort.js';
+import { calendarDayKeyFromDate, monthKeyFromDate } from '../../core/finance-preferences.js';
+
+function escapeHtml(text) {
+    const d = document.createElement('div');
+    d.textContent = text == null ? '' : String(text);
+    return d.innerHTML;
+}
+
+function htmlAttrEscape(text) {
+    return String(text ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;');
+}
+
+/** Tooltip do ↻ na coluna Valor — saídas (linha principal). */
+function getExpenseRecurrenceBadgeMeta(t, account) {
+    const n = Math.max(1, parseInt(String(t.installmentCount ?? '1'), 10) || 1);
+    if (t.recurrenceGroupId) {
+        return {
+            show: true,
+            title:
+                'Série recorrente no ano: um lançamento por mês até dezembro, mantendo o dia do mês da data inicial.'
+        };
+    }
+    if (account && isCreditCardType(account.type)) {
+        if (n >= 2) {
+            return {
+                show: true,
+                title: `Compra parcelada no cartão (${n}x): cada parcela entra na fatura conforme o ciclo de fechamento e vencimento; o caixa da conta vinculada segue essas datas.`
+            };
+        }
+        return {
+            show: true,
+            title:
+                'Compra no cartão (1x): o débito no caixa da conta vinculada ocorre na data de vencimento da fatura (e confirmações manuais, se estiverem ativas).'
+        };
+    }
+    if (isLoanExpense(t) && (!account || !isCreditCardType(account.type))) {
+        if (n >= 2) {
+            return {
+                show: true,
+                title: `Empréstimo parcelado (${n}x): cada parcela reduz o saldo da conta de débito na data de vencimento.`
+            };
+        }
+        return {
+            show: true,
+            title:
+                'Empréstimo: o débito no saldo segue a data de vencimento (e confirmações manuais, se estiverem ativas).'
+        };
+    }
+    return { show: false, title: '' };
+}
+
+function buildExpenseRecurrenceBadgeSpan(t, account) {
+    const meta = getExpenseRecurrenceBadgeMeta(t, account);
+    if (!meta.show) return '';
+    return `<span class="gain-recurrence-badge" title="${htmlAttrEscape(meta.title)}">↻</span>`;
+}
+
+/** Linhas expandidas de parcela (cartão / empréstimo) na tabela. */
+function buildExpenseInstallmentRowRecBadgeSpan(t) {
+    const total = t.__instParcelTotal != null ? Number(t.__instParcelTotal) : 1;
+    const idx = t.__instParcelIndex != null ? Number(t.__instParcelIndex) : 1;
+    const title = t.__instEmptyPeriod
+        ? 'Neste mês não há parcela com vencimento no período filtrado; o contrato segue nos demais meses.'
+        : `Parcela ${idx} de ${total} deste contrato — valor desta competência (data de vencimento na coluna Data).`;
+    return `<span class="gain-recurrence-badge" title="${htmlAttrEscape(title)}">↻</span>`;
+}
+
+function truncateDisplayHtml(text, max) {
+    const raw = String(text ?? '');
+    if (raw.length <= max) return escapeHtml(raw);
+    return `${escapeHtml(raw.slice(0, Math.max(0, max - 1)))}…`;
+}
+
+/** Chaves YYYY-MM-DD das parcelas marcadas como pagas no formulário (empréstimo ou cartão parcelado). */
+function getLoanPaidPeriodKeysFromForm(form) {
+    if (!form) return [];
+    try {
+        const raw = form.dataset.loanPaidPeriodKeys || '[]';
+        const arr = JSON.parse(raw);
+        return Array.isArray(arr) ? arr.map((x) => String(x).trim()).filter(Boolean) : [];
+    } catch {
+        return [];
+    }
+}
+
+function setLoanPaidPeriodKeysOnForm(form, keys) {
+    if (!form) return;
+    form.dataset.loanPaidPeriodKeys = JSON.stringify([...new Set(keys)]);
+}
+
+/** Rótulo tipo «jan. de 26» para a tag do mês da parcela. */
+function formatLoanMonthTagLabel(d) {
+    return d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
+}
+
+function buildLoanMonthTagsHtml(dueDates, paidKeys, now) {
+    const paidSet = new Set(paidKeys);
+    const nowMk = monthKeyFromDate(now);
+    const parts = ['<div class="expense-loan-month-tags" role="group" aria-label="Parcelas no caixa">'];
+    for (const d of dueDates) {
+        const pk = calendarDayKeyFromDate(d);
+        const isPaid = paidSet.has(pk);
+        const dueMk = monthKeyFromDate(d);
+        const unpaidDueOrPast = !isPaid && dueMk <= nowMk;
+        let cls = 'expense-loan-month-tag';
+        if (isPaid) cls += ' expense-loan-month-tag--paid';
+        else {
+            cls += ' expense-loan-month-tag--pending';
+            if (unpaidDueOrPast) cls += ' expense-loan-month-tag--current';
+        }
+        const lab = formatLoanMonthTagLabel(d);
+        parts.push(
+            `<button type="button" class="${cls}" data-period-key="${htmlAttrEscape(pk)}" title="Marcar ou desmarcar parcela de ${htmlAttrEscape(lab)}">${escapeHtml(lab)}</button>`
+        );
+    }
+    parts.push('</div>');
+    return parts.join('');
+}
+
+/** Posiciona o painel fixo no hover (evita corte por overflow da tabela). */
+function setupInstallmentPopovers(scopeEl) {
+    if (!scopeEl) return;
+    scopeEl.querySelectorAll('.installment-ring-popover').forEach((pop) => {
+        if (pop.dataset.tooltipBound) return;
+        pop.dataset.tooltipBound = '1';
+        const panel = pop.querySelector('.installment-tooltip-panel');
+        if (!panel) return;
+        let hideTimer = null;
+        const place = () => {
+            const r = pop.getBoundingClientRect();
+            const pw = Math.min(380, Math.max(220, panel.offsetWidth || 280));
+            let left = r.left + r.width / 2 - pw / 2;
+            left = Math.max(10, Math.min(left, window.innerWidth - pw - 10));
+            /* Sem folga entre anel e painel: o cursor não “cai no vácuo” e as tags continuam clicáveis */
+            const top = r.top;
+            panel.style.width = `${pw}px`;
+            panel.style.left = `${left}px`;
+            panel.style.top = `${top}px`;
+            panel.style.transform = 'translateY(-100%)';
+        };
+        const show = () => {
+            if (hideTimer) {
+                clearTimeout(hideTimer);
+                hideTimer = null;
+            }
+            panel.classList.add('installment-tooltip-panel--visible');
+            requestAnimationFrame(place);
+        };
+        const hide = () => panel.classList.remove('installment-tooltip-panel--visible');
+        const scheduleHide = () => {
+            if (hideTimer) clearTimeout(hideTimer);
+            hideTimer = setTimeout(hide, 200);
+        };
+        pop.addEventListener('mouseenter', show);
+        pop.addEventListener('mouseleave', scheduleHide);
+        panel.addEventListener('mouseenter', () => {
+            if (hideTimer) {
+                clearTimeout(hideTimer);
+                hideTimer = null;
+            }
+        });
+        panel.addEventListener('mouseleave', scheduleHide);
+        pop.addEventListener('focus', show);
+        pop.addEventListener('blur', hide);
+    });
+}
+
+let currentUser;
+let userAccounts;
+let userExpenses;
+let userGains;
+let onUpdateCallback;
+/** Moeda usada na última renderização da página de cartões (modal de compras). */
+let lastCardsPageCurrency = 'BRL';
+
+let expensesPagination = null;
+let expensesRenderCache = { sorted: [], accounts: [], currency: 'BRL', userProfile: null };
+let gainsPagination = null;
+let gainsRenderCache = { sorted: [], accounts: [], currency: 'BRL' };
+let cardPurchasesPagination = null;
+let cardPurchasesCache = { sorted: [], currency: 'BRL', userProfile: null };
+/** Texto do filtro do modal de compras (sincronizado com o input). */
+let cardPurchasesFilterQ = '';
+
+const expensesFilterState = { q: '', category: '', accountId: '', period: 'current-month' };
+const gainsFilterState = { q: '', category: '', accountId: '', period: 'current-month' };
+
+/** Mesmos intervalos do relatório por período — lista de saídas/entradas. */
+function getMovementListPeriodBounds(period) {
+    const now = new Date();
+    let startDate = new Date();
+    let endDate = new Date();
+    switch (period) {
+        case 'current-month':
+            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+            break;
+        case 'last-month':
+            startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+            break;
+        case 'current-year':
+            startDate = new Date(now.getFullYear(), 0, 1);
+            endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+            break;
+        case 'last-3-months':
+            startDate = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+            break;
+        case 'last-6-months':
+            startDate = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
+            break;
+        default:
+            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    }
+    return { startDate, endDate };
+}
+
+function movementDateInListPeriod(dateField, period) {
+    const p = period || 'current-month';
+    const { startDate, endDate } = getMovementListPeriodBounds(p);
+    const transactionDate = movementDateToJsDate(dateField);
+    return transactionDate >= startDate && transactionDate <= endDate;
+}
+
+/**
+ * Período da lista de saídas: data do lançamento OU vencimento no intervalo
+ * (empréstimo parcelado; cartão em qualquer n incluindo 1x — vencimento pode ser outro mês que a compra).
+ */
+function expenseMatchesListPeriod(t, period) {
+    if (movementDateInListPeriod(t.date, period)) return true;
+    const n = Math.max(1, parseInt(String(t.installmentCount ?? '1'), 10) || 1);
+    const { startDate, endDate } = getMovementListPeriodBounds(period);
+    const acc = userAccounts?.find((a) => a.id === t.accountId);
+    if (!acc) return false;
+    const purchase = movementDateToJsDate(t.date);
+    if (Number.isNaN(purchase.getTime())) return false;
+
+    if (isLoanExpense(t) && !isCreditCardType(acc.type)) {
+        if (n < 2) return false;
+        const dueDates = getLoanInstallmentDueDates(purchase, n);
+        return dueDates.some((d) => d >= startDate && d <= endDate);
+    }
+
+    if (isCreditCardType(acc.type)) {
+        const cd = acc.closeDay ?? acc.closingDay;
+        const dd = acc.dueDay ?? acc.dueDate;
+        const dueDates = getInstallmentDueDates(purchase, n, cd, dd);
+        return dueDates.some((d) => d >= startDate && d <= endDate);
+    }
+
+    return false;
+}
+
+/** Intervalo do filtro «Período» da lista de despesas — usado para mostrar só parcelas desse recorte. */
+function getExpensesFilterListPeriod() {
+    const period = expensesFilterState.period || 'current-month';
+    const { startDate, endDate } = getMovementListPeriodBounds(period);
+    return { startDate, endDate };
+}
+
+/** Só em «este mês»: anel + tooltip com a parcela do mês. */
+function isExpensesInstallmentMonthRingMode() {
+    return (expensesFilterState.period || 'current-month') === 'current-month';
+}
+
+/**
+ * Pílulas na lista: «este ano» = todas as parcelas do contrato (null);
+ * demais períodos amplos = só vencimentos dentro do intervalo do filtro.
+ */
+function getExpensesInstallmentListPeriodForPills() {
+    const period = expensesFilterState.period || 'current-month';
+    if (period === 'current-year') return null;
+    return getExpensesFilterListPeriod();
+}
+
+/** Texto de busca alinhado à mesma lógica das pílulas / anel. */
+function getExpensesInstallmentListPeriodForPlainText() {
+    const period = expensesFilterState.period || 'current-month';
+    if (period === 'current-month') return getExpensesFilterListPeriod();
+    if (period === 'current-year') return null;
+    return getExpensesFilterListPeriod();
+}
+
+/**
+ * Fora de «este mês», cada parcela vira uma linha na tabela (data = vencimento).
+ */
+function expandInstallmentRowsForExpensesTable(list, accounts, userProfile) {
+    if (isExpensesInstallmentMonthRingMode()) return list;
+    const now = new Date();
+    const listPeriodPills = getExpensesInstallmentListPeriodForPills();
+    const out = [];
+    for (const t of list) {
+        const account = accounts.find((a) => a.id === t.accountId);
+        const nParc = parseInt(String(t.installmentCount ?? ''), 10);
+        const isMulti =
+            (account && isCreditCardType(account.type) && Number.isFinite(nParc) && nParc >= 2) ||
+            (isLoanExpense(t) &&
+                (!account || !isCreditCardType(account.type)) &&
+                Number.isFinite(nParc) &&
+                nParc >= 2) ||
+            (Number.isFinite(nParc) && nParc >= 2);
+        if (!isMulti) {
+            out.push(t);
+            continue;
+        }
+        const dueDates = getDueDatesForExpenseListPeriod(t, account, now, userProfile, listPeriodPills);
+        const totalAmt = Number(t.amount) || 0;
+        const nFullTotal = Math.max(1, nParc);
+        const per = totalAmt / nFullTotal;
+
+        if (dueDates.length === 0) {
+            out.push({
+                ...t,
+                __instRow: true,
+                __instEmptyPeriod: true,
+                __instSortDateUnix: movementDateToUnixSeconds(t.date),
+                __instParcelAmount: per
+            });
+            continue;
+        }
+        for (const d of dueDates) {
+            const idx = getParcelNumberInFullSchedule(t, account, d, now, userProfile);
+            const paid = isInstallmentDuePaidForCashOut(t, account, d, userProfile, now);
+            out.push({
+                ...t,
+                __instRow: true,
+                __instDueDate: d,
+                __instSortDateUnix: Math.floor(d.getTime() / 1000),
+                __instParcelIndex: idx,
+                __instParcelTotal: nFullTotal,
+                __instParcelPaid: paid,
+                __instPeriodKey: calendarDayKeyFromDate(d),
+                __instParcelAmount: per
+            });
+        }
+    }
+    return out;
+}
+
+let expensesFilterDebounce = null;
+let gainsFilterDebounce = null;
+let cardPurchasesFilterDebounce = null;
+let tableFiltersListenersBound = false;
+
+/** Modal de confirmação de parcela (lista de saídas): id + periodKey até confirmar. */
+let pendingInstallmentCashOut = null;
+
+/** Ordenação atual das tabelas (cabeçalhos clicáveis). */
+let expensesSort = { key: 'date', dir: 'desc' };
+let gainsSort = { key: 'date', dir: 'desc' };
+let cardPurchasesSort = { key: 'date', dir: 'desc' };
+let tableSortClicksBound = false;
+
+/**
+ * Inicializa despesas, ganhos, contas e cartões.
+ */
+/** Preferências do perfil (confirmação manual de caixa) — alinhado ao AppState após cada refresh. */
+let financeUserProfile = null;
+
+/** Solicitações de rateio (incoming/outgoing) — espelho do AppState. */
+let userExpenseSplitRequests = { incoming: [], outgoing: [] };
+
+/** Mantém referências alinhadas ao AppState após cada refresh. */
+export function syncFinanceState(
+    accounts,
+    expenses,
+    gains,
+    userProfile = undefined,
+    expenseSplitRequests = undefined
+) {
+    userAccounts = accounts;
+    userExpenses = expenses;
+    userGains = gains;
+    if (userProfile !== undefined) {
+        financeUserProfile = userProfile ?? null;
+    }
+    if (expenseSplitRequests !== undefined) {
+        userExpenseSplitRequests = expenseSplitRequests || { incoming: [], outgoing: [] };
+    }
+}
+
+function canSplitExpenseClient(t) {
+    if (!t || t.__instRow) return false;
+    if (t.recurrenceGroupId != null && String(t.recurrenceGroupId).trim() !== '') return false;
+    if (t.recurringMonthly === true) return false;
+    const ic = t.installmentCount;
+    if (ic != null) {
+        const n = parseInt(String(ic), 10);
+        if (Number.isFinite(n) && n > 1) return false;
+    }
+    return true;
+}
+
+function populateExpenseSplitCreditAccountSelect() {
+    const sel = document.getElementById('expense-split-credit-account');
+    if (!sel) return;
+    const accounts = userAccounts || [];
+    sel.innerHTML = '<option value="">Selecione</option>';
+    accounts.forEach((a) => {
+        const o = document.createElement('option');
+        o.value = a.id;
+        o.textContent = a.name || 'Conta';
+        sel.appendChild(o);
+    });
+}
+
+function splitStatusLabel(st) {
+    const u = String(st ?? '').toUpperCase();
+    if (u === 'PENDING') return 'Pendente';
+    if (u === 'ACCEPTED') return 'Aceita';
+    if (u === 'REJECTED') return 'Recusada';
+    if (u === 'CANCELLED') return 'Cancelada';
+    return u || '—';
+}
+
+function splitStatusClass(st) {
+    const u = String(st ?? '').toUpperCase();
+    if (u === 'PENDING') return 'expense-split-status--pending';
+    if (u === 'ACCEPTED') return 'expense-split-status--accepted';
+    if (u === 'REJECTED') return 'expense-split-status--rejected';
+    if (u === 'CANCELLED') return 'expense-split-status--cancelled';
+    return '';
+}
+
+/** Lista divisões de saída já criadas para a despesa aberta no modal. */
+function renderExpenseSplitModalList(expenseId) {
+    const el = document.getElementById('expense-split-modal-existing');
+    if (!el) return;
+    const cur = expensesRenderCache.currency || 'BRL';
+    const list = (userExpenseSplitRequests?.outgoing || [])
+        .filter((s) => s && String(s.sourceExpenseId ?? s.sourceExpense?.id) === String(expenseId))
+        .sort((a, b) => {
+            const ta = new Date(a.createdAt ?? 0).getTime();
+            const tb = new Date(b.createdAt ?? 0).getTime();
+            return tb - ta;
+        });
+    if (!list.length) {
+        el.innerHTML = `
+            <div class="expense-split-modal-existing-empty">
+                <strong>Divisões desta saída</strong><br>
+                Nenhuma divisão associada a esta saída.
+            </div>
+        `;
+        return;
+    }
+    const rows = list
+        .map((s) => {
+            const st = String(s.status ?? '').toUpperCase();
+            const canRemove = st !== 'ACCEPTED';
+            const name = s.recipient?.name || s.recipient?.email || 'Destinatário';
+            const removeCtrl = canRemove
+                ? `<button type="button" class="btn-secondary expense-split-modal-remove-btn" data-split-id="${escapeHtml(String(s.id))}">Remover</button>`
+                : `<span class="expense-split-modal-locked" title="Esta divisão já foi aceita e não pode ser removida."><i class="fas fa-lock" aria-hidden="true"></i></span>`;
+            return `<div class="expense-split-modal-existing__row" data-split-id="${escapeHtml(String(s.id))}">
+                <div class="expense-split-modal-existing__meta">
+                    <span class="expense-split-status ${splitStatusClass(s.status)}">${escapeHtml(splitStatusLabel(s.status))}</span>
+                    <strong>${escapeHtml(name)}</strong><span style="opacity:.85;"> · ${escapeHtml(formatCurrency(s.amount, cur))}</span>
+                </div>
+                ${removeCtrl}
+            </div>`;
+        })
+        .join('');
+    el.innerHTML = rows;
+}
+
+async function populateExpenseSplitRecipientSelect() {
+    const sel = document.getElementById('expense-split-recipient-select');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">Carregando…</option>';
+    sel.disabled = true;
+    try {
+        const data = await fetchUsersForSplit();
+        const users = data?.users || [];
+        sel.innerHTML = '';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent =
+            users.length === 0 ? 'Nenhum outro usuário cadastrado' : 'Selecione um usuário';
+        placeholder.disabled = users.length === 0;
+        sel.appendChild(placeholder);
+        users.forEach((u) => {
+            const o = document.createElement('option');
+            o.value = String(u.email || '').trim().toLowerCase();
+            const name = String(u.name || '').trim();
+            o.textContent = name ? `${name} — ${u.email}` : u.email;
+            sel.appendChild(o);
+        });
+        sel.disabled = users.length === 0;
+    } catch (err) {
+        console.error(err);
+        sel.innerHTML = '<option value="">Erro ao carregar usuários</option>';
+        sel.disabled = true;
+    }
+}
+
+async function openExpenseSplitModal(expenseId) {
+    const exp = userExpenses?.find((e) => e.id === expenseId);
+    if (!exp || !canSplitExpenseClient(exp)) {
+        showToast('Não disponível', 'Esta saída não pode ser dividida (parcelada ou recorrente).', 'warning');
+        return;
+    }
+    const hid = document.getElementById('expense-split-source-id');
+    const sum = document.getElementById('expense-split-modal-summary');
+    const amt = document.getElementById('expense-split-amount');
+    const form = document.getElementById('expense-split-form');
+    if (!hid || !form) return;
+    hid.value = expenseId;
+    const recSel = document.getElementById('expense-split-recipient-select');
+    if (recSel) recSel.value = '';
+    const total = Number(exp.amount) || 0;
+    const desc = String(exp.description || '').trim() || 'Saída';
+    if (sum) {
+        const cur = expensesRenderCache.currency || 'BRL';
+        sum.innerHTML = `<strong>Saída original</strong><span>${escapeHtml(desc)} · ${escapeHtml(formatCurrency(total, cur))}</span>`;
+    }
+    if (amt) {
+        amt.max = String(Math.max(0.01, total));
+        amt.value = total > 0 ? String(Math.min(total, Math.max(0.01, total / 2)).toFixed(2)) : '';
+    }
+    populateExpenseSplitCreditAccountSelect();
+    await populateExpenseSplitRecipientSelect();
+    renderExpenseSplitModalList(expenseId);
+    openModal('expense-split-modal');
+}
+
+async function handleExpenseSplitFormSubmit(e) {
+    e.preventDefault();
+    const form = e.target;
+    const sourceExpenseId = form['expense-split-source-id']?.value?.trim();
+    const recipientEmail = form['expense-split-recipient-select']?.value?.trim().toLowerCase();
+    const amount = parseFloat(form['expense-split-amount']?.value);
+    const requesterCreditAccountId = form['expense-split-credit-account']?.value?.trim();
+    if (!sourceExpenseId || !recipientEmail || !Number.isFinite(amount) || amount <= 0) {
+        showToast('Dados incompletos', 'Selecione o destinatário e o valor.', 'warning');
+        return;
+    }
+    if (!requesterCreditAccountId) {
+        showToast('Conta', 'Selecione a conta para receber o extorno.', 'warning');
+        return;
+    }
+    try {
+        await createExpenseSplitRequest({
+            sourceExpenseId,
+            recipientEmail,
+            amount,
+            requesterCreditAccountId
+        });
+        showToast('Solicitação enviada', 'O outro usuário será notificado.', 'success');
+        if (onUpdateCallback) await onUpdateCallback();
+        renderExpenseSplitModalList(sourceExpenseId);
+        const recSel = document.getElementById('expense-split-recipient-select');
+        if (recSel) recSel.value = '';
+        const exp = userExpenses?.find((e) => e.id === sourceExpenseId);
+        const amtEl = document.getElementById('expense-split-amount');
+        if (exp && amtEl) {
+            const total = Number(exp.amount) || 0;
+            amtEl.max = String(Math.max(0.01, total));
+            amtEl.value =
+                total > 0 ? String(Math.min(total, Math.max(0.01, total / 2)).toFixed(2)) : '';
+        }
+    } catch (err) {
+        console.error(err);
+        showToast('Erro', err.message || 'Não foi possível enviar.', 'error');
+    }
+}
+
+function renderOutgoingSplitsPanel(currency) {
+    const panel = document.getElementById('expense-splits-outgoing-panel');
+    if (!panel) return;
+    const outgoing = userExpenseSplitRequests?.outgoing || [];
+    const pending = outgoing.filter((s) => s && String(s.status).toUpperCase() === 'PENDING');
+    if (!pending.length) {
+        panel.classList.add('hidden');
+        panel.innerHTML = '';
+        return;
+    }
+    panel.classList.remove('hidden');
+    const parts = [
+        '<div class="expense-splits-panel__header">',
+        '  <h4 class="expense-splits-panel__title">Divisões enviadas (pendentes)</h4>',
+        '  <p class="expense-splits-panel__hint">Comprovante opcional</p>',
+        '</div>'
+    ];
+    pending.forEach((s) => {
+        const name = s.recipient?.name || s.recipient?.email || 'Destinatário';
+        const desc = s.sourceExpense?.description || 'Compra';
+        const proof = s.senderProofUrl
+            ? `<a href="${escapeHtml(s.senderProofUrl)}" target="_blank" rel="noopener">Ver</a>`
+            : '<span style="opacity:0.8;">Sem</span>';
+        parts.push(`<div class="expense-splits-panel__row" data-split-id="${escapeHtml(String(s.id))}">
+            <div class="expense-splits-panel__meta">
+                <strong>${escapeHtml(name)}</strong> · ${escapeHtml(formatCurrency(s.amount, currency))}
+                <span class="expense-splits-panel__sub">${escapeHtml(desc)}</span>
+            </div>
+            <div class="expense-splits-panel__actions">
+                <span class="expense-splits-panel__proof">Comprovante: ${proof}</span>
+                <label class="btn-secondary expense-splits-panel__btn" style="cursor:pointer;">
+                    Anexar
+                    <input type="file" class="expense-split-proof-input hidden" accept="image/*,.pdf" aria-label="Anexar comprovante">
+                </label>
+                <button type="button" class="btn-secondary expense-splits-panel__btn expense-split-cancel-btn" data-split-id="${escapeHtml(String(s.id))}">Remover</button>
+            </div>
+        </div>`);
+    });
+    panel.innerHTML = parts.join('');
+
+    panel.querySelectorAll('.expense-split-proof-input').forEach((input) => {
+        input.addEventListener('change', async (ev) => {
+            const file = ev.target.files?.[0];
+            const row = ev.target.closest('.expense-splits-panel__row');
+            const sid = row?.dataset?.splitId;
+            if (!file || !sid) return;
+            try {
+                const url = await uploadFile(file, currentUser?.uid);
+                await patchExpenseSplitProof(sid, url);
+                showToast('Comprovante', 'Arquivo anexado.', 'success');
+                onUpdateCallback?.();
+            } catch (err) {
+                console.error(err);
+                showToast('Erro', 'Não foi possível enviar o arquivo.', 'error');
+            }
+            ev.target.value = '';
+        });
+    });
+    panel.querySelectorAll('.expense-split-cancel-btn').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+            const sid = btn.dataset.splitId;
+            if (!sid || !confirm('Remover esta solicitação de divisão?')) return;
+            try {
+                await cancelExpenseSplitRequest(sid);
+                showToast('Removido', 'A divisão foi excluída.', 'info');
+                onUpdateCallback?.();
+            } catch (err) {
+                console.error(err);
+                showToast('Erro', err.message || 'Falha ao cancelar.', 'error');
+            }
+        });
+    });
+}
+
+function setupExpenseSplitUi() {
+    document.getElementById('expense-split-form')?.addEventListener('submit', handleExpenseSplitFormSubmit);
+    document.querySelectorAll('[data-close-modal="expense-split-modal"]').forEach((btn) => {
+        btn.addEventListener('click', () => closeModal('expense-split-modal'));
+    });
+    document.querySelectorAll('[data-close-modal="split-incoming-login-modal"]').forEach((btn) => {
+        btn.addEventListener('click', () => closeModal('split-incoming-login-modal'));
+    });
+    document.getElementById('expense-split-modal-existing')?.addEventListener('click', async (e) => {
+        const btn = e.target.closest('.expense-split-modal-remove-btn');
+        if (!btn) return;
+        const sid = btn.dataset.splitId;
+        if (!sid || !confirm('Remover esta divisão? Só é permitido se ainda não foi aceita.')) return;
+        try {
+            await cancelExpenseSplitRequest(sid);
+            showToast(
+                'Divisão removida',
+                'Se não houver divisões aceitas, você poderá excluir a saída.',
+                'success'
+            );
+            if (onUpdateCallback) await onUpdateCallback();
+            const hid = document.getElementById('expense-split-source-id')?.value?.trim();
+            if (hid) renderExpenseSplitModalList(hid);
+        } catch (err) {
+            console.error(err);
+            showToast('Erro', err?.message || 'Não foi possível remover.', 'error');
+        }
+    });
+}
+
+/** Após login: modal com divisões pendentes para o destinatário. */
+export function showPendingSplitsLoginModal() {
+    const pending = (userExpenseSplitRequests.incoming || []).filter(
+        (s) => s && String(s.status).toUpperCase() === 'PENDING'
+    );
+    const listEl = document.getElementById('split-incoming-login-list');
+    if (!pending.length || !listEl) return;
+
+    const currency = expensesRenderCache.currency || 'BRL';
+    listEl.innerHTML = pending
+        .map((s) => {
+            const reqName = s.requester?.name || s.requester?.email || 'Solicitante';
+            const desc = s.sourceExpense?.description || 'Compra';
+            const amt = formatCurrency(s.amount, currency);
+            return `<li class="split-incoming-login-item" data-split-id="${escapeHtml(String(s.id))}">
+                <div style="flex:1;min-width:200px;">
+                    <strong>${escapeHtml(reqName)}</strong> pediu para dividir <strong>${amt}</strong>
+                    <br><small>${escapeHtml(desc)}</small>
+                </div>
+                <button type="button" class="btn-primary split-incoming-accept-btn" data-split-id="${escapeHtml(String(s.id))}">Aceitar</button>
+                <button type="button" class="btn-secondary split-incoming-reject-btn" data-split-id="${escapeHtml(String(s.id))}">Recusar</button>
+            </li>`;
+        })
+        .join('');
+
+    listEl.querySelectorAll('.split-incoming-accept-btn').forEach((btn) => {
+        btn.addEventListener('click', () => handleSplitIncomingAccept(btn.dataset.splitId));
+    });
+    listEl.querySelectorAll('.split-incoming-reject-btn').forEach((btn) => {
+        btn.addEventListener('click', () => handleSplitIncomingReject(btn.dataset.splitId));
+    });
+
+    openModal('split-incoming-login-modal');
+}
+
+async function handleSplitIncomingAccept(splitId) {
+    if (!splitId) return;
+    try {
+        closeModal('split-incoming-login-modal');
+        const pending = (userExpenseSplitRequests.incoming || []).find((s) => String(s?.id) === String(splitId));
+        const sid = pending?.id || splitId;
+        const amt = pending?.amount;
+        const src = pending?.sourceExpense;
+        if (sid != null && amt != null) {
+            navigateTo('expenses');
+            openExpenseModal(false, {
+                splitRequestId: sid,
+                splitAmount: Number(amt),
+                sourceExpense: src
+            });
+            showToast(
+                'Confirme para aceitar',
+                'Preencha e salve sua saída para concluir o aceite e gerar o extorno.',
+                'info'
+            );
+        } else {
+            showToast('Erro', 'Não foi possível abrir sua parte da divisão.', 'error');
+        }
+    } catch (err) {
+        console.error(err);
+        showToast('Erro', err.message || 'Não foi possível abrir a divisão.', 'error');
+    }
+}
+
+async function handleSplitIncomingReject(splitId) {
+    if (!splitId || !confirm('Recusar esta divisão?')) return;
+    try {
+        await rejectExpenseSplitRequest(splitId);
+        showToast('Recusado', 'O solicitante foi notificado pelo status.', 'info');
+        closeModal('split-incoming-login-modal');
+        onUpdateCallback?.();
+    } catch (err) {
+        console.error(err);
+        showToast('Erro', err.message || 'Falha ao recusar.', 'error');
+    }
+}
+
+/** Saldo inicial da conta: vazio conta como 0 (permite saldo zero sem ambiguidade com `|| 0`). */
+function parseInitialBalanceInput(value) {
+    if (value == null) return 0;
+    const s = String(value).trim();
+    if (s === '') return 0;
+    const n = parseFloat(s.replace(',', '.'));
+    return Number.isFinite(n) ? n : NaN;
+}
+
+/** Hoje no fuso local (`YYYY-MM-DD`) para `<input type="date">` — evita deslocar o dia com `toISOString()` (UTC). */
+function getTodayDateInputValue() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
+/** HTML completo de `#account-type` (todas as contas); preenchido no init. */
+let cachedAccountTypeOptionsFull = '';
+
+function cacheAccountTypeOptionsIfNeeded() {
+    const sel = document.getElementById('account-type');
+    if (sel && !cachedAccountTypeOptionsFull) {
+        cachedAccountTypeOptionsFull = sel.innerHTML;
+    }
+}
+
+/** No cadastro de cartão só Crédito / Débito; em contas normais, lista completa. */
+function setAccountTypeSelectMode(mode) {
+    cacheAccountTypeOptionsIfNeeded();
+    const sel = document.getElementById('account-type');
+    if (!sel || !cachedAccountTypeOptionsFull) return;
+    const typeLabel = document.querySelector('label[for="account-type"]');
+    const typeGroup = document.getElementById('account-type-group');
+    if (mode === 'cardsOnly') {
+        sel.innerHTML = `
+            <option value="cartao_credito">Cartão de crédito</option>
+            <option value="cartao_debito">Cartão de débito</option>
+        `;
+        if (typeLabel) typeLabel.textContent = 'Tipo de cartão';
+        typeGroup?.classList.add('account-type-group--full-width');
+    } else {
+        sel.innerHTML = cachedAccountTypeOptionsFull;
+        if (typeLabel) typeLabel.textContent = 'Tipo';
+        typeGroup?.classList.remove('account-type-group--full-width');
+    }
+}
+
+export function initFinance(
+    user,
+    accounts,
+    expenses,
+    gains,
+    onUpdate,
+    userProfile = null,
+    expenseSplitRequests = null
+) {
+    currentUser = user;
+    syncFinanceState(accounts, expenses, gains, userProfile, expenseSplitRequests);
+    onUpdateCallback = onUpdate;
+    cacheAccountTypeOptionsIfNeeded();
+    setupExpenseCategoryUi();
+    setupGainCategoryUi();
+
+    document.getElementById('add-expense-btn')?.addEventListener('click', () => openExpenseModal(false));
+    document.getElementById('add-gain-btn')?.addEventListener('click', () => openGainModal(false));
+    document.getElementById('quick-add-expense-btn')?.addEventListener('click', () => openExpenseModal(false));
+    document.getElementById('quick-add-gain-btn')?.addEventListener('click', () => openGainModal(false));
+    document.getElementById('expense-form')?.addEventListener('submit', handleExpenseFormSubmit);
+    document.getElementById('expense-form')?.addEventListener('click', handleLoanMonthTagClick);
+    document.getElementById('gain-form')?.addEventListener('submit', handleGainFormSubmit);
+    document.getElementById('add-account-btn')?.addEventListener('click', openNewAccountModal);
+    document.getElementById('add-credit-card-btn')?.addEventListener('click', openNewCreditCardModal);
+    document.getElementById('account-form')?.addEventListener('submit', handleAccountFormSubmit);
+    document.getElementById('accounts-list')?.addEventListener('click', handleAccountActions);
+    document.getElementById('credit-cards-list')?.addEventListener('click', handleCreditCardListClick);
+    document.getElementById('credit-cards-list')?.addEventListener('keydown', handleCreditCardListKeydown);
+    document.getElementById('card-purchases-modal')?.addEventListener('click', handleCardPurchasesModalActions);
+    document.querySelector('#expenses-table tbody')?.addEventListener('click', handleExpenseRowActions);
+    document.querySelector('#gains-table tbody')?.addEventListener('click', handleGainRowActions);
+    document.getElementById('account-type')?.addEventListener('change', (e) => toggleCreditCardFields(e.target.value));
+    document.getElementById('account-form')?.addEventListener('change', (e) => {
+        if (e.target.name === 'card-plastic-tone') {
+            syncCardCustomColorRow(e.target.closest('form'));
+        }
+    });
+    document.getElementById('expense-payment-method')?.addEventListener('change', () => syncExpenseInstallmentsRow());
+    document.getElementById('expense-installments')?.addEventListener('input', () => syncExpenseInstallmentsRow());
+    document.getElementById('expense-date')?.addEventListener('change', () => syncExpenseInstallmentsRow());
+    document.getElementById('expense-category-select')?.addEventListener('change', () => {
+        syncExpensePaymentMethodForLoanCategory();
+        syncExpenseInstallmentsRow();
+    });
+    document.getElementById('expense-loan-debit-account')?.addEventListener('change', (ev) => {
+        const form = document.getElementById('expense-form');
+        if (form) form.dataset.loanPaymentAccountId = ev.target.value || '';
+        syncExpenseInstallmentsRow();
+    });
+
+    setupTransactionTableFilters();
+    setupFilterDrawer({ drawerId: 'expenses-filter-drawer', openBtnId: 'expenses-filter-open-btn' });
+    setupFilterDrawer({ drawerId: 'gains-filter-drawer', openBtnId: 'gains-filter-open-btn' });
+    setupInstallmentCashOutConfirmModal();
+    setupExpenseSplitUi();
+}
+
+function setupInstallmentCashOutConfirmModal() {
+    const modalId = 'confirm-installment-cash-out-modal';
+    const ok = document.getElementById('confirm-installment-cash-out-ok');
+    const cancel = document.getElementById('confirm-installment-cash-out-cancel');
+    ok?.addEventListener('click', async () => {
+        if (!pendingInstallmentCashOut?.expenseId || !pendingInstallmentCashOut?.periodKey) return;
+        ok.disabled = true;
+        try {
+            await confirmExpenseCashOut(
+                pendingInstallmentCashOut.expenseId,
+                pendingInstallmentCashOut.periodKey
+            );
+            pendingInstallmentCashOut = null;
+            closeModal(modalId);
+            onUpdateCallback?.();
+            showToast('Pagamento', 'Parcela registrada no saldo.', 'success');
+        } catch (err) {
+            console.error(err);
+            showToast('Erro', 'Não foi possível confirmar o pagamento.', 'error');
+        } finally {
+            ok.disabled = false;
+        }
+    });
+    cancel?.addEventListener('click', () => {
+        pendingInstallmentCashOut = null;
+        closeModal(modalId);
+    });
+}
+
+function openInstallmentCashOutConfirmModal(expenseId, periodKey) {
+    pendingInstallmentCashOut = { expenseId, periodKey };
+    openModal('confirm-installment-cash-out-modal');
+}
+
+/** Valores salvos em `account.plasticTone` → classe CSS do plástico (exceto `custom` + `plasticColor`). */
+const PLASTIC_TONE_CLASSES = {
+    violet: 'credit-card-plastic--violet',
+    ocean: 'credit-card-plastic--ocean',
+    ember: 'credit-card-plastic--ember',
+    yellow: 'credit-card-plastic--yellow',
+    red: 'credit-card-plastic--red',
+    green: 'credit-card-plastic--green',
+    gray: 'credit-card-plastic--gray',
+    graphite: 'credit-card-plastic--graphite',
+    navy: 'credit-card-plastic--navy',
+    gold: 'credit-card-plastic--gold',
+    platinum: 'credit-card-plastic--platinum',
+    rosegold: 'credit-card-plastic--rosegold',
+    burgundy: 'credit-card-plastic--burgundy',
+    teal: 'credit-card-plastic--teal',
+    midnight: 'credit-card-plastic--midnight'
+};
+
+/** Tons exibidos no modal (11); demais em `PLASTIC_TONE_CLASSES` servem a cartões já salvos. */
+const PLASTIC_PICKER_TONES = [
+    'violet',
+    'ocean',
+    'navy',
+    'gold',
+    'platinum',
+    'rosegold',
+    'red',
+    'burgundy',
+    'green',
+    'graphite',
+    'midnight'
+];
+
+/** Tons antigos sem opção no seletor → tom mais próximo ao abrir o formulário. */
+const PLASTIC_TONE_LEGACY_TO_PICKER = {
+    ember: 'gold',
+    yellow: 'gold',
+    teal: 'green',
+    gray: 'graphite'
+};
+
+function plasticToneForPickerForm(storedTone) {
+    if (storedTone === 'custom') return 'custom';
+    const key = storedTone && PLASTIC_TONE_CLASSES[storedTone] ? storedTone : 'violet';
+    if (PLASTIC_PICKER_TONES.includes(key)) return key;
+    if (PLASTIC_TONE_LEGACY_TO_PICKER[key]) return PLASTIC_TONE_LEGACY_TO_PICKER[key];
+    return 'violet';
+}
+
+function normalizeHexColor(input) {
+    if (!input || typeof input !== 'string') return '#7c3aed';
+    let h = input.trim();
+    if (!h.startsWith('#')) h = `#${h}`;
+    if (/^#[0-9A-Fa-f]{6}$/.test(h)) return h.toLowerCase();
+    if (/^#[0-9A-Fa-f]{3}$/.test(h)) {
+        return `#${h[1]}${h[1]}${h[2]}${h[2]}${h[3]}${h[3]}`.toLowerCase();
+    }
+    return '#7c3aed';
+}
+
+/** Gradiente no plástico a partir de uma cor escolhida pelo usuário. */
+function plasticGradientCss(hex) {
+    const h = normalizeHexColor(hex);
+    const r = parseInt(h.slice(1, 3), 16);
+    const g = parseInt(h.slice(3, 5), 16);
+    const b = parseInt(h.slice(5, 7), 16);
+    const dr = Math.round(r * 0.42);
+    const dg = Math.round(g * 0.42);
+    const db = Math.round(b * 0.42);
+    const lr = Math.round(r + (255 - r) * 0.38);
+    const lg = Math.round(g + (255 - g) * 0.38);
+    const lb = Math.round(b + (255 - b) * 0.38);
+    return `linear-gradient(135deg, rgb(${dr},${dg},${db}) 0%, ${h} 48%, rgb(${lr},${lg},${lb}) 100%)`;
+}
+
+function plasticClassForAccount(account, fallbackIndex) {
+    if (account.plasticTone === 'custom') return 'credit-card-plastic--custom';
+    const key = account.plasticTone;
+    if (key && PLASTIC_TONE_CLASSES[key]) return PLASTIC_TONE_CLASSES[key];
+    const order = Object.values(PLASTIC_TONE_CLASSES);
+    return order[fallbackIndex % order.length];
+}
+
+function syncCardCustomColorRow(form) {
+    const rootForm = form || document.getElementById('account-form');
+    if (!rootForm) return;
+    const row = rootForm.querySelector('#card-custom-color-row');
+    const customChecked = rootForm.querySelector('input[name="card-plastic-tone"][value="custom"]:checked');
+    if (row) row.classList.toggle('hidden', !customChecked);
+}
+
+function setCardPlasticToneRadios(form, tone, plasticColor) {
+    if (tone === 'custom') {
+        const radio = form.querySelector('input[name="card-plastic-tone"][value="custom"]');
+        if (radio) radio.checked = true;
+        const colorInput = form.querySelector('#card-plastic-color');
+        if (colorInput) colorInput.value = normalizeHexColor(plasticColor);
+    } else {
+        const v = plasticToneForPickerForm(tone && PLASTIC_TONE_CLASSES[tone] ? tone : 'violet');
+        const input = form.querySelector(`input[name="card-plastic-tone"][value="${v}"]`);
+        if (input) input.checked = true;
+    }
+    syncCardCustomColorRow(form);
+}
+
+/** Contas não-cartão para vincular cartão de crédito ou débito. */
+function populateCardLinkedAccountSelect(selectEl, excludeAccountId) {
+    if (!selectEl) return;
+    const exclude = excludeAccountId || '';
+    selectEl.innerHTML = '<option value="">Selecione a conta</option>';
+    (userAccounts || [])
+        .filter((acc) => !isCardAccountType(acc.type))
+        .filter((acc) => acc.id !== exclude)
+        .forEach((acc) => {
+            selectEl.innerHTML += `<option value="${acc.id}">${escapeHtml(acc.name)}</option>`;
+        });
+}
+
+function setCardLinkedHint(type) {
+    const hint = document.getElementById('card-linked-hint');
+    if (!hint) return;
+    if (type === 'cartao_debito') {
+        hint.textContent = hint.dataset.hintDebit || '';
+    } else if (type === 'cartao_credito') {
+        hint.textContent = hint.dataset.hintCredit || '';
+    } else {
+        hint.textContent = '';
+    }
+}
+
+function toggleCreditCardFields(type) {
+    const creditCardFields = document.getElementById('credit-card-fields');
+    const initialBalanceGroup = document.getElementById('initial-balance-group');
+    const initialInput = document.getElementById('account-initial-balance');
+    const cardLimit = document.getElementById('card-limit');
+    const cardClose = document.getElementById('card-closing-day');
+    const cardDue = document.getElementById('card-due-day');
+    const holderGroup = document.getElementById('card-holder-group');
+    const holderInput = document.getElementById('card-holder-name');
+    const holderLabel = document.getElementById('account-holder-label');
+    const holderHint = document.getElementById('account-holder-hint');
+    const colorGroup = document.getElementById('card-color-group');
+    const nameLabel = document.getElementById('account-name-label');
+    const cardLinkedGroup = document.getElementById('card-linked-account-group');
+    const cardLinkedSelect = document.getElementById('card-linked-account');
+    const accountForm = document.getElementById('account-form');
+    const editingAccountId = accountForm?.['account-id']?.value || '';
+
+    holderGroup?.classList.remove('hidden');
+    if (isCardAccountType(type)) {
+        colorGroup?.classList.remove('hidden');
+        holderInput?.setAttribute('required', 'required');
+        if (nameLabel) nameLabel.textContent = 'Nome do cartão';
+        if (holderLabel) holderLabel.textContent = 'Titular (como no cartão)';
+        holderHint?.classList.add('hidden');
+        if (holderInput) holderInput.placeholder = 'Como impresso no cartão';
+    } else {
+        colorGroup?.classList.add('hidden');
+        holderInput?.removeAttribute('required');
+        if (nameLabel) nameLabel.textContent = 'Nome da conta';
+        if (holderLabel) holderLabel.textContent = 'Titular da conta';
+        holderHint?.classList.add('hidden');
+        if (holderInput) holderInput.placeholder = 'Nome completo do titular';
+    }
+
+    if (type === 'cartao_credito') {
+        creditCardFields.classList.remove('hidden');
+        initialBalanceGroup.classList.add('hidden');
+        initialInput?.removeAttribute('required');
+        cardLimit?.setAttribute('required', 'required');
+        cardClose?.setAttribute('required', 'required');
+        cardDue?.setAttribute('required', 'required');
+        cardLinkedGroup?.classList.remove('hidden');
+        populateCardLinkedAccountSelect(cardLinkedSelect, editingAccountId);
+        cardLinkedSelect?.setAttribute('required', 'required');
+        setCardLinkedHint(type);
+    } else if (type === 'cartao_debito') {
+        creditCardFields.classList.add('hidden');
+        initialBalanceGroup.classList.add('hidden');
+        initialInput?.removeAttribute('required');
+        cardLimit?.removeAttribute('required');
+        cardClose?.removeAttribute('required');
+        cardDue?.removeAttribute('required');
+        cardLinkedGroup?.classList.remove('hidden');
+        populateCardLinkedAccountSelect(cardLinkedSelect, editingAccountId);
+        cardLinkedSelect?.setAttribute('required', 'required');
+        setCardLinkedHint(type);
+    } else {
+        creditCardFields.classList.add('hidden');
+        initialBalanceGroup.classList.remove('hidden');
+        initialInput?.setAttribute('required', 'required');
+        cardLimit?.removeAttribute('required');
+        cardClose?.removeAttribute('required');
+        cardDue?.removeAttribute('required');
+        cardLinkedGroup?.classList.add('hidden');
+        cardLinkedSelect?.removeAttribute('required');
+        setCardLinkedHint('');
+    }
+}
+
+function readExpensesFilterFromDom() {
+    expensesFilterState.q = document.getElementById('expenses-filter-q')?.value || '';
+    expensesFilterState.category = document.getElementById('expenses-filter-category')?.value || '';
+    expensesFilterState.accountId = document.getElementById('expenses-filter-account')?.value || '';
+    expensesFilterState.period =
+        document.getElementById('expenses-period-filter')?.value || 'current-month';
+}
+
+function sumMovementAmounts(list) {
+    return list.reduce((s, t) => s + (Number(t.amount) || 0), 0);
+}
+
+function filterMovementsInCurrentMonth(list) {
+    const now = new Date();
+    const y = now.getFullYear();
+    const mo = now.getMonth();
+    return list.filter((t) => {
+        const d = movementDateToJsDate(t.date);
+        return d.getFullYear() === y && d.getMonth() === mo;
+    });
+}
+
+/**
+ * Soma saídas no ano calendário para o resumo da página de saídas.
+ * — Cartão de crédito: valor integral de cada lançamento cuja data está no ano («registradas no ano»),
+ *   não só a parcela do mês nem só o que já entrou no caixa.
+ * — Empréstimo parcelado: parcelas com vencimento em cada mês (caixa), como antes.
+ * — Demais contas: data do lançamento no ano.
+ */
+function sumCashOutInCalendarYear(sorted, year, now, userProfile = null) {
+    let total = 0;
+    for (const t of sorted) {
+        const acc = userAccounts?.find((a) => a.id === t.accountId);
+        const n = parseInt(String(t.installmentCount ?? '1'), 10) || 1;
+        if (acc && isCreditCardType(acc.type)) {
+            const d = movementDateToJsDate(t.date);
+            if (d.getFullYear() === year) {
+                total += Number(t.amount) || 0;
+            }
+        } else if (isLoanExpense(t) && (!acc || !isCreditCardType(acc.type)) && n >= 2) {
+            for (let m = 0; m < 12; m++) {
+                const monthKey = `${year}-${String(m + 1).padStart(2, '0')}`;
+                total += loanInstallmentCashOutForCalendarMonth(t, monthKey, now, userProfile);
+            }
+        } else {
+            const d = movementDateToJsDate(t.date);
+            if (d.getFullYear() === year && expenseCountsAsCashOut(t, acc)) {
+                total += Number(t.amount) || 0;
+            }
+        }
+    }
+    return total;
+}
+
+function expenseDisplayCategory(t) {
+    if (t.subcategory) return `${t.category} > ${t.subcategory}`;
+    return String(t.category ?? '—');
+}
+
+/** Categoria de primeiro nível (para agregações como «principal categoria do mês»). */
+function expenseTopLevelCategory(t) {
+    const c = String(t.category ?? '').trim();
+    return c || '—';
+}
+
+function gainTopLevelCategory(t) {
+    const c = String(t.category ?? '').trim();
+    return c || '—';
+}
+
+function endOfDay(d) {
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+}
+
+function monthKeyFromDateObj(d) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function coerceDayOfMonth(value) {
+    if (value == null || value === '') return undefined;
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    const s = String(value).trim();
+    const d = new Date(s);
+    if (!Number.isNaN(d.getTime())) {
+        const day = d.getDate();
+        if (day >= 1 && day <= 31) return day;
+    }
+    const n = parseInt(s, 10);
+    if (!Number.isFinite(n) || n < 1 || n > 31) return undefined;
+    return n;
+}
+
+function expenseContributionPaidThroughMonthKey(t, acc, monthKey, cutoffEndInclusive, userProfile = null) {
+    const cutoffT = endOfDay(cutoffEndInclusive).getTime();
+    const amt = Number(t.amount) || 0;
+    const nInst = Math.max(1, parseInt(String(t.installmentCount ?? '1'), 10) || 1);
+    const purchase = movementDateToJsDate(t.date);
+    if (Number.isNaN(purchase.getTime())) return 0;
+
+    if (acc && isCreditCardType(acc.type)) {
+        const cd = coerceDayOfMonth(acc.closeDay ?? acc.closingDay);
+        const dd = coerceDayOfMonth(acc.dueDay ?? acc.dueDate);
+        if (!dd) {
+            if (monthKeyFromDateObj(purchase) !== monthKey) return 0;
+            if (purchase.getTime() > cutoffT) return 0;
+            if (!expenseCountsAsCashOut(t, acc)) return 0;
+            return amt;
+        }
+        const dues = getInstallmentDueDates(purchase, Math.max(1, nInst), cd, dd);
+        if (!dues.length) return 0;
+        const per = nInst >= 2 ? amt / nInst : amt;
+        let sum = 0;
+        for (const due of dues) {
+            if (monthKeyFromDateObj(due) !== monthKey) continue;
+            if (due.getTime() > cutoffT) continue;
+            sum += per;
+        }
+        return sum;
+    }
+
+    if (isLoanExpense(t) && (!acc || !isCreditCardType(acc.type)) && nInst >= 2) {
+        const dues = getLoanInstallmentDueDates(purchase, nInst);
+        const per = amt / nInst;
+        let sum = 0;
+        for (const due of dues) {
+            if (monthKeyFromDateObj(due) !== monthKey) continue;
+            if (due.getTime() > cutoffT) continue;
+            sum += per;
+        }
+        return sum;
+    }
+
+    if (monthKeyFromDateObj(purchase) !== monthKey) return 0;
+    if (purchase.getTime() > cutoffT) return 0;
+    if (!expenseCountsAsCashOut(t, acc)) return 0;
+    return amt;
+}
+
+function periodLabelParts(period, now = new Date()) {
+    const mLong = (d) => d.toLocaleDateString('pt-BR', { month: 'long' });
+    const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+    if (period === 'current-year') return { kind: 'year', label: String(now.getFullYear()) };
+    if (period === 'current-month') return { kind: 'month', label: cap(mLong(now)) };
+    if (period === 'last-month') {
+        const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        return { kind: 'month', label: cap(mLong(d)) };
+    }
+    return { kind: 'range', label: 'Período selecionado' };
+}
+
+function updateExpensesSummaryCards() {
+    const cache = expensesRenderCache;
+    if (!cache?.sorted) return;
+    const { sorted, currency, userProfile } = cache;
+    const now = new Date();
+    const period = expensesFilterState?.period || 'current-month';
+
+    // Determina quais meses entram pelo filtro («este ano» = jan–dez; meses futuros no ano ainda sem caixa = 0)
+    const currentMonthKey = monthKeyFromDateObj(now);
+    let months = [];
+    if (period === 'current-year') {
+        const y = now.getFullYear();
+        for (let m = 0; m < 12; m++) {
+            months.push(`${y}-${String(m + 1).padStart(2, '0')}`);
+        }
+    } else if (period === 'last-month') {
+        const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        months = [monthKeyFromDateObj(d)];
+    } else {
+        months = [monthKeyFromDateObj(now)];
+    }
+
+    // Total do período (soma de contribuições por mês)
+    let totalPeriod = 0;
+    for (const mk of months) {
+        if (period === 'current-year' && mk > currentMonthKey) continue;
+        const cutoff =
+            mk === currentMonthKey
+                ? now
+                : new Date(Number(mk.slice(0, 4)), Number(mk.slice(5, 7)) - 1 + 1, 0, 23, 59, 59, 999);
+        sorted.forEach((t) => {
+            const acc = userAccounts?.find((a) => a.id === t.accountId);
+            totalPeriod +=
+                mk === currentMonthKey
+                    ? expenseContributionToCurrentCalendarMonth(t, acc, mk, now, userProfile)
+                    : expenseContributionPaidThroughMonthKey(t, acc, mk, cutoff, userProfile);
+        });
+    }
+
+    const byCat = new Map();
+    // Principal categoria no período (usa a soma das contribuições do(s) mês(es) do filtro)
+    for (const mk of months) {
+        if (period === 'current-year' && mk > currentMonthKey) continue;
+        const cutoff =
+            mk === currentMonthKey
+                ? now
+                : new Date(Number(mk.slice(0, 4)), Number(mk.slice(5, 7)) - 1 + 1, 0, 23, 59, 59, 999);
+        sorted.forEach((t) => {
+            const acc = userAccounts?.find((a) => a.id === t.accountId);
+            const contrib =
+                mk === currentMonthKey
+                    ? expenseContributionToCurrentCalendarMonth(t, acc, mk, now, userProfile)
+                    : expenseContributionPaidThroughMonthKey(t, acc, mk, cutoff, userProfile);
+            if (contrib <= 0) return;
+            const key = expenseTopLevelCategory(t);
+            byCat.set(key, (byCat.get(key) || 0) + contrib);
+        });
+    }
+    let topCat = '';
+    let topCatAmt = 0;
+    byCat.forEach((amt, label) => {
+        if (amt > topCatAmt) {
+            topCatAmt = amt;
+            topCat = label;
+        }
+    });
+
+    // (Card anual removido)
+    const elTop = document.getElementById('expenses-summary-top-cat');
+    const elTopIcon = document.getElementById('expenses-summary-top-cat-icon');
+    if (elTop) {
+        elTop.textContent = topCatAmt > 0 ? formatCurrency(topCatAmt, currency) : '—';
+    }
+    if (elTopIcon) {
+        elTopIcon.title =
+            topCatAmt > 0 && topCat
+                ? topCat
+                : 'Nenhuma saída neste mês calendário';
+    }
+
+    const elMonth = document.getElementById('expenses-summary-month');
+    if (elMonth) elMonth.textContent = formatCurrency(totalPeriod, currency);
+    const elMonthIcon = document.getElementById('expenses-summary-month-icon');
+    if (elMonthIcon) {
+        const p = periodLabelParts(period, now);
+        if (p.kind === 'month') {
+            elMonthIcon.title = `Cartão/empréstimo: parcelas com vencimento em ${p.label}; demais saídas pela data do lançamento`;
+        } else if (p.kind === 'year') {
+            elMonthIcon.title = `Ano calendário de 1/1 a 31/12 (cartão/empréstimo por vencimento; meses futuros ainda sem valor entram como 0); demais saídas pela data do lançamento`;
+        } else {
+            elMonthIcon.title = 'Total no período selecionado';
+        }
+    }
+
+    // Atualiza títulos (h3) conforme o período
+    const t = periodLabelParts(period, now);
+    const elMonthTitle = document.getElementById('expenses-summary-month-title');
+    const elTopTitle = document.getElementById('expenses-summary-top-cat-title');
+    if (t.kind === 'year') {
+        if (elMonthTitle) elMonthTitle.textContent = `Saídas de ${t.label}`;
+        if (elTopTitle) elTopTitle.textContent = `Principal categoria de ${t.label}`;
+    } else if (t.kind === 'month') {
+        if (elMonthTitle) elMonthTitle.textContent = `Saídas de ${t.label}`;
+        if (elTopTitle) elTopTitle.textContent = `Principal categoria de ${t.label}`;
+    } else {
+        if (elMonthTitle) elMonthTitle.textContent = 'Saídas no período';
+        if (elTopTitle) elTopTitle.textContent = 'Principal categoria do período';
+    }
+    syncExpensesFilterButtonHighlight();
+}
+
+function updateGainsSummaryCards() {
+    const cache = gainsRenderCache;
+    if (!cache?.sorted) return;
+    readGainsFilterFromDom();
+    const { sorted, currency } = cache;
+    const now = new Date();
+    const period = gainsFilterState.period || 'current-month';
+
+    const inPeriod = sorted.filter((t) => movementDateInListPeriod(t.date, period));
+    const totalPeriod = sumMovementAmounts(inPeriod);
+
+    const inCurrentMonth = filterMovementsInCurrentMonth(sorted);
+    const totalCurrentMonth = sumMovementAmounts(inCurrentMonth);
+
+    const byCat = new Map();
+    inPeriod.forEach((t) => {
+        const key = gainTopLevelCategory(t);
+        byCat.set(key, (byCat.get(key) || 0) + (Number(t.amount) || 0));
+    });
+    let topCat = '';
+    let topCatAmt = 0;
+    byCat.forEach((amt, label) => {
+        if (amt > topCatAmt) {
+            topCatAmt = amt;
+            topCat = label;
+        }
+    });
+
+    const elYear = document.getElementById('gains-summary-year');
+    const elMonth = document.getElementById('gains-summary-month');
+    const elTop = document.getElementById('gains-summary-top-cat');
+    const elTopIcon = document.getElementById('gains-summary-top-cat-icon');
+    const elYearIcon = document.getElementById('gains-summary-year-icon');
+    const elMonthIcon = document.getElementById('gains-summary-month-icon');
+
+    if (elYear) elYear.textContent = formatCurrency(totalPeriod, currency);
+    if (period === 'current-year' && elMonth) {
+        elMonth.textContent = formatCurrency(totalCurrentMonth, currency);
+    } else if (elMonth) {
+        elMonth.textContent = formatCurrency(totalPeriod, currency);
+    }
+
+    if (elTop) {
+        elTop.textContent = topCatAmt > 0 ? formatCurrency(topCatAmt, currency) : '—';
+    }
+    if (elTopIcon) {
+        elTopIcon.title =
+            topCatAmt > 0 && topCat ? topCat : 'Nenhuma entrada no período do filtro';
+    }
+
+    const p = periodLabelParts(period, now);
+    const elYearTitle = document.getElementById('gains-summary-year-title');
+    const elMonthTitle = document.getElementById('gains-summary-month-title');
+    const elTopTitle = document.getElementById('gains-summary-top-cat-title');
+
+    if (period === 'current-year') {
+        if (elYearTitle) elYearTitle.textContent = `Entradas de ${now.getFullYear()}`;
+        if (elMonthTitle) elMonthTitle.textContent = 'No mês atual';
+        if (elTopTitle) elTopTitle.textContent = `Principal categoria em ${now.getFullYear()}`;
+        if (elYearIcon) {
+            elYearIcon.title = 'Soma das entradas com data entre 1/1 e 31/12 do ano (inclui datas futuras no ano)';
+        }
+        if (elMonthIcon) {
+            const parts = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).formatToParts(now);
+            const monthName = parts.find((x) => x.type === 'month')?.value || '';
+            const yPart = parts.find((x) => x.type === 'year')?.value || '';
+            const labelMonth = monthName ? monthName.charAt(0).toUpperCase() + monthName.slice(1) : '';
+            elMonthIcon.title =
+                labelMonth && yPart
+                    ? `Entradas com data em ${labelMonth} ${yPart}`
+                    : 'Mês calendário atual';
+        }
+    } else if (period === 'last-month') {
+        const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+        const lab = cap(d.toLocaleDateString('pt-BR', { month: 'long' }));
+        if (elYearTitle) elYearTitle.textContent = `Entradas de ${lab}`;
+        if (elMonthTitle) elMonthTitle.textContent = `Entradas de ${lab}`;
+        if (elTopTitle) elTopTitle.textContent = `Principal categoria em ${lab}`;
+        if (elYearIcon) elYearIcon.title = 'Total no período selecionado (mês passado)';
+        if (elMonthIcon) elMonthIcon.title = 'Mesmo total do período';
+    } else {
+        if (elYearTitle) elYearTitle.textContent = `Entradas de ${p.kind === 'month' ? p.label : '—'}`;
+        if (elMonthTitle) elMonthTitle.textContent = `Entradas de ${p.kind === 'month' ? p.label : '—'}`;
+        if (elTopTitle) elTopTitle.textContent = `Principal categoria em ${p.kind === 'month' ? p.label : '—'}`;
+        if (elYearIcon) {
+            elYearIcon.title = 'Entradas com data no mês do filtro (este mês)';
+        }
+        if (elMonthIcon) {
+            const parts = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).formatToParts(now);
+            const monthName = parts.find((x) => x.type === 'month')?.value || '';
+            const yPart = parts.find((x) => x.type === 'year')?.value || '';
+            const labelMonth = monthName ? monthName.charAt(0).toUpperCase() + monthName.slice(1) : '';
+            elMonthIcon.title =
+                labelMonth && yPart
+                    ? `Entradas com data em ${labelMonth} ${yPart}`
+                    : 'Soma das entradas no mês calendário atual';
+        }
+    }
+
+    syncGainsFilterButtonHighlight();
+}
+
+function syncExpensesFilterButtonHighlight() {
+    readExpensesFilterFromDom();
+    const active =
+        Boolean(expensesFilterState.q?.trim()) ||
+        Boolean(expensesFilterState.category) ||
+        Boolean(expensesFilterState.accountId) ||
+        (expensesFilterState.period && expensesFilterState.period !== 'current-month');
+    document.getElementById('expenses-filter-open-btn')?.classList.toggle('filter-drawer-trigger--active', active);
+}
+
+function syncGainsFilterButtonHighlight() {
+    readGainsFilterFromDom();
+    const active =
+        Boolean(gainsFilterState.q?.trim()) ||
+        Boolean(gainsFilterState.category) ||
+        Boolean(gainsFilterState.accountId) ||
+        (gainsFilterState.period && gainsFilterState.period !== 'current-month');
+    document.getElementById('gains-filter-open-btn')?.classList.toggle('filter-drawer-trigger--active', active);
+}
+
+function getFilteredExpensesList() {
+    const { sorted, accounts, currency, userProfile } = expensesRenderCache;
+    const { q, category, accountId, period } = expensesFilterState;
+    let list = sorted.filter((t) => expenseMatchesListPeriod(t, period));
+    if (category) {
+        if (category.includes(' > ')) {
+            // Filtro por subcategoria específica
+            const [cat, sub] = category.split(' > ');
+            list = list.filter((t) => t.category === cat && t.subcategory === sub);
+        } else {
+            // Filtro por categoria principal (inclui todas as subcategorias)
+            list = list.filter((t) => t.category === category);
+        }
+    }
+    if (accountId) {
+        list = list.filter((t) => t.accountId === accountId);
+    }
+    const needle = q.trim().toLowerCase();
+    if (needle) {
+        const listPeriodPlain = getExpensesInstallmentListPeriodForPlainText();
+        list = list.filter((t) => {
+            const acc = accounts.find((a) => a.id === t.accountId);
+            const dateStr = movementDateToJsDate(t.date).toLocaleDateString('pt-BR');
+            const ic = t.installmentCount;
+            const parcelasLbl = ic != null && Number(ic) >= 1 ? `${Number(ic)}x` : '';
+            const statusTxt = formatInstallmentStatusPlain(t, acc, new Date(), userProfile, listPeriodPlain);
+            const categoryDisplay = t.subcategory 
+                ? `${t.category} > ${t.subcategory}` 
+                : t.category;
+            const displayAmt = getExpensePerInstallmentDisplayAmount(t, acc);
+            const hay = [
+                dateStr,
+                String(t.description ?? ''),
+                categoryDisplay,
+                String(t.category ?? ''),
+                String(t.subcategory ?? ''),
+                String(acc?.name ?? ''),
+                formatCurrency(t.amount, currency),
+                formatCurrency(displayAmt, currency),
+                t.isInvestment ? 'investimento' : '',
+                t.isPaid ? 'pago' : 'parcelado',
+                parcelasLbl,
+                statusTxt
+            ]
+                .join(' ')
+                .toLowerCase();
+            return hay.includes(needle);
+        });
+    }
+    return list;
+}
+
+function populateExpenseFilterSelects() {
+    const { sorted, accounts } = expensesRenderCache;
+    const catSel = document.getElementById('expenses-filter-category');
+    const accSel = document.getElementById('expenses-filter-account');
+    if (!catSel || !accSel) return;
+    const prevCat = catSel.value;
+    const prevAcc = accSel.value;
+    const period = expensesFilterState.period || 'current-month';
+    const inPeriod = sorted.filter((t) => expenseMatchesListPeriod(t, period));
+    const cats = [
+        ...new Set(inPeriod.map((t) => {
+            if (t.subcategory) {
+                return `${t.category} > ${t.subcategory}`;
+            }
+            return t.category;
+        }).filter((c) => c != null && String(c).trim() !== ''))
+    ].sort((a, b) => String(a).localeCompare(String(b), 'pt-BR'));
+    catSel.innerHTML = '<option value="">Todas as categorias</option>';
+    cats.forEach((c) => {
+        const o = document.createElement('option');
+        o.value = c;
+        o.textContent = c;
+        catSel.appendChild(o);
+    });
+    if (cats.includes(prevCat)) catSel.value = prevCat;
+
+    const accIds = [...new Set(inPeriod.map((t) => t.accountId).filter(Boolean))];
+    const accList = accIds
+        .map((id) => accounts.find((a) => a.id === id))
+        .filter(Boolean)
+        .sort((a, b) => String(a.name).localeCompare(String(b.name), 'pt-BR'));
+    accSel.innerHTML = '<option value="">Todas as contas</option>';
+    accList.forEach((a) => {
+        const o = document.createElement('option');
+        o.value = a.id;
+        o.textContent = a.name;
+        accSel.appendChild(o);
+    });
+    if (accIds.includes(prevAcc)) accSel.value = prevAcc;
+}
+
+function applyExpensesFilters() {
+    readExpensesFilterFromDom();
+    populateExpenseFilterSelects();
+    if (!expensesPagination) return;
+    expensesPagination.setTotal(getSortedFilteredExpensesList().length, { resetPage: true });
+    renderExpensesBodySlice();
+    updateExpensesSummaryCards();
+}
+
+function getSortedFilteredExpensesList() {
+    const filtered = getFilteredExpensesList();
+    const { accounts, userProfile } = expensesRenderCache;
+    const expanded = expandInstallmentRowsForExpensesTable(filtered, accounts, userProfile);
+    return sortExpenseRows(expanded, expensesSort, accounts);
+}
+
+function renderExpensesBodySlice() {
+    const tbody = document.querySelector('#expenses-table tbody');
+    if (!tbody || !expensesPagination) return;
+    const { accounts, currency, userProfile } = expensesRenderCache;
+    const list = getSortedFilteredExpensesList();
+    const { start, end } = expensesPagination.getSliceRange();
+    const monthRing = isExpensesInstallmentMonthRingMode();
+    const listPeriodMonth = monthRing ? getExpensesFilterListPeriod() : null;
+    const now = new Date();
+    tbody.innerHTML = '';
+    list.slice(start, end).forEach((t) => {
+        const account = accounts.find((acc) => acc.id === t.accountId);
+        const tr = document.createElement('tr');
+        if (t.__instRow) tr.classList.add('expense-tr-installment');
+        const rowCls = t.isInvestment ? 'investimento' : 'despesa';
+
+        if (t.__instRow) {
+            const dateStr = t.__instEmptyPeriod
+                ? movementDateToJsDate(t.date).toLocaleDateString('pt-BR')
+                : t.__instDueDate.toLocaleDateString('pt-BR');
+            const descSuffix = t.__instEmptyPeriod ? '' : ` · Parcela ${t.__instParcelIndex}/${t.__instParcelTotal}`;
+            let statusCell;
+            if (t.__instEmptyPeriod) {
+                statusCell = '<span class="expense-status-badge expense-status-badge--pending">Pendente</span>';
+            } else if (t.__instParcelPaid) {
+                statusCell = '<span class="expense-status-badge expense-status-badge--paid">Pago</span>';
+            } else if (
+                t.__instDueDate &&
+                canConfirmInstallmentPeriodForCashOut(t, account, t.__instDueDate, userProfile, now)
+            ) {
+                const eid = escapeHtml(String(t.id));
+                const pk = escapeHtml(String(t.__instPeriodKey));
+                statusCell = `<button type="button" class="expense-status-badge expense-status-badge--pay expense-inst-confirm-btn" data-expense-id="${eid}" data-period-key="${pk}" title="Registrar pagamento no caixa">Pagar</button>`;
+            } else {
+                statusCell = '<span class="expense-status-badge expense-status-badge--pending">Pendente</span>';
+            }
+            const categoryDisplay = t.subcategory ? `${t.category} > ${t.subcategory}` : t.category;
+            const displayAmt = t.__instParcelAmount;
+            const totalAmt = Number(t.amount) || 0;
+            const amountTitle = totalAmt > 0 ? ` title="Total do contrato: ${formatCurrency(totalAmt, currency)}"` : '';
+            const instRecBadge = buildExpenseInstallmentRowRecBadgeSpan(t);
+            const amountHtmlInst = `<span class="movement-amount-with-rec-inner">${instRecBadge}${formatCurrency(displayAmt, currency)}</span>`;
+            tr.innerHTML = `
+            <td>${dateStr}</td>
+            <td>${escapeHtml(t.description)}${escapeHtml(descSuffix)}</td>
+            <td>${escapeHtml(categoryDisplay)}</td>
+            <td>${escapeHtml(account?.name || 'N/A')}</td>
+            <td class="${rowCls}"${amountTitle}>${amountHtmlInst}</td>
+            <td class="expenses-td-status">${statusCell}</td>
+            <td class="transaction-actions">
+                <button class="btn-action btn-edit" data-id="${t.id}" title="Editar lançamento completo"><i class="fas fa-pencil-alt"></i></button>
+                <button class="btn-action btn-delete" data-id="${t.id}" title="Excluir"><i class="fas fa-trash-alt"></i></button>
+            </td>`;
+            tbody.appendChild(tr);
+            return;
+        }
+
+        const splitBtn = canSplitExpenseClient(t)
+            ? `<button type="button" class="btn-action btn-split" data-id="${t.id}" title="Dividir com outro usuário"><i class="fas fa-users"></i></button>`
+            : '';
+
+        const ic = t.installmentCount;
+        const nParc = parseInt(String(ic ?? ''), 10);
+        const cardOrLoanInstallment =
+            (account && isCreditCardType(account.type)) ||
+            (isLoanExpense(t) && (!account || !isCreditCardType(account.type)) && Number.isFinite(nParc) && nParc >= 2);
+
+        let statusCell;
+        if (
+            monthRing &&
+            (cardOrLoanInstallment || (Number.isFinite(nParc) && nParc >= 2))
+        ) {
+            statusCell = formatExpenseTableStatusBadgeHtml(t, account, userProfile, now, listPeriodMonth);
+        } else {
+            statusCell = t.isPaid
+                ? '<span class="expense-status-badge expense-status-badge--paid">Pago</span>'
+                : '<span class="expense-status-badge expense-status-badge--pending">Pendente</span>';
+        }
+        const categoryDisplay = t.subcategory ? `${t.category} > ${t.subcategory}` : t.category;
+        const displayAmt = getExpensePerInstallmentDisplayAmount(t, account);
+        const totalAmt = Number(t.amount) || 0;
+        const amountTitle =
+            displayAmt !== totalAmt && totalAmt > 0
+                ? ` title="Total da compra/contrato: ${formatCurrency(totalAmt, currency)}"`
+                : '';
+        const recMeta = getExpenseRecurrenceBadgeMeta(t, account);
+        const recBadge = buildExpenseRecurrenceBadgeSpan(t, account);
+        const amountHtml = recMeta.show
+            ? `<span class="movement-amount-with-rec-inner">${recBadge}${formatCurrency(displayAmt, currency)}</span>`
+            : formatCurrency(displayAmt, currency);
+        tr.innerHTML = `
+            <td>${movementDateToJsDate(t.date).toLocaleDateString('pt-BR')}</td>
+            <td>${escapeHtml(t.description)}</td>
+            <td>${escapeHtml(categoryDisplay)}</td>
+            <td>${escapeHtml(account?.name || 'N/A')}</td>
+            <td class="${rowCls}"${amountTitle}>${amountHtml}</td>
+            <td class="expenses-td-status">${statusCell}</td>
+            <td class="transaction-actions">
+                ${splitBtn}
+                <button class="btn-action btn-edit" data-id="${t.id}" title="Editar"><i class="fas fa-pencil-alt"></i></button>
+                <button class="btn-action btn-delete" data-id="${t.id}" title="Excluir"><i class="fas fa-trash-alt"></i></button>
+            </td>`;
+        tbody.appendChild(tr);
+    });
+}
+
+export function loadExpensesData(expenses, accounts, currency, userProfile = null) {
+    const sorted = [...(expenses || [])].sort(
+        (a, b) => movementDateToUnixSeconds(b.date) - movementDateToUnixSeconds(a.date)
+    );
+    expensesRenderCache = { sorted, accounts, currency, userProfile: userProfile ?? null };
+    readExpensesFilterFromDom();
+    populateExpenseFilterSelects();
+
+    const bar = document.getElementById('expenses-pagination');
+    if (!expensesPagination && bar) {
+        expensesPagination = new TablePaginationController(bar, {
+            storageKey: 'expenses',
+            onChange: () => renderExpensesBodySlice()
+        });
+    }
+    if (expensesPagination) {
+        expensesPagination.setTotal(getSortedFilteredExpensesList().length);
+    }
+    syncSortableTableHeaders(document.getElementById('expenses-table'), expensesSort, [
+        'date',
+        'amount',
+        'status'
+    ]);
+    renderExpensesBodySlice();
+    updateExpensesSummaryCards();
+    renderOutgoingSplitsPanel(currency);
+}
+
+function readGainsFilterFromDom() {
+    gainsFilterState.q = document.getElementById('gains-filter-q')?.value || '';
+    gainsFilterState.category = document.getElementById('gains-filter-category')?.value || '';
+    gainsFilterState.accountId = document.getElementById('gains-filter-account')?.value || '';
+    gainsFilterState.period = document.getElementById('gains-period-filter')?.value || 'current-month';
+}
+
+function getFilteredGainsList() {
+    const { sorted, accounts, currency } = gainsRenderCache;
+    const { q, category, accountId, period } = gainsFilterState;
+    let list = sorted.filter((t) => movementDateInListPeriod(t.date, period));
+    if (category) {
+        if (category.includes(' > ')) {
+            // Filtro por subcategoria específica
+            const [cat, sub] = category.split(' > ');
+            list = list.filter((t) => t.category === cat && t.subcategory === sub);
+        } else {
+            // Filtro por categoria principal (inclui todas as subcategorias)
+            list = list.filter((t) => t.category === category);
+        }
+    }
+    if (accountId) {
+        list = list.filter((t) => t.accountId === accountId);
+    }
+    const needle = q.trim().toLowerCase();
+    if (needle) {
+        list = list.filter((t) => {
+            const acc = accounts.find((a) => a.id === t.accountId);
+            const dateStr = movementDateToJsDate(t.date).toLocaleDateString('pt-BR');
+            const categoryDisplay = t.subcategory 
+                ? `${t.category} > ${t.subcategory}` 
+                : t.category;
+            const hay = [
+                dateStr,
+                String(t.description ?? ''),
+                categoryDisplay,
+                String(t.category ?? ''),
+                String(t.subcategory ?? ''),
+                String(acc?.name ?? ''),
+                formatCurrency(t.amount, currency),
+                t.isPaid === false ? 'a receber' : 'recebido',
+                t.recurrenceGroupId ? 'recorrente série' : ''
+            ]
+                .join(' ')
+                .toLowerCase();
+            return hay.includes(needle);
+        });
+    }
+    return list;
+}
+
+function populateGainFilterSelects() {
+    const { sorted, accounts } = gainsRenderCache;
+    const catSel = document.getElementById('gains-filter-category');
+    const accSel = document.getElementById('gains-filter-account');
+    if (!catSel || !accSel) return;
+    const prevCat = catSel.value;
+    const prevAcc = accSel.value;
+    const period = gainsFilterState.period || 'current-month';
+    const inPeriod = sorted.filter((t) => movementDateInListPeriod(t.date, period));
+    const cats = [
+        ...new Set(inPeriod.map((t) => {
+            if (t.subcategory) {
+                return `${t.category} > ${t.subcategory}`;
+            }
+            return t.category;
+        }).filter((c) => c != null && String(c).trim() !== ''))
+    ].sort((a, b) => String(a).localeCompare(String(b), 'pt-BR'));
+    catSel.innerHTML = '<option value="">Todas as categorias</option>';
+    cats.forEach((c) => {
+        const o = document.createElement('option');
+        o.value = c;
+        o.textContent = c;
+        catSel.appendChild(o);
+    });
+    if (cats.includes(prevCat)) catSel.value = prevCat;
+
+    const accIds = [...new Set(inPeriod.map((t) => t.accountId).filter(Boolean))];
+    const accList = accIds
+        .map((id) => accounts.find((a) => a.id === id))
+        .filter(Boolean)
+        .sort((a, b) => String(a.name).localeCompare(String(b.name), 'pt-BR'));
+    accSel.innerHTML = '<option value="">Todas as contas</option>';
+    accList.forEach((a) => {
+        const o = document.createElement('option');
+        o.value = a.id;
+        o.textContent = a.name;
+        accSel.appendChild(o);
+    });
+    if (accIds.includes(prevAcc)) accSel.value = prevAcc;
+}
+
+function applyGainsFilters() {
+    readGainsFilterFromDom();
+    populateGainFilterSelects();
+    if (!gainsPagination) return;
+    gainsPagination.setTotal(getSortedFilteredGainsList().length, { resetPage: true });
+    renderGainsBodySlice();
+    updateGainsSummaryCards();
+}
+
+function getSortedFilteredGainsList() {
+    return sortGainRows(getFilteredGainsList(), gainsSort, gainsRenderCache.accounts);
+}
+
+function renderGainsBodySlice() {
+    const tbody = document.querySelector('#gains-table tbody');
+    if (!tbody || !gainsPagination) return;
+    const { accounts, currency } = gainsRenderCache;
+    const list = getSortedFilteredGainsList();
+    const { start, end } = gainsPagination.getSliceRange();
+    tbody.innerHTML = '';
+    list.slice(start, end).forEach((t) => {
+        const account = accounts.find((acc) => acc.id === t.accountId);
+        const tr = document.createElement('tr');
+        const categoryDisplay = t.subcategory 
+            ? `${t.category} > ${t.subcategory}` 
+            : t.category;
+        const gainRecTitle = t.recurrenceGroupId
+            ? 'Série recorrente no ano: um lançamento por mês até dezembro, mantendo o dia do mês da data inicial.'
+            : '';
+        const recBadge = t.recurrenceGroupId
+            ? `<span class="gain-recurrence-badge" title="${htmlAttrEscape(gainRecTitle)}">↻</span>`
+            : '';
+        const amountHtml = t.recurrenceGroupId
+            ? `<span class="movement-amount-with-rec-inner">${recBadge}${formatCurrency(t.amount, currency)}</span>`
+            : formatCurrency(t.amount, currency);
+        let relatedHint = '';
+        if (t.relatedExpenseId) {
+            const orig = userExpenses?.find((ex) => ex.id === t.relatedExpenseId);
+            // Para extornos de rateio já deixamos a referência no próprio título ("Extorno parcial — ..."),
+            // então evitamos uma segunda linha "Compra: ...".
+            const isSplitReembolso =
+                String(t.category ?? '').trim().toLowerCase() === 'reembolsos' &&
+                String(t.description ?? '').trim().toLowerCase().startsWith('extorno parcial');
+            if (!isSplitReembolso) {
+                if (orig) {
+                    relatedHint = `<span class="gain-related-expense-hint">Compra: ${escapeHtml(String(orig.description || '').trim() || '—')}</span>`;
+                } else {
+                    relatedHint =
+                        '<span class="gain-related-expense-hint">Extorno parcial vinculado a uma compra</span>';
+                }
+            }
+        }
+        tr.innerHTML = `
+            <td>${movementDateToJsDate(t.date).toLocaleDateString('pt-BR')}</td>
+            <td>${escapeHtml(String(t.description ?? ''))}${relatedHint ? `<br>${relatedHint}` : ''}</td>
+            <td>${categoryDisplay}</td>
+            <td>${account?.name || 'N/A'}</td>
+            <td class="receita">${amountHtml}</td>
+            <td class="transaction-actions">
+                <button class="btn-action btn-edit" data-id="${t.id}" title="Editar"><i class="fas fa-pencil-alt"></i></button>
+                <button class="btn-action btn-delete" data-id="${t.id}" title="Excluir"><i class="fas fa-trash-alt"></i></button>
+            </td>`;
+        tbody.appendChild(tr);
+    });
+}
+
+export function loadGainsData(gains, accounts, currency) {
+    const sorted = [...(gains || [])].sort(
+        (a, b) => movementDateToUnixSeconds(b.date) - movementDateToUnixSeconds(a.date)
+    );
+    gainsRenderCache = { sorted, accounts, currency };
+    readGainsFilterFromDom();
+    populateGainFilterSelects();
+
+    const bar = document.getElementById('gains-pagination');
+    if (!gainsPagination && bar) {
+        gainsPagination = new TablePaginationController(bar, {
+            storageKey: 'gains',
+            onChange: () => renderGainsBodySlice()
+        });
+    }
+    if (gainsPagination) {
+        gainsPagination.setTotal(getSortedFilteredGainsList().length);
+    }
+    syncSortableTableHeaders(document.getElementById('gains-table'), gainsSort, ['date', 'amount']);
+    renderGainsBodySlice();
+    updateGainsSummaryCards();
+}
+
+function setupTransactionTableFilters() {
+    if (tableFiltersListenersBound) return;
+    tableFiltersListenersBound = true;
+
+    document.getElementById('expenses-filter-q')?.addEventListener('input', () => {
+        clearTimeout(expensesFilterDebounce);
+        expensesFilterDebounce = setTimeout(() => applyExpensesFilters(), 200);
+    });
+    document.getElementById('expenses-filter-category')?.addEventListener('change', () => applyExpensesFilters());
+    document.getElementById('expenses-filter-account')?.addEventListener('change', () => applyExpensesFilters());
+    document.getElementById('expenses-period-filter')?.addEventListener('change', () => applyExpensesFilters());
+    document.getElementById('expenses-filter-clear')?.addEventListener('click', () => {
+        const q = document.getElementById('expenses-filter-q');
+        const c = document.getElementById('expenses-filter-category');
+        const a = document.getElementById('expenses-filter-account');
+        const p = document.getElementById('expenses-period-filter');
+        if (q) q.value = '';
+        if (c) c.value = '';
+        if (a) a.value = '';
+        if (p) p.value = 'current-month';
+        applyExpensesFilters();
+        closeFilterDrawer('expenses-filter-drawer');
+    });
+
+    document.getElementById('gains-filter-q')?.addEventListener('input', () => {
+        clearTimeout(gainsFilterDebounce);
+        gainsFilterDebounce = setTimeout(() => applyGainsFilters(), 200);
+    });
+    document.getElementById('gains-filter-category')?.addEventListener('change', () => applyGainsFilters());
+    document.getElementById('gains-filter-account')?.addEventListener('change', () => applyGainsFilters());
+    document.getElementById('gains-period-filter')?.addEventListener('change', () => applyGainsFilters());
+    document.getElementById('gains-filter-clear')?.addEventListener('click', () => {
+        const q = document.getElementById('gains-filter-q');
+        const c = document.getElementById('gains-filter-category');
+        const a = document.getElementById('gains-filter-account');
+        const p = document.getElementById('gains-period-filter');
+        if (q) q.value = '';
+        if (c) c.value = '';
+        if (a) a.value = '';
+        if (p) p.value = 'current-month';
+        applyGainsFilters();
+        closeFilterDrawer('gains-filter-drawer');
+    });
+
+    document.getElementById('card-purchases-filter-q')?.addEventListener('input', () => {
+        clearTimeout(cardPurchasesFilterDebounce);
+        cardPurchasesFilterDebounce = setTimeout(() => applyCardPurchasesFilters(), 200);
+    });
+    document.getElementById('card-purchases-filter-clear')?.addEventListener('click', () => {
+        const q = document.getElementById('card-purchases-filter-q');
+        if (q) q.value = '';
+        cardPurchasesFilterQ = '';
+        applyCardPurchasesFilters();
+    });
+
+    setupTableSortClicks();
+}
+
+function setupTableSortClicks() {
+    if (tableSortClicksBound) return;
+    tableSortClicksBound = true;
+
+    document.getElementById('expenses-table')?.addEventListener('click', (e) => {
+        const btn = e.target.closest('.sortable-th__btn');
+        if (!btn) return;
+        const th = btn.closest('[data-sort-key]');
+        if (!th || !document.getElementById('expenses-table')?.contains(th)) return;
+        e.preventDefault();
+        const key = th.dataset.sortKey;
+        if (!key) return;
+        expensesSort = nextSortState(expensesSort, key, ['date', 'amount', 'status']);
+        if (!expensesPagination) return;
+        expensesPagination.setTotal(getSortedFilteredExpensesList().length, { resetPage: true });
+        syncSortableTableHeaders(document.getElementById('expenses-table'), expensesSort, [
+            'date',
+            'amount',
+            'status'
+        ]);
+        renderExpensesBodySlice();
+    });
+
+    document.getElementById('gains-table')?.addEventListener('click', (e) => {
+        const btn = e.target.closest('.sortable-th__btn');
+        if (!btn) return;
+        const th = btn.closest('[data-sort-key]');
+        if (!th || !document.getElementById('gains-table')?.contains(th)) return;
+        e.preventDefault();
+        const key = th.dataset.sortKey;
+        if (!key) return;
+        gainsSort = nextSortState(gainsSort, key, ['date', 'amount']);
+        if (!gainsPagination) return;
+        gainsPagination.setTotal(getSortedFilteredGainsList().length, { resetPage: true });
+        syncSortableTableHeaders(document.getElementById('gains-table'), gainsSort, ['date', 'amount']);
+        renderGainsBodySlice();
+    });
+
+    document.getElementById('card-purchases-table')?.addEventListener('click', (e) => {
+        const btn = e.target.closest('.sortable-th__btn');
+        if (!btn) return;
+        const th = btn.closest('[data-sort-key]');
+        if (!th || !document.getElementById('card-purchases-table')?.contains(th)) return;
+        e.preventDefault();
+        const key = th.dataset.sortKey;
+        if (!key) return;
+        cardPurchasesSort = nextSortState(cardPurchasesSort, key, [
+            'date',
+            'amount',
+            'installments',
+            'lastInstallment',
+            'status'
+        ]);
+        if (!cardPurchasesPagination) return;
+        cardPurchasesPagination.setTotal(getSortedFilteredCardPurchasesList().length, { resetPage: true });
+        syncSortableTableHeaders(document.getElementById('card-purchases-table'), cardPurchasesSort, [
+            'date',
+            'amount',
+            'installments',
+            'lastInstallment',
+            'status'
+        ]);
+        renderCardPurchasesBodySlice();
+    });
+}
+
+/** Valor do &lt;select&gt; quando a categoria é Empréstimo (conta real em `dataset.loanPaymentAccountId`). */
+const EXPENSE_LOAN_PAYMENT_VALUE = '__expense_loan__';
+
+function sortedBankAccounts() {
+    return (userAccounts || [])
+        .filter((a) => !isCardAccountType(a.type))
+        .sort((a, b) => String(a.name).localeCompare(String(b.name), 'pt-BR'));
+}
+
+/** Conta usada para parcelas / preview (Empréstimo usa `dataset`, senão o valor do select). */
+function getSelectedExpensePaymentAccount() {
+    const form = document.getElementById('expense-form');
+    if (isExpenseLoanCategorySelected() && form?.dataset?.loanPaymentAccountId) {
+        const id = form.dataset.loanPaymentAccountId;
+        return userAccounts?.find((a) => a.id === id) ?? null;
+    }
+    const v = document.getElementById('expense-payment-method')?.value;
+    return v && v !== EXPENSE_LOAN_PAYMENT_VALUE ? userAccounts?.find((a) => a.id === v) ?? null : null;
+}
+
+function applyLoanExpensePaymentMethodUi(accountId) {
+    const form = document.getElementById('expense-form');
+    const sel = document.getElementById('expense-payment-method');
+    const loanDebitSel = document.getElementById('expense-loan-debit-account');
+    if (!form || !sel) return;
+    const banks = sortedBankAccounts();
+    const resolved =
+        accountId && banks.some((b) => b.id === accountId) ? accountId : '';
+    form.dataset.loanPaymentAccountId = resolved;
+    if (loanDebitSel) {
+        loanDebitSel.innerHTML = '';
+        const z = document.createElement('option');
+        z.value = '';
+        z.textContent = 'Selecione a conta debitada';
+        loanDebitSel.appendChild(z);
+        banks.forEach((b) => {
+            const o = document.createElement('option');
+            o.value = b.id;
+            o.textContent = b.name;
+            loanDebitSel.appendChild(o);
+        });
+        loanDebitSel.value = resolved;
+    }
+    sel.innerHTML = '';
+    const opt = document.createElement('option');
+    opt.value = EXPENSE_LOAN_PAYMENT_VALUE;
+    opt.textContent = 'Empréstimo';
+    sel.appendChild(opt);
+    sel.value = EXPENSE_LOAN_PAYMENT_VALUE;
+    sel.disabled = true;
+}
+
+function syncExpenseLoanDebitAccountRowVisibility() {
+    const row = document.getElementById('expense-loan-debit-account-row');
+    if (row) row.classList.toggle('hidden', !isExpenseLoanCategorySelected());
+}
+
+/**
+ * Categoria Empréstimo: forma de pagamento travada em «Empréstimo»; conta em `dataset.loanPaymentAccountId`.
+ * @param {string|null|undefined} preselectWhenLeavingLoan — ao sair do modo empréstimo, reabre o select com essa conta
+ */
+function syncExpensePaymentMethodForLoanCategory(preselectWhenLeavingLoan) {
+    const form = document.getElementById('expense-form');
+    const sel = document.getElementById('expense-payment-method');
+    if (!form || !sel) return;
+
+    if (!isExpenseLoanCategorySelected()) {
+        const wasLoan = sel.value === EXPENSE_LOAN_PAYMENT_VALUE;
+        sel.disabled = false;
+        delete form.dataset.loanPaymentAccountId;
+        if (wasLoan) {
+            populateExpensePaymentMethodSelect(
+                preselectWhenLeavingLoan === undefined ? null : preselectWhenLeavingLoan
+            );
+        }
+        syncExpenseLoanDebitAccountRowVisibility();
+        return;
+    }
+
+    const accId = form.dataset.loanPaymentAccountId || '';
+    applyLoanExpensePaymentMethodUi(accId);
+    syncExpenseLoanDebitAccountRowVisibility();
+}
+
+function sortedCardAccounts() {
+    return (userAccounts || [])
+        .filter((a) => isCardAccountType(a.type))
+        .sort((a, b) => String(a.name).localeCompare(String(b.name), 'pt-BR'));
+}
+
+/**
+ * Monta select de forma de pagamento (PIX por banco + cartões) — modal de despesa.
+ * @param {HTMLSelectElement|null} sel
+ * @param {string|null|undefined} preselectAccountId — `undefined` só monta opções; `null` limpa seleção.
+ */
+function populatePaymentMethodSelect(sel, preselectAccountId) {
+    if (!sel) return;
+    sel.innerHTML = '<option value="">Selecione</option>';
+
+    const banks = sortedBankAccounts();
+    if (banks.length > 0) {
+        const pixGroup = document.createElement('optgroup');
+        pixGroup.label = 'PIX';
+        banks.forEach((b) => {
+            const o = document.createElement('option');
+            o.value = b.id;
+            o.textContent = `PIX — ${b.name}`;
+            pixGroup.appendChild(o);
+        });
+        sel.appendChild(pixGroup);
+    }
+
+    const cards = sortedCardAccounts();
+    if (cards.length > 0) {
+        const og = document.createElement('optgroup');
+        og.label = 'Cartões';
+        cards.forEach((acc) => {
+            const opt = document.createElement('option');
+            opt.value = acc.id;
+            const kind = isCreditCardType(acc.type) ? 'crédito' : 'débito';
+            opt.textContent = `${acc.name} (${kind})`;
+            og.appendChild(opt);
+        });
+        sel.appendChild(og);
+    }
+
+    if (preselectAccountId === undefined) return;
+
+    if (preselectAccountId === null || preselectAccountId === '') {
+        sel.value = '';
+        return;
+    }
+
+    const acc = userAccounts?.find((a) => a.id === preselectAccountId);
+    if (!acc) {
+        const o = document.createElement('option');
+        o.value = preselectAccountId;
+        o.textContent = 'Conta indisponível';
+        sel.appendChild(o);
+        sel.value = preselectAccountId;
+        return;
+    }
+
+    if (isCardAccountType(acc.type)) {
+        sel.value = preselectAccountId;
+        return;
+    }
+
+    const bankOpt = [...sel.options].find((o) => o.value === acc.id);
+    if (bankOpt) {
+        sel.value = acc.id;
+        return;
+    }
+    const o = document.createElement('option');
+    o.value = acc.id;
+    o.textContent = `PIX — ${acc.name}`;
+    sel.appendChild(o);
+    sel.value = acc.id;
+}
+
+function populateExpensePaymentMethodSelect(preselectAccountId) {
+    populatePaymentMethodSelect(document.getElementById('expense-payment-method'), preselectAccountId);
+}
+
+/**
+ * Select de ganho: apenas contas bancárias (saldo); cartões não aparecem.
+ * @param {string|null|undefined} preselectAccountId — `undefined` só monta opções; `null` limpa seleção.
+ */
+function populateGainAccountSelect(preselectAccountId) {
+    const sel = document.getElementById('gain-account');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">Selecione uma conta</option>';
+    sortedBankAccounts().forEach((b) => {
+        const o = document.createElement('option');
+        o.value = b.id;
+        o.textContent = b.name;
+        sel.appendChild(o);
+    });
+
+    if (preselectAccountId === undefined) return;
+
+    if (preselectAccountId === null || preselectAccountId === '') {
+        sel.value = '';
+        return;
+    }
+
+    const acc = userAccounts?.find((a) => a.id === preselectAccountId);
+    if (!acc) {
+        const o = document.createElement('option');
+        o.value = preselectAccountId;
+        o.textContent = 'Conta indisponível';
+        sel.appendChild(o);
+        sel.value = preselectAccountId;
+        return;
+    }
+
+    if (isCardAccountType(acc.type)) {
+        sel.value = '';
+        return;
+    }
+
+    const match = [...sel.options].find((o) => o.value === acc.id);
+    if (match) sel.value = acc.id;
+}
+
+/** Conta e status (pago/recebido vs pendente) a partir do valor do select — igual despesa e ganho. */
+function resolvePaymentMethodSelection(value, formEl) {
+    if (!value) return null;
+    if (value === EXPENSE_LOAN_PAYMENT_VALUE) {
+        const form = formEl || document.getElementById('expense-form');
+        const id = form?.dataset?.loanPaymentAccountId;
+        if (!id) return null;
+        const acc = userAccounts?.find((a) => a.id === id);
+        if (!acc) return null;
+        return { accountId: acc.id, isPaid: true };
+    }
+    const acc = userAccounts?.find((a) => a.id === value);
+    if (!acc) return null;
+    if (isCreditCardType(acc.type)) {
+        return { accountId: acc.id, isPaid: false };
+    }
+    return { accountId: acc.id, isPaid: true };
+}
+
+function isExpenseLoanCategorySelected() {
+    const cat = document.getElementById('expense-category-select');
+    const sub = document.getElementById('expense-subcategory-select');
+    return isLoanExpense({
+        category: cat?.value ?? '',
+        subcategory: sub?.value ?? ''
+    });
+}
+
+/** Parcelas para cartão de crédito (ciclo da fatura) ou categoria Empréstimo (parcelas mensais). */
+function syncExpenseInstallmentsRow() {
+    const form = document.getElementById('expense-form');
+    const row = document.getElementById('expense-installments-row');
+    const input = document.getElementById('expense-installments');
+    const sel = document.getElementById('expense-payment-method');
+    if (!row || !input || !sel) return;
+    if (form?.dataset.splitFromRateio === '1') {
+        row.classList.add('hidden');
+        return;
+    }
+    const acc = getSelectedExpensePaymentAccount();
+    const loan = isExpenseLoanCategorySelected();
+    const credit = Boolean(acc && isCreditCardType(acc.type));
+    const show = Boolean(credit || (loan && acc && !credit));
+    row.classList.toggle('hidden', !show);
+    const label = row.querySelector('label[for="expense-installments"]');
+    const small = row.querySelector('small');
+    if (label) {
+        label.textContent = credit ? 'Parcelas no cartão de crédito' : 'Parcelas do empréstimo';
+    }
+    if (small) {
+        if (credit) {
+            small.innerHTML =
+                'Total de parcelas. Os vencimentos seguem a <strong>data da compra</strong>, o <strong>fechamento</strong> e o <strong>vencimento</strong> do cartão. No preview abaixo, marque as parcelas que já saíram do caixa (igual ao empréstimo); só essas entram no saldo e aparecem como pagas.';
+            small.classList.remove('hidden');
+        } else {
+            small.innerHTML = '';
+            small.classList.add('hidden');
+        }
+    }
+    if (show) {
+        let n = parseInt(String(input.value), 10);
+        if (!Number.isFinite(n) || n < 1) {
+            input.value = '1';
+            n = 1;
+        }
+    }
+    updateExpenseInstallmentPreview();
+    syncExpenseRecurringModeVisibility();
+}
+
+/**
+ * Conta fixa mensal (RECORRENTE) não se aplica a empréstimo nem a pagamento com cartão — o fluxo é por parcelas / fatura.
+ */
+function syncExpenseRecurringModeVisibility() {
+    const grid = document.getElementById('expense-date-recurring-grid');
+    const row = document.getElementById('expense-recurring-mode-row');
+    const rec = document.getElementById('expense-recurring-mode');
+    const form = document.getElementById('expense-form');
+    if (form?.dataset.splitFromRateio === '1') {
+        if (row) row.classList.add('hidden');
+        if (rec) {
+            rec.value = '0';
+            rec.disabled = true;
+        }
+        return;
+    }
+    const acc = getSelectedExpensePaymentAccount();
+    const loan = isExpenseLoanCategorySelected();
+    const cardPayment = Boolean(acc && isCardAccountType(acc.type));
+    const hide = loan || cardPayment;
+    const inSeries = Boolean(form?.dataset?.expenseRecurrenceGroupId?.trim());
+    if (grid) grid.classList.toggle('expense-date-recurring-grid--recurring-off', hide);
+    if (row) row.classList.toggle('hidden', hide);
+    if (rec) {
+        rec.disabled = hide || inSeries;
+        if (hide) rec.value = '0';
+        else if (inSeries) rec.value = '1';
+    }
+}
+
+function updateExpenseInstallmentPreview() {
+    const prev = document.getElementById('expense-installment-preview');
+    const sel = document.getElementById('expense-payment-method');
+    const dateEl = document.getElementById('expense-date');
+    const instEl = document.getElementById('expense-installments');
+    if (!prev || !sel || !dateEl) return;
+    const acc = getSelectedExpensePaymentAccount();
+    const n = parseInt(String(instEl?.value ?? '1'), 10) || 1;
+    const loan = isExpenseLoanCategorySelected();
+    const credit = Boolean(acc && isCreditCardType(acc.type));
+
+    if (credit) {
+        if (!acc) {
+            prev.classList.add('hidden');
+            prev.innerHTML = '';
+            return;
+        }
+        if (n < 2) {
+            prev.classList.add('hidden');
+            prev.innerHTML = '';
+            return;
+        }
+        const cd = acc.closeDay ?? acc.closingDay;
+        const dd = acc.dueDay ?? acc.dueDate;
+        if (!cd || !dd) {
+            prev.classList.remove('hidden');
+            prev.innerHTML =
+                '<p class="form-hint">Defina o fechamento e o vencimento do cartão no cadastro para ver o cronograma das parcelas.</p>';
+            return;
+        }
+        const purchase = new Date(dateEl.value + 'T12:00:00');
+        if (Number.isNaN(purchase.getTime())) {
+            prev.classList.add('hidden');
+            return;
+        }
+        const now = new Date();
+        const form = document.getElementById('expense-form');
+        const dueDates = getInstallmentDueDates(purchase, n, cd, dd);
+        const validPk = new Set(dueDates.map((d) => calendarDayKeyFromDate(d)));
+        const curKeys = getLoanPaidPeriodKeysFromForm(form).filter((k) => validPk.has(k));
+        setLoanPaidPeriodKeysOnForm(form, curKeys);
+        const paidKeys = getLoanPaidPeriodKeysFromForm(form);
+        const fake = {
+            date: purchase.toISOString(),
+            installmentCount: n,
+            isPaid: false,
+            amount: 0,
+            category: 'Outros',
+            createdAt: now.toISOString(),
+            cashOutConfirmedPeriods: JSON.stringify(paidKeys)
+        };
+        const st = getInstallmentState(fake, acc, now, financeUserProfile);
+        prev.classList.remove('hidden');
+        prev.innerHTML = formatInstallmentRemainingSummaryHtml(st, {
+            appendHtml: buildLoanMonthTagsHtml(dueDates, paidKeys, now)
+        });
+        return;
+    }
+
+    if (loan && acc && !credit && n >= 2) {
+        const purchase = new Date(dateEl.value + 'T12:00:00');
+        if (Number.isNaN(purchase.getTime())) {
+            prev.classList.add('hidden');
+            return;
+        }
+        const now = new Date();
+        const form = document.getElementById('expense-form');
+        const dueDates = getLoanInstallmentDueDates(purchase, n);
+        const validPk = new Set(dueDates.map((d) => calendarDayKeyFromDate(d)));
+        const curKeys = getLoanPaidPeriodKeysFromForm(form).filter((k) => validPk.has(k));
+        setLoanPaidPeriodKeysOnForm(form, curKeys);
+        const paidKeys = getLoanPaidPeriodKeysFromForm(form);
+        const fake = {
+            date: purchase.toISOString(),
+            installmentCount: n,
+            isPaid: false,
+            amount: 0,
+            category: 'Empréstimo',
+            createdAt: now.toISOString(),
+            cashOutConfirmedPeriods: JSON.stringify(paidKeys)
+        };
+        const st = getInstallmentState(fake, acc, now, financeUserProfile);
+        prev.classList.remove('hidden');
+        prev.innerHTML = formatInstallmentRemainingSummaryHtml(st, {
+            loan: true,
+            appendHtml: buildLoanMonthTagsHtml(dueDates, paidKeys, now)
+        });
+        return;
+    }
+
+    prev.classList.add('hidden');
+    prev.innerHTML = '';
+}
+
+function handleLoanMonthTagClick(e) {
+    const btn = e.target.closest('.expense-loan-month-tag');
+    if (!btn) return;
+    e.preventDefault();
+    const pk = btn.dataset.periodKey;
+    if (!pk) return;
+    const form = document.getElementById('expense-form');
+    if (!form) return;
+    const keys = [...getLoanPaidPeriodKeysFromForm(form)];
+    const i = keys.indexOf(pk);
+    if (i >= 0) keys.splice(i, 1);
+    else keys.push(pk);
+    setLoanPaidPeriodKeysOnForm(form, keys);
+    updateExpenseInstallmentPreview();
+}
+
+function openExpenseModal(forEdit, options = null) {
+    const form = document.getElementById('expense-form');
+    const newRow = document.getElementById('expense-category-new-row');
+    const subNewRow = document.getElementById('expense-subcategory-new-row');
+    const splitOpts =
+        options && options.splitRequestId != null && options.splitAmount != null ? options : null;
+    const src = splitOpts?.sourceExpense;
+
+    const recRow = document.getElementById('expense-recurring-mode-row');
+    const instRow = document.getElementById('expense-installments-row');
+    const amtInput = document.getElementById('expense-amount');
+
+    if (newRow) newRow.classList.add('hidden');
+    if (subNewRow) subNewRow.classList.add('hidden');
+
+    const finishOpen = () => {
+        document.getElementById('expense-modal-title').textContent = splitOpts
+            ? 'Sua parte da divisão'
+            : forEdit
+              ? 'Editar saída'
+              : 'Nova saída';
+        populateExpensePaymentMethodSelect(forEdit ? undefined : null);
+        syncExpensePaymentMethodForLoanCategory();
+        syncExpenseInstallmentsRow();
+        if (!forEdit) {
+            if (src?.date) {
+                try {
+                    form['expense-date'].value = movementDateToJsDate(src.date).toISOString().split('T')[0];
+                } catch {
+                    form['expense-date'].value = getTodayDateInputValue();
+                }
+            } else {
+                form['expense-date'].value = getTodayDateInputValue();
+            }
+        }
+        openModal('expense-modal');
+    };
+
+    if (!forEdit) {
+        form.reset();
+        form['expense-id'].value = '';
+        delete form.dataset.loanPaymentAccountId;
+        delete form.dataset.expenseRecurrenceGroupId;
+        form.dataset.loanPaidPeriodKeys = '[]';
+        const inst = document.getElementById('expense-installments');
+        if (inst) inst.value = '1';
+        const recMode = document.getElementById('expense-recurring-mode');
+        if (recMode) recMode.value = '0';
+        delete form.dataset.splitRequestId;
+        delete form.dataset.splitFromRateio;
+        delete form.dataset.splitSourceIsInvestment;
+        if (amtInput) {
+            amtInput.readOnly = false;
+            amtInput.classList.remove('input-readonly-locked');
+        }
+        if (recRow) recRow.classList.remove('hidden');
+        if (instRow) instRow.classList.remove('hidden');
+
+        if (splitOpts) {
+            form.dataset.splitRequestId = String(splitOpts.splitRequestId);
+            form.dataset.splitFromRateio = '1';
+            if (src?.isInvestment) form.dataset.splitSourceIsInvestment = '1';
+            if (amtInput) {
+                amtInput.value = String(splitOpts.splitAmount);
+                amtInput.readOnly = true;
+                amtInput.classList.add('input-readonly-locked');
+            }
+            if (recRow) recRow.classList.add('hidden');
+            if (instRow) instRow.classList.add('hidden');
+        }
+
+        if (splitOpts && src) {
+            form['expense-description'].value = String(src.description ?? '').trim();
+        }
+
+        const catToLoad = splitOpts && src ? String(src.category ?? '').trim() : '';
+        const subToLoad = splitOpts && src ? String(src.subcategory ?? '').trim() : '';
+
+        populateExpenseCategorySelect(catToLoad).then(() => {
+            populateExpenseSubcategorySelect(subToLoad);
+            syncExpensePaymentMethodForLoanCategory();
+            syncExpenseInstallmentsRow();
+            finishOpen();
+        });
+        return;
+    }
+
+    if (amtInput) {
+        amtInput.readOnly = false;
+        amtInput.classList.remove('input-readonly-locked');
+    }
+
+    finishOpen();
+}
+
+function openGainModal(forEdit) {
+    const form = document.getElementById('gain-form');
+    const recurringRow = document.getElementById('gain-recurring-row');
+    const grid = document.getElementById('gain-date-recurring-grid');
+    const recMode = document.getElementById('gain-recurring-mode');
+    if (!forEdit) {
+        form.reset();
+        form['gain-id'].value = '';
+        populateGainCategorySelect('');
+        if (recMode) recMode.value = '0';
+    }
+    if (recurringRow) recurringRow.classList.toggle('hidden', Boolean(forEdit));
+    if (grid) grid.classList.toggle('expense-date-recurring-grid--recurring-off', Boolean(forEdit));
+    document.getElementById('gain-modal-title').textContent = forEdit ? 'Editar entrada' : 'Nova entrada';
+    populateGainAccountSelect(forEdit ? undefined : null);
+    if (!forEdit) {
+        form['gain-date'].value = getTodayDateInputValue();
+    }
+    openModal('gain-modal');
+}
+
+function markFieldError(input, message) {
+    const formGroup = input.closest('.form-group');
+    if (formGroup) {
+        formGroup.classList.add('error');
+        let errorText = formGroup.querySelector('.error-text');
+        if (!errorText) {
+            errorText = document.createElement('span');
+            errorText.className = 'error-text';
+            formGroup.appendChild(errorText);
+        }
+        errorText.textContent = message;
+    }
+}
+
+async function handleExpenseFormSubmit(e) {
+    e.preventDefault();
+    const form = e.target;
+    const id = form['expense-id'].value;
+    const isSplitRateio = form.dataset.splitFromRateio === '1';
+
+    let hasErrors = false;
+    form.querySelectorAll('.form-group').forEach((g) => g.classList.remove('error'));
+
+    const description = form['expense-description'].value.trim();
+    if (!description) {
+        markFieldError(form['expense-description'], 'Informe uma descrição');
+        hasErrors = true;
+    }
+
+    const amount = parseFloat(form['expense-amount'].value);
+    if (!amount || amount <= 0) {
+        markFieldError(form['expense-amount'], 'Informe um valor válido');
+        hasErrors = true;
+    }
+
+    const paymentMethod = form['expense-payment-method']?.value?.trim() || '';
+    if (!paymentMethod) {
+        markFieldError(form['expense-payment-method'], 'Selecione a forma de pagamento');
+        hasErrors = true;
+    }
+
+    const categorySelect = form['expense-category-select'];
+    const category = categorySelect?.value?.trim() || '';
+    if (!category) {
+        markFieldError(categorySelect, 'Selecione ou crie uma categoria');
+        hasErrors = true;
+    }
+
+    const subcategorySelect = form['expense-subcategory-select'];
+    const subcategory = subcategorySelect?.value?.trim() || '';
+    // Subcategoria é opcional, então não validamos se está vazia
+
+    const resolved = paymentMethod ? resolvePaymentMethodSelection(paymentMethod, form) : null;
+    if (paymentMethod && !resolved) {
+        if (isExpenseLoanCategorySelected()) {
+            const loanSel = document.getElementById('expense-loan-debit-account');
+            if (loanSel) {
+                markFieldError(loanSel, 'Escolha a conta em que as parcelas reduzem o saldo.');
+            }
+        } else {
+            markFieldError(form['expense-payment-method'], 'Forma de pagamento inválida');
+        }
+        hasErrors = true;
+    }
+
+    const accountId = resolved?.accountId;
+    const loanCat = isLoanExpense({ category, subcategory });
+    const accForInstallments = accountId ? userAccounts?.find((a) => a.id === accountId) : null;
+    const needsInstallments = Boolean(
+        !isSplitRateio &&
+            ((accForInstallments && isCreditCardType(accForInstallments.type)) ||
+                (loanCat && accForInstallments && !isCreditCardType(accForInstallments.type)))
+    );
+    let installmentCount = null;
+    if (needsInstallments && resolved) {
+        const instInput = form['expense-installments'];
+        const n = parseInt(String(instInput?.value ?? ''), 10);
+        if (!Number.isFinite(n) || n < 1) {
+            markFieldError(instInput, 'Informe o número de parcelas (mín. 1)');
+            hasErrors = true;
+        } else if (n > 99) {
+            markFieldError(instInput, 'No máximo 99 parcelas');
+            hasErrors = true;
+        } else {
+            installmentCount = n;
+        }
+    }
+
+    if (hasErrors) {
+        showToast('Campos obrigatórios', 'Preencha todos os campos destacados', 'warning');
+        return;
+    }
+
+    // Combina a data selecionada com o horário atual para preservar ordem de cadastro
+    const selectedDate = form['expense-date'].value;
+    let dateWithTime;
+    
+    if (id) {
+        // Edição: verifica se a data foi alterada
+        const originalExpense = userExpenses?.find((t) => t.id === id);
+        const originalDate = originalExpense ? movementDateToJsDate(originalExpense.date).toISOString().split('T')[0] : '';
+        
+        if (originalDate === selectedDate) {
+            // Data não mudou: mantém o timestamp original
+            dateWithTime = movementDateToJsDate(originalExpense.date);
+        } else {
+            // Data mudou: usa nova data com horário atual
+            const now = new Date();
+            dateWithTime = new Date(selectedDate + 'T' + 
+                String(now.getHours()).padStart(2, '0') + ':' + 
+                String(now.getMinutes()).padStart(2, '0') + ':' + 
+                String(now.getSeconds()).padStart(2, '0'));
+        }
+    } else {
+        // Novo registro: usa data com horário atual
+        const now = new Date();
+        dateWithTime = new Date(selectedDate + 'T' + 
+            String(now.getHours()).padStart(2, '0') + ':' + 
+            String(now.getMinutes()).padStart(2, '0') + ':' + 
+            String(now.getSeconds()).padStart(2, '0'));
+    }
+    
+    let isPaidFinal = resolved.isPaid;
+    let installmentCashOutKeysPayload = undefined;
+    if (needsInstallments && accForInstallments && installmentCount != null) {
+        if (isCreditCardType(accForInstallments.type)) {
+            const cd = accForInstallments.closeDay ?? accForInstallments.closingDay;
+            const dd = accForInstallments.dueDay ?? accForInstallments.dueDate;
+            if (cd && dd) {
+                const dueDates = getInstallmentDueDates(dateWithTime, installmentCount, cd, dd);
+                const dueKeySet = new Set(dueDates.map((d) => calendarDayKeyFromDate(d)));
+                let keys = getLoanPaidPeriodKeysFromForm(form);
+                keys = keys.filter((k) => dueKeySet.has(k));
+                setLoanPaidPeriodKeysOnForm(form, keys);
+                keys = getLoanPaidPeriodKeysFromForm(form);
+                installmentCashOutKeysPayload = keys;
+                if (keys.length > 0) {
+                    isPaidFinal = dueKeySet.size > 0 && [...dueKeySet].every((k) => keys.includes(k));
+                } else {
+                    isPaidFinal = false;
+                }
+            } else {
+                isPaidFinal = false;
+            }
+        } else if (loanCat) {
+            const dueDates = getLoanInstallmentDueDates(dateWithTime, installmentCount);
+            const keys = getLoanPaidPeriodKeysFromForm(form);
+            installmentCashOutKeysPayload = keys;
+            const dueKeySet = new Set(dueDates.map((d) => calendarDayKeyFromDate(d)));
+            isPaidFinal =
+                dueKeySet.size > 0 && [...dueKeySet].every((k) => keys.includes(k));
+        }
+    }
+
+    const cardExpense = Boolean(accForInstallments && isCardAccountType(accForInstallments.type));
+    const recurringMonthly = isSplitRateio
+        ? false
+        : loanCat || cardExpense
+          ? false
+          : document.getElementById('expense-recurring-mode')?.value === '1';
+
+    const data = {
+        userId: currentUser.uid,
+        description,
+        amount,
+        date: dateWithTime.toISOString(),
+        accountId,
+        category,
+        subcategory: subcategory || null,
+        isPaid: isPaidFinal,
+        isInvestment: isSplitRateio && form.dataset.splitSourceIsInvestment === '1',
+        installmentCount: isSplitRateio ? null : installmentCount,
+        recurringMonthly
+    };
+    if (isSplitRateio && form.dataset.splitRequestId) {
+        data.splitRequestId = form.dataset.splitRequestId;
+    }
+
+    if (installmentCount != null && installmentCount >= 2) {
+        if (loanCat) {
+            data.cashOutConfirmedPeriods =
+                installmentCashOutKeysPayload && installmentCashOutKeysPayload.length > 0
+                    ? JSON.stringify(installmentCashOutKeysPayload)
+                    : null;
+        } else if (accForInstallments && isCreditCardType(accForInstallments.type)) {
+            data.cashOutConfirmedPeriods =
+                installmentCashOutKeysPayload && installmentCashOutKeysPayload.length > 0
+                    ? JSON.stringify(installmentCashOutKeysPayload)
+                    : null;
+        }
+    }
+
+    try {
+        const orig = id ? userExpenses?.find((t) => t.id === id) : null;
+        const isSeriesRow = Boolean(orig?.recurrenceGroupId && String(orig.recurrenceGroupId).trim() !== '');
+
+        let result;
+        if (id && recurringMonthly && !loanCat && !cardExpense && !isSeriesRow) {
+            await deleteExpense(id);
+            result = await saveExpense({ ...data, recurringMonthly: true }, null);
+        } else if (id && isSeriesRow) {
+            result = await saveExpense({ ...data, recurringMonthly: false }, id);
+        } else {
+            result = await saveExpense(data, id || null);
+        }
+
+        const seriesCreated = result && result.recurring === true && Number(result.count) > 0;
+        showToast(
+            seriesCreated
+                ? 'Série recorrente criada'
+                : id && !seriesCreated
+                  ? 'Saída atualizada!'
+                  : 'Saída adicionada!',
+            seriesCreated
+                ? `${result.count} lançamentos (${formatCurrency(amount, 'BRL')} · ${category}) até dezembro`
+                : `- ${formatCurrency(amount, 'BRL')} · ${category}`,
+            'success'
+        );
+        closeModal('expense-modal');
+        delete form.dataset.splitRequestId;
+        delete form.dataset.splitFromRateio;
+        delete form.dataset.splitSourceIsInvestment;
+        onUpdateCallback();
+    } catch (error) {
+        console.error('Erro ao salvar saída:', error);
+        showToast(
+            'Erro ao salvar',
+            error?.message || 'Não foi possível salvar a saída. Tente novamente.',
+            error?.status === 409 ? 'warning' : 'error'
+        );
+    }
+}
+
+async function handleGainFormSubmit(e) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    if (!(form instanceof HTMLFormElement)) return;
+    const id = (form['gain-id'].value || '').trim();
+
+    let hasErrors = false;
+    form.querySelectorAll('.form-group').forEach((g) => g.classList.remove('error'));
+
+    const description = form['gain-description'].value.trim();
+    if (!description) {
+        markFieldError(form['gain-description'], 'Informe uma descrição');
+        hasErrors = true;
+    }
+
+    const amount = parseFloat(form['gain-amount'].value);
+    if (!amount || amount <= 0) {
+        markFieldError(form['gain-amount'], 'Informe um valor válido');
+        hasErrors = true;
+    }
+
+    const accountId = form['gain-account']?.value?.trim() || '';
+    if (!accountId) {
+        markFieldError(form['gain-account'], 'Selecione uma conta');
+        hasErrors = true;
+    }
+
+    const categorySelect = form['gain-category-select'];
+    const category = categorySelect?.value?.trim() || '';
+    if (!category) {
+        markFieldError(categorySelect, 'Selecione ou crie uma categoria');
+        hasErrors = true;
+    }
+
+    const accForGain = accountId ? userAccounts?.find((a) => a.id === accountId) : null;
+    if (accountId && (!accForGain || isCardAccountType(accForGain.type))) {
+        markFieldError(form['gain-account'], 'Escolha uma conta cadastrada (o valor será creditado nela)');
+        hasErrors = true;
+    }
+
+    if (hasErrors) {
+        showToast('Campos obrigatórios', 'Preencha todos os campos destacados', 'warning');
+        return;
+    }
+
+    // Combina a data selecionada com o horário atual para preservar ordem de cadastro
+    const selectedDate = form['gain-date'].value;
+    let dateWithTime;
+    
+    if (id) {
+        // Edição: verifica se a data foi alterada
+        const originalGain = userGains?.find((t) => t.id === id);
+        const originalDate = originalGain ? movementDateToJsDate(originalGain.date).toISOString().split('T')[0] : '';
+        
+        if (originalDate === selectedDate) {
+            // Data não mudou: mantém o timestamp original
+            dateWithTime = movementDateToJsDate(originalGain.date);
+        } else {
+            // Data mudou: usa nova data com horário atual
+            const now = new Date();
+            dateWithTime = new Date(selectedDate + 'T' + 
+                String(now.getHours()).padStart(2, '0') + ':' + 
+                String(now.getMinutes()).padStart(2, '0') + ':' + 
+                String(now.getSeconds()).padStart(2, '0'));
+        }
+    } else {
+        // Novo registro: usa data com horário atual
+        const now = new Date();
+        dateWithTime = new Date(selectedDate + 'T' + 
+            String(now.getHours()).padStart(2, '0') + ':' + 
+            String(now.getMinutes()).padStart(2, '0') + ':' + 
+            String(now.getSeconds()).padStart(2, '0'));
+    }
+    
+    const data = {
+        userId: currentUser.uid,
+        description,
+        amount,
+        date: dateWithTime.toISOString(),
+        accountId,
+        category,
+        isPaid: true
+    };
+
+    if (!id) {
+        data.isRecurring = document.getElementById('gain-recurring-mode')?.value === '1';
+    }
+
+    try {
+        const result = await saveGain(data, id || null);
+        const isEdit = !!id;
+        if (!isEdit && result && result.recurring === true && Number(result.count) > 1) {
+            showToast(
+                'Série recorrente criada',
+                `${result.count} entradas (uma por mês até dezembro).`,
+                'success'
+            );
+        } else {
+            showToast(
+                isEdit ? 'Entrada atualizada!' : 'Entrada adicionada!',
+                `+ ${formatCurrency(amount, 'BRL')} · ${category}`,
+                'success'
+            );
+        }
+        closeModal('gain-modal');
+        onUpdateCallback();
+    } catch (error) {
+        console.error('Erro ao salvar entrada:', error);
+        showToast('Erro ao salvar', 'Não foi possível salvar a entrada. Tente novamente.', 'error');
+    }
+}
+
+async function handleExpenseRowActions(e) {
+    const instRowBtn = e.target.closest('.expense-inst-confirm-btn');
+    if (instRowBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const expenseId = instRowBtn.dataset.expenseId;
+        const periodKey = instRowBtn.dataset.periodKey;
+        if (expenseId && periodKey) openInstallmentCashOutConfirmModal(expenseId, periodKey);
+        return;
+    }
+    const pillBtn = e.target.closest('.installment-tooltip-pill-btn');
+    if (pillBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const expenseId = pillBtn.dataset.expenseId;
+        const periodKey = pillBtn.dataset.periodKey;
+        if (expenseId && periodKey) openInstallmentCashOutConfirmModal(expenseId, periodKey);
+        return;
+    }
+    const ringBtn = e.target.closest('.installment-ring-confirm-btn');
+    if (ringBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const expenseId = ringBtn.dataset.expenseId;
+        const periodKey = ringBtn.dataset.periodKey;
+        if (expenseId && periodKey) {
+            openInstallmentCashOutConfirmModal(expenseId, periodKey);
+        }
+        return;
+    }
+    const target = e.target.closest('button');
+    if (!target) return;
+    const rowId = target.dataset.id;
+    if (!rowId) return;
+
+    if (target.classList.contains('btn-split')) {
+        void openExpenseSplitModal(rowId).catch((err) => console.error(err));
+        return;
+    }
+
+    if (target.classList.contains('btn-delete')) {
+        if (confirm('Tem certeza que deseja excluir esta saída?')) {
+            try {
+                await deleteExpense(rowId);
+                onUpdateCallback();
+            } catch (error) {
+                console.error('Erro ao excluir saída:', error);
+                showToast(
+                    'Não foi possível excluir',
+                    error?.message || 'Tente novamente.',
+                    error?.status === 409 ? 'warning' : 'error'
+                );
+            }
+        }
+    } else if (target.classList.contains('btn-edit')) {
+        const row = userExpenses.find((t) => t.id === rowId);
+        if (row) {
+            openExpenseModal(true);
+            const form = document.getElementById('expense-form');
+            const rg = row.recurrenceGroupId != null && String(row.recurrenceGroupId).trim() !== '';
+            if (rg) form.dataset.expenseRecurrenceGroupId = String(row.recurrenceGroupId);
+            else delete form.dataset.expenseRecurrenceGroupId;
+            form['expense-id'].value = row.id;
+            form['expense-description'].value = row.description;
+            form['expense-amount'].value = row.amount;
+            form['expense-date'].value = movementDateToJsDate(row.date).toISOString().split('T')[0];
+            // Aguarda o carregamento das categorias antes de selecionar
+            populateExpensePaymentMethodSelect(row.accountId);
+            populateExpenseCategorySelect(row.category).then(() => {
+                populateExpenseSubcategorySelect(row.subcategory || '');
+                form.dataset.loanPaymentAccountId = row.accountId;
+                syncExpensePaymentMethodForLoanCategory();
+                syncExpenseInstallmentsRow();
+                const recMode = document.getElementById('expense-recurring-mode');
+                if (recMode) {
+                    if (row.recurrenceGroupId) {
+                        recMode.value = '1';
+                    } else if (!recMode.disabled) {
+                        recMode.value = row.recurringMonthly ? '1' : '0';
+                    }
+                }
+                syncExpenseRecurringModeVisibility();
+            });
+            const inst = document.getElementById('expense-installments');
+            if (inst) {
+                const ic = row.installmentCount;
+                inst.value =
+                    ic != null && Number(ic) >= 1 ? String(Math.min(99, parseInt(String(ic), 10))) : '1';
+            }
+            let loanPaidKeys = [];
+            const cop = row.cashOutConfirmedPeriods;
+            if (cop != null && cop !== '') {
+                try {
+                    const parsed = typeof cop === 'string' ? JSON.parse(cop) : cop;
+                    if (Array.isArray(parsed)) loanPaidKeys = parsed.map((x) => String(x).trim()).filter(Boolean);
+                } catch {
+                    loanPaidKeys = [];
+                }
+            }
+            form.dataset.loanPaidPeriodKeys = JSON.stringify(loanPaidKeys);
+            document.getElementById('expense-modal-title').textContent = 'Editar saída';
+        }
+    }
+}
+
+async function handleGainRowActions(e) {
+    const target = e.target.closest('button');
+    if (!target) return;
+    const rowId = target.dataset.id;
+    if (!rowId) return;
+
+    if (target.classList.contains('btn-delete')) {
+        if (confirm('Tem certeza que deseja excluir esta entrada?')) {
+            try {
+                await deleteGain(rowId);
+                onUpdateCallback();
+            } catch (error) {
+                console.error('Erro ao excluir entrada:', error);
+                alert('Não foi possível excluir a entrada. Tente novamente.');
+            }
+        }
+    } else if (target.classList.contains('btn-edit')) {
+        const row = userGains.find((t) => t.id === rowId);
+        if (row) {
+            openGainModal(true);
+            const form = document.getElementById('gain-form');
+            form['gain-id'].value = row.id;
+            form['gain-description'].value = row.description;
+            form['gain-amount'].value = row.amount;
+            form['gain-date'].value = movementDateToJsDate(row.date).toISOString().split('T')[0];
+            await populateGainCategorySelect(row.category);
+            populateGainAccountSelect(row.accountId);
+            document.getElementById('gain-modal-title').textContent = 'Editar entrada';
+        }
+    }
+}
+
+const ACCOUNT_TYPE_LABELS = {
+    conta_corrente: 'Conta corrente',
+    poupanca: 'Poupança',
+    dinheiro: 'Dinheiro',
+    investimento: 'Investimento',
+    outros: 'Outros'
+};
+
+const ACCOUNT_TYPE_ICONS = {
+    conta_corrente: 'fa-building-columns',
+    poupanca: 'fa-piggy-bank',
+    dinheiro: 'fa-money-bill-wave',
+    investimento: 'fa-chart-line',
+    outros: 'fa-wallet'
+};
+
+function accountTypeDisplayLabel(type) {
+    if (type && ACCOUNT_TYPE_LABELS[type]) return ACCOUNT_TYPE_LABELS[type];
+    return String(type || 'Conta')
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function accountTypeIconClass(type) {
+    return ACCOUNT_TYPE_ICONS[type] || 'fa-landmark';
+}
+
+/** Chave visual para o card (gradiente + decoração), alinhada ao tipo de conta. */
+function accountTypeVisualKey(type) {
+    const t = String(type || '');
+    if (t === 'conta_corrente') return 'cc';
+    if (t === 'poupanca') return 'poup';
+    if (t === 'dinheiro') return 'din';
+    if (t === 'investimento') return 'inv';
+    return 'out';
+}
+
+// --- LÓGICA DE CONTAS E CARTÕES ---
+export function loadAccountsData(accounts, currency) {
+    const list = document.getElementById('accounts-list');
+    if (!list) return;
+    list.innerHTML = '';
+    const rows = accounts.filter((acc) => !isCardAccountType(acc.type));
+    if (rows.length === 0) {
+        list.innerHTML = `
+            <div class="accounts-empty-state">
+                <div class="accounts-empty-state__icon" aria-hidden="true"><i class="fas fa-wallet"></i></div>
+                <p class="accounts-empty-state__title">Nenhuma conta cadastrada</p>
+                <p class="accounts-empty-state__text">Use <strong>Nova Conta</strong> para corrente, poupança, investimento
+                    ou outras contas — os cartões ficam na página <strong>Cartões</strong>.</p>
+            </div>`;
+        return;
+    }
+    rows.forEach((acc, index) => {
+        const article = document.createElement('article');
+        const tint = index % 5;
+        const tipo = accountTypeVisualKey(acc.type);
+        article.className = `account-card account-card--landscape account-card--tipo-${tipo} account-card--tint-${tint}`;
+        const nameSafe = escapeHtml(acc.name);
+        const holderRaw = acc.holderName != null && String(acc.holderName).trim() !== '' ? String(acc.holderName).trim() : '';
+        const holderBlock = holderRaw
+            ? `<p class="account-card__holder">${escapeHtml(holderRaw)}</p>`
+            : '';
+        const typeLabel = escapeHtml(accountTypeDisplayLabel(acc.type));
+        const iconClass = accountTypeIconClass(acc.type);
+        article.innerHTML = `
+            <div class="account-card__scene" aria-hidden="true">
+                <div class="account-card__scene-art">
+                    <div class="account-card__fin-bg"></div>
+                    <div class="account-card__fin-grid"></div>
+                    <div class="account-card__fin-pillars"><span></span><span></span><span></span></div>
+                    <div class="account-card__fin-bars">
+                        <span></span><span></span><span></span><span></span><span></span>
+                    </div>
+                    <div class="account-card__fin-coins">
+                        <span></span><span></span><span></span>
+                    </div>
+                    <div class="account-card__fin-trend"></div>
+                    <div class="account-card__scene-veil"></div>
+                </div>
+                <div class="account-card__scene-overlay">
+                    <span class="account-card__badge">
+                        <i class="fas ${iconClass}" aria-hidden="true"></i>
+                        ${typeLabel}
+                    </span>
+                    <div class="account-card__actions">
+                        <button type="button" class="btn-action btn-edit" data-id="${acc.id}" title="Editar conta" aria-label="Editar conta"><i class="fas fa-pen" aria-hidden="true"></i></button>
+                        <button type="button" class="btn-action btn-delete" data-id="${acc.id}" title="Excluir conta" aria-label="Excluir conta"><i class="fas fa-trash-alt" aria-hidden="true"></i></button>
+                    </div>
+                </div>
+                <div class="account-card__scene-icon"><i class="fas ${iconClass}" aria-hidden="true"></i></div>
+            </div>
+            <div class="account-card__body">
+                <h3 class="account-card__title">${nameSafe}</h3>
+                ${holderBlock}
+                <div class="account-card__balance-block">
+                    <span class="account-card__balance-label">Saldo</span>
+                    <span class="account-card__balance">${formatCurrency(acc.currentBalance, currency)}</span>
+                </div>
+            </div>`;
+        list.appendChild(article);
+    });
+}
+
+function openNewAccountModal() {
+    const form = document.getElementById('account-form');
+    setAccountTypeSelectMode('full');
+    form.reset();
+    form['account-id'].value = '';
+    const bal = document.getElementById('account-initial-balance');
+    if (bal) bal.value = '0';
+    document.getElementById('account-modal-title').textContent = 'Nova Conta';
+    toggleCreditCardFields(form['account-type'].value);
+    openModal('account-modal');
+}
+
+function openNewCreditCardModal() {
+    const bankCount = (userAccounts || []).filter((a) => !isCardAccountType(a.type)).length;
+    if (bankCount === 0) {
+        showToast(
+            'Conta necessária',
+            'Cadastre pelo menos uma conta em Contas antes de criar um cartão vinculado.',
+            'warning'
+        );
+        return;
+    }
+    const form = document.getElementById('account-form');
+    setAccountTypeSelectMode('cardsOnly');
+    form.reset();
+    form['account-id'].value = '';
+    form['account-type'].value = 'cartao_credito';
+    toggleCreditCardFields('cartao_credito');
+    setCardPlasticToneRadios(form, 'violet');
+    document.getElementById('account-modal-title').textContent = 'Novo cartão';
+    openModal('account-modal');
+}
+
+/** Preenche o modal de conta/cartão para edição (contas e tela de cartões). */
+function fillAndOpenAccountForm(acc) {
+    const form = document.getElementById('account-form');
+    if (!form || !acc) return;
+    setAccountTypeSelectMode(isCardAccountType(acc.type) ? 'cardsOnly' : 'full');
+    form['account-id'].value = acc.id;
+    form['account-name'].value = acc.name;
+    form['account-type'].value = acc.type;
+    const holderEl = form['card-holder-name'];
+    if (holderEl) {
+        holderEl.value = acc.holderName != null && acc.holderName !== '' ? String(acc.holderName) : '';
+    }
+    toggleCreditCardFields(acc.type);
+    if (acc.type === 'cartao_credito' || acc.type === 'cartao_debito') {
+        const sel = document.getElementById('card-linked-account');
+        if (sel) sel.value = acc.linkedAccountId || '';
+    }
+    if (isCardAccountType(acc.type)) {
+        setCardPlasticToneRadios(form, acc.plasticTone, acc.plasticColor);
+    }
+    if (acc.type === 'cartao_credito') {
+        form['card-limit'].value = acc.limit != null ? acc.limit : '';
+        form['card-closing-day'].value = acc.closeDay != null ? acc.closeDay : '';
+        form['card-due-day'].value = acc.dueDay != null ? acc.dueDay : '';
+    } else if (acc.type === 'cartao_debito') {
+        form['account-initial-balance'].value = '';
+    } else {
+        form['account-initial-balance'].value = acc.initialBalance != null ? acc.initialBalance : '';
+    }
+    document.getElementById('account-modal-title').textContent = isCardAccountType(acc.type)
+        ? 'Editar cartão'
+        : 'Editar Conta';
+    openModal('account-modal');
+}
+
+async function handleAccountFormSubmit(e) {
+    e.preventDefault();
+    const form = e.target;
+    const id = form['account-id'].value;
+    const type = form['account-type'].value;
+    const nameTrim = (form['account-name']?.value || '').trim();
+    if (!nameTrim) {
+        showMessage('account-message', 'O nome da conta é obrigatório.', 'error');
+        return;
+    }
+    const data = {
+        userId: currentUser.uid,
+        name: nameTrim,
+        type: type
+    };
+
+    if (type !== 'cartao_credito' && type !== 'cartao_debito') {
+        const initialBalance = parseInitialBalanceInput(form['account-initial-balance'].value);
+        if (!Number.isFinite(initialBalance)) {
+            showMessage('account-message', 'Informe um saldo inicial válido (use 0 para saldo zero).', 'error');
+            return;
+        }
+        data.initialBalance = initialBalance;
+    }
+
+    const holderTrim = (form['card-holder-name']?.value || '').trim();
+    if (isCardAccountType(type)) {
+        data.holderName = holderTrim;
+        const toneRadio = form.querySelector('input[name="card-plastic-tone"]:checked');
+        const tv = toneRadio?.value;
+        if (tv === 'custom') {
+            data.plasticTone = 'custom';
+            data.plasticColor = normalizeHexColor(form.querySelector('#card-plastic-color')?.value);
+        } else {
+            data.plasticTone =
+                tv && PLASTIC_TONE_CLASSES[tv] && PLASTIC_PICKER_TONES.includes(tv) ? tv : 'violet';
+            delete data.plasticColor;
+        }
+    }
+
+    if (type === 'cartao_credito' || type === 'cartao_debito') {
+        const linked = (form['card-linked-account']?.value || '').trim();
+        if (!linked) {
+            showMessage(
+                'account-message',
+                'Selecione a conta existente à qual este cartão está vinculado.',
+                'error'
+            );
+            return;
+        }
+        data.linkedAccountId = linked;
+        if (type === 'cartao_credito') {
+            data.limit = parseFloat(form['card-limit'].value) || 0;
+            data.closeDay = parseInt(form['card-closing-day'].value, 10);
+            data.dueDay = parseInt(form['card-due-day'].value, 10);
+            delete data.initialBalance;
+        } else {
+            data.initialBalance = 0;
+        }
+    } else {
+        data.linkedAccountId = null;
+        data.holderName = holderTrim || null;
+    }
+
+    try {
+        await saveAccount(data, id);
+        closeModal('account-modal');
+        onUpdateCallback();
+    } catch (error) {
+        console.error('Erro ao salvar conta:', error);
+        showMessage('account-message', 'Não foi possível salvar a conta. Tente novamente.', 'error');
+    }
+}
+
+async function handleAccountActions(e) {
+    const button = e.target.closest('button');
+    if (!button) return;
+    const id = button.dataset.id;
+    if (!id) return;
+
+    if (button.classList.contains('btn-edit')) {
+        const acc = userAccounts.find((a) => a.id === id);
+        if (acc) fillAndOpenAccountForm(acc);
+    } else if (button.classList.contains('btn-delete')) {
+        if (confirm('Tem certeza que deseja excluir esta conta? Saídas e entradas associadas a ela também serão removidas.')) {
+            try {
+                await deleteAccount(id);
+                onUpdateCallback();
+            } catch (error) {
+                console.error('Erro ao excluir conta:', error);
+                alert('Não foi possível excluir a conta. Verifique se existem dados associados.');
+            }
+        }
+    }
+}
+
+/**
+ * Preenche &lt;select&gt; de conta.
+ * @param {HTMLSelectElement} selectElement
+ * @param {{ includeCards?: boolean }} [options] — em despesas use `includeCards: true` para listar cartões (crédito/débito) em grupo separado.
+ */
+function populateAccountOptions(selectElement, options = {}) {
+    if (!selectElement) return;
+    const includeCards = options.includeCards === true;
+    selectElement.innerHTML = '<option value="">Selecione</option>';
+
+    if (includeCards) {
+        const regular = userAccounts
+            .filter((a) => !isCardAccountType(a.type))
+            .sort((a, b) => String(a.name).localeCompare(String(b.name), 'pt-BR'));
+        const cards = userAccounts
+            .filter((a) => isCardAccountType(a.type))
+            .sort((a, b) => String(a.name).localeCompare(String(b.name), 'pt-BR'));
+
+        if (regular.length) {
+            const og = document.createElement('optgroup');
+            og.label = 'Contas';
+            regular.forEach((acc) => {
+                const opt = document.createElement('option');
+                opt.value = acc.id;
+                opt.textContent = acc.name;
+                og.appendChild(opt);
+            });
+            selectElement.appendChild(og);
+        }
+        if (cards.length) {
+            const og = document.createElement('optgroup');
+            og.label = 'Cartões';
+            cards.forEach((acc) => {
+                const opt = document.createElement('option');
+                opt.value = acc.id;
+                const kind = isCreditCardType(acc.type) ? 'crédito' : 'débito';
+                opt.textContent = `${acc.name} (${kind})`;
+                og.appendChild(opt);
+            });
+            selectElement.appendChild(og);
+        }
+        return;
+    }
+
+    userAccounts.filter((a) => !isCreditCardType(a.type)).forEach((acc) => {
+        selectElement.innerHTML += `<option value="${acc.id}">${acc.name}</option>`;
+    });
+}
+
+function getLastInstallmentMonthLabel(dateField, installmentCount) {
+    const n = parseInt(String(installmentCount ?? ''), 10);
+    if (!Number.isFinite(n) || n < 2) return '—';
+    const d = movementDateToJsDate(dateField);
+    const last = new Date(d.getFullYear(), d.getMonth() + (n - 1), 1);
+    const s = last.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function parcelasLabel(ic) {
+    const n = parseInt(String(ic ?? ''), 10);
+    if (!Number.isFinite(n) || n < 1) return 'À vista';
+    if (n === 1) return 'À vista';
+    return `${n}x`;
+}
+
+
+function getSortedFilteredCardPurchasesList() {
+    return sortCardPurchaseRows(getFilteredCardPurchasesList(), cardPurchasesSort, userAccounts);
+}
+
+function getFilteredCardPurchasesList() {
+    const { sorted, currency, userProfile: cardProf } = cardPurchasesCache;
+    const needle = cardPurchasesFilterQ.trim().toLowerCase();
+    if (!needle) return sorted;
+    return sorted.filter((t) => {
+        const dateStr = movementDateToJsDate(t.date).toLocaleDateString('pt-BR');
+        const parcelas = parcelasLabel(t.installmentCount);
+        const n = parseInt(String(t.installmentCount ?? ''), 10);
+        const ultima = Number.isFinite(n) && n >= 2 ? getLastInstallmentMonthLabel(t.date, n) : '—';
+        const cardAcc = userAccounts?.find((a) => a.id === t.accountId);
+        const status = formatInstallmentStatusPlain(t, cardAcc, new Date(), cardProf);
+        const perParc = getExpensePerInstallmentDisplayAmount(t, cardAcc);
+        const hay = [
+            dateStr,
+            String(t.description ?? ''),
+            String(t.category ?? ''),
+            formatCurrency(t.amount, currency),
+            formatCurrency(perParc, currency),
+            parcelas,
+            ultima,
+            status
+        ]
+            .join(' ')
+            .toLowerCase();
+        return hay.includes(needle);
+    });
+}
+
+function applyCardPurchasesFilters() {
+    cardPurchasesFilterQ = document.getElementById('card-purchases-filter-q')?.value || '';
+    if (!cardPurchasesPagination) return;
+    cardPurchasesPagination.setTotal(getSortedFilteredCardPurchasesList().length, { resetPage: true });
+    renderCardPurchasesBodySlice();
+}
+
+function renderCardPurchasesBodySlice() {
+    const tbody = document.getElementById('card-purchases-tbody');
+    if (!tbody || !cardPurchasesPagination) return;
+    const currency = cardPurchasesCache?.currency || 'BRL';
+    const cardUserProfile = cardPurchasesCache?.userProfile ?? null;
+    const list = getSortedFilteredCardPurchasesList();
+    const { start, end } = cardPurchasesPagination.getSliceRange();
+    tbody.innerHTML = '';
+    list.slice(start, end).forEach((t) => {
+        const ic = t.installmentCount;
+        const n = parseInt(String(ic ?? ''), 10);
+        const parcelas = parcelasLabel(ic);
+        const ultima = Number.isFinite(n) && n >= 2 ? getLastInstallmentMonthLabel(t.date, n) : '—';
+        const cardAcc = userAccounts?.find((a) => a.id === t.accountId);
+        const fullyPaid =
+            cardAcc && isCreditCardType(cardAcc.type)
+                ? isCreditInstallmentFullyPaid(t, cardAcc, new Date(), financeUserProfile)
+                : !!t.isPaid;
+        const isPending = !fullyPaid;
+        const statusPlain = formatInstallmentStatusPlain(t, cardAcc, new Date(), cardUserProfile);
+        const statusInner =
+            cardAcc && isCreditCardType(cardAcc.type)
+                ? formatInstallmentPopoverHtml(t, cardAcc, currency, new Date(), cardUserProfile)
+                : `<span class="card-purchases-status ${isPending ? 'card-purchases-status--pending' : 'card-purchases-status--paid'}">${escapeHtml(statusPlain)}</span>`;
+        const statusHtml =
+            cardAcc && isCreditCardType(cardAcc.type)
+                ? `<div class="card-purchases-status-ring">${statusInner}</div>`
+                : statusInner;
+        const descRaw = String(t.description ?? '');
+        const descTitle = descRaw.length > 48 ? htmlAttrEscape(descRaw) : '';
+        const descCell = descTitle
+            ? `<span class="card-purchases-desc" title="${descTitle}">${truncateDisplayHtml(t.description, 48)}</span>`
+            : `<span class="card-purchases-desc">${escapeHtml(t.description)}</span>`;
+        const dateObj = movementDateToJsDate(t.date);
+        const dateIso = dateObj.toISOString().slice(0, 10);
+        const displayAmt = getExpensePerInstallmentDisplayAmount(t, cardAcc);
+        const totalAmt = Number(t.amount) || 0;
+        const amountTitle =
+            displayAmt !== totalAmt && totalAmt > 0
+                ? ` title="Total da compra: ${formatCurrency(totalAmt, currency)}"`
+                : '';
+        const tr = document.createElement('tr');
+        tr.className = isPending ? 'card-purchases-row card-purchases-row--pending' : 'card-purchases-row';
+        tr.innerHTML = `
+                <td class="card-purchases-td-date"><time datetime="${dateIso}">${dateObj.toLocaleDateString('pt-BR')}</time></td>
+                <td class="card-purchases-td-desc">${descCell}</td>
+                <td class="card-purchases-td-cat">${escapeHtml(t.category)}</td>
+                <td class="card-purchases-td-amount"${amountTitle}>${formatCurrency(displayAmt, currency)}</td>
+                <td>${parcelas}</td>
+                <td>${ultima}</td>
+                <td class="card-purchases-td-status">${statusHtml}</td>
+            `;
+        tbody.appendChild(tr);
+    });
+    setupInstallmentPopovers(tbody);
+}
+
+function openCardPurchasesModal(accountId) {
+    const card = userAccounts?.find((a) => a.id === accountId);
+    if (!card || !isCardAccountType(card.type)) return;
+    const currency = lastCardsPageCurrency || 'BRL';
+    const sorted = [...(userExpenses || []).filter((t) => t.accountId === accountId)].sort(
+        (a, b) => movementDateToUnixSeconds(b.date) - movementDateToUnixSeconds(a.date)
+    );
+
+    const titleEl = document.getElementById('card-purchases-modal-title');
+    const subtitleEl = document.getElementById('card-purchases-modal-subtitle');
+    const badgeEl = document.getElementById('card-purchases-modal-badge');
+    const summaryEl = document.getElementById('card-purchases-summary');
+    const tbody = document.getElementById('card-purchases-tbody');
+    const emptyEl = document.getElementById('card-purchases-empty');
+    const listSectionEl = document.getElementById('card-purchases-list-section');
+    const paginationHost = document.getElementById('card-purchases-pagination');
+    const filtersWrap = document.getElementById('card-purchases-filters-wrap');
+    if (!titleEl || !summaryEl || !tbody || !emptyEl) return;
+
+    cardPurchasesFilterQ = '';
+    const fqEl = document.getElementById('card-purchases-filter-q');
+    if (fqEl) fqEl.value = '';
+
+    const isCredit = isCreditCardType(card.type);
+    const typeLabel = isCredit ? 'Cartão de crédito' : 'Cartão de débito';
+    const holder = card.holderName && String(card.holderName).trim() ? String(card.holderName).trim() : '';
+    titleEl.textContent = card.name;
+    if (subtitleEl) {
+        subtitleEl.textContent = holder ? `${typeLabel} · ${holder}` : typeLabel;
+    }
+    if (badgeEl) {
+        badgeEl.classList.toggle('card-purchases-modal__badge--credit', isCredit);
+        badgeEl.classList.toggle('card-purchases-modal__badge--debit', !isCredit);
+    }
+    const editBtn = document.getElementById('card-purchases-modal-edit-btn');
+    const delBtn = document.getElementById('card-purchases-modal-delete-btn');
+    if (editBtn) editBtn.dataset.id = accountId;
+    if (delBtn) delBtn.dataset.id = accountId;
+    tbody.innerHTML = '';
+
+    let summaryHtml = '';
+
+    if (isCredit) {
+        const cycle = getBillingCycle(card);
+        const cycleLabel = `${cycle.start.toLocaleDateString('pt-BR')} — ${cycle.end.toLocaleDateString('pt-BR')}`;
+        const sumCycle = creditCardInvoiceTotalForCycle(card, sorted);
+        const sumAll = sorted.reduce((s, t) => s + t.amount, 0);
+        summaryHtml = `
+            <div class="card-purchases-summary__grid">
+                <div class="card-purchases-summary__item">
+                    <span class="card-purchases-summary__icon" aria-hidden="true"><i class="fas fa-file-invoice-dollar"></i></span>
+                    <span class="card-purchases-summary__lbl">Fatura atual (ciclo)</span>
+                    <span class="card-purchases-summary__val">${formatCurrency(sumCycle, currency)}</span>
+                    <span class="card-purchases-summary__hint">${cycleLabel}</span>
+                </div>
+                <div class="card-purchases-summary__item">
+                    <span class="card-purchases-summary__icon" aria-hidden="true"><i class="fas fa-receipt"></i></span>
+                    <span class="card-purchases-summary__lbl">Total lançado no cartão</span>
+                    <span class="card-purchases-summary__val">${formatCurrency(sumAll, currency)}</span>
+                    <span class="card-purchases-summary__hint">${sorted.length} lançamento(s)</span>
+                </div>
+                <div class="card-purchases-summary__item">
+                    <span class="card-purchases-summary__icon" aria-hidden="true"><i class="fas fa-calendar-check"></i></span>
+                    <span class="card-purchases-summary__lbl">Vencimento desta fatura</span>
+                    <span class="card-purchases-summary__val">${cycle.due.toLocaleDateString('pt-BR')}</span>
+                </div>
+            </div>`;
+    } else {
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+        const monthList = sorted.filter((t) => {
+            const d = movementDateToJsDate(t.date);
+            return d >= monthStart && d <= monthEnd;
+        });
+        const sumMonth = monthList.reduce((s, t) => s + t.amount, 0);
+        const sumAll = sorted.reduce((s, t) => s + t.amount, 0);
+        const monthTitle = now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+        summaryHtml = `
+            <div class="card-purchases-summary__grid card-purchases-summary__grid--debit">
+                <div class="card-purchases-summary__item">
+                    <span class="card-purchases-summary__icon" aria-hidden="true"><i class="fas fa-calendar-alt"></i></span>
+                    <span class="card-purchases-summary__lbl">Gastos no mês (${monthTitle})</span>
+                    <span class="card-purchases-summary__val">${formatCurrency(sumMonth, currency)}</span>
+                </div>
+                <div class="card-purchases-summary__item">
+                    <span class="card-purchases-summary__icon" aria-hidden="true"><i class="fas fa-wallet"></i></span>
+                    <span class="card-purchases-summary__lbl">Total de lançamentos</span>
+                    <span class="card-purchases-summary__val">${formatCurrency(sumAll, currency)}</span>
+                    <span class="card-purchases-summary__hint">${sorted.length} registro(s)</span>
+                </div>
+            </div>`;
+    }
+
+    summaryEl.innerHTML = summaryHtml;
+
+    cardPurchasesCache = { sorted, currency, userProfile: financeUserProfile };
+    cardPurchasesSort = { key: 'date', dir: 'desc' };
+
+    if (sorted.length === 0) {
+        emptyEl.classList.remove('hidden');
+        if (listSectionEl) listSectionEl.classList.add('hidden');
+        if (paginationHost) paginationHost.classList.add('hidden');
+        if (filtersWrap) filtersWrap.classList.add('hidden');
+    } else {
+        emptyEl.classList.add('hidden');
+        if (listSectionEl) listSectionEl.classList.remove('hidden');
+        if (paginationHost) paginationHost.classList.remove('hidden');
+        if (filtersWrap) filtersWrap.classList.remove('hidden');
+        if (!cardPurchasesPagination && paginationHost) {
+            cardPurchasesPagination = new TablePaginationController(paginationHost, {
+                storageKey: 'card-purchases',
+                onChange: () => renderCardPurchasesBodySlice()
+            });
+        }
+        if (cardPurchasesPagination) {
+            cardPurchasesPagination.setTotal(getSortedFilteredCardPurchasesList().length);
+        }
+        syncSortableTableHeaders(document.getElementById('card-purchases-table'), cardPurchasesSort, [
+            'date',
+            'amount',
+            'installments',
+            'lastInstallment',
+            'status'
+        ]);
+        renderCardPurchasesBodySlice();
+    }
+
+    openModal('card-purchases-modal');
+}
+
+function handleCreditCardListClick(e) {
+    const article = e.target.closest('.credit-card-card[data-card-id]');
+    if (article) {
+        openCardPurchasesModal(article.getAttribute('data-card-id'));
+    }
+}
+
+function handleCreditCardListKeydown(e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const article = e.target.closest('.credit-card-card[data-card-id]');
+    if (!article) return;
+    e.preventDefault();
+    openCardPurchasesModal(article.getAttribute('data-card-id'));
+}
+
+function handleCardPurchasesModalActions(e) {
+    const pillBtn = e.target.closest('.installment-tooltip-pill-btn');
+    if (pillBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const expenseId = pillBtn.dataset.expenseId;
+        const periodKey = pillBtn.dataset.periodKey;
+        if (expenseId && periodKey) openInstallmentCashOutConfirmModal(expenseId, periodKey);
+        return;
+    }
+    const btn = e.target.closest('#card-purchases-modal-edit-btn, #card-purchases-modal-delete-btn');
+    if (!btn) return;
+    e.stopPropagation();
+    handleCardButtonActions(e);
+}
+
+function updateCardsPageSummary(accounts, expenses, currency, userProfile = null) {
+    const cur = currency || 'BRL';
+    const allCardAccounts = (accounts || []).filter((a) => isCardAccountType(a.type));
+    const totalCards = allCardAccounts.length;
+    const now = new Date();
+
+    const sumCardMonth = (year, monthIndex, monthKey) => {
+        let sum = 0;
+        (expenses || []).forEach((e) => {
+            const acc = (accounts || []).find((a) => a.id === e.accountId);
+            if (!acc || !isCardAccountType(acc.type)) return;
+            if (isCreditCardType(acc.type)) {
+                sum += creditCardCashOutForCalendarMonth(e, acc, monthKey, now, userProfile);
+            } else {
+                const d = movementDateToJsDate(e.date);
+                if (d.getFullYear() === year && d.getMonth() === monthIndex) {
+                    sum += Number(e.amount) || 0;
+                }
+            }
+        });
+        return sum;
+    };
+
+    /** Próximo mês: crédito usa previsão (parcelas com vencimento naquele mês), não só caixa já pago. */
+    const sumCardMonthForecast = (year, monthIndex, monthKey) => {
+        let sum = 0;
+        (expenses || []).forEach((e) => {
+            const acc = (accounts || []).find((a) => a.id === e.accountId);
+            if (!acc || !isCardAccountType(acc.type)) return;
+            if (isCreditCardType(acc.type)) {
+                sum += creditCardForecastForCalendarMonth(e, acc, monthKey, now);
+            } else {
+                const d = movementDateToJsDate(e.date);
+                if (d.getFullYear() === year && d.getMonth() === monthIndex) {
+                    sum += Number(e.amount) || 0;
+                }
+            }
+        });
+        return sum;
+    };
+
+    let parceladoAberto = 0;
+    (expenses || []).forEach((e) => {
+        const acc = (accounts || []).find((a) => a.id === e.accountId);
+        if (!acc || !isCardAccountType(acc.type)) return;
+        parceladoAberto += getExpenseRemainingOpenAmount(e, acc, now, financeUserProfile);
+    });
+
+    const y = now.getFullYear();
+    const mo = now.getMonth();
+    const monthKey = `${y}-${String(mo + 1).padStart(2, '0')}`;
+    const currentMonthTotal = sumCardMonth(y, mo, monthKey);
+
+    const nextRef = new Date(y, mo + 1, 1);
+    const nextY = nextRef.getFullYear();
+    const nextMo = nextRef.getMonth();
+    const nextMonthKey = `${nextY}-${String(nextMo + 1).padStart(2, '0')}`;
+    const nextMonthTotal = sumCardMonthForecast(nextY, nextMo, nextMonthKey);
+
+    const elOpen = document.getElementById('cards-summary-open-installments');
+    if (elOpen) {
+        elOpen.textContent = totalCards === 0 ? '—' : formatCurrency(parceladoAberto, cur);
+    }
+
+    const elCur = document.getElementById('cards-summary-current-month');
+    const elCurLabel = document.getElementById('cards-summary-current-label');
+    if (elCur) {
+        elCur.textContent = totalCards === 0 ? '—' : formatCurrency(currentMonthTotal, cur);
+    }
+    if (elCurLabel) {
+        const parts = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).formatToParts(now);
+        const monthName = parts.find((p) => p.type === 'month')?.value || '';
+        const year = parts.find((p) => p.type === 'year')?.value || '';
+        const labelMonth = monthName ? monthName.charAt(0).toUpperCase() + monthName.slice(1) : '';
+        elCurLabel.textContent =
+            labelMonth && year ? `Total em ${labelMonth} ${year}` : 'Total no mês atual';
+    }
+
+    const elNext = document.getElementById('cards-summary-next-month');
+    const elNextLabel = document.getElementById('cards-summary-next-label');
+    if (elNext) {
+        elNext.textContent = totalCards === 0 ? '—' : formatCurrency(nextMonthTotal, cur);
+    }
+    if (elNextLabel) {
+        const nextParts = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).formatToParts(nextRef);
+        const nm = nextParts.find((p) => p.type === 'month')?.value || '';
+        const ny = nextParts.find((p) => p.type === 'year')?.value || '';
+        const labelNext = nm ? nm.charAt(0).toUpperCase() + nm.slice(1) : '';
+        elNextLabel.textContent =
+            labelNext && ny ? `Total em ${labelNext} ${ny}` : 'Total no próximo mês';
+    }
+}
+
+function buildCreditCardArticleElement(card, index, expenses, currency) {
+    const cardElement = document.createElement('article');
+    cardElement.className = 'credit-card-card credit-card-card--interactive';
+    cardElement.setAttribute('data-card-id', card.id);
+    cardElement.setAttribute('role', 'button');
+    cardElement.setAttribute('tabindex', '0');
+    cardElement.setAttribute('aria-label', `Ver compras e lançamentos: ${card.name}`);
+    const isCustomPlastic = card.plasticTone === 'custom';
+    const tone = plasticClassForAccount(card, index);
+    const plasticInlineStyle = isCustomPlastic
+        ? ` style="background: ${plasticGradientCss(card.plasticColor)}"`
+        : '';
+    const cardNameSafe = escapeHtml(card.name);
+    const holderRaw =
+        card.holderName != null && String(card.holderName).trim() !== ''
+            ? String(card.holderName).trim()
+            : '';
+    const holderPlasticSafe = escapeHtml(holderRaw || String(card.name || ''));
+    const isCredit = isCreditCardType(card.type);
+    const typeBadge = isCredit
+        ? '<span class="credit-card-plastic__brand credit-card-plastic__brand--muted">Crédito</span>'
+        : '<span class="credit-card-plastic__brand">Débito</span>';
+    const brandingTop = `
+            <div class="credit-card-plastic__branding">
+                <span class="credit-card-plastic__product-name" title="Nome do cartão">${cardNameSafe}</span>
+                ${typeBadge}
+            </div>`;
+
+    let statsBlock;
+    let footerBlock;
+    if (isCredit) {
+        const currentBill = creditCardInvoiceTotalForCycle(card, expenses);
+        statsBlock = `
+                <div class="credit-card-plastic__stats">
+                    <div class="credit-card-plastic__stat">
+                        <span class="credit-card-plastic__stat-lbl">Fatura atual</span>
+                        <span class="credit-card-plastic__stat-val credit-card-plastic__stat-val--bill">${formatCurrency(currentBill, currency)}</span>
+                    </div>
+                    <div class="credit-card-plastic__stat">
+                        <span class="credit-card-plastic__stat-lbl">Limite</span>
+                        <span class="credit-card-plastic__stat-val">${formatCurrency(card.limit, currency)}</span>
+                    </div>
+                </div>`;
+        footerBlock = `
+            <div class="credit-card-footer">
+                <span><i class="fas fa-calendar-check" aria-hidden="true"></i> Venc. dia ${card.dueDay ?? '—'}</span>
+                <span><i class="fas fa-sync-alt" aria-hidden="true"></i> Fech. dia ${card.closeDay ?? '—'}</span>
+            </div>`;
+    } else {
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+        const monthSpend = (expenses || [])
+            .filter((t) => {
+                const d = movementDateToJsDate(t.date);
+                return t.accountId === card.id && d >= monthStart && d <= monthEnd;
+            })
+            .reduce((sum, t) => sum + t.amount, 0);
+        statsBlock = `
+                <div class="credit-card-plastic__stats">
+                    <div class="credit-card-plastic__stat">
+                        <span class="credit-card-plastic__stat-lbl">Saldo da conta</span>
+                        <span class="credit-card-plastic__stat-val">${formatCurrency(card.currentBalance ?? 0, currency)}</span>
+                    </div>
+                    <div class="credit-card-plastic__stat">
+                        <span class="credit-card-plastic__stat-lbl">Gastos no mês</span>
+                        <span class="credit-card-plastic__stat-val credit-card-plastic__stat-val--bill">${formatCurrency(monthSpend, currency)}</span>
+                    </div>
+                </div>`;
+        footerBlock = `
+            <div class="credit-card-footer credit-card-footer--debit">
+                <span><i class="fas fa-wallet" aria-hidden="true"></i> Cartão de débito</span>
+            </div>`;
+    }
+
+    cardElement.innerHTML = `
+            <div class="credit-card-plastic ${tone}"${plasticInlineStyle}>
+                <div class="credit-card-plastic__shine" aria-hidden="true"></div>
+                <div class="credit-card-plastic__top">
+                    <div class="credit-card-plastic__chip" aria-hidden="true" title="Chip"></div>
+                    ${brandingTop}
+                </div>
+                <p class="credit-card-plastic__number" aria-hidden="true">••••&nbsp;&nbsp;••••&nbsp;&nbsp;••••&nbsp;&nbsp;••••</p>
+                <div class="credit-card-plastic__holder-block">
+                    <span class="credit-card-plastic__holder-label">Titular</span>
+                    <span class="credit-card-plastic__holder-name">${holderPlasticSafe}</span>
+                </div>
+                ${statsBlock}
+            </div>
+            ${footerBlock}
+        `;
+    return cardElement;
+}
+
+export function loadCardsData(accounts, expenses, currency) {
+    lastCardsPageCurrency = currency || 'BRL';
+    updateCardsPageSummary(accounts, expenses, lastCardsPageCurrency, financeUserProfile);
+    const list = document.getElementById('credit-cards-list');
+    if (!list) return;
+    const cards = (accounts || []).filter((acc) => isCardAccountType(acc.type));
+    list.innerHTML = '';
+    list.className = 'credit-cards-page';
+
+    if (cards.length === 0) {
+        list.classList.add('credit-cards-page--empty');
+        list.innerHTML = `
+            <div class="credit-cards-empty">
+                <div class="credit-cards-empty-icon" aria-hidden="true"><i class="fas fa-credit-card"></i></div>
+                <p><strong>Nenhum cartão cadastrado</strong></p>
+                <p>Use <strong>Novo cartão</strong> e escolha <strong>Cartão de crédito</strong> (limite e datas de fatura)
+                    ou <strong>Cartão de débito</strong>.</p>
+            </div>`;
+        return;
+    }
+
+    list.classList.remove('credit-cards-page--empty');
+
+    const creditCards = cards.filter((c) => isCreditCardType(c.type));
+    const debitCards = cards.filter((c) => !isCreditCardType(c.type));
+    let globalIndex = 0;
+
+    const appendSection = (title, emptyHint, subset, headingId) => {
+        const section = document.createElement('section');
+        section.className = 'credit-cards-section';
+        section.setAttribute('aria-labelledby', headingId);
+        const h2 = document.createElement('h2');
+        h2.id = headingId;
+        h2.className = 'credit-cards-section__title';
+        h2.textContent = title;
+        section.appendChild(h2);
+
+        if (subset.length === 0) {
+            const p = document.createElement('p');
+            p.className = 'credit-cards-section__empty';
+            p.textContent = emptyHint;
+            section.appendChild(p);
+        } else {
+            const grid = document.createElement('div');
+            grid.className = 'credit-cards-grid';
+            subset.forEach((card) => {
+                grid.appendChild(buildCreditCardArticleElement(card, globalIndex++, expenses, currency));
+            });
+            section.appendChild(grid);
+        }
+        list.appendChild(section);
+    };
+
+    appendSection('Cartões de crédito', 'Nenhum cartão de crédito cadastrado.', creditCards, 'credit-cards-heading-credit');
+    appendSection('Cartões de débito', 'Nenhum cartão de débito cadastrado.', debitCards, 'credit-cards-heading-debit');
+}
+
+async function handleCardButtonActions(e) {
+    const button = e.target.closest('button');
+    if (!button) return;
+    const id = button.dataset.id;
+    if (!id) return;
+
+    if (button.classList.contains('btn-edit')) {
+        closeModal('card-purchases-modal');
+        const acc = userAccounts.find((a) => a.id === id);
+        if (acc) fillAndOpenAccountForm(acc);
+    } else if (button.classList.contains('btn-delete')) {
+        if (
+            confirm(
+                'Tem certeza que deseja excluir este cartão? Todas as saídas e entradas vinculadas a ele também serão removidas.'
+            )
+        ) {
+            try {
+                await deleteAccount(id);
+                closeModal('card-purchases-modal');
+                onUpdateCallback();
+            } catch (error) {
+                console.error('Erro ao excluir cartão:', error);
+                alert('Não foi possível excluir o cartão. Tente novamente.');
+            }
+        }
+    }
+}

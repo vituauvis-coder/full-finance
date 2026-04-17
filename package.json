@@ -1,0 +1,33 @@
+{
+  "name": "full-finan-as",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Transforme suas finanças com o sistema de controle financeiro mais completo e intuitivo da web! Gerencie suas rendas, despesas, cartões de crédito, orçamentos e objetivos em um só lugar, com uma interface moderna e responsiva.",
+  "main": "server/index.js",
+  "scripts": {
+    "server": "node server/index.js",
+    "dev": "node scripts/dev.mjs",
+    "dev:app": "concurrently -k \"npm run server\" \"vite\"",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "seed:expenses": "node scripts/seed-expenses.mjs",
+    "debug:month-expenses": "node scripts/debug-monthly-expenses.mjs"
+  },
+  "keywords": [],
+  "author": "Victor Alves",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^17.4.0",
+    "express": "^4.21.2",
+    "express-session": "^1.18.1",
+    "multer": "^1.4.5-lts.2",
+    "pg": "^8.16.3",
+    "vite": "^7.1.6"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

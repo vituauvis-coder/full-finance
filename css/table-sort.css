@@ -1,0 +1,54 @@
+/* Cabeçalhos de tabela clicáveis para ordenação */
+
+.sortable-th {
+    white-space: nowrap;
+}
+
+.sortable-th__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    width: 100%;
+    justify-content: flex-start;
+    padding: 0.25rem 0.15rem;
+    margin: 0;
+    border: none;
+    background: transparent;
+    font: inherit;
+    font-weight: 600;
+    color: inherit;
+    cursor: pointer;
+    text-align: left;
+    border-radius: 6px;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.sortable-th__btn:hover {
+    background: rgba(124, 58, 237, 0.08);
+    color: var(--primary-color);
+}
+
+.sortable-th--active .sortable-th__btn {
+    color: var(--primary-color);
+}
+
+.sortable-th__icon {
+    font-size: 0.75rem;
+    opacity: 0.45;
+    flex-shrink: 0;
+}
+
+.sortable-th--active .sortable-th__icon {
+    opacity: 1;
+}
+
+[data-theme='dark'] .sortable-th__btn:hover {
+    background: rgba(167, 139, 250, 0.12);
+}
+
+/* Cabeçalho «Valor» alinhado à direita (mesma coluna que os números) */
+#expenses-table thead th:nth-child(5) .sortable-th__btn,
+#gains-table thead th:nth-child(5) .sortable-th__btn {
+    justify-content: flex-end;
+    text-align: right;
+}

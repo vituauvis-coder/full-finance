@@ -1,0 +1,472 @@
+.investments-summary {
+    margin-bottom: 2rem;
+}
+
+.investments-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+    gap: 1.5rem;
+    margin-bottom: 0;
+}
+
+/* --- Cards de investimento: mesma lógica dos cards de Contas (cena + corpo), tema “portfolio / mercado” --- */
+.investment-card {
+    --inv-badge-bg: rgba(255, 255, 255, 0.92);
+    --inv-badge-fg: #334155;
+    --inv-action-fg: rgba(15, 23, 42, 0.55);
+    --inv-a: #ede9fe;
+    --inv-b: #8b5cf6;
+    --inv-c: #5b21b6;
+    --inv-bar: rgba(255, 255, 255, 0.52);
+    --inv-grid: rgba(255, 255, 255, 0.14);
+    --inv-trend: rgba(255, 255, 255, 0.42);
+    --inv-spark: rgba(255, 255, 255, 0.55);
+
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    border-radius: 20px;
+    overflow: hidden;
+    min-width: 0;
+    background: var(--bg-light);
+    box-shadow: var(--card-elevated-shadow);
+    transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.investment-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--card-elevated-shadow-hover);
+}
+
+/* Paletas por categoria de ativo */
+.investment-card--cat-acao {
+    --inv-a: #eef2ff;
+    --inv-b: #6366f1;
+    --inv-c: #312e81;
+}
+
+.investment-card--cat-fii {
+    --inv-a: #ccfbf1;
+    --inv-b: #14b8a6;
+    --inv-c: #115e59;
+}
+
+.investment-card--cat-renda-fixa {
+    --inv-a: #e0f2fe;
+    --inv-b: #38bdf8;
+    --inv-c: #0c4a6e;
+}
+
+.investment-card--cat-fundo {
+    --inv-a: #f3e8ff;
+    --inv-b: #a855f7;
+    --inv-c: #6b21a8;
+}
+
+.investment-card--cat-cripto {
+    --inv-a: #fffbeb;
+    --inv-b: #f59e0b;
+    --inv-c: #b45309;
+}
+
+.investment-card--cat-outro {
+    --inv-a: #f1f5f9;
+    --inv-b: #64748b;
+    --inv-c: #1e293b;
+    --inv-badge-fg: #f8fafc;
+    --inv-badge-bg: rgba(15, 23, 42, 0.35);
+    --inv-action-fg: rgba(248, 250, 252, 0.88);
+}
+
+.investment-card--cat-outro .investment-card__actions .btn-action {
+    background: rgba(15, 23, 42, 0.28);
+    color: rgba(248, 250, 252, 0.95);
+}
+
+.investment-card--cat-outro .investment-card__actions .btn-action:hover {
+    background: rgba(15, 23, 42, 0.42);
+    color: #fff;
+}
+
+.investment-card__scene {
+    position: relative;
+    width: 100%;
+    min-height: 158px;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.investment-card__scene-art {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+}
+
+.investment-card__scene-art > * {
+    position: absolute;
+}
+
+.investment-card__inv-bg {
+    inset: 0;
+    background: linear-gradient(168deg, var(--inv-a) 0%, var(--inv-b) 48%, var(--inv-c) 100%);
+    z-index: 0;
+}
+
+.investment-card__inv-bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(125deg, rgba(255, 255, 255, 0.26) 0%, transparent 46%);
+    pointer-events: none;
+}
+
+.investment-card__inv-grid {
+    inset: 0;
+    z-index: 1;
+    opacity: 0.5;
+    background-image:
+        linear-gradient(var(--inv-grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--inv-grid) 1px, transparent 1px);
+    background-size: 20px 20px;
+    pointer-events: none;
+}
+
+/* Tendência / alta (mercado) */
+.investment-card__inv-trend {
+    top: 20%;
+    left: 10%;
+    width: 46%;
+    height: 36px;
+    z-index: 2;
+    border: none;
+    border-bottom: 3px solid var(--inv-trend);
+    border-radius: 0 0 45% 0 / 0 0 22px 0;
+    transform: skewX(-10deg);
+    opacity: 0.88;
+    box-shadow: 0 3px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Barras de performance */
+.investment-card__inv-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 5px;
+    bottom: 10%;
+    left: 8%;
+    height: 38%;
+    z-index: 3;
+    padding: 0 2px;
+}
+
+.investment-card__inv-bars span {
+    width: 10px;
+    min-height: 18%;
+    border-radius: 4px 4px 2px 2px;
+    background: linear-gradient(180deg, var(--inv-bar), rgba(255, 255, 255, 0.12));
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14);
+}
+
+/* Participação na carteira (anel) */
+.investment-card__inv-donut {
+    top: 16%;
+    right: 10%;
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    z-index: 3;
+    background: conic-gradient(
+        rgba(255, 255, 255, 0.88) 0deg,
+        rgba(255, 255, 255, 0.88) calc(var(--inv-share-deg, 0) * 1deg),
+        rgba(255, 255, 255, 0.16) calc(var(--inv-share-deg, 0) * 1deg)
+    );
+    -webkit-mask: radial-gradient(circle, transparent 52%, #000 53%);
+    mask: radial-gradient(circle, transparent 52%, #000 53%);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+}
+
+/* Pontos / “ticks” de cotação */
+.investment-card__inv-spark {
+    top: 12%;
+    right: 28%;
+    z-index: 2;
+    display: flex;
+    gap: 6px;
+}
+
+.investment-card__inv-spark span {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--inv-spark);
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.45);
+    opacity: 0.9;
+}
+
+.investment-card__inv-spark span:nth-child(2) {
+    transform: translateY(4px);
+    opacity: 0.75;
+}
+
+.investment-card__inv-spark span:nth-child(3) {
+    transform: translateY(-3px);
+    opacity: 0.85;
+}
+
+.investment-card__scene-veil {
+    inset: 0;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0) 52%);
+    z-index: 4;
+    pointer-events: none;
+}
+
+.investment-card__scene-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.7rem 0.85rem;
+    pointer-events: none;
+}
+
+.investment-card__scene-overlay .investment-card__badge,
+.investment-card__scene-overlay .investment-card__actions {
+    pointer-events: auto;
+}
+
+.investment-card__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.28rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: var(--inv-badge-bg);
+    color: var(--inv-badge-fg);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+}
+
+.investment-card__badge i {
+    font-size: 0.72rem;
+    opacity: 0.92;
+}
+
+.investment-card__actions {
+    display: flex;
+    gap: 0.2rem;
+}
+
+.investment-card__actions .btn-action {
+    padding: 0.35rem 0.45rem;
+    border-radius: 10px;
+    color: var(--inv-action-fg);
+    background: rgba(255, 255, 255, 0.88);
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+}
+
+.investment-card__actions .btn-action:hover {
+    color: var(--primary-color);
+    background: #fff;
+}
+
+.investment-card__actions .delete-investment-btn:hover {
+    color: var(--danger-color);
+}
+
+.investment-card__scene-icon {
+    position: absolute;
+    bottom: 0.35rem;
+    right: 0.6rem;
+    z-index: 5;
+    font-size: 2.6rem;
+    line-height: 1;
+    color: rgba(255, 255, 255, 0.34);
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.15));
+    pointer-events: none;
+}
+
+.investment-card--cat-outro .investment-card__scene-icon {
+    color: rgba(248, 250, 252, 0.4);
+}
+
+/* Variação de matiz entre posições da mesma categoria */
+.investment-card--tone-1 .investment-card__inv-bg {
+    filter: hue-rotate(8deg) saturate(1.06);
+}
+.investment-card--tone-2 .investment-card__inv-bg {
+    filter: hue-rotate(-10deg) saturate(1.08);
+}
+.investment-card--tone-3 .investment-card__inv-bg {
+    filter: hue-rotate(14deg) brightness(0.97);
+}
+.investment-card--tone-4 .investment-card__inv-bg {
+    filter: hue-rotate(-6deg) saturate(0.98);
+}
+
+/* Corpo: como Contas — fundo claro, dados */
+.investment-card__body {
+    position: relative;
+    z-index: 3;
+    padding: 1rem 1.15rem 1.15rem;
+    color: var(--text-color);
+    background: var(--bg-light);
+    flex: 1;
+    border-top: 1px solid var(--border-color);
+}
+
+.investment-card__title {
+    margin: 0 0 0.65rem;
+    font-size: 1.18rem;
+    font-weight: 800;
+    line-height: 1.25;
+    letter-spacing: -0.02em;
+    color: var(--text-color);
+    word-break: break-word;
+}
+
+.investment-card__pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin: 0 0 0.85rem;
+    padding: 0.28rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: #047857;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.22);
+}
+
+.investment-card__pill-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.45);
+}
+
+.investment-card__stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
+    margin-bottom: 0.65rem;
+}
+
+.investment-card__stat {
+    border-radius: 12px;
+    padding: 0.65rem 0.7rem;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+}
+
+.investment-card__stat-label {
+    margin: 0 0 0.2rem;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-light);
+}
+
+.investment-card__stat-value {
+    margin: 0;
+    font-size: 1.08rem;
+    font-weight: 800;
+    color: var(--text-color);
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+}
+
+.investment-card__stat-value--accent {
+    color: var(--secondary-color);
+}
+
+.investment-card__stat-hint {
+    display: block;
+    margin-top: 0.2rem;
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--text-light);
+}
+
+.investment-card__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.5rem 1rem;
+    padding-top: 0.55rem;
+    margin-top: 0.15rem;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.78rem;
+    color: var(--text-light);
+}
+
+.investment-card__foot span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    max-width: 100%;
+}
+
+.investment-card__foot i {
+    color: var(--primary-color);
+    opacity: 0.88;
+    font-size: 0.85rem;
+}
+
+.investment-card__notes {
+    margin: 0.65rem 0 0;
+    padding-top: 0.55rem;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: var(--text-light);
+}
+
+/* Tema escuro: sombra dos cards = --card-elevated-shadow no html */
+
+[data-theme='dark'] .investment-card__stat {
+    background: rgba(15, 23, 42, 0.45);
+    border-color: rgba(148, 163, 184, 0.2);
+}
+
+[data-theme='dark'] .investment-card__actions .btn-action {
+    color: rgba(241, 245, 249, 0.9);
+    background: rgba(15, 23, 42, 0.45);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+[data-theme='dark'] .investment-card__actions .btn-action:hover {
+    color: #fff;
+    background: rgba(15, 23, 42, 0.65);
+}
+
+[data-theme='dark'] .investment-card--cat-outro .investment-card__actions .btn-action {
+    background: rgba(15, 23, 42, 0.35);
+}
+
+/* Estado vazio */
+#investments-list .empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 2.5rem 1.25rem;
+    border-radius: 16px;
+    border: 1px dashed var(--border-color);
+    background: var(--bg-color);
+    color: var(--text-light);
+}
+
+#investments-list .empty-state strong {
+    color: var(--text-color);
+}
+
+[data-theme='dark'] #investments-list .empty-state {
+    background: rgba(15, 23, 42, 0.45);
+}

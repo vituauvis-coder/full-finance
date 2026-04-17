@@ -1,0 +1,135 @@
+/* --- Estilos para Relatórios --- */
+.reports-filters {
+    background-color: var(--bg-light);
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.reports-filters label {
+    font-weight: 600;
+    color: var(--text-color);
+    font-size: 1rem;
+}
+
+.period-select {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: var(--bg-light);
+    color: var(--text-color);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: border-color 0.3s ease;
+}
+
+.period-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+
+.reports-chart-container {
+    background-color: var(--bg-light);
+    padding: 2rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow);
+}
+
+.reports-chart-container h3 {
+    margin-bottom: 1.5rem;
+    color: var(--text-color);
+    font-size: 1.3rem;
+    font-weight: 600;
+}
+
+.reports-chart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.reports-chart-header h3 {
+    margin-bottom: 0;
+}
+
+.chart-type-toggle {
+    display: inline-flex;
+    gap: 0.4rem;
+    padding: 0.25rem;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: color-mix(in srgb, var(--bg-light) 86%, var(--bg-dark) 14%);
+}
+
+.chart-type-btn {
+    border: 0;
+    background: transparent;
+    color: var(--text-color);
+    border-radius: 8px;
+    padding: 0.35rem 0.55rem;
+    cursor: pointer;
+    line-height: 1;
+    transition: transform 0.08s ease, background-color 0.15s ease, opacity 0.15s ease;
+    opacity: 0.85;
+}
+
+.chart-type-btn:hover {
+    opacity: 1;
+    background-color: color-mix(in srgb, var(--primary-color) 12%, transparent);
+}
+
+.chart-type-btn:active {
+    transform: translateY(1px);
+}
+
+.chart-type-btn.is-active {
+    opacity: 1;
+    background-color: color-mix(in srgb, var(--primary-color) 18%, transparent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 22%, transparent) inset;
+}
+
+.chart-type-icon {
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    letter-spacing: 0.02em;
+    user-select: none;
+}
+
+.chart-wrapper {
+    position: relative;
+    height: 400px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Estado vazio para relatórios */
+.reports-empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-light);
+}
+
+.reports-empty-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.reports-empty-state h3 {
+    margin-bottom: 0.5rem;
+    color: var(--text-color);
+}
+
+.reports-empty-state p {
+    font-size: 1rem;
+}

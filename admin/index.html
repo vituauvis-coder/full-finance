@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+        (function () {
+            try {
+                if (localStorage.getItem('fullfinan-theme') === 'dark') {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                }
+            } catch (e) { /* ignore */ }
+        })();
+    </script>
+    <title>Painel administrativo — Full Finanças</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/theme-dark.css">
+    <link rel="stylesheet" href="../css/components.css">
+    <link rel="stylesheet" href="../css/table-pagination.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js para gráficos poderosos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+    <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+    <div id="admin-sidebar-overlay" class="admin-sidebar-overlay" aria-hidden="true"></div>
+
+    <!-- Tela de Login (Mantida separada do layout principal) -->
+    <div id="login-section" class="admin-login-wrapper">
+        <div class="admin-login-box">
+            <div class="login-header">
+                <i class="fas fa-shield-alt"></i>
+                <h2>Acesso administrativo</h2>
+                <p>Full Finanças</p>
+            </div>
+            <form id="admin-login-form" class="admin-login-form">
+                <div class="input-group">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="admin-email" placeholder="Email administrativo" autocomplete="username"
+                        required>
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="admin-password" placeholder="Senha de acesso"
+                        autocomplete="current-password" required>
+                </div>
+                <button type="submit" class="btn-login">
+                    <span>Acessar Painel</span>
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+                <div id="admin-login-message" class="login-message"></div>
+            </form>
+            <a href="../" class="back-link"><i class="fas fa-arrow-left"></i> Voltar ao App</a>
+        </div>
+    </div>
+
+    <!-- Layout Principal do Admin (Sidebar + Conteúdo) -->
+    <div id="admin-panel" class="admin-wrapper hidden" style="display: none;">
+
+        <!-- Sidebar -->
+        <aside class="admin-sidebar" id="admin-sidebar" aria-label="Navegação principal">
+            <div class="sidebar-header">
+                <i class="fas fa-chart-line logo-icon"></i>
+                <span class="logo-text">Full Admin</span>
+                <button type="button" id="admin-sidebar-close" class="admin-sidebar-close" aria-label="Fechar menu">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <nav class="sidebar-nav" role="tablist">
+                <button type="button" class="nav-item active" data-tab="dashboard" role="tab" aria-selected="true"
+                    aria-controls="tab-dashboard" id="nav-tab-dashboard">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </button>
+                <button type="button" class="nav-item" data-tab="usuarios" role="tab" aria-selected="false"
+                    aria-controls="tab-usuarios" id="nav-tab-usuarios">
+                    <i class="fas fa-users"></i>
+                    <span>Usuários</span>
+                </button>
+                <button type="button" class="nav-item" data-tab="logs" role="tab" aria-selected="false"
+                    aria-controls="tab-logs" id="nav-tab-logs">
+                    <i class="fas fa-history"></i>
+                    <span>Logs</span>
+                </button>
+                <button type="button" class="nav-item" data-tab="suporte" role="tab" aria-selected="false"
+                    aria-controls="tab-suporte" id="nav-tab-suporte">
+                    <i class="fas fa-comments"></i>
+                    <span>Feedbacks</span>
+                </button>
+                <button type="button" class="nav-item" data-tab="settings" role="tab" aria-selected="false"
+                    aria-controls="tab-settings" id="nav-tab-settings">
+                    <i class="fas fa-cog"></i>
+                    <span>Configurações</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="admin-profile">
+                    <img src="https://ui-avatars.com/api/?name=Admin&background=3b82f6&color=fff" alt="Admin">
+                    <div class="profile-info">
+                        <span class="name">Administrador</span>
+                        <span class="role">Super User</span>
+                    </div>
+                </div>
+                <button id="admin-logout-btn" class="btn-logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Conteúdo Principal -->
+        <main class="admin-main-content">
+            <header class="content-header">
+                <div class="content-header-left">
+                    <button type="button" id="admin-menu-toggle" class="admin-menu-toggle" aria-label="Abrir menu"
+                        aria-expanded="false">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h2 id="page-title">Visão geral</h2>
+                </div>
+                <div class="header-actions">
+                    <button type="button" id="admin-theme-toggle" class="btn-header-outline" title="Tema claro/escuro">
+                        <i class="fas fa-moon" id="admin-theme-icon"></i>
+                    </button>
+                    <a href="../" class="btn-header-outline">
+                        <i class="fas fa-external-link-alt"></i> Ver site
+                    </a>
+                </div>
+            </header>
+
+            <div class="content-body">
+
+                <!-- TAB: DASHBOARD -->
+                <div id="tab-dashboard" class="tab-content active">
+                    <!-- Cards de Métricas -->
+                    <div class="kpi-grid">
+                        <div class="kpi-card purple">
+                            <div class="kpi-icon"><i class="fas fa-users"></i></div>
+                            <div class="kpi-info">
+                                <span class="label">Total Usuários</span>
+                                <h3 class="value" id="stat-total-users">-</h3>
+                            </div>
+                        </div>
+                        <div class="kpi-card green">
+                            <div class="kpi-icon"><i class="fas fa-user-plus"></i></div>
+                            <div class="kpi-info">
+                                <span class="label">Novos (7d)</span>
+                                <h3 class="value" id="stat-new-users">-</h3>
+                            </div>
+                        </div>
+                        <div class="kpi-card blue">
+                            <div class="kpi-icon"><i class="fas fa-exchange-alt"></i></div>
+                            <div class="kpi-info">
+                                <span class="label">Lançamentos</span>
+                                <h3 class="value" id="stat-total-transactions">-</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KPIs Financeiros (Fase 2) -->
+                    <div class="kpi-grid" style="margin-top: 1.5rem;">
+                        <div class="kpi-card" style="background: linear-gradient(135deg, #10b981, #059669);">
+                            <div class="kpi-icon" style="background: rgba(255,255,255,0.2); color: white;"><i
+                                    class="fas fa-wallet"></i></div>
+                            <div class="kpi-info" style="color: white;">
+                                <span class="label" style="color: rgba(255,255,255,0.8);">Total Gerenciado</span>
+                                <h3 class="value" id="stat-total-managed">R$ -</h3>
+                            </div>
+                        </div>
+                        <div class="kpi-card" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">
+                            <div class="kpi-icon" style="background: rgba(255,255,255,0.2); color: white;"><i
+                                    class="fas fa-chart-line"></i></div>
+                            <div class="kpi-info" style="color: white;">
+                                <span class="label" style="color: rgba(255,255,255,0.8);">Saldo Médio</span>
+                                <h3 class="value" id="stat-avg-balance">R$ -</h3>
+                            </div>
+                        </div>
+                        <div class="kpi-card" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">
+                            <div class="kpi-icon" style="background: rgba(255,255,255,0.2); color: white;"><i
+                                    class="fas fa-user-check"></i></div>
+                            <div class="kpi-info" style="color: white;">
+                                <span class="label" style="color: rgba(255,255,255,0.8);">Retenção (30d)</span>
+                                <h3 class="value" id="stat-retention-rate">- %</h3>
+                            </div>
+                        </div>
+                        <div class="kpi-card" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                            <div class="kpi-icon" style="background: rgba(255,255,255,0.2); color: white;"><i
+                                    class="fas fa-fire"></i></div>
+                            <div class="kpi-info" style="color: white;">
+                                <span class="label" style="color: rgba(255,255,255,0.8);">Usuários Ativos</span>
+                                <h3 class="value" id="stat-active-users">-</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Área de Gráficos -->
+                    <div class="charts-grid">
+                        <div class="chart-container main-chart">
+                            <div class="chart-header">
+                                <h3>Crescimento de Usuários</h3>
+                                <select id="chart-period-select">
+                                    <option value="7">Últimos 7 dias</option>
+                                    <option value="30">Últimos 30 dias</option>
+                                </select>
+                            </div>
+                            <canvas id="usersGrowthChart"></canvas>
+                        </div>
+                        <div class="chart-container side-chart">
+                            <div class="chart-header">
+                                <h3>Distribuição Financeira</h3>
+                            </div>
+                            <canvas id="financeTypeChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Gráfico de Top Categorias (Fase 2) -->
+                    <div class="charts-grid" style="margin-top: 1.5rem;">
+                        <div class="chart-container" style="grid-column: span 2;">
+                            <div class="chart-header">
+                                <h3>Top categorias de saídas</h3>
+                            </div>
+                            <canvas id="topCategoriesChart" style="max-height: 300px;"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: USUÁRIOS -->
+                <div id="tab-usuarios" class="tab-content hidden" style="display: none;">
+                    <div class="toolbar">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="search" id="user-search-input" placeholder="Buscar usuário...">
+                        </div>
+
+                        <select id="user-filter-activity" class="admin-select" title="Filtrar por atividade">
+                            <option value="">Todos</option>
+                            <option value="active">Ativos (30d)</option>
+                            <option value="inactive">Inativos</option>
+                        </select>
+                        <select id="user-sort-by" class="admin-select" title="Ordenar">
+                            <option value="name">Nome (A-Z)</option>
+                            <option value="date">Mais recentes</option>
+                            <option value="ledger">Mais lançamentos</option>
+                        </select>
+                    </div>
+
+                    <div id="user-cards-container" class="user-cards-grid">
+                        <!-- Cards injetados via JS -->
+                    </div>
+                </div>
+
+                <!-- TAB: LOGS -->
+                <div id="tab-logs" class="tab-content hidden" style="display: none;">
+                    <div class="toolbar toolbar-logs">
+                        <div class="toolbar-field">
+                            <label class="sr-only" for="log-filter-action">Ação</label>
+                            <select id="log-filter-action" class="admin-select">
+                                <option value="">Todas as ações</option>
+                                <option value="login">Login</option>
+                                <option value="delete_user">Exclusão de utilizador</option>
+                                <option value="adjust_balance">Ajuste de saldo</option>
+                                <option value="reset_password">Repor palavra-passe</option>
+                                <option value="view_details">Visualização</option>
+                                <option value="role_change">Alteração de papel</option>
+                                <option value="backup">Backup</option>
+                            </select>
+                        </div>
+                        <div class="toolbar-field log-date-range">
+                            <label for="log-date-from">De</label>
+                            <input type="date" id="log-date-from" class="admin-input-date">
+                            <label for="log-date-to">Até</label>
+                            <input type="date" id="log-date-to" class="admin-input-date">
+                        </div>
+                        <button type="button" id="btn-refresh-logs" class="btn-action primary">
+                            <i class="fas fa-sync-alt"></i> Atualizar
+                        </button>
+                    </div>
+                    <div class="card-table-container">
+                        <div id="admin-logs-pagination" class="table-pagination-host"></div>
+                        <table class="modern-table">
+                            <thead>
+                                <tr>
+                                    <th>Data/Hora</th>
+                                    <th>Ação</th>
+                                    <th>Detalhes</th>
+                                    <th>Admin</th>
+                                </tr>
+                            </thead>
+                            <tbody id="logs-table-body">
+                                <!-- Linhas injetadas via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TAB: FEEDBACKS -->
+                <div id="tab-suporte" class="tab-content hidden" style="display: none;">
+                    <p class="tab-lead">Mensagens enviadas pelos utilizadores na área de suporte da aplicação.</p>
+                    <div id="admin-feedback-pagination" class="table-pagination-host"></div>
+                    <div class="card-table-container">
+                        <table class="modern-table">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Utilizador</th>
+                                    <th>Mensagem</th>
+                                </tr>
+                            </thead>
+                            <tbody id="feedback-table-body">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TAB: CONFIGURAÇÕES -->
+                <div id="tab-settings" class="tab-content hidden" style="display: none;">
+
+                    <div class="settings-section">
+                        <h3><i class="fas fa-user-shield"></i> Administradores</h3>
+                        <p class="settings-muted">O papel <strong>ADMIN</strong> está na coluna <code>User.role</code>.
+                            Só é possível promover quem já tem conta.</p>
+
+                        <div class="admin-list" id="admin-list-container">
+                        </div>
+
+                        <div class="settings-row">
+                            <input type="email" id="new-admin-email" class="admin-input-grow"
+                                placeholder="email@exemplo.com" autocomplete="off">
+                            <button type="button" id="btn-add-admin" class="btn-action primary">
+                                <i class="fas fa-plus"></i> Promover
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3><i class="fas fa-database"></i> Exportação JSON</h3>
+                        <p class="settings-muted">Cópias locais para arquivo. O backup completo tenta incluir também os
+                            registos de auditoria.</p>
+
+                        <div class="settings-actions">
+                            <button type="button" id="btn-backup-users" class="btn-action btn-export btn-export-users">
+                                <i class="fas fa-users"></i> Utilizadores
+                            </button>
+                            <button type="button" id="btn-backup-ledger" class="btn-action btn-export btn-export-ledger">
+                                <i class="fas fa-list"></i> Lançamentos (amostra em cache)
+                            </button>
+                            <button type="button" id="btn-backup-all" class="btn-action btn-export btn-export-full">
+                                <i class="fas fa-download"></i> Pacote completo
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3><i class="fas fa-sliders-h"></i> Sistema</h3>
+                        <div class="info-grid">
+                            <div class="info-card">
+                                <span class="label">App (package.json)</span>
+                                <span class="value" id="sys-app-version">—</span>
+                            </div>
+                            <div class="info-card">
+                                <span class="label">Backend / dados</span>
+                                <span class="value" id="sys-backend-label">—</span>
+                            </div>
+                            <div class="info-card">
+                                <span class="label">Ficheiros locais</span>
+                                <span class="value" id="sys-uploads-hint">—</span>
+                            </div>
+                            <div class="info-card">
+                                <span class="label">Estado API</span>
+                                <span class="value" id="sys-health-status">—</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Tela de Acesso Negado -->
+    <div id="access-denied" class="access-denied hidden" style="display: none;">
+        <div class="denied-box">
+            <i class="fas fa-lock"></i>
+            <h2>Acesso Restrito</h2>
+            <p>Seu usuário não possui privilégios de administrador.</p>
+            <button onclick="window.location.href='../'" class="btn-back">Voltar ao Início</button>
+        </div>
+    </div>
+
+    <!-- Modais (Mantidos e Melhorados) -->
+    <!-- Modal Transações -->
+    <div id="modal-transacoes" class="modal-overlay hidden" style="display: none;">
+        <div class="modal-box large">
+            <div class="modal-header">
+                <h3>Histórico de Transações</h3>
+                <button class="modal-close" id="close-modal-transacoes"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" id="modal-transacoes-list"></div>
+        </div>
+    </div>
+
+    <!-- Modal Detalhes Usuários -->
+    <div id="user-details-modal" class="modal-overlay hidden" style="display: none;">
+        <div class="modal-box x-large">
+            <div class="modal-header">
+                <h3 id="user-details-title">Detalhes do Usuário</h3>
+                <button class="modal-close modal-close-btn"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div id="user-details-summary" class="user-details-summary"></div>
+                <div class="user-details-grid">
+                    <div id="details-accounts-section" class="detail-block">
+                        <h4><i class="fas fa-wallet"></i> Contas</h4>
+                        <ul class="details-list"></ul>
+                    </div>
+                    <div id="details-goals-section" class="detail-block">
+                        <h4><i class="fas fa-bullseye"></i> Objetivos</h4>
+                        <ul class="details-list"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Ajuste Saldo -->
+    <div id="adjust-balance-modal" class="modal-overlay hidden" style="display: none;">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>Ajustar Saldo Manual</h3>
+                <button class="modal-close" id="close-adjust-balance-modal"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="adjust-balance-form">
+                    <input type="hidden" id="adjust-account-id">
+                    <input type="hidden" id="adjust-user-id">
+
+                    <div class="form-group">
+                        <label>Tipo de Operação</label>
+                        <div class="toggle-switch">
+                            <input type="radio" name="adjust-view-type" id="adj-receita" value="receita" checked
+                                onclick="document.getElementById('adjust-type').value='receita'">
+                            <label for="adj-receita" class="toggle-opt revenue"><i class="fas fa-plus"></i>
+                                Adicionar</label>
+
+                            <input type="radio" name="adjust-view-type" id="adj-despesa" value="despesa"
+                                onclick="document.getElementById('adjust-type').value='despesa'">
+                            <label for="adj-despesa" class="toggle-opt expense"><i class="fas fa-minus"></i>
+                                Remover</label>
+                        </div>
+                        <input type="hidden" id="adjust-type" value="receita">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Valor (R$)</label>
+                        <input type="number" step="0.01" id="adjust-amount" placeholder="0,00" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Justificativa (Log)</label>
+                        <input type="text" id="adjust-reason" placeholder="Ex: Correção de bug #123" required>
+                    </div>
+
+                    <button type="submit" class="btn-submit full-width">Confirmar Ajuste</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Confirmação Delete -->
+    <div id="modal-confirm-delete" class="modal-overlay hidden" style="display: none;">
+        <div class="modal-box danger-zone">
+            <div class="modal-header">
+                <h3><i class="fas fa-exclamation-triangle"></i> Zona de Perigo</h3>
+            </div>
+            <div class="modal-body text-center">
+                <p>Você está prestes a <strong>excluir permanentemente</strong> este usuário e todos os seus dados.</p>
+                <p>Digite "DELETAR" para confirmar.</p>
+                <input type="text" id="delete-confirmation-input" placeholder="Digite DELETAR" class="danger-input">
+                <div class="modal-actions-row">
+                    <button id="btn-cancel-delete" class="btn-cancel">Cancelar</button>
+                    <button id="btn-confirm-delete" class="btn-danger" disabled>Confirmar Exclusão</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Edição Transação (Admin) -->
+    <div id="edit-transaction-modal-admin" class="modal-overlay hidden" style="display: none;">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>Editar Transação</h3>
+                <button class="modal-close" id="close-edit-transaction-modal-admin"><i
+                        class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-transaction-form-admin">
+                    <input type="hidden" id="edit-transaction-id-admin">
+                    <div class="form-group"><label>Descrição</label><input type="text" id="edit-transaction-desc-admin"
+                            required></div>
+                    <div class="form-group"><label>Valor</label><input type="number" step="0.01"
+                            id="edit-transaction-value-admin" required></div>
+                    <div class="form-group"><label>Data</label><input type="date" id="edit-transaction-date-admin"
+                            required></div>
+                    <div class="form-group"><label>Categoria</label><input type="text"
+                            id="edit-transaction-category-admin" required></div>
+                    <div class="form-group"><label>Tipo</label>
+                        <select id="edit-transaction-type-admin">
+                            <option value="receita">Entrada</option>
+                            <option value="despesa">Saída</option>
+                            <option value="investimento">Investimento</option>
+                            <option value="transferencia">Transferência</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>Conta (ID)</label><input type="text"
+                            id="edit-transaction-account-admin"></div>
+                    <div class="form-group"><label>Status</label>
+                        <select id="edit-transaction-status-admin">
+                            <option value="true">Pago/Recebido</option>
+                            <option value="false">Pendente</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-submit full-width">Salvar Alterações</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="script.js"></script>
+</body>
+
+</html>

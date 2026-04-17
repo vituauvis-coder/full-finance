@@ -1,0 +1,149 @@
+/* --- Dívidas --- */
+
+/*
+ * Modal "Atualização de dívida": o modal-forms.css usa grid de 2 colunas em .modal-content > form.
+ * Este formulário é só uma coluna; sem override os campos quebram no desktop.
+ */
+#debt-update-modal .modal-content > form#debt-update-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 1.25rem 1.5rem 1.5rem;
+}
+
+@media (min-width: 640px) {
+    #debt-update-modal .modal-content > form#debt-update-form {
+        display: flex;
+        flex-direction: column;
+        grid-template-columns: unset;
+        column-gap: unset;
+        row-gap: unset;
+    }
+}
+
+#debt-update-modal .modal-content > form#debt-update-form > .form-group {
+    margin-bottom: 1.125rem;
+}
+
+#debt-update-modal .modal-content .debt-update-form__actions.form-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    width: 100%;
+    margin-top: 0.25rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border-color);
+}
+
+/* Modal um pouco mais largo para a lista de meses */
+#debt-update-modal .modal-content.modal-content--debt-form {
+    max-width: min(28rem, 94vw);
+}
+
+@media (min-width: 640px) {
+    #debt-update-modal .modal-content.modal-content--debt-form {
+        max-width: min(40rem, 94vw);
+    }
+}
+
+.debt-monthly-section {
+    margin-bottom: 1rem;
+}
+
+.debt-monthly-note {
+    font-size: 0.82rem;
+    line-height: 1.45;
+    color: var(--warning-color, #d97706);
+    margin: 0 0 0.75rem;
+    padding: 0.6rem 0.75rem;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--warning-color, #f59e0b) 12%, transparent);
+}
+
+.debt-monthly-hint {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    margin: 0 0 0.75rem;
+    line-height: 1.45;
+}
+
+.debt-monthly-rows {
+    max-height: min(50vh, 22rem);
+    overflow-y: auto;
+    padding-right: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+.debt-month-row__inner {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.debt-month-row__label {
+    display: block;
+    margin-bottom: 0;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: capitalize;
+    color: var(--text-light);
+}
+
+.debt-month-row__controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.debt-month-row__controls .debt-month-input {
+    flex: 1;
+    min-width: 0;
+}
+
+.debt-month-row__controls .debt-month-remove {
+    flex-shrink: 0;
+}
+
+#debt-update-modal .debt-monthly-rows .form-group.debt-month-row {
+    margin-bottom: 0.75rem;
+}
+
+#debt-update-modal .debt-monthly-rows .form-group.debt-month-row:last-child {
+    margin-bottom: 0;
+}
+
+@media (max-width: 639px) {
+    #debt-update-modal .modal-content .debt-update-form__actions.form-actions {
+        grid-template-columns: 1fr;
+    }
+}
+
+#debts-page .table-container {
+    margin-top: 1rem;
+}
+
+#debt-updates-table th,
+#debt-updates-table td {
+    vertical-align: middle;
+}
+
+.debt-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+.debt-actions .btn-icon {
+    border: 1px solid var(--border-color);
+    background: var(--bg-light);
+    color: var(--text-color);
+    border-radius: 8px;
+    padding: 0.35rem 0.55rem;
+    cursor: pointer;
+}
+
+.debt-actions .btn-icon:hover {
+    background: color-mix(in srgb, var(--primary-color) 10%, var(--bg-light));
+}
+

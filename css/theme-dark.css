@@ -1,0 +1,236 @@
+/* Tema escuro — <html data-theme="dark"> */
+
+[data-theme="dark"] {
+    --primary-color: #a78bfa;
+    --primary-color-dark: #8b5cf6;
+    --secondary-color: #34d399;
+    --danger-color: #f87171;
+    --warning-color: #fbbf24;
+    --info-color: #60a5fa;
+    --bg-color: #0f172a;
+    --bg-light: #1e293b;
+    --text-color: #f1f5f9;
+    --text-light: #94a3b8;
+    --border-color: #334155;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.45), 0 2px 4px -2px rgba(0, 0, 0, 0.35);
+    --card-elevated-shadow:
+        6px 6px 0 rgba(167, 139, 250, 0.1),
+        0 4px 6px rgba(0, 0, 0, 0.35),
+        0 14px 32px rgba(0, 0, 0, 0.45);
+    --card-elevated-shadow-hover:
+        8px 8px 0 rgba(167, 139, 250, 0.14),
+        0 8px 12px rgba(0, 0, 0, 0.35),
+        0 22px 44px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .app-header {
+    background: linear-gradient(135deg, #5b21b6, #4338ca);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+}
+
+[data-theme="dark"] .toast {
+    background: var(--bg-light);
+    box-shadow: var(--shadow);
+}
+
+[data-theme="dark"] .toast-title {
+    color: var(--text-color);
+}
+
+[data-theme="dark"] .feature-card {
+    background: var(--bg-light);
+    box-shadow: var(--shadow);
+}
+
+[data-theme="dark"] .auth-box {
+    background: rgba(30, 41, 59, 0.85);
+    box-shadow: none;
+}
+
+[data-theme="dark"] .auth-box.auth-box--hero {
+    box-shadow:
+        0 4px 6px rgba(0, 0, 0, 0.35),
+        0 24px 48px rgba(0, 0, 0, 0.45),
+        0 0 0 1px rgba(148, 163, 184, 0.12);
+}
+
+[data-theme="dark"] .auth-title {
+    color: var(--text-color);
+}
+
+[data-theme="dark"] .auth-label {
+    color: var(--text-light);
+}
+
+[data-theme="dark"] .auth-input-wrap {
+    background: var(--bg-color);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .auth-input-wrap input {
+    color: var(--text-color);
+}
+
+[data-theme="dark"] .auth-input-wrap input::placeholder {
+    color: var(--text-light);
+}
+
+[data-theme="dark"] .btn-hero-primary {
+    background: rgba(255, 255, 255, 0.95);
+    color: var(--primary-color-dark);
+}
+
+[data-theme="dark"] .auth-form input {
+    border-color: transparent;
+    background-color: transparent;
+    color: var(--text-color);
+}
+
+[data-theme="dark"] .modal-content {
+    box-shadow:
+        0 25px 50px -12px rgba(0, 0, 0, 0.55),
+        0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .delete-progress .spinner {
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .sidebar-edge-tab {
+    box-shadow: 1px 0 6px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] .sidebar-profile-row {
+    background: var(--bg-light);
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] .card-purchases-table-wrap {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+[data-theme="dark"] .card-purchases-table tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+[data-theme="dark"] .card-purchases-status--paid {
+    background: rgba(52, 211, 153, 0.15);
+    color: #6ee7b7;
+}
+
+[data-theme="dark"] .card-purchases-status--pending {
+    background: rgba(251, 191, 36, 0.12);
+    color: #fcd34d;
+}
+
+[data-theme="dark"] .installment-ring-compact__track {
+    stroke: rgba(148, 163, 184, 0.28);
+}
+
+[data-theme="dark"] .installment-ring-compact__num {
+    color: #c4b5fd;
+}
+
+[data-theme="dark"] .card-purchases-status-ring .installment-ring-fallback {
+    color: inherit;
+}
+
+[data-theme="dark"] .installment-tooltip-panel {
+    background: var(--bg-light);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .installment-tooltip-head {
+    border-bottom-color: var(--border-color);
+}
+
+[data-theme="dark"] .installment-tooltip-desc {
+    color: var(--text-light);
+}
+
+[data-theme="dark"] .installment-tooltip-summary {
+    background: rgba(124, 58, 237, 0.14);
+    border-color: rgba(148, 163, 184, 0.22);
+}
+
+[data-theme="dark"] .installment-tooltip-line-label {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .installment-tooltip-pill--paid {
+    background: rgba(16, 185, 129, 0.22);
+    color: #6ee7b7;
+}
+
+[data-theme="dark"] .installment-tooltip-pill--pending {
+    background: rgba(148, 163, 184, 0.12);
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .installment-tooltip-pill--current-month.installment-tooltip-pill--pending {
+    background: rgba(250, 204, 21, 0.18);
+    color: #fcd34d;
+    box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.35);
+}
+
+[data-theme="dark"] .installment-tooltip-pill--current-month.installment-tooltip-pill--paid {
+    background: rgba(52, 211, 153, 0.2);
+    color: #6ee7b7;
+    box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.35);
+}
+
+[data-theme="dark"] .card-purchases-status-ring .installment-ring-compact.installment-ring-compact--month-paid .installment-ring-compact__progress {
+    stroke: #34d399;
+}
+
+[data-theme="dark"] .card-purchases-status-ring .installment-ring-compact.installment-ring-compact--month-pending .installment-ring-compact__progress {
+    stroke: #fbbf24;
+}
+
+[data-theme="dark"] .card-purchases-status-ring .installment-ring-compact.installment-ring-compact--month-paid .installment-ring-compact__num {
+    color: #6ee7b7;
+}
+
+[data-theme="dark"] .card-purchases-status-ring .installment-ring-compact.installment-ring-compact--month-pending .installment-ring-compact__num {
+    color: #fcd34d;
+}
+
+[data-theme="dark"] .card-purchases-empty {
+    background: var(--bg-light);
+    border-style: solid;
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .goals-empty-state {
+    background: var(--bg-light);
+    border-style: solid;
+}
+
+[data-theme="dark"] .accounts-empty-state {
+    background: var(--bg-light);
+    border-style: solid;
+}
+
+[data-theme="dark"] .goal-card:not(.goal-card--veiculo) .goal-card__separator {
+    background: rgba(248, 250, 252, 0.1);
+}
+
+/* Contraste da área de progresso no cartão (fundo escuro + trilha visível) */
+[data-theme="dark"] .goal-card:not(.goal-card--veiculo) .goal-card__progress-track {
+    background: rgba(241, 245, 249, 0.14);
+}
+
+[data-theme="dark"] .goal-modal__subtitle {
+    background: linear-gradient(180deg, rgba(124, 58, 237, 0.12) 0%, transparent 100%);
+}
+
+[data-theme="dark"] .goal-form-note {
+    background: rgba(15, 23, 42, 0.65);
+    border-color: var(--border-color);
+    color: var(--text-color);
+}
+
+[data-theme="dark"] .goal-form-group--account {
+    border-top-color: rgba(148, 163, 184, 0.2);
+}
+

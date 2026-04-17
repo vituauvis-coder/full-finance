@@ -1,0 +1,80 @@
+/* Filtros acima das tabelas (busca + selects) */
+
+.table-filters {
+    margin-bottom: 0.75rem;
+}
+
+.table-filters__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.65rem 0.85rem;
+    padding: 0.65rem 0.85rem;
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+}
+
+.table-filters__search {
+    flex: 1 1 200px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.65rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-color);
+    min-width: 0;
+}
+
+.table-filters__search i {
+    color: var(--text-light);
+    flex-shrink: 0;
+}
+
+.table-filters__search input[type='search'],
+.table-filters__search input[type='text'] {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    background: transparent;
+    font: inherit;
+    color: var(--text-color);
+    outline: none;
+}
+
+.table-filters__search input::placeholder {
+    color: var(--text-light);
+}
+
+.table-filters__select {
+    font-family: inherit;
+    font-size: 0.875rem;
+    padding: 0.45rem 0.6rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-light);
+    color: var(--text-color);
+    min-width: 10rem;
+    max-width: 100%;
+}
+
+.table-filters__clear {
+    flex-shrink: 0;
+    padding: 0.45rem 0.85rem;
+    font-size: 0.85rem;
+}
+
+.table-filters--compact .table-filters__row {
+    padding: 0.5rem 0.65rem;
+}
+
+[data-theme='dark'] .table-filters__row {
+    background: var(--bg-light);
+    border-color: var(--border-color);
+}
+
+[data-theme='dark'] .table-filters__search {
+    background: var(--bg-color);
+    border-color: var(--border-color);
+}
