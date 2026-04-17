@@ -3185,6 +3185,16 @@ app.delete('/api/kanban-cards/:id', requireAuth, async (req, res) => {
 
 registerExpenseSplitRoutes(app, { requireAuth });
 
+/** Produção (Railway etc.): um único processo Node serve o build Vite (`dist`) e a API. */
+const distPath = path.join(ROOT, 'dist');
+if (fs.existsSync(distPath)) {
+    app.use(express.static(distPath));
+    app.get(/.*/, (req, res, next) => {
+        if (req.path.startsWith('/api')) return next();
+        res.sendFile(path.join(distPath, 'index.html'), (err) => (err ? next(err) : undefined));
+    });
+}
+
 const server = app.listen(PORT, HOST, () => {
     console.log(`API Full Finanças em http://localhost:${PORT}`);
     logLanUrls(PORT);

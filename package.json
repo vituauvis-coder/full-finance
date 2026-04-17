@@ -5,6 +5,7 @@
   "description": "Transforme suas finanças com o sistema de controle financeiro mais completo e intuitivo da web! Gerencie suas rendas, despesas, cartões de crédito, orçamentos e objetivos em um só lugar, com uma interface moderna e responsiva.",
   "main": "server/index.js",
   "scripts": {
+    "start": "node server/index.js",
     "server": "node server/index.js",
     "dev": "node scripts/dev.mjs",
     "dev:app": "concurrently -k \"npm run server\" \"vite\"",
