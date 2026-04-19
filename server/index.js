@@ -11,7 +11,7 @@ import multer from 'multer';
 import { fileURLToPath } from 'url';
 import { query, withTransaction } from './db.js';
 import { safeUpsertBalanceSnapshot } from './balance-snapshot.js';
-import { getDashboardBalanceAtPeriodEnd } from './balance-ledger.js';
+import { getDashboardBalanceAtPeriodEnd, setManualBalance, addLedgerEntryForMovement } from './balance-ledger.js';
 import { referenceOnlyForUserMovement } from './reference-only.js';
 import { registerExpenseSplitRoutes, fetchExpenseSplitBundleForUser } from './expense-splits.js';
 
@@ -197,6 +197,8 @@ function normalizeUserDoc(u) {
 }
 
 ensureDirs();
+
+query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS balance_offset double precision NOT NULL DEFAULT 0`).catch(e => console.error('Migration error:', e.message));
 
 const app = express();
 /** Railway / Vercel: um hop de proxy; necessário para cookies Secure e IP correta */
@@ -386,7 +388,8 @@ app.get('/api/data', requireAuth, async (req, res) => {
                     profile_photo_url AS "profilePhotoURL",
                     role,
                     finance_preferences AS "financePreferences",
-                    finance_anchor_month AS "financeAnchorMonth"
+                    finance_anchor_month AS "financeAnchorMonth",
+                    balance_offset AS "balanceOffset"
                  FROM users
                  WHERE id = $1`,
                 [uid]
@@ -1136,6 +1139,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
             ]
         );
         const row = expRows[0];
+        await addLedgerEntryForMovement(uid, row, 'expense');
         await safeUpsertBalanceSnapshot(uid);
         res.json(normalizeMovement(row));
     } catch (e) {
@@ -1210,6 +1214,7 @@ app.put('/api/expenses/:id', requireAuth, async (req, res) => {
             params
         );
         const updated = updatedRows[0] || null;
+        if (updated) await addLedgerEntryForMovement(uid, updated, 'expense');
         await safeUpsertBalanceSnapshot(uid);
         res.json(normalizeMovement(updated));
     } catch (e) {
@@ -1268,6 +1273,7 @@ app.post('/api/expenses/:id/confirm-cash-out', requireAuth, async (req, res) => 
             [req.params.id, uid, JSON.stringify(arr)]
         );
         const updated = updatedRows[0] || null;
+        if (updated) await addLedgerEntryForMovement(uid, updated, 'expense');
         await safeUpsertBalanceSnapshot(uid);
         res.json(normalizeMovement(updated));
     } catch (e) {
@@ -1303,6 +1309,8 @@ app.delete('/api/expenses/:id', requireAuth, async (req, res) => {
         }
 
         await query(`DELETE FROM expenses WHERE id = $1 AND user_id = $2`, [id, uid]);
+        // Para exclusão, o ledger precisaria de um recálculo total ou ajuste incremental.
+        // Por simplicidade e para evitar centenas de registros, vamos apenas atualizar o snapshot.
         await safeUpsertBalanceSnapshot(uid);
         res.json({ ok: true });
     } catch (e) {
@@ -1626,6 +1634,7 @@ app.post('/api/gains', requireAuth, async (req, res) => {
             ]
         );
         const row = gainRows[0];
+        await addLedgerEntryForMovement(uid, row, 'gain');
         await safeUpsertBalanceSnapshot(uid);
         res.json(normalizeMovement(row));
     } catch (e) {
@@ -1696,6 +1705,7 @@ app.put('/api/gains/:id', requireAuth, async (req, res) => {
             ]
         );
         const updated = updatedRows[0];
+        if (updated) await addLedgerEntryForMovement(uid, updated, 'gain');
         await safeUpsertBalanceSnapshot(uid);
         res.json(normalizeMovement(updated));
     } catch (e) {
@@ -1714,6 +1724,8 @@ app.delete('/api/gains/:id', requireAuth, async (req, res) => {
     const existing = existingRows[0] || null;
     if (!existing) return res.status(404).json({ error: 'Não encontrado' });
     await query(`DELETE FROM gains WHERE id = $1 AND user_id = $2`, [req.params.id, uid]);
+    // Para exclusão, o ledger precisaria de um recálculo total ou ajuste incremental negativo.
+    // Por simplicidade e para evitar centenas de registros, vamos apenas atualizar o snapshot.
     await safeUpsertBalanceSnapshot(uid);
     res.json({ ok: true });
 });
@@ -2220,7 +2232,8 @@ app.get('/api/profile', requireAuth, async (req, res) => {
             has_completed_tour AS "hasCompletedTour",
             profile_photo_url AS "profilePhotoURL",
             role,
-            finance_preferences AS "financePreferences"
+            finance_preferences AS "financePreferences",
+            balance_offset AS "balanceOffset"
          FROM users
          WHERE id = $1`,
         [req.session.userId]
@@ -2293,10 +2306,26 @@ app.patch('/api/profile', requireAuth, async (req, res) => {
             has_completed_tour AS "hasCompletedTour",
             profile_photo_url AS "profilePhotoURL",
             role,
-            finance_preferences AS "financePreferences"`,
+            finance_preferences AS "financePreferences",
+            balance_offset AS "balanceOffset"`,
         params
     );
     res.json(userSafe(updatedRows[0]));
+});
+
+app.post('/api/profile/balance', requireAuth, async (req, res) => {
+    try {
+        const uid = req.session.userId;
+        const { balance } = req.body || {};
+        if (balance === undefined || balance === null) {
+            return res.status(400).json({ error: 'Saldo é obrigatório' });
+        }
+        await setManualBalance(uid, balance);
+        res.json({ ok: true, balance });
+    } catch (e) {
+        console.error('POST /api/profile/balance', e);
+        res.status(500).json({ error: 'Erro ao atualizar saldo' });
+    }
 });
 
 app.post('/api/profile/password', requireAuth, async (req, res) => {

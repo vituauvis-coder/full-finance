@@ -20,6 +20,7 @@ export function initProfile(user, onRefreshAllData) {
     document.getElementById('change-photo-btn')?.addEventListener('click', () => document.getElementById('profile-photo-input').click());
     document.getElementById('profile-photo-input')?.addEventListener('change', handlePhotoUpload);
     document.getElementById('remove-photo-btn')?.addEventListener('click', handlePhotoRemove);
+    document.getElementById('balance-adjustment-form')?.addEventListener('submit', handleBalanceAdjustment);
     document.getElementById('delete-account-btn')?.addEventListener('click', openDeleteModal);
     document.getElementById('confirm-delete-btn')?.addEventListener('click', handleDeleteAccount);
     document.getElementById('confirm-email')?.addEventListener('input', validateDeleteEmail);
@@ -47,6 +48,13 @@ async function loadProfileData() {
         if (heroEmail) heroEmail.textContent = currentUser.email || '';
         document.getElementById('profile-email').value = currentUser.email;
         document.getElementById('default-currency').value = userData.currency || 'BRL';
+        
+        const balanceInput = document.getElementById('profile-current-balance');
+        if (balanceInput) {
+            const balanceData = await api('/api/dashboard/balance');
+            balanceInput.value = balanceData?.balance || 0;
+        }
+
         updateProfileImages(userData.profilePhotoURL);
         fillFinancePreferencesForm(userData);
         syncAccountSnapshot();
@@ -194,6 +202,24 @@ async function handlePhotoRemove() {
     } catch (error) {
         console.error('Erro ao remover a foto:', error);
         showMessage('personalization-message', 'Não foi possível remover a foto. Tente novamente.', 'error');
+    }
+}
+
+async function handleBalanceAdjustment(e) {
+    e.preventDefault();
+    const balance = parseFloat(document.getElementById('profile-current-balance').value);
+    if (isNaN(balance)) return;
+
+    try {
+        await api('/api/profile/balance', {
+            method: 'POST',
+            body: JSON.stringify({ balance })
+        });
+        showMessage('balance-adjustment-message', 'Saldo atualizado com sucesso!', 'success');
+        if (onAppDataRefresh) await onAppDataRefresh();
+    } catch (error) {
+        console.error('Erro ao ajustar saldo:', error);
+        showMessage('balance-adjustment-message', 'Erro ao atualizar saldo. Tente novamente.', 'error');
     }
 }
 

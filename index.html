@@ -1200,6 +1200,30 @@
                                 </div>
                             </article>
 
+                            <!-- Saldo Atual (Novo) -->
+                            <article class="profile-tile profile-tile--wide">
+                                <div class="profile-tile__head">
+                                    <span class="profile-tile__icon" aria-hidden="true"><i class="fas fa-coins"></i></span>
+                                    <div class="profile-tile__head-text">
+                                        <h3 class="profile-tile__title">Ajuste de Saldo</h3>
+                                        <p class="profile-tile__subtitle">Defina o saldo total atual da sua conta</p>
+                                    </div>
+                                </div>
+                                <div class="profile-tile__body">
+                                    <form id="balance-adjustment-form" class="profile-form profile-form--stretch profile-form--shell">
+                                        <div class="form-group">
+                                            <label for="profile-current-balance">Saldo Total Atual (R$)</label>
+                                            <input type="number" step="0.01" id="profile-current-balance" placeholder="0,00" required>
+                                            <small class="field-hint">Este valor será o novo ponto de partida para o cálculo do seu saldo.</small>
+                                        </div>
+                                        <button type="submit" class="btn-primary profile-form__submit">
+                                            <i class="fas fa-sync-alt"></i> Atualizar Saldo
+                                        </button>
+                                    </form>
+                                    <div id="balance-adjustment-message" class="profile-message hidden"></div>
+                                </div>
+                            </article>
+
                             <!-- Caixa -->
                             <article class="profile-tile profile-tile--wide" aria-labelledby="profile-sec-caixa">
                                 <div class="profile-tile__head">
@@ -1559,7 +1583,7 @@
                 </div>
                 <div id="expense-installment-preview" class="form-group hidden expense-installment-preview" aria-live="polite"></div>
                 <div class="form-actions">
-                    <button type="submit" class="btn-primary">Salvar</button>
+                    <button type="submit" class="btn-primary"><span>Salvar</span></button>
                 </div>
             </form>
         </div>
@@ -1624,7 +1648,7 @@
                     </div>
                 </div>
                 <div class="form-actions">
-                    <button type="submit" class="btn-primary">Salvar</button>
+                    <button type="submit" class="btn-primary"><span>Salvar</span></button>
                 </div>
             </form>
         </div>

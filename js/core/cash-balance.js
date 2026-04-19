@@ -170,6 +170,9 @@ export function computeCashBalanceTotalAsOf(
             sum += Number(rawById.get(a.id)) || 0;
         }
     }
+    if (userProfile && userProfile.balanceOffset) {
+        sum += Number(userProfile.balanceOffset);
+    }
     return sum;
 }
 

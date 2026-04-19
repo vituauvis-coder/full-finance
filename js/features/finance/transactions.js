@@ -86,6 +86,26 @@ function htmlAttrEscape(text) {
         .replace(/</g, '&lt;');
 }
 
+function setFormSubmittingState(form, isSubmitting, busyLabel = 'Salvando...') {
+    if (!(form instanceof HTMLFormElement)) return;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (!(submitBtn instanceof HTMLButtonElement)) return;
+
+    if (isSubmitting) {
+        form.dataset.submitting = '1';
+        if (!submitBtn.dataset.originalHtml) submitBtn.dataset.originalHtml = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.setAttribute('aria-busy', 'true');
+        submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin" aria-hidden="true" style="margin-right: 8px;"></i><span>${busyLabel}</span>`;
+        return;
+    }
+
+    form.dataset.submitting = '0';
+    submitBtn.disabled = false;
+    submitBtn.removeAttribute('aria-busy');
+    if (submitBtn.dataset.originalHtml) submitBtn.innerHTML = submitBtn.dataset.originalHtml;
+}
+
 /** Série mensal em conta de caixa + preferência «conta fixa» — mesma lógica do saldo e do painel de pendentes. */
 function expenseUsesMonthlyFixedCashListUi(t, account, userProfile) {
     if (!account) return false;
@@ -2628,6 +2648,8 @@ function markFieldError(input, message) {
 async function handleExpenseFormSubmit(e) {
     e.preventDefault();
     const form = e.target;
+    if (!(form instanceof HTMLFormElement)) return;
+    if (form.dataset.submitting === '1') return;
     const id = form['expense-id'].value;
     const isSplitRateio = form.dataset.splitFromRateio === '1';
 
@@ -2803,6 +2825,7 @@ async function handleExpenseFormSubmit(e) {
         }
     }
 
+    setFormSubmittingState(form, true, 'Salvando saída...');
     try {
         const orig = id ? userExpenses?.find((t) => t.id === id) : null;
         const isSeriesRow = Boolean(orig?.recurrenceGroupId && String(orig.recurrenceGroupId).trim() !== '');
@@ -2841,6 +2864,8 @@ async function handleExpenseFormSubmit(e) {
             error?.message || 'Não foi possível salvar a saída. Tente novamente.',
             error?.status === 409 ? 'warning' : 'error'
         );
+    } finally {
+        setFormSubmittingState(form, false);
     }
 }
 
@@ -2848,6 +2873,7 @@ async function handleGainFormSubmit(e) {
     e.preventDefault();
     const form = e.currentTarget;
     if (!(form instanceof HTMLFormElement)) return;
+    if (form.dataset.submitting === '1') return;
     const id = (form['gain-id'].value || '').trim();
 
     let hasErrors = false;
@@ -2932,6 +2958,7 @@ async function handleGainFormSubmit(e) {
         data.isRecurring = document.getElementById('gain-recurring-mode')?.value === '1';
     }
 
+    setFormSubmittingState(form, true, 'Salvando entrada...');
     try {
         const result = await saveGain(data, id || null);
         const isEdit = !!id;
@@ -2953,6 +2980,8 @@ async function handleGainFormSubmit(e) {
     } catch (error) {
         console.error('Erro ao salvar entrada:', error);
         showToast('Erro ao salvar', 'Não foi possível salvar a entrada. Tente novamente.', 'error');
+    } finally {
+        setFormSubmittingState(form, false);
     }
 }
 

@@ -4,7 +4,6 @@
  */
 import { query } from './db.js';
 import { computeCashBalanceTotalAsOf } from '../js/core/cash-balance.js';
-import { safeRebuildBalanceLedger } from './balance-ledger.js';
 
 export function computeTotalBalance(accounts, expenses, gains, _investments, userProfile = null) {
     const asOf = new Date();
@@ -20,94 +19,42 @@ export function startOfTodayDate() {
 }
 
 export async function upsertBalanceSnapshotForUser(userId) {
+    // O snapshot diário continua existindo para o gráfico de evolução de patrimônio
     const [userRes, accRes, expRes, gainRes, invRes] = await Promise.all([
         query(
-            `SELECT finance_preferences AS "financePreferences"
-             FROM users
-             WHERE id = $1`,
+            `SELECT finance_preferences AS "financePreferences", balance_offset AS "balanceOffset"
+             FROM users WHERE id = $1`,
             [userId]
         ),
         query(
-            `SELECT
-                id,
-                user_id AS "userId",
-                name,
-                type,
-                initial_balance AS "initialBalance",
-                holder_name AS "holderName",
-                plastic_tone AS "plasticTone",
-                plastic_color AS "plasticColor",
-                "limit",
-                close_day AS "closeDay",
-                due_day AS "dueDay",
-                linked_account_id AS "linkedAccountId"
-             FROM accounts
-             WHERE user_id = $1`,
+            `SELECT id, user_id AS "userId", name, type, initial_balance AS "initialBalance"
+             FROM accounts WHERE user_id = $1`,
             [userId]
         ),
         query(
-            `SELECT
-                id,
-                user_id AS "userId",
-                account_id AS "accountId",
-                category,
-                subcategory,
-                amount,
-                description,
-                date,
-                created_at AS "createdAt",
-                is_paid AS "isPaid",
-                is_investment AS "isInvestment",
-                installment_count AS "installmentCount",
-                cash_out_confirmed_periods AS "cashOutConfirmedPeriods",
-                recurring_monthly AS "recurringMonthly",
-                recurrence_group_id AS "recurrenceGroupId",
-                split_request_id AS "splitRequestId",
-                reference_only AS "referenceOnly"
-             FROM expenses
-             WHERE user_id = $1`,
+            `SELECT id, amount, date, is_paid AS "isPaid", reference_only AS "referenceOnly"
+             FROM expenses WHERE user_id = $1`,
             [userId]
         ),
         query(
-            `SELECT
-                id,
-                user_id AS "userId",
-                account_id AS "accountId",
-                category,
-                subcategory,
-                amount,
-                description,
-                date,
-                is_paid AS "isPaid",
-                recurrence_group_id AS "recurrenceGroupId",
-                related_expense_id AS "relatedExpenseId",
-                reference_only AS "referenceOnly"
-             FROM gains
-             WHERE user_id = $1`,
+            `SELECT id, amount, date, is_paid AS "isPaid", reference_only AS "referenceOnly"
+             FROM gains WHERE user_id = $1`,
             [userId]
         ),
         query(
-            `SELECT
-                id,
-                user_id AS "userId",
-                name,
-                category,
-                institution,
-                current_value AS "currentValue",
-                notes,
-                linked_account_id AS "linkedAccountId"
-             FROM investments
-             WHERE user_id = $1`,
+            `SELECT id, current_value AS "currentValue"
+             FROM investments WHERE user_id = $1`,
             [userId]
         )
     ]);
+
     const user = userRes.rows[0] || null;
     const userAccounts = accRes.rows;
     const userExpenses = expRes.rows.filter((e) => !e.referenceOnly);
     const userGains = gainRes.rows.filter((g) => !g.referenceOnly);
     const userInvestments = invRes.rows;
 
-    const userProfile = user ? { financePreferences: user.financePreferences } : null;
+    const userProfile = user ? { financePreferences: user.financePreferences, balanceOffset: Number(user.balanceOffset) || 0 } : null;
     const total = computeTotalBalance(userAccounts, userExpenses, userGains, userInvestments, userProfile);
     const date = startOfTodayDate();
 
@@ -118,7 +65,6 @@ export async function upsertBalanceSnapshotForUser(userId) {
          DO UPDATE SET total_balance = EXCLUDED.total_balance, updated_at = now()`,
         [userId, date, total]
     );
-    await safeRebuildBalanceLedger(userId);
 }
 
 export async function safeUpsertBalanceSnapshot(userId) {
