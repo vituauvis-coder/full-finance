@@ -1,4 +1,4 @@
-import { updateUserProfile, uploadFile, deleteUserAccount } from '../../services/firestore.js';
+import { updateUserProfile, deleteUserAccount } from '../../services/firestore.js';
 import { showMessage, openModal, closeModal, refreshSidebarCollapseTabPosition } from '../../shell/app-shell.js';
 import { api } from '../../api-client.js';
 import { DEFAULT_FINANCE_PREFERENCES, getFinancePreferences } from '../../core/finance-preferences.js';
@@ -178,18 +178,47 @@ async function handlePasswordChange(e) {
     }
 }
 
+/** Mesma lógica do Kanban: imagem em Base64 (data URL) no banco, sem upload de arquivo. */
+const PROFILE_PHOTO_MAX_BYTES = 2 * 1024 * 1024;
+
+function readProfileImageAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+        if (!file.type.startsWith('image/')) {
+            reject(new Error('INVALID_TYPE'));
+            return;
+        }
+        if (file.size > PROFILE_PHOTO_MAX_BYTES) {
+            reject(new Error('TOO_LARGE'));
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (ev) => resolve(ev.target.result);
+        reader.onerror = () => reject(new Error('READ'));
+        reader.readAsDataURL(file);
+    });
+}
+
 async function handlePhotoUpload(e) {
-    const file = e.target.files[0];
+    const input = e.target;
+    const file = input.files?.[0];
     if (!file) return;
 
     try {
-        const photoURL = await uploadFile(file, currentUser.uid);
-        await updateUserProfile(currentUser.uid, { profilePhotoURL: photoURL });
-        updateProfileImages(photoURL);
+        const dataUrl = await readProfileImageAsDataUrl(file);
+        await updateUserProfile(currentUser.uid, { profilePhotoURL: dataUrl });
+        updateProfileImages(dataUrl);
         showMessage('personalization-message', 'Foto de perfil atualizada!', 'success');
     } catch (error) {
-        console.error('Erro ao enviar a foto:', error);
-        showMessage('personalization-message', 'Não foi possível enviar a foto. Tente novamente.', 'error');
+        console.error('Erro ao processar a foto:', error);
+        const msg =
+            error?.message === 'INVALID_TYPE'
+                ? 'Selecione uma imagem válida (JPG, PNG, GIF…).'
+                : error?.message === 'TOO_LARGE'
+                  ? 'Imagem muito grande. Tamanho máximo: 2 MB.'
+                  : 'Não foi possível salvar a foto. Tente novamente.';
+        showMessage('personalization-message', msg, 'error');
+    } finally {
+        input.value = '';
     }
 }
 
