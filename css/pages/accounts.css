@@ -1,3 +1,36 @@
+/* --- Carteira (contas + cartões na mesma tela) --- */
+.wallet-page {
+    display: flex;
+    flex-direction: column;
+    gap: 2.25rem;
+}
+
+.wallet-page__section--cards {
+    padding-top: 0.35rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.wallet-page__section-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.15rem;
+}
+
+.wallet-page__section-title {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--text-color);
+}
+
+.wallet-page__actions {
+    margin-bottom: 0;
+}
+
 /* --- Página Contas (alinhada a Objetivos / Cartões) --- */
 .accounts-page__actions {
     margin-bottom: 1.25rem;
@@ -353,25 +386,6 @@
     opacity: 0.85;
 }
 
-.account-card__balance-label {
-    display: block;
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--text-light);
-    margin-bottom: 0.25rem;
-}
-
-.account-card__balance {
-    display: block;
-    font-size: 1.42rem;
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: -0.03em;
-    color: var(--text-color);
-}
-
 /* Paletas por tipo de conta (finanças) */
 .account-card--tipo-cc {
     --acc-fin-a: #e0f2fe;
@@ -442,6 +456,163 @@
 }
 .account-card--tint-4 .account-card__fin-bg {
     filter: hue-rotate(-4deg) brightness(1.03);
+}
+
+/* Tema por nome de banco (lista de contas) — sobrescreve tipo + tint */
+.account-card.account-card--bank-nubank {
+    --acc-fin-a: #faf5ff;
+    --acc-fin-b: #a855f7;
+    --acc-fin-c: #6b21a8;
+    --acc-bar: rgba(255, 255, 255, 0.55);
+    --acc-pillar: rgba(255, 255, 255, 0.45);
+    --acc-badge-bg: rgba(255, 255, 255, 0.95);
+    --acc-badge-fg: #5b21b6;
+}
+
+.account-card.account-card--bank-inter {
+    --acc-fin-a: #fff7ed;
+    --acc-fin-b: #fb923c;
+    --acc-fin-c: #ea580c;
+    --acc-bar: rgba(255, 255, 255, 0.55);
+    --acc-pillar: rgba(255, 255, 255, 0.42);
+    --acc-badge-fg: #9a3412;
+}
+
+.account-card.account-card--bank-itau {
+    --acc-fin-a: #003d82;
+    --acc-fin-b: #f47920;
+    --acc-fin-c: #001f4d;
+    --acc-bar: rgba(255, 255, 255, 0.45);
+    --acc-pillar: rgba(255, 255, 255, 0.35);
+    --acc-trend: rgba(255, 255, 255, 0.5);
+}
+
+.account-card.account-card--bank-bradesco {
+    --acc-fin-a: #fff1f2;
+    --acc-fin-b: #e11d48;
+    --acc-fin-c: #9f1239;
+    --acc-bar: rgba(255, 255, 255, 0.5);
+    --acc-badge-fg: #9f1239;
+}
+
+.account-card.account-card--bank-bb {
+    --acc-fin-a: #003da5;
+    --acc-fin-b: #ffef00;
+    --acc-fin-c: #002776;
+    --acc-bar: rgba(255, 255, 255, 0.4);
+    --acc-pillar: rgba(255, 255, 255, 0.35);
+    --acc-trend: rgba(255, 239, 0, 0.55);
+}
+
+.account-card.account-card--bank-caixa {
+    --acc-fin-a: #0066b3;
+    --acc-fin-b: #f7941d;
+    --acc-fin-c: #004a8c;
+    --acc-bar: rgba(255, 255, 255, 0.45);
+    --acc-pillar: rgba(255, 255, 255, 0.38);
+}
+
+.account-card.account-card--bank-santander {
+    --acc-fin-a: #fef2f2;
+    --acc-fin-b: #ec0000;
+    --acc-fin-c: #991b1b;
+    --acc-bar: rgba(255, 255, 255, 0.5);
+    --acc-badge-fg: #991b1b;
+}
+
+.account-card.account-card--bank-c6 {
+    --acc-fin-a: #fafafa;
+    --acc-fin-b: #404040;
+    --acc-fin-c: #0a0a0a;
+    --acc-bar: rgba(250, 204, 21, 0.55);
+    --acc-coin: #facc15;
+    --acc-coin-shine: #fef9c3;
+    --acc-trend: rgba(250, 204, 21, 0.85);
+    --acc-badge-fg: #fafafa;
+    --acc-badge-bg: rgba(10, 10, 10, 0.88);
+    --acc-action-fg: rgba(250, 250, 250, 0.9);
+}
+
+.account-card.account-card--bank-c6 .account-card__actions .btn-action {
+    background: rgba(250, 250, 250, 0.92);
+    color: #171717;
+}
+
+.account-card.account-card--bank-c6 .account-card__scene-art::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 5px;
+    background: linear-gradient(90deg, #eab308, #facc15 40%, #fde047);
+    z-index: 5;
+    pointer-events: none;
+}
+
+.account-card.account-card--bank-mercado-pago {
+    --acc-fin-a: #e0f7ff;
+    --acc-fin-b: #009ee3;
+    --acc-fin-c: #005a8c;
+    --acc-bar: rgba(255, 255, 255, 0.5);
+    --acc-badge-fg: #005a8c;
+}
+
+.account-card.account-card--bank-picpay {
+    --acc-fin-a: #ecfdf5;
+    --acc-fin-b: #21c25e;
+    --acc-fin-c: #15803d;
+    --acc-bar: rgba(255, 255, 255, 0.5);
+    --acc-badge-fg: #14532d;
+}
+
+.account-card.account-card--bank-pagbank {
+    --acc-fin-a: #ffc800;
+    --acc-fin-b: #1a1a1a;
+    --acc-fin-c: #0a0a0a;
+    --acc-bar: rgba(255, 200, 0, 0.45);
+    --acc-grid: rgba(255, 255, 255, 0.12);
+    --acc-badge-bg: rgba(26, 26, 26, 0.92);
+    --acc-badge-fg: #ffc800;
+    --acc-action-fg: rgba(255, 200, 0, 0.95);
+}
+
+.account-card.account-card--bank-pagbank .account-card__actions .btn-action {
+    background: rgba(26, 26, 26, 0.85);
+    color: #ffc800;
+}
+
+.account-card.account-card--bank-pagbank .account-card__actions .btn-action:hover {
+    background: #000;
+    color: #fde047;
+}
+
+.account-card.account-card--bank-neon {
+    --acc-fin-a: #0c4a6e;
+    --acc-fin-b: #22d3ee;
+    --acc-fin-c: #39ff14;
+    --acc-bar: rgba(255, 255, 255, 0.35);
+    --acc-trend: rgba(57, 255, 20, 0.65);
+    --acc-grid: rgba(34, 211, 238, 0.2);
+}
+
+.account-card.account-card--bank-pan {
+    --acc-fin-a: #171717;
+    --acc-fin-b: #fbbf24;
+    --acc-fin-c: #0a0a0a;
+    --acc-bar: rgba(251, 191, 36, 0.5);
+    --acc-coin: #fbbf24;
+    --acc-coin-shine: #fef3c7;
+    --acc-badge-bg: rgba(251, 191, 36, 0.95);
+    --acc-badge-fg: #0a0a0a;
+}
+
+.account-card.account-card--bank-riachuelo {
+    --acc-fin-a: #e8eaf6;
+    --acc-fin-b: #3949ab;
+    --acc-fin-c: #1a237e;
+    --acc-bar: rgba(255, 255, 255, 0.45);
+    --acc-badge-fg: #1a237e;
 }
 
 .credit-cards-page {
@@ -712,6 +883,10 @@
     margin-top: 0.5rem;
     padding-top: 0.65rem;
     border-top: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.credit-card-plastic__stats--single {
+    grid-template-columns: 1fr;
 }
 
 .credit-card-plastic__stat-lbl {

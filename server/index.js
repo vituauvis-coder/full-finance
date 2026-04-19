@@ -11,6 +11,8 @@ import multer from 'multer';
 import { fileURLToPath } from 'url';
 import { query, withTransaction } from './db.js';
 import { safeUpsertBalanceSnapshot } from './balance-snapshot.js';
+import { getDashboardBalanceAtPeriodEnd } from './balance-ledger.js';
+import { referenceOnlyForUserMovement } from './reference-only.js';
 import { registerExpenseSplitRoutes, fetchExpenseSplitBundleForUser } from './expense-splits.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -183,6 +185,7 @@ function normalizeMovement(t) {
     if (t.createdAt != null) {
         out.createdAt = toFirestoreLikeDate(t.createdAt);
     }
+    if (t.referenceOnly != null) out.referenceOnly = Boolean(t.referenceOnly);
     return out;
 }
 
@@ -301,8 +304,8 @@ app.post('/api/auth/register', async (req, res) => {
         const passwordHash = bcrypt.hashSync(password, 10);
         /** Uma única query (sem BEGIN/COMMIT): compatível com PgBouncer modo transação do Supabase (:6543). */
         const { rows } = await query(
-            `INSERT INTO users (email, name, password_hash, currency, has_completed_tour, role)
-             VALUES ($1, $2, $3, 'BRL', false, $4)
+            `INSERT INTO users (email, name, password_hash, currency, has_completed_tour, role, finance_anchor_month)
+             VALUES ($1, $2, $3, 'BRL', false, $4, date_trunc('month', now())::date)
              ON CONFLICT (email) DO NOTHING
              RETURNING id, email, role`,
             [em, String(name).trim(), passwordHash, ROLE_USER]
@@ -382,7 +385,8 @@ app.get('/api/data', requireAuth, async (req, res) => {
                     has_completed_tour AS "hasCompletedTour",
                     profile_photo_url AS "profilePhotoURL",
                     role,
-                    finance_preferences AS "financePreferences"
+                    finance_preferences AS "financePreferences",
+                    finance_anchor_month AS "financeAnchorMonth"
                  FROM users
                  WHERE id = $1`,
                 [uid]
@@ -422,7 +426,8 @@ app.get('/api/data', requireAuth, async (req, res) => {
                     cash_out_confirmed_periods AS "cashOutConfirmedPeriods",
                     recurring_monthly AS "recurringMonthly",
                     recurrence_group_id AS "recurrenceGroupId",
-                    split_request_id AS "splitRequestId"
+                    split_request_id AS "splitRequestId",
+                    reference_only AS "referenceOnly"
                  FROM expenses
                  WHERE user_id = $1`,
                 [uid]
@@ -439,7 +444,8 @@ app.get('/api/data', requireAuth, async (req, res) => {
                     date,
                     is_paid AS "isPaid",
                     recurrence_group_id AS "recurrenceGroupId",
-                    related_expense_id AS "relatedExpenseId"
+                    related_expense_id AS "relatedExpenseId",
+                    reference_only AS "referenceOnly"
                  FROM gains
                  WHERE user_id = $1`,
                 [uid]
@@ -551,6 +557,28 @@ app.get('/api/balance-snapshots', requireAuth, async (req, res) => {
     } catch (e) {
         console.error('GET /api/balance-snapshots', e);
         res.status(500).json({ error: 'Erro ao carregar histórico de saldo' });
+    }
+});
+
+/** Saldo total (contas de caixa) no período — último estado no intervalo ou antes dele. */
+app.get('/api/dashboard/balance', requireAuth, async (req, res) => {
+    try {
+        const uid = req.session.userId;
+        const fromRaw = String(req.query.from ?? '').trim();
+        const toRaw = String(req.query.to ?? '').trim();
+        if (!fromRaw || !toRaw) {
+            return res.status(400).json({ error: 'Parâmetros from e to são obrigatórios (ISO 8601)' });
+        }
+        const from = new Date(fromRaw);
+        const to = new Date(toRaw);
+        const r = await getDashboardBalanceAtPeriodEnd(uid, from, to);
+        res.json({
+            balance: r.balance,
+            source: r.source
+        });
+    } catch (e) {
+        console.error('GET /api/dashboard/balance', e);
+        res.status(500).json({ error: 'Erro ao carregar saldo do período' });
     }
 });
 
@@ -820,15 +848,16 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
             }));
             await withTransaction(async (client) => {
                 for (const r of rows) {
+                    const refOnly = await referenceOnlyForUserMovement(r.userId, r.date);
                     await client.query(
                         `INSERT INTO expenses (
                             id, user_id, account_id, category, subcategory, amount, description,
                             date, is_paid, is_investment, installment_count, recurring_monthly,
-                            cash_out_confirmed_periods, recurrence_group_id
+                            cash_out_confirmed_periods, recurrence_group_id, reference_only
                          ) VALUES (
                             $1,$2,$3,$4,$5,$6,$7,
                             $8,$9,$10,$11,$12,
-                            $13,$14
+                            $13,$14,$15
                          )`,
                         [
                             crypto.randomUUID(),
@@ -844,7 +873,8 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                             r.installmentCount,
                             r.recurringMonthly,
                             r.cashOutConfirmedPeriods,
-                            r.recurrenceGroupId
+                            r.recurrenceGroupId,
+                            refOnly
                         ]
                     );
                 }
@@ -862,6 +892,12 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
         if (!splitRequestBind) delete createData.splitRequestId;
         if (splitRequestBind && splitRequestRow && !splitAlreadyAccepted) {
             // Confirma o aceite APÓS criar a saída do destinatário.
+            const refExpSplit = await referenceOnlyForUserMovement(uid, createData.date);
+            const gainNow = new Date();
+            const refGainSplit = await referenceOnlyForUserMovement(
+                splitRequestRow.requesterUserId,
+                gainNow
+            );
             const result = await withTransaction(async (client) => {
                 const expenseId = crypto.randomUUID();
                 const { rows: expRows } = await client.query(
@@ -869,12 +905,12 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                         id, user_id, account_id, category, subcategory, amount, description,
                         date, created_at, is_paid, is_investment, installment_count,
                         cash_out_confirmed_periods, recurring_monthly, recurrence_group_id,
-                        split_request_id
+                        split_request_id, reference_only
                      ) VALUES (
                         $1,$2,$3,$4,$5,$6,$7,
                         $8, now(), $9,$10,$11,
                         $12,$13,$14,
-                        $15
+                        $15,$16
                      )
                      RETURNING
                         id,
@@ -892,7 +928,8 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                         cash_out_confirmed_periods AS "cashOutConfirmedPeriods",
                         recurring_monthly AS "recurringMonthly",
                         recurrence_group_id AS "recurrenceGroupId",
-                        split_request_id AS "splitRequestId"`,
+                        split_request_id AS "splitRequestId",
+                        reference_only AS "referenceOnly"`,
                     [
                         expenseId,
                         createData.userId,
@@ -908,7 +945,8 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                         createData.cashOutConfirmedPeriods ?? null,
                         createData.recurringMonthly ?? false,
                         null,
-                        splitRequestBind
+                        splitRequestBind,
+                        refExpSplit
                     ]
                 );
                 const expense = expRows[0];
@@ -925,10 +963,10 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                 const { rows: gainRows } = await client.query(
                     `INSERT INTO gains (
                         id, user_id, account_id, category, subcategory, amount, description,
-                        date, is_paid, recurrence_group_id, related_expense_id
+                        date, is_paid, recurrence_group_id, related_expense_id, reference_only
                      ) VALUES (
                         $1,$2,$3,$4,$5,$6,$7,
-                        now(), true, NULL, $8
+                        now(), true, NULL, $8, $9
                      )
                      RETURNING
                         id,
@@ -941,7 +979,8 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                         date,
                         is_paid AS "isPaid",
                         recurrence_group_id AS "recurrenceGroupId",
-                        related_expense_id AS "relatedExpenseId"`,
+                        related_expense_id AS "relatedExpenseId",
+                        reference_only AS "referenceOnly"`,
                     [
                         gainId,
                         splitRequestRow.requesterUserId,
@@ -950,7 +989,8 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                         null,
                         Number(splitRequestRow.amount) || 0,
                         `Extorno parcial — ${sourceDesc}`,
-                        splitRequestRow.sourceExpenseId
+                        splitRequestRow.sourceExpenseId,
+                        refGainSplit
                     ]
                 );
                 const gain = gainRows[0];
@@ -989,18 +1029,19 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
 
         if (splitRequestBind && splitRequestRow && splitAlreadyAccepted) {
             // Fluxo antigo: já existe extorno e status aceito; só cria a saída vinculada.
+            const refExpAccepted = await referenceOnlyForUserMovement(uid, createData.date);
             const expenseId = crypto.randomUUID();
             const { rows: expRows } = await query(
                 `INSERT INTO expenses (
                     id, user_id, account_id, category, subcategory, amount, description,
                     date, created_at, is_paid, is_investment, installment_count,
                     cash_out_confirmed_periods, recurring_monthly, recurrence_group_id,
-                    split_request_id
+                    split_request_id, reference_only
                  ) VALUES (
                     $1,$2,$3,$4,$5,$6,$7,
                     $8, now(), $9,$10,$11,
                     $12,$13,$14,
-                    $15
+                    $15,$16
                  )
                  RETURNING
                     id,
@@ -1018,7 +1059,8 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                     cash_out_confirmed_periods AS "cashOutConfirmedPeriods",
                     recurring_monthly AS "recurringMonthly",
                     recurrence_group_id AS "recurrenceGroupId",
-                    split_request_id AS "splitRequestId"`,
+                    split_request_id AS "splitRequestId",
+                    reference_only AS "referenceOnly"`,
                 [
                     expenseId,
                     createData.userId,
@@ -1034,7 +1076,8 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                     createData.cashOutConfirmedPeriods ?? null,
                     createData.recurringMonthly ?? false,
                     null,
-                    splitRequestBind
+                    splitRequestBind,
+                    refExpAccepted
                 ]
             );
             const expense = expRows[0];
@@ -1042,16 +1085,19 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
             return res.json({ expense: normalizeMovement(expense), split: splitRequestRow });
         }
 
+        const refOnlyMain = await referenceOnlyForUserMovement(uid, createData.date);
         const expenseId = crypto.randomUUID();
         const { rows: expRows } = await query(
             `INSERT INTO expenses (
                 id, user_id, account_id, category, subcategory, amount, description,
                 date, created_at, is_paid, is_investment, installment_count,
-                cash_out_confirmed_periods, recurring_monthly, recurrence_group_id
+                cash_out_confirmed_periods, recurring_monthly, recurrence_group_id,
+                reference_only
              ) VALUES (
                 $1,$2,$3,$4,$5,$6,$7,
                 $8, now(), $9,$10,$11,
-                $12,$13,$14
+                $12,$13,$14,
+                $15
              )
              RETURNING
                 id,
@@ -1069,7 +1115,8 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                 cash_out_confirmed_periods AS "cashOutConfirmedPeriods",
                 recurring_monthly AS "recurringMonthly",
                 recurrence_group_id AS "recurrenceGroupId",
-                split_request_id AS "splitRequestId"`,
+                split_request_id AS "splitRequestId",
+                reference_only AS "referenceOnly"`,
             [
                 expenseId,
                 createData.userId,
@@ -1084,7 +1131,8 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                 createData.installmentCount,
                 createData.cashOutConfirmedPeriods ?? null,
                 createData.recurringMonthly ?? false,
-                null
+                null,
+                refOnlyMain
             ]
         );
         const row = expRows[0];
@@ -1114,6 +1162,7 @@ app.put('/api/expenses/:id', requireAuth, async (req, res) => {
             delete data.recurringMonthly;
         }
         await assertAccountBelongsToUser(data.accountId, uid);
+        const refOnlyPut = await referenceOnlyForUserMovement(uid, data.date);
         const sets = [];
         const params = [];
         let i = 1;
@@ -1130,6 +1179,7 @@ app.put('/api/expenses/:id', requireAuth, async (req, res) => {
         addSet('is_paid', data.isPaid);
         addSet('is_investment', data.isInvestment);
         addSet('installment_count', data.installmentCount);
+        addSet('reference_only', refOnlyPut);
         if ('recurringMonthly' in data) addSet('recurring_monthly', data.recurringMonthly);
         if ('cashOutConfirmedPeriods' in data)
             addSet('cash_out_confirmed_periods', data.cashOutConfirmedPeriods);
@@ -1155,7 +1205,8 @@ app.put('/api/expenses/:id', requireAuth, async (req, res) => {
                 cash_out_confirmed_periods AS "cashOutConfirmedPeriods",
                 recurring_monthly AS "recurringMonthly",
                 recurrence_group_id AS "recurrenceGroupId",
-                split_request_id AS "splitRequestId"`,
+                split_request_id AS "splitRequestId",
+                reference_only AS "referenceOnly"`,
             params
         );
         const updated = updatedRows[0] || null;
@@ -1212,7 +1263,8 @@ app.post('/api/expenses/:id/confirm-cash-out', requireAuth, async (req, res) => 
                 cash_out_confirmed_periods AS "cashOutConfirmedPeriods",
                 recurring_monthly AS "recurringMonthly",
                 recurrence_group_id AS "recurrenceGroupId",
-                split_request_id AS "splitRequestId"`,
+                split_request_id AS "splitRequestId",
+                reference_only AS "referenceOnly"`,
             [req.params.id, uid, JSON.stringify(arr)]
         );
         const updated = updatedRows[0] || null;
@@ -1500,13 +1552,14 @@ app.post('/api/gains', requireAuth, async (req, res) => {
             }));
             await withTransaction(async (client) => {
                 for (const r of rows) {
+                    const refG = await referenceOnlyForUserMovement(r.userId, r.date);
                     await client.query(
                         `INSERT INTO gains (
                             id, user_id, account_id, category, subcategory, amount, description,
-                            date, is_paid, recurrence_group_id, related_expense_id
+                            date, is_paid, recurrence_group_id, related_expense_id, reference_only
                          ) VALUES (
                             $1,$2,$3,$4,$5,$6,$7,
-                            $8,$9,$10,$11
+                            $8,$9,$10,$11,$12
                          )`,
                         [
                             crypto.randomUUID(),
@@ -1519,7 +1572,8 @@ app.post('/api/gains', requireAuth, async (req, res) => {
                             r.date,
                             r.isPaid,
                             r.recurrenceGroupId,
-                            null
+                            null,
+                            refG
                         ]
                     );
                 }
@@ -1533,14 +1587,15 @@ app.post('/api/gains', requireAuth, async (req, res) => {
             });
         }
 
+        const refGainMain = await referenceOnlyForUserMovement(uid, base.date);
         const id = crypto.randomUUID();
         const { rows: gainRows } = await query(
             `INSERT INTO gains (
                 id, user_id, account_id, category, subcategory, amount, description,
-                date, is_paid, recurrence_group_id, related_expense_id
+                date, is_paid, recurrence_group_id, related_expense_id, reference_only
              ) VALUES (
                 $1,$2,$3,$4,$5,$6,$7,
-                $8,$9,$10,$11
+                $8,$9,$10,$11,$12
              )
              RETURNING
                 id,
@@ -1553,7 +1608,8 @@ app.post('/api/gains', requireAuth, async (req, res) => {
                 date,
                 is_paid AS "isPaid",
                 recurrence_group_id AS "recurrenceGroupId",
-                related_expense_id AS "relatedExpenseId"`,
+                related_expense_id AS "relatedExpenseId",
+                reference_only AS "referenceOnly"`,
             [
                 id,
                 base.userId,
@@ -1565,7 +1621,8 @@ app.post('/api/gains', requireAuth, async (req, res) => {
                 base.date,
                 base.isPaid,
                 null,
-                base.relatedExpenseId ?? null
+                base.relatedExpenseId ?? null,
+                refGainMain
             ]
         );
         const row = gainRows[0];
@@ -1595,6 +1652,7 @@ app.put('/api/gains/:id', requireAuth, async (req, res) => {
         if (!('relatedExpenseId' in (req.body || {}))) {
             data.relatedExpenseId = existing.relatedExpenseId;
         }
+        const refGainPut = await referenceOnlyForUserMovement(uid, data.date);
         const { rows: updatedRows } = await query(
             `UPDATE gains
              SET
@@ -1606,7 +1664,8 @@ app.put('/api/gains/:id', requireAuth, async (req, res) => {
                 date = $8,
                 is_paid = $9,
                 recurrence_group_id = $10,
-                related_expense_id = $11
+                related_expense_id = $11,
+                reference_only = $12
              WHERE id = $1 AND user_id = $2
              RETURNING
                 id,
@@ -1619,7 +1678,8 @@ app.put('/api/gains/:id', requireAuth, async (req, res) => {
                 date,
                 is_paid AS "isPaid",
                 recurrence_group_id AS "recurrenceGroupId",
-                related_expense_id AS "relatedExpenseId"`,
+                related_expense_id AS "relatedExpenseId",
+                reference_only AS "referenceOnly"`,
             [
                 req.params.id,
                 uid,
@@ -1631,7 +1691,8 @@ app.put('/api/gains/:id', requireAuth, async (req, res) => {
                 data.date,
                 data.isPaid,
                 data.recurrenceGroupId,
-                data.relatedExpenseId ?? null
+                data.relatedExpenseId ?? null,
+                refGainPut
             ]
         );
         const updated = updatedRows[0];

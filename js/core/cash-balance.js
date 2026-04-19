@@ -3,7 +3,8 @@
  */
 import {
     getCreditCardCumulativeCashOutThrough,
-    getLoanCumulativeCashOutThrough
+    getLoanCumulativeCashOutThrough,
+    isMonthlyFixedCashAccountExpense
 } from './credit-installments.js';
 import {
     getFinancePreferences,
@@ -62,7 +63,10 @@ export function computeCashAccountRawBalance(
             }
             if (onOrBeforeCutoff(e.date)) {
                 const prefs = getFinancePreferences(userProfile);
-                if (e.recurringMonthly && shouldDeferMonthlyFixedCashOut(prefs)) {
+                if (
+                    isMonthlyFixedCashAccountExpense(e, account) &&
+                    shouldDeferMonthlyFixedCashOut(prefs)
+                ) {
                     const d = movementDateToJsDate(e.date);
                     if (!isPeriodConfirmedForDebit(parseCashOutConfirmedPeriods(e), d)) {
                         return;

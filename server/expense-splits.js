@@ -4,6 +4,7 @@
 import crypto from 'node:crypto';
 import { query, withTransaction } from './db.js';
 import { safeUpsertBalanceSnapshot } from './balance-snapshot.js';
+import { referenceOnlyForUserMovement } from './reference-only.js';
 
 function httpError(message, statusCode = 400) {
     const e = new Error(message);
@@ -32,6 +33,7 @@ function toFirestoreLikeDate(isoOrObj) {
 function normalizeMovement(t) {
     const out = { ...t, date: toFirestoreLikeDate(t.date) };
     if (t.createdAt != null) out.createdAt = toFirestoreLikeDate(t.createdAt);
+    if (t.referenceOnly != null) out.referenceOnly = Boolean(t.referenceOnly);
     return out;
 }
 
@@ -365,14 +367,16 @@ export function registerExpenseSplitRoutes(app, { requireAuth }) {
                 const gainDescription = `Extorno parcial — ${sourceDesc}`;
                 const gainAmount = Number(split.amount) || 0;
 
+                const refGainAccept = await referenceOnlyForUserMovement(split.requesterUserId, new Date());
+
                 const gainId = crypto.randomUUID();
                 const { rows: gainRows } = await client.query(
                     `INSERT INTO gains (
                         id, user_id, account_id, category, subcategory, amount, description,
-                        date, is_paid, recurrence_group_id, related_expense_id
+                        date, is_paid, recurrence_group_id, related_expense_id, reference_only
                      ) VALUES (
                         $1,$2,$3,'Reembolsos',NULL,$4,$5,
-                        now(), true, NULL, $6
+                        now(), true, NULL, $6, $7
                      )
                      RETURNING
                         id,
@@ -385,14 +389,16 @@ export function registerExpenseSplitRoutes(app, { requireAuth }) {
                         date,
                         is_paid AS "isPaid",
                         recurrence_group_id AS "recurrenceGroupId",
-                        related_expense_id AS "relatedExpenseId"`,
+                        related_expense_id AS "relatedExpenseId",
+                        reference_only AS "referenceOnly"`,
                     [
                         gainId,
                         split.requesterUserId,
                         gainAccountId,
                         gainAmount,
                         gainDescription,
-                        split.sourceExpenseId
+                        split.sourceExpenseId,
+                        refGainAccept
                     ]
                 );
                 const gain = gainRows[0];

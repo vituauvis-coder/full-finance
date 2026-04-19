@@ -1,11 +1,12 @@
 /**
- * Lista de pagamentos a confirmar (modo débito manual no saldo).
+ * Lista de pagamentos a confirmar no saldo (parcelas de cartão parcelado; modo manual do perfil para outros casos).
  */
 import {
     getInstallmentDueDates,
     getLoanInstallmentDueDates,
     isLoanDueEligibleForAutoCashOut,
     isLoanExpense,
+    isMonthlyFixedCashAccountExpense,
     startOfDay
 } from '../../core/credit-installments.js';
 import {
@@ -39,52 +40,80 @@ export function buildPendingCashOutItems(userAccounts, userExpenses, userProfile
     const t0 = startOfDay(now).getTime();
 
     for (const e of userExpenses || []) {
-        if (e.isPaid === true) continue;
         const acc = byId.get(e.accountId);
+        if (e.isPaid === true) {
+            const stillNeedsCashConfirm =
+                manualEnabled &&
+                acc &&
+                !isCreditCardType(acc.type) &&
+                isMonthlyFixedCashAccountExpense(e, acc) &&
+                shouldDeferMonthlyFixedCashOut(prefs) &&
+                !isPeriodConfirmedForDebit(parseCashOutConfirmedPeriods(e), movementDateToJsDate(e.date));
+            if (!stillNeedsCashConfirm) continue;
+        }
         const confirmed = parseCashOutConfirmedPeriods(e);
 
-        if (
-            manualEnabled &&
-            acc &&
-            isCreditCardType(acc.type) &&
-            (shouldDeferCreditCardCashOut(prefs) || confirmed.size > 0)
-        ) {
+        if (acc && isCreditCardType(acc.type)) {
             const closeDay = acc.closeDay ?? acc.closingDay;
             const dueDay = acc.dueDay ?? acc.dueDate;
             const n = Math.max(1, parseInt(String(e.installmentCount ?? '1'), 10) || 1);
             const purchase = movementDateToJsDate(e.date);
             const amt = Number(e.amount) || 0;
 
-            if (parseCardDay(dueDay) == null) {
-                if (n >= 2) continue;
-                if (startOfDay(purchase).getTime() > t0) continue;
-                const pk = calendarDayKeyFromDate(purchase);
-                if (isPeriodConfirmedForDebit(confirmed, purchase)) continue;
-                items.push({
-                    expenseId: e.id,
-                    periodKey: pk,
-                    title: `Cartão · ${e.description || 'Compra'}`,
-                    detail: `À vista · vencimento implícito na data da compra`,
-                    amount: amt
+            // Parcelado: lembretes no painel sem precisar ativar «modo manual» no perfil.
+            if (n >= 2 && parseCardDay(dueDay) != null) {
+                const dueDates = getInstallmentDueDates(purchase, n, closeDay, dueDay);
+                const per = amt / n;
+                dueDates.forEach((d) => {
+                    if (startOfDay(d).getTime() > t0) return;
+                    if (isPeriodConfirmedForDebit(confirmed, d)) return;
+                    const pk = calendarDayKeyFromDate(d);
+                    items.push({
+                        expenseId: e.id,
+                        periodKey: pk,
+                        title: `Cartão · ${e.description || 'Parcela'}`,
+                        detail: `Parcela · venc. ${d.toLocaleDateString('pt-BR')}`,
+                        amount: per
+                    });
                 });
                 continue;
             }
 
-            const dueDates = getInstallmentDueDates(purchase, n, closeDay, dueDay);
-            const per = amt / n;
-            dueDates.forEach((d) => {
-                if (startOfDay(d).getTime() > t0) return;
-                if (isPeriodConfirmedForDebit(confirmed, d)) return;
-                const pk = calendarDayKeyFromDate(d);
-                items.push({
-                    expenseId: e.id,
-                    periodKey: pk,
-                    title: `Cartão · ${e.description || 'Parcela'}`,
-                    detail: `Parcela · venc. ${d.toLocaleDateString('pt-BR')}`,
-                    amount: per
+            if (
+                manualEnabled &&
+                (shouldDeferCreditCardCashOut(prefs) || confirmed.size > 0)
+            ) {
+                if (parseCardDay(dueDay) == null) {
+                    if (n >= 2) continue;
+                    if (startOfDay(purchase).getTime() > t0) continue;
+                    const pk = calendarDayKeyFromDate(purchase);
+                    if (isPeriodConfirmedForDebit(confirmed, purchase)) continue;
+                    items.push({
+                        expenseId: e.id,
+                        periodKey: pk,
+                        title: `Cartão · ${e.description || 'Compra'}`,
+                        detail: `À vista · vencimento implícito na data da compra`,
+                        amount: amt
+                    });
+                    continue;
+                }
+
+                const dueDates = getInstallmentDueDates(purchase, n, closeDay, dueDay);
+                const per = amt / n;
+                dueDates.forEach((d) => {
+                    if (startOfDay(d).getTime() > t0) return;
+                    if (isPeriodConfirmedForDebit(confirmed, d)) return;
+                    const pk = calendarDayKeyFromDate(d);
+                    items.push({
+                        expenseId: e.id,
+                        periodKey: pk,
+                        title: `Cartão · ${e.description || 'Parcela'}`,
+                        detail: `Parcela · venc. ${d.toLocaleDateString('pt-BR')}`,
+                        amount: per
+                    });
                 });
-            });
-            continue;
+                continue;
+            }
         }
 
         if (manualEnabled && acc && !isCreditCardType(acc.type) && isLoanExpense(e) && shouldDeferLoanCashOut(prefs)) {
@@ -141,7 +170,7 @@ export function buildPendingCashOutItems(userAccounts, userExpenses, userProfile
             manualEnabled &&
             acc &&
             !isCreditCardType(acc.type) &&
-            e.recurringMonthly &&
+            isMonthlyFixedCashAccountExpense(e, acc) &&
             shouldDeferMonthlyFixedCashOut(prefs)
         ) {
             const d = movementDateToJsDate(e.date);

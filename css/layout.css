@@ -106,6 +106,7 @@
 .sidebar-profile-row {
     position: relative;
     margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
 }
 
 @media (min-width: 769px) {
@@ -116,7 +117,7 @@
         margin-bottom: 0.75rem;
         padding-bottom: 0.5rem;
         background: var(--bg-light);
-        box-shadow: 0 1px 0 rgba(15, 23, 42, 0.07);
+        box-shadow: none;
     }
 }
 
@@ -175,6 +176,15 @@
 .sidebar-menu {
     list-style: none;
     flex-grow: 1;
+    margin: 0;
+    padding: 0.35rem 0.25rem 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.sidebar-menu li {
+    margin: 0;
 }
 
 .sidebar-menu li a {
@@ -182,37 +192,118 @@
     align-items: center;
     gap: 0.75rem;
     position: relative;
-    padding: 0.8rem 1rem;
-    margin-bottom: 0.5rem;
-    border-radius: 8px;
+    min-height: 44px;
+    padding: 0.62rem 0.75rem;
+    margin: 0;
+    border-radius: 12px;
+    border: 1px solid transparent;
     color: var(--text-light);
-    font-weight: 500;
-    transition: background-color 0.2s ease, color 0.2s ease;
+    font-weight: 600;
+    font-size: 0.93rem;
+    letter-spacing: 0.01em;
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
 }
 
 .sidebar-menu li a:hover {
-    background-color: var(--bg-color);
+    background-color: color-mix(in srgb, var(--border-color) 24%, transparent);
+    border-color: color-mix(in srgb, var(--border-color) 54%, transparent);
     color: var(--text-color);
     text-decoration: none;
+    transform: translateY(-1px);
 }
 
 .sidebar-menu li a.active {
-    background-color: var(--primary-color);
-    color: white;
+    color: var(--text-color);
+    background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--primary-color) 18%, transparent),
+        color-mix(in srgb, var(--primary-color) 8%, transparent)
+    );
+    border-color: color-mix(in srgb, var(--primary-color) 36%, transparent);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.45),
+        0 8px 18px color-mix(in srgb, var(--primary-color) 16%, transparent);
+}
+
+.sidebar-menu li a:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
 }
 
 .sidebar-menu li a i {
-    width: 20px;
+    width: 1.25rem;
     flex-shrink: 0;
     text-align: center;
+    font-size: 0.98rem;
+    color: color-mix(in srgb, var(--text-light) 88%, var(--text-color) 12%);
+}
+
+.sidebar-menu li a.active i {
+    color: var(--primary-color);
 }
 
 .sidebar-footer {
-    padding-top: 1rem;
+    padding: 0.9rem 0.3rem 0.2rem;
+    margin-top: 0.4rem;
     border-top: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.45rem;
+}
+
+#sidebar-theme-toggle {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.6rem;
+    width: 100%;
+    min-height: 42px;
+    background-color: color-mix(in srgb, var(--primary-color) 9%, transparent);
+    border: 1px solid color-mix(in srgb, var(--primary-color) 22%, var(--border-color));
+    padding: 0.62rem 0.75rem;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-light);
+    transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease,
+        color 0.2s ease,
+        transform 0.2s ease;
+}
+
+#sidebar-theme-toggle:hover {
+    background-color: color-mix(in srgb, var(--primary-color) 14%, transparent);
+    border-color: color-mix(in srgb, var(--primary-color) 34%, var(--border-color));
+    color: var(--text-color);
+    transform: translateY(-1px);
+}
+
+#sidebar-theme-toggle:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+#sidebar-theme-toggle i {
+    width: 1.15rem;
+    text-align: center;
+}
+
+#sidebar-theme-toggle[aria-pressed="true"] {
+    background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--primary-color) 22%, transparent),
+        color-mix(in srgb, var(--primary-color) 10%, transparent)
+    );
+    border-color: color-mix(in srgb, var(--primary-color) 42%, transparent);
+    color: var(--text-color);
 }
 
 #logout-btn {
@@ -220,22 +311,39 @@
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    gap: 0.5rem;
+    gap: 0.6rem;
     width: 100%;
-    background: none;
+    min-height: 42px;
+    background-color: color-mix(in srgb, var(--border-color) 20%, transparent);
     border: 1px solid var(--border-color);
-    padding: 0.7rem;
-    border-radius: 8px;
+    padding: 0.62rem 0.75rem;
+    border-radius: 12px;
     cursor: pointer;
-    font-size: 1rem;
+    font-size: 0.92rem;
+    font-weight: 600;
     color: var(--text-light);
-    transition: all 0.2s ease;
+    transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease,
+        color 0.2s ease,
+        transform 0.2s ease;
 }
 
 #logout-btn:hover {
-    background-color: var(--danger-color);
-    border-color: var(--danger-color);
-    color: white;
+    background-color: color-mix(in srgb, var(--danger-color) 15%, transparent);
+    border-color: color-mix(in srgb, var(--danger-color) 35%, var(--border-color));
+    color: color-mix(in srgb, var(--danger-color) 85%, var(--text-color));
+    transform: translateY(-1px);
+}
+
+#logout-btn:focus-visible {
+    outline: 2px solid var(--danger-color);
+    outline-offset: 2px;
+}
+
+#logout-btn i {
+    width: 1.15rem;
+    text-align: center;
 }
 
 .page-content {
@@ -415,23 +523,31 @@
 .btn-admin {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.6rem;
     position: relative;
     width: 100%;
-    background-color: var(--info-color);
+    min-height: 42px;
+    background: linear-gradient(135deg, var(--info-color), color-mix(in srgb, var(--info-color) 76%, #ffffff 24%));
     color: white;
-    padding: 0.8rem 1rem;
+    padding: 0.62rem 0.75rem;
     margin-bottom: 0;
-    border-radius: 8px;
+    border-radius: 12px;
+    border: 1px solid color-mix(in srgb, var(--info-color) 70%, transparent);
     text-align: left;
-    font-weight: 500;
-    transition: background-color 0.3s ease;
+    font-size: 0.92rem;
+    font-weight: 600;
+    transition:
+        background-color 0.2s ease,
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
     box-sizing: border-box;
     text-decoration: none;
 }
 
 .btn-admin:hover {
-    background-color: #2563eb;
+    background: linear-gradient(135deg, #2563eb, #3b82f6);
+    box-shadow: 0 8px 18px rgba(59, 130, 246, 0.26);
+    transform: translateY(-1px);
     text-decoration: none;
 }
 
@@ -446,9 +562,14 @@
         padding: 1rem 0.5rem;
     }
 
+    .main-content.sidebar-collapsed .sidebar-menu {
+        padding-left: 0;
+        padding-right: 0;
+    }
+
     .main-content.sidebar-collapsed .sidebar-menu li a {
         justify-content: center;
-        padding: 0.75rem 0.5rem;
+        padding: 0.65rem 0.5rem;
         gap: 0;
     }
 

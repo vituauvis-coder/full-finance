@@ -12,8 +12,14 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "echo \"Error: no test specified\" && exit 1",
+    "restore:account": "node scripts/restore-account-sqlserver-to-supabase.mjs",
+    "restore:account:sqlcmd": "node scripts/sqlcmd-upsert-account.mjs",
+    "restore:movements:sqlcmd": "node scripts/sqlcmd-restore-account-movements.mjs",
+    "export:sqlserver": "node scripts/export-sqlserver-to-json.mjs",
+    "import:json": "node scripts/import-json-to-db.mjs",
     "seed:expenses": "node scripts/seed-expenses.mjs",
-    "debug:month-expenses": "node scripts/debug-monthly-expenses.mjs"
+    "debug:month-expenses": "node scripts/debug-monthly-expenses.mjs",
+    "backfill:ledger": "node scripts/backfill-balance-ledger.mjs"
   },
   "keywords": [],
   "author": "Victor Alves",
@@ -24,6 +30,7 @@
     "dotenv": "^17.4.0",
     "express": "^4.21.2",
     "express-session": "^1.18.1",
+    "mssql": "^12.3.0",
     "multer": "^1.4.5-lts.2",
     "pg": "^8.16.3",
     "vite": "^7.1.6"

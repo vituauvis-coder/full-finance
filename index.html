@@ -271,10 +271,8 @@
                                 class="fas fa-arrow-up"></i><span class="sidebar-nav-label">Entradas</span></a></li>
                     <li><a href="#" class="nav-link" data-page="expenses" title="Saídas"><i
                                 class="fas fa-arrow-down"></i><span class="sidebar-nav-label">Saídas</span></a></li>
-                    <li><a href="#" class="nav-link" data-page="accounts" title="Contas"><i class="fas fa-wallet"></i><span
-                                class="sidebar-nav-label">Contas</span></a></li>
-                    <li><a href="#" class="nav-link" data-page="cards" title="Cartões"><i
-                                class="fas fa-credit-card"></i><span class="sidebar-nav-label">Cartões</span></a></li>
+                    <li><a href="#" class="nav-link" data-page="wallet" title="Carteira"><i
+                                class="fas fa-wallet"></i><span class="sidebar-nav-label">Carteira</span></a></li>
                     <li><a href="#" class="nav-link" data-page="investments" title="Investimentos"><i
                                 class="fas fa-chart-line"></i><span class="sidebar-nav-label">Investimentos</span></a>
                     </li>
@@ -285,15 +283,18 @@
                                 class="fas fa-triangle-exclamation"></i><span class="sidebar-nav-label">Dívidas</span></a></li>
                     <li><a href="#" class="nav-link" data-page="tools" title="Ferramentas"><i
                                 class="fas fa-tools"></i><span class="sidebar-nav-label">Ferramentas</span></a></li>
+                    <li><a href="./admin/" id="admin-panel-link" class="nav-link hidden" title="Painel Admin"><i
+                                class="fas fa-user-shield"></i><span class="sidebar-nav-label">Painel Admin</span></a></li>
                     <li class="hidden"><a href="#" class="nav-link" data-page="support" title="Apoie o Projeto"><i
                                 class="fas fa-heart"></i><span class="sidebar-nav-label">Apoie o Projeto</span></a></li>
                 </ul>
                 <div class="sidebar-footer">
+                    <button type="button" id="sidebar-theme-toggle" class="sidebar-theme-toggle" title="Ativar modo escuro"
+                        aria-pressed="false">
+                        <i class="fas fa-moon" aria-hidden="true"></i><span class="sidebar-footer-label">Modo escuro</span>
+                    </button>
                     <button type="button" id="logout-btn" title="Sair"><i class="fas fa-sign-out-alt"></i><span
                             class="sidebar-footer-label">Sair</span></button>
-                    <a href="./admin/" id="admin-panel-link" class="btn-admin hidden" title="Painel Admin">
-                        <i class="fas fa-user-shield"></i><span class="sidebar-footer-label">Painel Admin</span>
-                    </a>
                 </div>
             </nav>
             <button type="button" id="sidebar-collapse-toggle" class="sidebar-collapse-toggle sidebar-edge-tab"
@@ -349,6 +350,13 @@
                     <!-- Cards de Resumo -->
                     <div class="summary-cards">
                         <div class="card">
+                            <div class="card-icon balance"><i class="fas fa-wallet"></i></div>
+                            <div class="card-content">
+                                <h3 id="dashboard-balance-title">Saldo</h3>
+                                <p id="dashboard-balance-total">—</p>
+                            </div>
+                        </div>
+                        <div class="card">
                             <div class="card-icon income"><i class="fas fa-arrow-up"></i></div>
                             <div class="card-content">
                                 <h3 id="monthly-income-title">Entradas do Mês</h3>
@@ -362,11 +370,20 @@
                                 <p id="monthly-expenses">R$ 0,00</p>
                             </div>
                         </div>
+                        <!-- Card investimentos (oculto)
                         <div class="card">
                             <div class="card-icon investments"><i class="fas fa-chart-line"></i></div>
                             <div class="card-content">
-                                <h3 id="dashboard-investments-title">Investimentos (aportes)</h3>
+                                <h3 id="dashboard-investments-title">Investimentos</h3>
                                 <p id="dashboard-investments-total">R$ 0,00</p>
+                            </div>
+                        </div>
+                        -->
+                        <div class="card">
+                            <div class="card-icon projection"><i class="fas fa-chart-area"></i></div>
+                            <div class="card-content">
+                                <h3 id="dashboard-projection-title">Projeção</h3>
+                                <p id="dashboard-projection-total">—</p>
                             </div>
                         </div>
                     </div>
@@ -379,12 +396,34 @@
 
                     <div class="dashboard-reports-section" id="dashboard-reports-section">
                         <div class="reports-filters">
-                            <label for="period-filter">Período:</label>
-                            <select id="period-filter" class="period-select">
-                                <option value="current-month">Este Mês</option>
-                                <option value="last-month">Mês Passado</option>
-                                <option value="current-year" selected>Este Ano</option>
-                            </select>
+                            <div class="reports-filter-group">
+                                <label for="period-filter">Período:</label>
+                                <select id="period-filter" class="period-select" aria-label="Período dos relatórios do painel">
+                                    <option value="month-0">Janeiro</option>
+                                    <option value="month-1">Fevereiro</option>
+                                    <option value="month-2">Março</option>
+                                    <option value="month-3">Abril</option>
+                                    <option value="month-4">Maio</option>
+                                    <option value="month-5">Junho</option>
+                                    <option value="month-6">Julho</option>
+                                    <option value="month-7">Agosto</option>
+                                    <option value="month-8">Setembro</option>
+                                    <option value="month-9">Outubro</option>
+                                    <option value="month-10">Novembro</option>
+                                    <option value="month-11">Dezembro</option>
+                                    <option value="last-3-months">Últimos 3 meses</option>
+                                    <option value="last-6-months">Últimos 6 meses</option>
+                                    <option value="last-12-months">Últimos 12 meses</option>
+                                    <option value="current-year">Este ano</option>
+                                    <option value="last-year">Ano passado</option>
+                                </select>
+                            </div>
+                            <div class="reports-filter-group">
+                                <label for="category-filter">Categoria:</label>
+                                <select id="category-filter" class="category-select" aria-label="Categoria das saídas no painel">
+                                    <option value="__all__">Todas as categorias</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="dashboard-reports-charts-grid">
                             <div class="reports-chart-container" id="dashboard-reports-pie">
@@ -463,9 +502,23 @@
                     <div class="reports-filters">
                         <label for="expenses-period-filter">Período:</label>
                         <select id="expenses-period-filter" class="period-select" aria-label="Período da lista de saídas">
-                            <option value="current-month" selected>Este Mês</option>
-                            <option value="last-month">Mês Passado</option>
-                            <option value="current-year">Este Ano</option>
+                            <option value="month-0">Janeiro</option>
+                            <option value="month-1">Fevereiro</option>
+                            <option value="month-2">Março</option>
+                            <option value="month-3">Abril</option>
+                            <option value="month-4">Maio</option>
+                            <option value="month-5">Junho</option>
+                            <option value="month-6">Julho</option>
+                            <option value="month-7">Agosto</option>
+                            <option value="month-8">Setembro</option>
+                            <option value="month-9">Outubro</option>
+                            <option value="month-10">Novembro</option>
+                            <option value="month-11">Dezembro</option>
+                            <option value="last-3-months">Últimos 3 meses</option>
+                            <option value="last-6-months">Últimos 6 meses</option>
+                            <option value="last-12-months">Últimos 12 meses</option>
+                            <option value="current-year">Este ano</option>
+                            <option value="last-year">Ano passado</option>
                         </select>
                     </div>
                     <div class="summary-cards movements-summary" aria-label="Resumo de saídas">
@@ -519,9 +572,23 @@
                     <div class="reports-filters">
                         <label for="gains-period-filter">Período:</label>
                         <select id="gains-period-filter" class="period-select" aria-label="Período da lista de entradas">
-                            <option value="current-month" selected>Este Mês</option>
-                            <option value="last-month">Mês Passado</option>
-                            <option value="current-year">Este Ano</option>
+                            <option value="month-0">Janeiro</option>
+                            <option value="month-1">Fevereiro</option>
+                            <option value="month-2">Março</option>
+                            <option value="month-3">Abril</option>
+                            <option value="month-4">Maio</option>
+                            <option value="month-5">Junho</option>
+                            <option value="month-6">Julho</option>
+                            <option value="month-7">Agosto</option>
+                            <option value="month-8">Setembro</option>
+                            <option value="month-9">Outubro</option>
+                            <option value="month-10">Novembro</option>
+                            <option value="month-11">Dezembro</option>
+                            <option value="last-3-months">Últimos 3 meses</option>
+                            <option value="last-6-months">Últimos 6 meses</option>
+                            <option value="last-12-months">Últimos 12 meses</option>
+                            <option value="current-year">Este ano</option>
+                            <option value="last-year">Ano passado</option>
                         </select>
                     </div>
                     <div class="summary-cards movements-summary" aria-label="Resumo de entradas">
@@ -566,47 +633,30 @@
                     </div>
                 </section>
 
-                <!-- Seção de Contas -->
-                <section id="accounts-page" class="page hidden accounts-page">
-                    <div class="actions-bar accounts-page__actions">
-                        <button id="add-account-btn" class="btn-primary"><i class="fas fa-plus"></i> Nova Conta</button>
-                    </div>
-                    <div id="accounts-list" class="accounts-grid accounts-page__grid">
-                        <!-- Cards de conta via JS -->
-                    </div>
-                </section>
-
-                <!-- Seção de Cartões (crédito e débito) -->
-                <section id="cards-page" class="page hidden cards-page">
-                    <div class="actions-bar">
-                        <button type="button" id="add-credit-card-btn" class="btn-primary"><i class="fas fa-plus"></i>
-                            Novo cartão</button>
-                    </div>
-                    <div class="summary-cards movements-summary cards-page__summary" aria-label="Resumo dos cartões">
-                        <div class="card">
-                            <div class="card-icon expense"><i class="fas fa-hand-holding-usd" aria-hidden="true"></i></div>
-                            <div class="card-content">
-                                <h3>Parcelado em aberto</h3>
-                                <p id="cards-summary-open-installments">—</p>
+                <!-- Carteira: contas bancárias + cartões -->
+                <section id="wallet-page" class="page hidden wallet-page">
+                    <div class="wallet-page__section wallet-page__section--accounts" aria-labelledby="wallet-accounts-heading">
+                        <div class="wallet-page__section-head">
+                            <h2 id="wallet-accounts-heading" class="wallet-page__section-title">Contas</h2>
+                            <div class="actions-bar wallet-page__actions">
+                                <button type="button" id="add-account-btn" class="btn-primary"><i class="fas fa-plus"></i> Nova conta</button>
                             </div>
                         </div>
-                        <div class="card">
-                            <div class="card-icon"><i class="fas fa-calendar-check" aria-hidden="true"></i></div>
-                            <div class="card-content">
-                                <h3 id="cards-summary-current-label">Total no mês atual</h3>
-                                <p id="cards-summary-current-month">—</p>
-                            </div>
-                        </div>
-                        <div class="card">
-                            <div class="card-icon"><i class="fas fa-calendar-plus" aria-hidden="true"></i></div>
-                            <div class="card-content">
-                                <h3 id="cards-summary-next-label">Total no próximo mês</h3>
-                                <p id="cards-summary-next-month">—</p>
-                            </div>
+                        <div id="accounts-list" class="accounts-grid accounts-page__grid">
+                            <!-- Cards de conta via JS -->
                         </div>
                     </div>
-                    <div id="credit-cards-list" class="credit-cards-page">
-                        <!-- Cartões inseridos via JS -->
+                    <div class="wallet-page__section wallet-page__section--cards" aria-labelledby="wallet-cards-heading">
+                        <div class="wallet-page__section-head">
+                            <h2 id="wallet-cards-heading" class="wallet-page__section-title">Cartões</h2>
+                            <div class="actions-bar">
+                                <button type="button" id="add-credit-card-btn" class="btn-primary"><i class="fas fa-plus"></i>
+                                    Novo cartão</button>
+                            </div>
+                        </div>
+                        <div id="credit-cards-list" class="credit-cards-page">
+                            <!-- Cartões inseridos via JS -->
+                        </div>
                     </div>
                 </section>
 
@@ -991,177 +1041,234 @@
                     </div>
                 </section>
 
-                <!-- Seção de Perfil do Usuário -->
-                <section id="profile-page" class="page hidden">
-                    <div class="profile-sections-grid">
-                    <!-- Seção de Informações Pessoais -->
-                    <div class="profile-section">
-                        <h3><i class="fas fa-user"></i> Informações Pessoais</h3>
-                        <div class="profile-card">
-                            <form id="profile-form" class="profile-form">
-                                <div class="form-group">
-                                    <label for="profile-email">Email</label>
-                                    <input type="email" id="profile-email" readonly>
-                                    <small>O email não pode ser alterado</small>
-                                </div>
-                                <div class="form-group">
-                                    <label for="profile-name">Nome Completo</label>
-                                    <input type="text" id="profile-name" placeholder="Seu nome completo" required>
-                                </div>
-                                <button type="submit" class="btn-primary">
-                                    <i class="fas fa-save"></i> Salvar Alterações
-                                </button>
-                            </form>
-                            <div id="profile-message" class="profile-message hidden"></div>
-                        </div>
-                    </div>
+                <!-- Perfil: layout bento (referência dashboard moderno) -->
+                <section id="profile-page" class="page hidden profile-page">
+                    <div class="profile-page__inner profile-page__inner--bento">
+                        <header class="profile-page__intro">
+                            <h1 class="profile-page__heading">Perfil</h1>
+                            <p class="profile-page__lede">Visualize e edite os dados da sua conta em um só lugar.</p>
+                        </header>
 
-                    <!-- Seção de Segurança -->
-                    <div class="profile-section">
-                        <h3><i class="fas fa-shield-alt"></i> Segurança</h3>
-                        <div class="profile-card">
-                            <form id="password-form" class="profile-form">
-                                <div class="form-group">
-                                    <label for="current-password">Senha Atual</label>
-                                    <input type="password" id="current-password" placeholder="Digite sua senha atual"
-                                        required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="new-password">Nova Senha</label>
-                                    <input type="password" id="new-password" placeholder="Digite a nova senha" required
-                                        minlength="6">
-                                    <small>Mínimo 6 caracteres</small>
-                                </div>
-                                <div class="form-group">
-                                    <label for="confirm-password">Confirmar Nova Senha</label>
-                                    <input type="password" id="confirm-password" placeholder="Confirme a nova senha"
-                                        required minlength="6">
-                                </div>
-                                <button type="submit" class="btn-primary">
-                                    <i class="fas fa-key"></i> Alterar Senha
-                                </button>
-                            </form>
-                            <div id="password-message" class="profile-message hidden"></div>
-                        </div>
-                    </div>
-
-                    <!-- Seção de Aparência e Personalização -->
-                    <div class="profile-section">
-                        <h3><i class="fas fa-palette"></i> Aparência e Personalização</h3>
-                        <div class="profile-card">
-                            <div class="profile-appearance-top">
-                            <div class="profile-photo-section">
-                                <h4>Foto de Perfil</h4>
-                                <div class="photo-upload-area">
-                                    <div class="current-photo">
-                                        <img id="profile-photo-preview"
-                                            src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%23e2e8f0'/><text x='50' y='55' text-anchor='middle' font-size='30' fill='%2394a3b8'>👤</text></svg>"
-                                            alt="Foto de Perfil">
+                        <div class="profile-bento" aria-labelledby="profile-hero-title">
+                            <!-- Faixa superior: identidade + resumo estilo chave/valor -->
+                            <div class="profile-bento__row profile-bento__row--hero">
+                                <article class="profile-tile profile-tile--identity">
+                                    <div class="profile-tile__identity-layout">
+                                        <div class="profile-bento-avatar-ring">
+                                            <img id="profile-photo-preview"
+                                                class="profile-bento-avatar"
+                                                src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%23e2e8f0'/><text x='50' y='55' text-anchor='middle' font-size='30' fill='%2394a3b8'>👤</text></svg>"
+                                                alt="">
+                                        </div>
+                                        <div class="profile-tile__identity-copy">
+                                            <p class="profile-tile__eyebrow">Sua conta</p>
+                                            <h2 class="profile-tile__name" id="profile-hero-title">—</h2>
+                                            <span class="profile-tile__badge">Conta ativa</span>
+                                            <p class="profile-tile__email-line" id="profile-hero-email">—</p>
+                                        </div>
                                     </div>
-                                    <div class="photo-upload-controls">
-                                        <input type="file" id="profile-photo-input" accept="image/*" class="hidden">
-                                        <button type="button" id="change-photo-btn" class="btn-secondary">
-                                            <i class="fas fa-camera"></i> Alterar Foto
+                                </article>
+                                <article class="profile-tile profile-tile--snapshot" aria-label="Resumo da conta">
+                                    <h3 class="profile-tile__snapshot-title">Detalhes da conta</h3>
+                                    <p class="profile-tile__snapshot-hint">Resumo das preferências atuais</p>
+                                    <dl class="profile-kv">
+                                        <div class="profile-kv__row">
+                                            <dt class="profile-kv__label">E-mail</dt>
+                                            <dd class="profile-kv__value" id="profile-snapshot-email">—</dd>
+                                        </div>
+                                        <div class="profile-kv__row">
+                                            <dt class="profile-kv__label">Moeda</dt>
+                                            <dd class="profile-kv__value" id="profile-snapshot-currency">—</dd>
+                                        </div>
+                                        <div class="profile-kv__row">
+                                            <dt class="profile-kv__label">Tema</dt>
+                                            <dd class="profile-kv__value" id="profile-snapshot-theme">—</dd>
+                                        </div>
+                                    </dl>
+                                </article>
+                            </div>
+
+                            <!-- Dados + segurança em duas colunas -->
+                            <div class="profile-bento__row profile-bento__row--2">
+                                <article class="profile-tile" aria-labelledby="profile-sec-dados">
+                                    <div class="profile-tile__head">
+                                        <span class="profile-tile__icon" aria-hidden="true"><i class="fas fa-id-card"></i></span>
+                                        <div class="profile-tile__head-text">
+                                            <h3 class="profile-tile__title" id="profile-sec-dados">Dados pessoais</h3>
+                                            <p class="profile-tile__subtitle">Nome e e-mail de acesso</p>
+                                        </div>
+                                    </div>
+                                    <div class="profile-tile__body">
+                                        <form id="profile-form" class="profile-form profile-form--stretch profile-form--shell">
+                                            <div class="profile-form__grid profile-form__grid--2">
+                                                <div class="form-group">
+                                                    <label for="profile-email">E-mail</label>
+                                                    <input type="email" id="profile-email" readonly autocomplete="email">
+                                                    <small class="field-hint">Não é possível alterar</small>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="profile-name">Nome completo</label>
+                                                    <input type="text" id="profile-name" placeholder="Como quer ser chamado(a)" required autocomplete="name">
+                                                </div>
+                                            </div>
+                                            <button type="submit" class="btn-primary profile-form__submit">
+                                                <i class="fas fa-check"></i> Salvar nome
+                                            </button>
+                                        </form>
+                                        <div id="profile-message" class="profile-message hidden"></div>
+                                    </div>
+                                </article>
+
+                                <article class="profile-tile" aria-labelledby="profile-sec-seg">
+                                    <div class="profile-tile__head">
+                                        <span class="profile-tile__icon profile-tile__icon--accent" aria-hidden="true"><i class="fas fa-shield-halved"></i></span>
+                                        <div class="profile-tile__head-text">
+                                            <h3 class="profile-tile__title" id="profile-sec-seg">Segurança</h3>
+                                            <p class="profile-tile__subtitle">Atualize sua senha com frequência</p>
+                                        </div>
+                                    </div>
+                                    <div class="profile-tile__body">
+                                        <form id="password-form" class="profile-form profile-form--stretch profile-form--shell">
+                                            <div class="profile-form__grid profile-form__grid--stack">
+                                                <div class="form-group">
+                                                    <label for="current-password">Senha atual</label>
+                                                    <input type="password" id="current-password" placeholder="••••••••" required autocomplete="current-password">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="new-password">Nova senha</label>
+                                                    <input type="password" id="new-password" placeholder="Mínimo 6 caracteres" required minlength="6" autocomplete="new-password">
+                                                    <small class="field-hint">Mínimo 6 caracteres</small>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="confirm-password">Confirmar nova senha</label>
+                                                    <input type="password" id="confirm-password" placeholder="Repita a nova senha" required minlength="6" autocomplete="new-password">
+                                                </div>
+                                            </div>
+                                            <button type="submit" class="btn-primary profile-form__submit">
+                                                <i class="fas fa-key"></i> Atualizar senha
+                                            </button>
+                                        </form>
+                                        <div id="password-message" class="profile-message hidden"></div>
+                                    </div>
+                                </article>
+                            </div>
+
+                            <!-- Aparência (largura total) -->
+                            <article class="profile-tile profile-tile--wide" aria-labelledby="profile-sec-apar">
+                                <div class="profile-tile__head">
+                                    <span class="profile-tile__icon" aria-hidden="true"><i class="fas fa-sliders"></i></span>
+                                    <div class="profile-tile__head-text">
+                                        <h3 class="profile-tile__title" id="profile-sec-apar">Aparência e região</h3>
+                                        <p class="profile-tile__subtitle">Foto, moeda e tema da interface</p>
+                                    </div>
+                                </div>
+                                <div class="profile-tile__body">
+                                    <div class="profile-appearance-grid profile-appearance-grid--shell">
+                                        <div class="profile-photo-block">
+                                            <h4 class="profile-subheading">Foto de perfil</h4>
+                                            <p class="profile-photo-block__hint">Use os botões para enviar ou remover a imagem</p>
+                                            <div class="photo-upload-area photo-upload-area--modern">
+                                                <div class="photo-upload-controls">
+                                                    <input type="file" id="profile-photo-input" accept="image/*" class="hidden">
+                                                    <button type="button" id="change-photo-btn" class="btn-secondary profile-photo-actions__btn">
+                                                        <i class="fas fa-camera"></i> Alterar foto
+                                                    </button>
+                                                    <button type="button" id="remove-photo-btn" class="btn-danger profile-photo-actions__btn hidden">
+                                                        <i class="fas fa-trash"></i> Remover
+                                                    </button>
+                                                </div>
+                                                <div id="photo-upload-progress" class="upload-progress hidden">
+                                                    <div class="spinner"></div>
+                                                    <span>Enviando foto…</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="currency-section">
+                                            <h4 class="profile-subheading">Moeda padrão</h4>
+                                            <div class="form-group">
+                                                <label for="default-currency">Valores em</label>
+                                                <select id="default-currency" class="currency-select">
+                                                    <option value="BRL">Real brasileiro (R$)</option>
+                                                    <option value="USD">Dólar americano ($)</option>
+                                                    <option value="EUR">Euro (€)</option>
+                                                </select>
+                                                <small class="field-hint">Saldos, listas e relatórios</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div id="personalization-message" class="profile-message hidden"></div>
+                                </div>
+                            </article>
+
+                            <!-- Caixa -->
+                            <article class="profile-tile profile-tile--wide" aria-labelledby="profile-sec-caixa">
+                                <div class="profile-tile__head">
+                                    <span class="profile-tile__icon" aria-hidden="true"><i class="fas fa-wallet"></i></span>
+                                    <div class="profile-tile__head-text">
+                                        <h3 class="profile-tile__title" id="profile-sec-caixa">Caixa e pagamentos</h3>
+                                        <p class="profile-tile__subtitle">Como o saldo acompanha pagamentos e parcelas</p>
+                                    </div>
+                                </div>
+                                <div class="profile-tile__body">
+                                    <form id="finance-preferences-form" class="profile-form profile-form--stretch profile-form--shell">
+                                        <p class="finance-pref-intro">Quando ativado, parcelas de cartão, empréstimo e contas fixas mensais aparecem nas saídas do mês, mas o <strong>saldo</strong> só diminui após você marcar cada pagamento como pago (lista no dashboard).</p>
+                                        <div class="form-group finance-pref-toggle">
+                                            <label class="checkbox-label" for="finance-pref-manual-enabled">
+                                                <input type="checkbox" id="finance-pref-manual-enabled" name="finance-pref-manual-enabled">
+                                                <span>Exigir confirmação manual para debitar do saldo</span>
+                                            </label>
+                                        </div>
+                                        <fieldset class="finance-pref-suboptions" id="finance-pref-suboptions" disabled>
+                                            <legend class="sr-only">Aplicar a</legend>
+                                            <div class="form-group">
+                                                <label class="checkbox-label" for="finance-pref-cc">
+                                                    <input type="checkbox" id="finance-pref-cc" name="finance-pref-cc" checked>
+                                                    <span>Fatura / parcelas no cartão de crédito</span>
+                                                </label>
+                                            </div>
+                                            <div class="form-group">
+                                                <label class="checkbox-label" for="finance-pref-loan">
+                                                    <input type="checkbox" id="finance-pref-loan" name="finance-pref-loan" checked>
+                                                    <span>Empréstimo (parcelas na conta)</span>
+                                                </label>
+                                            </div>
+                                            <div class="form-group">
+                                                <label class="checkbox-label" for="finance-pref-monthly">
+                                                    <input type="checkbox" id="finance-pref-monthly" name="finance-pref-monthly" checked>
+                                                    <span>Contas fixas mensais (marcadas na saída como «conta fixa mensal»)</span>
+                                                </label>
+                                            </div>
+                                        </fieldset>
+                                        <button type="submit" class="btn-primary profile-form__submit">
+                                            <i class="fas fa-save"></i> Salvar preferências de caixa
                                         </button>
-                                        <button type="button" id="remove-photo-btn" class="btn-danger hidden">
-                                            <i class="fas fa-trash"></i> Remover
+                                    </form>
+                                    <div id="finance-preferences-message" class="profile-message hidden"></div>
+                                </div>
+                            </article>
+
+                            <!-- Zona de perigo -->
+                            <article class="profile-tile profile-tile--danger danger-zone" aria-labelledby="profile-sec-danger">
+                                <div class="profile-tile__head">
+                                    <span class="profile-tile__icon profile-tile__icon--danger" aria-hidden="true"><i class="fas fa-triangle-exclamation"></i></span>
+                                    <div class="profile-tile__head-text">
+                                        <h3 class="profile-tile__title" id="profile-sec-danger">Zona de perigo</h3>
+                                        <p class="profile-tile__subtitle">Ações irreversíveis na sua conta</p>
+                                    </div>
+                                </div>
+                                <div class="profile-tile__body profile-tile__body--danger">
+                                    <div class="danger-warning">
+                                        <h4>Excluir conta</h4>
+                                        <p>Esta ação é <strong>permanente</strong> e remove todos os seus dados neste serviço.</p>
+                                    </div>
+                                    <div class="danger-actions">
+                                        <button type="button" id="delete-account-btn" class="btn-danger-large">
+                                            <i class="fas fa-trash-alt"></i> Excluir minha conta permanentemente
                                         </button>
                                     </div>
-                                    <div id="photo-upload-progress" class="upload-progress hidden">
-                                        <div class="spinner"></div>
-                                        <span>Enviando foto...</span>
-                                    </div>
                                 </div>
-                            </div>
-
-                            <div class="currency-section">
-                                <h4>Moeda Padrão</h4>
-                                <div class="form-group">
-                                    <label for="default-currency">Moeda Principal</label>
-                                    <select id="default-currency" class="currency-select">
-                                        <option value="BRL">Real Brasileiro (R$)</option>
-                                        <option value="USD">Dólar Americano ($)</option>
-                                        <option value="EUR">Euro (€)</option>
-                                    </select>
-                                    <small>Esta será a moeda exibida em toda a aplicação.</small>
-                                </div>
-                            </div>
-                            </div>
-
-                            <div class="theme-section">
-                                <h4>Tema da interface</h4>
-                                <div class="theme-toggle-row">
-                                    <span class="theme-toggle-label" id="theme-dark-label">Modo escuro</span>
-                                    <label class="theme-switch" for="theme-dark-toggle">
-                                        <input type="checkbox" id="theme-dark-toggle" aria-labelledby="theme-dark-label">
-                                        <span class="theme-slider"></span>
-                                    </label>
-                                </div>
-                                <small>Ativa cores escuras em toda a aplicação.</small>
-                            </div>
-
-                            <div id="personalization-message" class="profile-message hidden"></div>
+                            </article>
                         </div>
-                    </div>
-
-                    <!-- Preferências de caixa (débito no saldo) -->
-                    <div class="profile-section">
-                        <h3><i class="fas fa-wallet"></i> Caixa e pagamentos</h3>
-                        <div class="profile-card">
-                            <form id="finance-preferences-form" class="profile-form">
-                                <p class="finance-pref-intro">Quando ativado, parcelas de cartão, empréstimo e contas fixas mensais aparecem nas saídas do mês, mas o <strong>saldo</strong> só diminui após você marcar cada pagamento como pago (lista no dashboard).</p>
-                                <div class="form-group finance-pref-toggle">
-                                    <label class="checkbox-label" for="finance-pref-manual-enabled">
-                                        <input type="checkbox" id="finance-pref-manual-enabled" name="finance-pref-manual-enabled">
-                                        <span>Exigir confirmação manual para debitar do saldo</span>
-                                    </label>
-                                </div>
-                                <fieldset class="finance-pref-suboptions" id="finance-pref-suboptions" disabled>
-                                    <legend class="sr-only">Aplicar a</legend>
-                                    <div class="form-group">
-                                        <label class="checkbox-label" for="finance-pref-cc">
-                                            <input type="checkbox" id="finance-pref-cc" name="finance-pref-cc" checked>
-                                            <span>Fatura / parcelas no cartão de crédito</span>
-                                        </label>
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="checkbox-label" for="finance-pref-loan">
-                                            <input type="checkbox" id="finance-pref-loan" name="finance-pref-loan" checked>
-                                            <span>Empréstimo (parcelas na conta)</span>
-                                        </label>
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="checkbox-label" for="finance-pref-monthly">
-                                            <input type="checkbox" id="finance-pref-monthly" name="finance-pref-monthly" checked>
-                                            <span>Contas fixas mensais (marcadas na saída como «conta fixa mensal»)</span>
-                                        </label>
-                                    </div>
-                                </fieldset>
-                                <button type="submit" class="btn-primary">
-                                    <i class="fas fa-save"></i> Salvar preferências de caixa
-                                </button>
-                            </form>
-                            <div id="finance-preferences-message" class="profile-message hidden"></div>
-                        </div>
-                    </div>
-
-                    <!-- Seção Zona de Perigo -->
-                    <div class="profile-section danger-zone">
-                        <h3><i class="fas fa-exclamation-triangle"></i> Zona de Perigo</h3>
-                        <div class="profile-card danger-card">
-                            <div class="danger-warning">
-                                <h4>⚠️ Ações Destrutivas</h4>
-                                <p>As ações nesta seção são <strong>irreversíveis</strong> e resultarão na perda
-                                    permanente de todos os seus dados.</p>
-                            </div>
-
-                            <div class="danger-actions">
-                                <button type="button" id="delete-account-btn" class="btn-danger-large">
-                                    <i class="fas fa-trash-alt"></i> Deletar minha conta permanentemente
-                                </button>
-                            </div>
-                        </div>
-                    </div>
                     </div>
                 </section>
 
@@ -1683,10 +1790,6 @@
                         <option value="outros">Outros</option>
                     </select>
                 </div>
-                <div class="form-group" id="initial-balance-group">
-                    <label for="account-initial-balance">Saldo inicial</label>
-                    <input type="number" step="0.01" id="account-initial-balance" name="account-initial-balance" placeholder="0,00" inputmode="decimal" autocomplete="off" title="Pode ser zero se a conta estiver zerada">
-                </div>
                 <!-- Campos específicos para cartão de crédito -->
                 <div id="credit-card-fields" class="hidden">
                     <div class="form-group">
@@ -1707,7 +1810,7 @@
                     <select id="card-linked-account" name="card-linked-account">
                         <option value="">Selecione a conta</option>
                     </select>
-                    <small id="card-linked-hint" class="form-hint" data-hint-credit="Indique a conta corrente ou outra conta deste banco emissor. Obrigatório para cadastrar o cartão." data-hint-debit="O débito não tem saldo próprio: o valor exibido no plástico é o saldo desta conta."></small>
+                    <small id="card-linked-hint" class="form-hint" data-hint-credit="Indique a conta corrente ou outra conta deste banco emissor. Obrigatório para cadastrar o cartão." data-hint-debit="Cartão de débito: os lançamentos ficam associados a este cartão; o saldo da conta bancária continua na secção Contas (Carteira)."></small>
                 </div>
                 <button type="submit" class="btn-primary">Salvar</button>
             </form>

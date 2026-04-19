@@ -74,12 +74,31 @@ export function loadDashboardData(
         }
     }
 
-    // Atividade recente (despesas + ganhos)
+    // Atividade recente (despesas + ganhos): ordena por criação do lançamento (`createdAt`).
     recentTransactionsList.innerHTML = '';
+    const createdUnixSeconds = (t) => {
+        const createTs = t?.createdAt != null ? movementDateToUnixSeconds(t.createdAt) : 0;
+        if (createTs > 0) return createTs;
+        return movementDateToUnixSeconds(t?.date);
+    };
+    const endOfToday = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+        23,
+        59,
+        59,
+        999
+    );
     const merged = [
         ...(userGains || []).map((t) => ({ ...t, _kind: 'gain' })),
         ...(userExpenses || []).map((t) => ({ ...t, _kind: 'expense' }))
-    ].sort((a, b) => movementDateToUnixSeconds(b.date) - movementDateToUnixSeconds(a.date)).slice(0, 10);
+    ].filter((t) => movementDateToJsDate(t.createdAt ?? t.date) <= endOfToday).sort((a, b) => {
+        const cb = createdUnixSeconds(b);
+        const ca = createdUnixSeconds(a);
+        if (cb !== ca) return cb - ca;
+        return String(b.id || '').localeCompare(String(a.id || ''));
+    }).slice(0, 10);
 
     merged.forEach((t) => {
         const li = document.createElement('li');
@@ -92,11 +111,12 @@ export function loadDashboardData(
             : isInv
               ? 'var(--primary-color)'
               : 'var(--danger-color)';
-        const dateStr = movementDateToJsDate(t.date).toLocaleDateString('pt-BR');
-        li.innerHTML = `<span class="recent-activity-icon" aria-hidden="true"><i class="fas ${iconClass}" style="color: ${iconColor};"></i></span><span class="recent-activity-amount"></span><span class="recent-activity-date"></span><span class="recent-activity-desc"></span>`;
+        const dateStr = movementDateToJsDate(t.createdAt ?? t.date).toLocaleDateString('pt-BR');
+        const kindLabel = isGain ? 'Entrada' : isInv ? 'Investimento' : 'Saída';
+        li.innerHTML = `<span class="recent-activity-icon" aria-hidden="true" title="${kindLabel}"><i class="fas ${iconClass}" style="color: ${iconColor};"></i></span><div class="recent-activity-main"><span class="recent-activity-amount"></span><span class="recent-activity-date"></span><span class="recent-activity-desc"></span></div>`;
         li.querySelector('.recent-activity-amount').textContent = formatCurrency(t.amount, userCurrency);
         li.querySelector('.recent-activity-date').textContent = dateStr;
-        li.querySelector('.recent-activity-desc').textContent = t.description || '';
+        li.querySelector('.recent-activity-desc').textContent = t.description || '—';
         recentTransactionsList.appendChild(li);
     });
 

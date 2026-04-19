@@ -4,6 +4,7 @@
  */
 import { query } from './db.js';
 import { computeCashBalanceTotalAsOf } from '../js/core/cash-balance.js';
+import { safeRebuildBalanceLedger } from './balance-ledger.js';
 
 export function computeTotalBalance(accounts, expenses, gains, _investments, userProfile = null) {
     const asOf = new Date();
@@ -61,7 +62,8 @@ export async function upsertBalanceSnapshotForUser(userId) {
                 cash_out_confirmed_periods AS "cashOutConfirmedPeriods",
                 recurring_monthly AS "recurringMonthly",
                 recurrence_group_id AS "recurrenceGroupId",
-                split_request_id AS "splitRequestId"
+                split_request_id AS "splitRequestId",
+                reference_only AS "referenceOnly"
              FROM expenses
              WHERE user_id = $1`,
             [userId]
@@ -78,7 +80,8 @@ export async function upsertBalanceSnapshotForUser(userId) {
                 date,
                 is_paid AS "isPaid",
                 recurrence_group_id AS "recurrenceGroupId",
-                related_expense_id AS "relatedExpenseId"
+                related_expense_id AS "relatedExpenseId",
+                reference_only AS "referenceOnly"
              FROM gains
              WHERE user_id = $1`,
             [userId]
@@ -100,8 +103,8 @@ export async function upsertBalanceSnapshotForUser(userId) {
     ]);
     const user = userRes.rows[0] || null;
     const userAccounts = accRes.rows;
-    const userExpenses = expRes.rows;
-    const userGains = gainRes.rows;
+    const userExpenses = expRes.rows.filter((e) => !e.referenceOnly);
+    const userGains = gainRes.rows.filter((g) => !g.referenceOnly);
     const userInvestments = invRes.rows;
 
     const userProfile = user ? { financePreferences: user.financePreferences } : null;
@@ -115,6 +118,7 @@ export async function upsertBalanceSnapshotForUser(userId) {
          DO UPDATE SET total_balance = EXCLUDED.total_balance, updated_at = now()`,
         [userId, date, total]
     );
+    await safeRebuildBalanceLedger(userId);
 }
 
 export async function safeUpsertBalanceSnapshot(userId) {

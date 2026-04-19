@@ -21,6 +21,7 @@ import { initInvestments, loadInvestmentsData } from '../features/investments/in
 import { initDebts, loadDebtsData } from '../features/debts/debts.js';
 import { initHeaderNotifications, refreshHeaderNotifications } from '../shared/header-notifications.js';
 import { setupGlobalErrorHandlers } from './error-handling.js';
+import { syncPeriodFilterSelectsToCurrentMonth } from '../core/period-filters.js';
 
 // --- Estado Global da Aplicação ---
 let AppState = {
@@ -65,6 +66,10 @@ async function onAuthenticated(user) {
     initUI(user, loadPageData);
     initHeaderNotifications(() => AppState);
 
+    // Antes de carregar o dashboard: o <select> do período ainda está no 1º option (Janeiro).
+    // `initFinance` só sincroniza depois de `refreshAllData`, então o gráfico de saídas lia o mês errado até trocar o tipo de gráfico.
+    syncPeriodFilterSelectsToCurrentMonth();
+
     await refreshAllData();
 
     // Inicializa todos os módulos, passando as funções de que precisam
@@ -88,6 +93,10 @@ async function onAuthenticated(user) {
     if (lastPage === 'reports') {
         lastPage = 'dashboard';
         localStorage.setItem('lastVisitedPage', 'dashboard');
+    }
+    if (lastPage === 'accounts' || lastPage === 'cards') {
+        lastPage = 'wallet';
+        localStorage.setItem('lastVisitedPage', 'wallet');
     }
     if (
         lastPage === 'feedback' ||
@@ -187,7 +196,7 @@ function loadPageData(pageName) {
                 AppState.userProfile,
                 refreshAllData
             );
-            loadReportsData(
+            void loadReportsData(
                 AppState.expenses,
                 AppState.gains,
                 AppState.accounts,
@@ -205,10 +214,8 @@ function loadPageData(pageName) {
         case 'gains':
             loadGainsData(AppState.gains, AppState.accounts, AppState.currency);
             break;
-        case 'accounts':
+        case 'wallet':
             loadAccountsData(AppState.accounts, AppState.currency);
-            break;
-        case 'cards':
             loadCardsData(AppState.accounts, AppState.expenses, AppState.currency);
             break;
         case 'goals':

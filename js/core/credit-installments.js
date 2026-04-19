@@ -10,7 +10,8 @@ import {
     monthKeyFromDate,
     parseCashOutConfirmedPeriods,
     shouldDeferCreditCardCashOut,
-    shouldDeferLoanCashOut
+    shouldDeferLoanCashOut,
+    shouldDeferMonthlyFixedCashOut
 } from './finance-preferences.js';
 
 /** Dia de fechamento/vencimento (1–31). `1` é válido — não usar `!closeDay`, que confundiria com ausência. */
@@ -33,6 +34,20 @@ export function startOfDay(d) {
     const x = new Date(d);
     x.setHours(0, 0, 0, 0);
     return x;
+}
+
+/**
+ * Saída mensal em conta de caixa (não cartão de crédito) sujeita a «confirmar pagamento»:
+ * `recurringMonthly` (um lançamento) ou série «um por mês até dezembro» (`recurrenceGroupId`).
+ * Empréstimos parcelados (≥2) seguem a regra de empréstimo, não esta.
+ */
+export function isMonthlyFixedCashAccountExpense(expense, account) {
+    if (!expense || !account || isCreditCardType(account.type)) return false;
+    const n = Math.max(1, parseInt(String(expense.installmentCount ?? '1'), 10) || 1);
+    if (n >= 2 && isLoanExpense(expense)) return false;
+    if (expense.recurringMonthly === true) return true;
+    const gid = expense.recurrenceGroupId;
+    return gid != null && String(gid).trim() !== '';
 }
 
 /**
@@ -202,9 +217,10 @@ export function countPaidInstallments(dueDates, now = new Date()) {
 }
 
 /**
- * Parcela «paga» para cor/tooltip: com confirmação manual, só após marcar em `cashOutConfirmedPeriods`;
- * cartão parcelado (≥2): só após marcar parcelas ou modo global «confirmar»; à vista no cartão ou sem
- * parcelas: sem confirmação, considera paga quando o vencimento já passou (≤ referência).
+ * Parcela «paga» para o saldo da conta vinculada ao cartão:
+ * - Cartão parcelado (≥2): só após marcar a parcela em `cashOutConfirmedPeriods` (botão «Pagar» na lista).
+ * - Cartão à vista (1x): sem modo manual nas preferências, considera paga quando o vencimento já passou;
+ *   com modo «confirmar saída» ou períodos marcados, só após confirmação explícita.
  */
 export function isInstallmentDuePaidForCashOut(expense, account, dueDate, userProfile, now = new Date()) {
     if (!dueDate || Number.isNaN(dueDate.getTime())) return true;
@@ -212,13 +228,12 @@ export function isInstallmentDuePaidForCashOut(expense, account, dueDate, userPr
     const confirmed = parseCashOutConfirmedPeriods(expense);
 
     if (account && isCreditCardType(account.type)) {
-        const manual = shouldDeferCreditCardCashOut(prefs);
-        const explicit = confirmed.size > 0;
         const n = Math.max(1, parseInt(String(expense.installmentCount ?? '1'), 10) || 1);
         if (n >= 2) {
-            if (manual || explicit) return isPeriodConfirmedForDebit(confirmed, dueDate);
-            return false;
+            return isPeriodConfirmedForDebit(confirmed, dueDate);
         }
+        const manual = shouldDeferCreditCardCashOut(prefs);
+        const explicit = confirmed.size > 0;
         if (manual || explicit) return isPeriodConfirmedForDebit(confirmed, dueDate);
         return startOfDay(dueDate).getTime() <= startOfDay(now).getTime();
     }
@@ -229,6 +244,12 @@ export function isInstallmentDuePaidForCashOut(expense, account, dueDate, userPr
             return isPeriodConfirmedForDebit(confirmed, dueDate);
         }
         return startOfDay(dueDate).getTime() <= startOfDay(now).getTime();
+    }
+    if (
+        isMonthlyFixedCashAccountExpense(expense, account) &&
+        shouldDeferMonthlyFixedCashOut(prefs)
+    ) {
+        return isPeriodConfirmedForDebit(confirmed, dueDate);
     }
     return startOfDay(dueDate).getTime() <= startOfDay(now).getTime();
 }
@@ -258,6 +279,13 @@ export function canConfirmInstallmentPeriodForCashOut(expense, account, dueDate,
         isLoanExpense(expense) &&
         (!account || !isCreditCardType(account.type)) &&
         (shouldDeferLoanCashOut(prefs) || loanRetro)
+    ) {
+        return true;
+    }
+    if (
+        isMonthlyFixedCashAccountExpense(expense, account) &&
+        shouldDeferMonthlyFixedCashOut(prefs) &&
+        dueOk
     ) {
         return true;
     }
@@ -740,13 +768,12 @@ export function creditCardCashOutForCalendarMonth(expense, account, monthKey, no
 
 /**
  * Soma das parcelas já vencidas até `asOf` (saída de caixa efetiva) — para descontar da conta vinculada ao cartão.
- * Cartão parcelado: só entram parcelas consideradas pagas por {@link isInstallmentDuePaidForCashOut} (tags no
- * formulário ou modo global «confirmar pagamento»); à vista segue a mesma regra de «pago» por vencimento.
+ * Parcelas entram conforme {@link isInstallmentDuePaidForCashOut} (parcelado: só períodos confirmados com «Pagar»).
  */
 export function getCreditCardCumulativeCashOutThrough(expense, cardAccount, asOfEndInclusive = new Date(), userProfile = null) {
     if (!cardAccount || !isCreditCardType(cardAccount.type)) return 0;
-    if (expense.isPaid === true) return 0;
-    if (isCreditInstallmentFullyPaid(expense, cardAccount, asOfEndInclusive, userProfile)) return 0;
+    // Não retornar cedo por isPaid / «totalmente pago»: o saldo da conta vinculada deve somar cada parcela
+    // já confirmada (botão Pagar); o loop abaixo já filtra com isInstallmentDuePaidForCashOut.
 
     const closeDay = cardAccount.closeDay ?? cardAccount.closingDay;
     const dueDay = cardAccount.dueDay ?? cardAccount.dueDate;

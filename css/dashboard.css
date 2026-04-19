@@ -33,10 +33,12 @@
     background-color: var(--bg-color);
     color: var(--primary-color);
 }
+.card-icon.balance { color: var(--primary-color); }
 .card-icon.income { color: var(--secondary-color); }
 .card-icon.expense { color: var(--danger-color); }
 .card-icon.savings { color: var(--warning-color); }
 .card-icon.investments { color: var(--primary-color); }
+.card-icon.projection { color: var(--warning-color); }
 
 .card-content h3 {
     font-size: 1rem;
@@ -223,13 +225,18 @@
 }
 
 #recent-activity-list li.recent-activity-item {
-    display: grid;
-    grid-template-columns: 1.25rem minmax(8.75rem, max-content) 6rem minmax(0, 1fr);
-    column-gap: 0.65rem;
-    align-items: center;
-    padding: 0.4rem 0;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 0.65rem;
+    padding: 0.5rem 0;
     line-height: 1.45;
     min-width: 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+#recent-activity-list li.recent-activity-item:last-child {
+    border-bottom: none;
 }
 
 #recent-activity-list li.recent-activity-item .recent-activity-icon {
@@ -239,14 +246,27 @@
     width: 1.25rem;
     flex-shrink: 0;
     font-size: 0.85rem;
+    margin-top: 0.1rem;
+}
+
+/* Bloco único: valor + data + descrição na mesma linha (evita grid no <li> quebrando em coluna em alguns layouts) */
+#recent-activity-list li.recent-activity-item .recent-activity-main {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: baseline;
+    gap: 0.65rem;
+    min-width: 0;
+    flex: 1;
 }
 
 #recent-activity-list li.recent-activity-item .recent-activity-amount {
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
+    flex: 0 0 auto;
     text-align: right;
-    padding-right: 0.15rem;
+    min-width: 5.5rem;
 }
 
 #recent-activity-list li.recent-activity-item .recent-activity-date {
@@ -254,13 +274,34 @@
     color: var(--text-light);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
+    flex: 0 0 auto;
+    width: 5.25rem;
 }
 
 #recent-activity-list li.recent-activity-item .recent-activity-desc {
     min-width: 0;
+    flex: 1 1 auto;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+@media (max-width: 520px) {
+    #recent-activity-list li.recent-activity-item .recent-activity-main {
+        flex-wrap: wrap;
+        row-gap: 0.2rem;
+    }
+    #recent-activity-list li.recent-activity-item .recent-activity-amount {
+        min-width: 0;
+    }
+    #recent-activity-list li.recent-activity-item .recent-activity-desc {
+        flex-basis: 100%;
+        white-space: normal;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
 }
 
 /* --- Tabelas de despesas / ganhos (e legado transações) --- */
@@ -352,6 +393,19 @@
 #expenses-table tr.expense-tr-installment td:first-child {
     border-left: 3px solid rgba(124, 58, 237, 0.4);
     padding-left: calc(1rem - 3px);
+}
+
+/* Descrição + tags de mês (conta fixa / série recorrente com confirmação no caixa) */
+#expenses-table td .expenses-td-desc-with-tags {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+    min-width: 0;
+}
+
+#expenses-table td .expenses-td-desc-with-tags .expense-loan-month-tags--table {
+    margin-top: 0.1rem;
 }
 
 /* Coluna Status: só Pago (verde), Pendente (amarelo), Pagar! (ação) */
@@ -470,6 +524,11 @@
     min-height: 420px;
     max-height: 420px;
     overflow: hidden;
+}
+
+/* Chart.js 4 usa a cor CSS do canvas como fallback da legenda; garante contraste no tema escuro */
+[data-theme='dark'] .dashboard-reports-charts-grid .chart-wrapper canvas {
+    color: #e2e8f0;
 }
 
 /* Sobrescreve accounts.css (#financial-progression-chart min-height) para caber no wrapper */

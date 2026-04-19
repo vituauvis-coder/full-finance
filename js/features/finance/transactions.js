@@ -1,9 +1,6 @@
 import {
     canConfirmInstallmentPeriodForCashOut,
-    creditCardCashOutForCalendarMonth,
-    creditCardForecastForCalendarMonth,
     creditCardInvoiceTotalForCycle,
-    getExpenseRemainingOpenAmount,
     getDueDatesForExpenseListPeriod,
     getParcelNumberInFullSchedule,
     formatExpenseTableStatusBadgeHtml,
@@ -18,6 +15,7 @@ import {
     isCreditInstallmentFullyPaid,
     isInstallmentDuePaidForCashOut,
     isLoanExpense,
+    isMonthlyFixedCashAccountExpense,
     loanInstallmentCashOutForCalendarMonth
 } from '../../core/credit-installments.js';
 import { expenseContributionToCalendarMonth as expenseContributionToCurrentCalendarMonth } from '../../core/expense-calendar-month.js';
@@ -30,6 +28,14 @@ import {
     movementDateToJsDate,
     movementDateToUnixSeconds
 } from '../../core/utils.js';
+import {
+    getDefaultPeriodValue,
+    getMonthKeysInPeriod,
+    getPeriodDateBounds,
+    getPeriodTitleParts,
+    isDefaultPeriodValue,
+    syncPeriodFilterSelectsToCurrentMonth
+} from '../../core/period-filters.js';
 import { populateExpenseCategorySelect, populateExpenseSubcategorySelect, setupExpenseCategoryUi } from './expense-categories.js';
 import { populateGainCategorySelect, setupGainCategoryUi } from './gain-categories.js';
 import { setupFilterDrawer, closeFilterDrawer } from '../../shared/filter-drawer.js';
@@ -58,7 +64,14 @@ import {
     sortGainRows,
     sortCardPurchaseRows
 } from '../../shared/table-sort.js';
-import { calendarDayKeyFromDate, monthKeyFromDate } from '../../core/finance-preferences.js';
+import {
+    calendarDayKeyFromDate,
+    getFinancePreferences,
+    isPeriodConfirmedForDebit,
+    monthKeyFromDate,
+    parseCashOutConfirmedPeriods,
+    shouldDeferMonthlyFixedCashOut
+} from '../../core/finance-preferences.js';
 
 function escapeHtml(text) {
     const d = document.createElement('div');
@@ -71,6 +84,53 @@ function htmlAttrEscape(text) {
         .replace(/&/g, '&amp;')
         .replace(/"/g, '&quot;')
         .replace(/</g, '&lt;');
+}
+
+/** Série mensal em conta de caixa + preferência «conta fixa» — mesma lógica do saldo e do painel de pendentes. */
+function expenseUsesMonthlyFixedCashListUi(t, account, userProfile) {
+    if (!account) return false;
+    const prefs = getFinancePreferences(userProfile);
+    return shouldDeferMonthlyFixedCashOut(prefs) && isMonthlyFixedCashAccountExpense(t, account);
+}
+
+function formatMonthlyFixedCashListStatusHtml(t, account, userProfile, now) {
+    const d = movementDateToJsDate(t.date);
+    const confirmed = parseCashOutConfirmedPeriods(t);
+    if (isPeriodConfirmedForDebit(confirmed, d)) {
+        return '<span class="expense-status-badge expense-status-badge--paid">Pago</span>';
+    }
+    if (
+        canConfirmInstallmentPeriodForCashOut(t, account, d, userProfile, now)
+    ) {
+        const eid = escapeHtml(String(t.id));
+        const pkEsc = escapeHtml(monthKeyFromDate(d));
+        return `<button type="button" class="expense-status-badge expense-status-badge--pay expense-inst-confirm-btn" data-expense-id="${eid}" data-period-key="${pkEsc}" title="Registrar pagamento no caixa">Pagar</button>`;
+    }
+    return '<span class="expense-status-badge expense-status-badge--pending">Pendente</span>';
+}
+
+/** Tag do mês (competência) na coluna Descrição — clique confirma no saldo (chave YYYY-MM). */
+function buildMonthlyFixedCashRowTagsHtml(t, userProfile, now) {
+    const d = movementDateToJsDate(t.date);
+    const confirmed = parseCashOutConfirmedPeriods(t);
+    const paid = isPeriodConfirmedForDebit(confirmed, d);
+    const lab = formatLoanMonthTagLabel(d);
+    const pk = monthKeyFromDate(d);
+    const nowMk = monthKeyFromDate(now);
+    const dueMk = monthKeyFromDate(d);
+    const unpaidDueOrPast = !paid && dueMk <= nowMk;
+    let cls = 'expense-loan-month-tag';
+    if (paid) cls += ' expense-loan-month-tag--paid';
+    else {
+        cls += ' expense-loan-month-tag--pending';
+        if (unpaidDueOrPast) cls += ' expense-loan-month-tag--current';
+    }
+    if (paid) {
+        return `<div class="expense-loan-month-tags expense-loan-month-tags--table" role="group" aria-label="Competência no caixa"><span class="${cls}" title="Pago no saldo">${escapeHtml(lab)}</span></div>`;
+    }
+    const eid = escapeHtml(String(t.id));
+    const pkEsc = escapeHtml(pk);
+    return `<div class="expense-loan-month-tags expense-loan-month-tags--table" role="group" aria-label="Competência no caixa"><button type="button" class="${cls} expense-inst-confirm-btn" data-expense-id="${eid}" data-period-key="${pkEsc}" title="Confirmar pagamento no saldo">${escapeHtml(lab)}</button></div>`;
 }
 
 /** Tooltip do ↻ na coluna Valor — saídas (linha principal). */
@@ -245,42 +305,16 @@ let cardPurchasesCache = { sorted: [], currency: 'BRL', userProfile: null };
 /** Texto do filtro do modal de compras (sincronizado com o input). */
 let cardPurchasesFilterQ = '';
 
-const expensesFilterState = { q: '', category: '', accountId: '', period: 'current-month' };
-const gainsFilterState = { q: '', category: '', accountId: '', period: 'current-month' };
+const expensesFilterState = { q: '', category: '', accountId: '', period: getDefaultPeriodValue() };
+const gainsFilterState = { q: '', category: '', accountId: '', period: getDefaultPeriodValue() };
 
 /** Mesmos intervalos do relatório por período — lista de saídas/entradas. */
 function getMovementListPeriodBounds(period) {
-    const now = new Date();
-    let startDate = new Date();
-    let endDate = new Date();
-    switch (period) {
-        case 'current-month':
-            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-            endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-            break;
-        case 'last-month':
-            startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-            endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
-            break;
-        case 'current-year':
-            startDate = new Date(now.getFullYear(), 0, 1);
-            endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
-            break;
-        case 'last-3-months':
-            startDate = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
-            break;
-        case 'last-6-months':
-            startDate = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
-            break;
-        default:
-            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-            endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-    }
-    return { startDate, endDate };
+    return getPeriodDateBounds(period || getDefaultPeriodValue(), new Date());
 }
 
 function movementDateInListPeriod(dateField, period) {
-    const p = period || 'current-month';
+    const p = period || getDefaultPeriodValue();
     const { startDate, endDate } = getMovementListPeriodBounds(p);
     const transactionDate = movementDateToJsDate(dateField);
     return transactionDate >= startDate && transactionDate <= endDate;
@@ -317,31 +351,30 @@ function expenseMatchesListPeriod(t, period) {
 
 /** Intervalo do filtro «Período» da lista de despesas — usado para mostrar só parcelas desse recorte. */
 function getExpensesFilterListPeriod() {
-    const period = expensesFilterState.period || 'current-month';
+    const period = expensesFilterState.period || getDefaultPeriodValue();
     const { startDate, endDate } = getMovementListPeriodBounds(period);
     return { startDate, endDate };
 }
 
-/** Só em «este mês»: anel + tooltip com a parcela do mês. */
+/** Só no mês civil atual (filtro padrão month-N = hoje): anel + tooltip com a parcela do mês. */
 function isExpensesInstallmentMonthRingMode() {
-    return (expensesFilterState.period || 'current-month') === 'current-month';
+    return isDefaultPeriodValue(expensesFilterState.period || getDefaultPeriodValue());
 }
 
 /**
- * Pílulas na lista: «este ano» = todas as parcelas do contrato (null);
+ * Pílulas na lista: ano cheio = todas as parcelas do contrato (null);
  * demais períodos amplos = só vencimentos dentro do intervalo do filtro.
  */
 function getExpensesInstallmentListPeriodForPills() {
-    const period = expensesFilterState.period || 'current-month';
-    if (period === 'current-year') return null;
+    const period = expensesFilterState.period || getDefaultPeriodValue();
+    if (period === 'current-year' || period === 'last-year') return null;
     return getExpensesFilterListPeriod();
 }
 
 /** Texto de busca alinhado à mesma lógica das pílulas / anel. */
 function getExpensesInstallmentListPeriodForPlainText() {
-    const period = expensesFilterState.period || 'current-month';
-    if (period === 'current-month') return getExpensesFilterListPeriod();
-    if (period === 'current-year') return null;
+    const period = expensesFilterState.period || getDefaultPeriodValue();
+    if (period === 'current-year' || period === 'last-year') return null;
     return getExpensesFilterListPeriod();
 }
 
@@ -809,15 +842,6 @@ async function handleSplitIncomingReject(splitId) {
     }
 }
 
-/** Saldo inicial da conta: vazio conta como 0 (permite saldo zero sem ambiguidade com `|| 0`). */
-function parseInitialBalanceInput(value) {
-    if (value == null) return 0;
-    const s = String(value).trim();
-    if (s === '') return 0;
-    const n = parseFloat(s.replace(',', '.'));
-    return Number.isFinite(n) ? n : NaN;
-}
-
 /** Hoje no fuso local (`YYYY-MM-DD`) para `<input type="date">` — evita deslocar o dia com `toISOString()` (UTC). */
 function getTodayDateInputValue() {
     const d = new Date();
@@ -870,6 +894,10 @@ export function initFinance(
     currentUser = user;
     syncFinanceState(accounts, expenses, gains, userProfile, expenseSplitRequests);
     onUpdateCallback = onUpdate;
+    if (!initFinance._didSyncPeriodFilters) {
+        syncPeriodFilterSelectsToCurrentMonth();
+        initFinance._didSyncPeriodFilters = true;
+    }
     cacheAccountTypeOptionsIfNeeded();
     setupExpenseCategoryUi();
     setupGainCategoryUi();
@@ -1083,8 +1111,6 @@ function setCardLinkedHint(type) {
 
 function toggleCreditCardFields(type) {
     const creditCardFields = document.getElementById('credit-card-fields');
-    const initialBalanceGroup = document.getElementById('initial-balance-group');
-    const initialInput = document.getElementById('account-initial-balance');
     const cardLimit = document.getElementById('card-limit');
     const cardClose = document.getElementById('card-closing-day');
     const cardDue = document.getElementById('card-due-day');
@@ -1118,8 +1144,6 @@ function toggleCreditCardFields(type) {
 
     if (type === 'cartao_credito') {
         creditCardFields.classList.remove('hidden');
-        initialBalanceGroup.classList.add('hidden');
-        initialInput?.removeAttribute('required');
         cardLimit?.setAttribute('required', 'required');
         cardClose?.setAttribute('required', 'required');
         cardDue?.setAttribute('required', 'required');
@@ -1129,8 +1153,6 @@ function toggleCreditCardFields(type) {
         setCardLinkedHint(type);
     } else if (type === 'cartao_debito') {
         creditCardFields.classList.add('hidden');
-        initialBalanceGroup.classList.add('hidden');
-        initialInput?.removeAttribute('required');
         cardLimit?.removeAttribute('required');
         cardClose?.removeAttribute('required');
         cardDue?.removeAttribute('required');
@@ -1140,8 +1162,6 @@ function toggleCreditCardFields(type) {
         setCardLinkedHint(type);
     } else {
         creditCardFields.classList.add('hidden');
-        initialBalanceGroup.classList.remove('hidden');
-        initialInput?.setAttribute('required', 'required');
         cardLimit?.removeAttribute('required');
         cardClose?.removeAttribute('required');
         cardDue?.removeAttribute('required');
@@ -1156,7 +1176,7 @@ function readExpensesFilterFromDom() {
     expensesFilterState.category = document.getElementById('expenses-filter-category')?.value || '';
     expensesFilterState.accountId = document.getElementById('expenses-filter-account')?.value || '';
     expensesFilterState.period =
-        document.getElementById('expenses-period-filter')?.value || 'current-month';
+        document.getElementById('expenses-period-filter')?.value || getDefaultPeriodValue();
 }
 
 function sumMovementAmounts(list) {
@@ -1289,39 +1309,16 @@ function expenseContributionPaidThroughMonthKey(t, acc, monthKey, cutoffEndInclu
     return amt;
 }
 
-function periodLabelParts(period, now = new Date()) {
-    const mLong = (d) => d.toLocaleDateString('pt-BR', { month: 'long' });
-    const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
-    if (period === 'current-year') return { kind: 'year', label: String(now.getFullYear()) };
-    if (period === 'current-month') return { kind: 'month', label: cap(mLong(now)) };
-    if (period === 'last-month') {
-        const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        return { kind: 'month', label: cap(mLong(d)) };
-    }
-    return { kind: 'range', label: 'Período selecionado' };
-}
-
 function updateExpensesSummaryCards() {
     const cache = expensesRenderCache;
     if (!cache?.sorted) return;
     const { sorted, currency, userProfile } = cache;
     const now = new Date();
-    const period = expensesFilterState?.period || 'current-month';
+    const period = expensesFilterState?.period || getDefaultPeriodValue();
 
     // Determina quais meses entram pelo filtro («este ano» = jan–dez; meses futuros no ano ainda sem caixa = 0)
     const currentMonthKey = monthKeyFromDateObj(now);
-    let months = [];
-    if (period === 'current-year') {
-        const y = now.getFullYear();
-        for (let m = 0; m < 12; m++) {
-            months.push(`${y}-${String(m + 1).padStart(2, '0')}`);
-        }
-    } else if (period === 'last-month') {
-        const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        months = [monthKeyFromDateObj(d)];
-    } else {
-        months = [monthKeyFromDateObj(now)];
-    }
+    let months = getMonthKeysInPeriod(period, now);
 
     // Total do período (soma de contribuições por mês)
     let totalPeriod = 0;
@@ -1385,7 +1382,7 @@ function updateExpensesSummaryCards() {
     if (elMonth) elMonth.textContent = formatCurrency(totalPeriod, currency);
     const elMonthIcon = document.getElementById('expenses-summary-month-icon');
     if (elMonthIcon) {
-        const p = periodLabelParts(period, now);
+        const p = getPeriodTitleParts(period, now);
         if (p.kind === 'month') {
             elMonthIcon.title = `Cartão/empréstimo: parcelas com vencimento em ${p.label}; demais saídas pela data do lançamento`;
         } else if (p.kind === 'year') {
@@ -1396,7 +1393,7 @@ function updateExpensesSummaryCards() {
     }
 
     // Atualiza títulos (h3) conforme o período
-    const t = periodLabelParts(period, now);
+    const t = getPeriodTitleParts(period, now);
     const elMonthTitle = document.getElementById('expenses-summary-month-title');
     const elTopTitle = document.getElementById('expenses-summary-top-cat-title');
     if (t.kind === 'year') {
@@ -1406,8 +1403,8 @@ function updateExpensesSummaryCards() {
         if (elMonthTitle) elMonthTitle.textContent = `Saídas de ${t.label}`;
         if (elTopTitle) elTopTitle.textContent = `Principal categoria de ${t.label}`;
     } else {
-        if (elMonthTitle) elMonthTitle.textContent = 'Saídas no período';
-        if (elTopTitle) elTopTitle.textContent = 'Principal categoria do período';
+        if (elMonthTitle) elMonthTitle.textContent = `Saídas · ${t.label}`;
+        if (elTopTitle) elTopTitle.textContent = `Principal categoria · ${t.label}`;
     }
     syncExpensesFilterButtonHighlight();
 }
@@ -1418,7 +1415,7 @@ function updateGainsSummaryCards() {
     readGainsFilterFromDom();
     const { sorted, currency } = cache;
     const now = new Date();
-    const period = gainsFilterState.period || 'current-month';
+    const period = gainsFilterState.period || getDefaultPeriodValue();
 
     const inPeriod = sorted.filter((t) => movementDateInListPeriod(t.date, period));
     const totalPeriod = sumMovementAmounts(inPeriod);
@@ -1462,7 +1459,7 @@ function updateGainsSummaryCards() {
             topCatAmt > 0 && topCat ? topCat : 'Nenhuma entrada no período do filtro';
     }
 
-    const p = periodLabelParts(period, now);
+    const p = getPeriodTitleParts(period, now);
     const elYearTitle = document.getElementById('gains-summary-year-title');
     const elMonthTitle = document.getElementById('gains-summary-month-title');
     const elTopTitle = document.getElementById('gains-summary-top-cat-title');
@@ -1484,32 +1481,24 @@ function updateGainsSummaryCards() {
                     ? `Entradas com data em ${labelMonth} ${yPart}`
                     : 'Mês calendário atual';
         }
-    } else if (period === 'last-month') {
-        const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
-        const lab = cap(d.toLocaleDateString('pt-BR', { month: 'long' }));
-        if (elYearTitle) elYearTitle.textContent = `Entradas de ${lab}`;
-        if (elMonthTitle) elMonthTitle.textContent = `Entradas de ${lab}`;
-        if (elTopTitle) elTopTitle.textContent = `Principal categoria em ${lab}`;
-        if (elYearIcon) elYearIcon.title = 'Total no período selecionado (mês passado)';
+    } else if (p.kind === 'year') {
+        if (elYearTitle) elYearTitle.textContent = `Entradas de ${p.label}`;
+        if (elMonthTitle) elMonthTitle.textContent = `Entradas de ${p.label}`;
+        if (elTopTitle) elTopTitle.textContent = `Principal categoria em ${p.label}`;
+        if (elYearIcon) elYearIcon.title = 'Total no período selecionado (ano calendário completo)';
+        if (elMonthIcon) elMonthIcon.title = 'Mesmo total do período';
+    } else if (p.kind === 'month') {
+        if (elYearTitle) elYearTitle.textContent = `Entradas de ${p.label}`;
+        if (elMonthTitle) elMonthTitle.textContent = `Entradas de ${p.label}`;
+        if (elTopTitle) elTopTitle.textContent = `Principal categoria em ${p.label}`;
+        if (elYearIcon) elYearIcon.title = 'Entradas com data no período do filtro';
         if (elMonthIcon) elMonthIcon.title = 'Mesmo total do período';
     } else {
-        if (elYearTitle) elYearTitle.textContent = `Entradas de ${p.kind === 'month' ? p.label : '—'}`;
-        if (elMonthTitle) elMonthTitle.textContent = `Entradas de ${p.kind === 'month' ? p.label : '—'}`;
-        if (elTopTitle) elTopTitle.textContent = `Principal categoria em ${p.kind === 'month' ? p.label : '—'}`;
-        if (elYearIcon) {
-            elYearIcon.title = 'Entradas com data no mês do filtro (este mês)';
-        }
-        if (elMonthIcon) {
-            const parts = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).formatToParts(now);
-            const monthName = parts.find((x) => x.type === 'month')?.value || '';
-            const yPart = parts.find((x) => x.type === 'year')?.value || '';
-            const labelMonth = monthName ? monthName.charAt(0).toUpperCase() + monthName.slice(1) : '';
-            elMonthIcon.title =
-                labelMonth && yPart
-                    ? `Entradas com data em ${labelMonth} ${yPart}`
-                    : 'Soma das entradas no mês calendário atual';
-        }
+        if (elYearTitle) elYearTitle.textContent = `Entradas · ${p.label}`;
+        if (elMonthTitle) elMonthTitle.textContent = `Entradas · ${p.label}`;
+        if (elTopTitle) elTopTitle.textContent = `Principal categoria · ${p.label}`;
+        if (elYearIcon) elYearIcon.title = 'Entradas com data no intervalo selecionado';
+        if (elMonthIcon) elMonthIcon.title = 'Mesmo total do período';
     }
 
     syncGainsFilterButtonHighlight();
@@ -1521,7 +1510,7 @@ function syncExpensesFilterButtonHighlight() {
         Boolean(expensesFilterState.q?.trim()) ||
         Boolean(expensesFilterState.category) ||
         Boolean(expensesFilterState.accountId) ||
-        (expensesFilterState.period && expensesFilterState.period !== 'current-month');
+        (expensesFilterState.period && !isDefaultPeriodValue(expensesFilterState.period));
     document.getElementById('expenses-filter-open-btn')?.classList.toggle('filter-drawer-trigger--active', active);
 }
 
@@ -1531,7 +1520,7 @@ function syncGainsFilterButtonHighlight() {
         Boolean(gainsFilterState.q?.trim()) ||
         Boolean(gainsFilterState.category) ||
         Boolean(gainsFilterState.accountId) ||
-        (gainsFilterState.period && gainsFilterState.period !== 'current-month');
+        (gainsFilterState.period && !isDefaultPeriodValue(gainsFilterState.period));
     document.getElementById('gains-filter-open-btn')?.classList.toggle('filter-drawer-trigger--active', active);
 }
 
@@ -1594,7 +1583,7 @@ function populateExpenseFilterSelects() {
     if (!catSel || !accSel) return;
     const prevCat = catSel.value;
     const prevAcc = accSel.value;
-    const period = expensesFilterState.period || 'current-month';
+    const period = expensesFilterState.period || getDefaultPeriodValue();
     const inPeriod = sorted.filter((t) => expenseMatchesListPeriod(t, period));
     const cats = [
         ...new Set(inPeriod.map((t) => {
@@ -1712,7 +1701,9 @@ function renderExpensesBodySlice() {
             (isLoanExpense(t) && (!account || !isCreditCardType(account.type)) && Number.isFinite(nParc) && nParc >= 2);
 
         let statusCell;
-        if (
+        if (expenseUsesMonthlyFixedCashListUi(t, account, userProfile)) {
+            statusCell = formatMonthlyFixedCashListStatusHtml(t, account, userProfile, now);
+        } else if (
             monthRing &&
             (cardOrLoanInstallment || (Number.isFinite(nParc) && nParc >= 2))
         ) {
@@ -1734,9 +1725,15 @@ function renderExpensesBodySlice() {
         const amountHtml = recMeta.show
             ? `<span class="movement-amount-with-rec-inner">${recBadge}${formatCurrency(displayAmt, currency)}</span>`
             : formatCurrency(displayAmt, currency);
+        const descTags = expenseUsesMonthlyFixedCashListUi(t, account, userProfile)
+            ? buildMonthlyFixedCashRowTagsHtml(t, userProfile, now)
+            : '';
+        const descCell = descTags
+            ? `<div class="expenses-td-desc-with-tags"><span class="expenses-td-desc-text">${escapeHtml(t.description)}</span>${descTags}</div>`
+            : escapeHtml(t.description);
         tr.innerHTML = `
             <td>${movementDateToJsDate(t.date).toLocaleDateString('pt-BR')}</td>
-            <td>${escapeHtml(t.description)}</td>
+            <td>${descCell}</td>
             <td>${escapeHtml(categoryDisplay)}</td>
             <td>${escapeHtml(account?.name || 'N/A')}</td>
             <td class="${rowCls}"${amountTitle}>${amountHtml}</td>
@@ -1782,7 +1779,7 @@ function readGainsFilterFromDom() {
     gainsFilterState.q = document.getElementById('gains-filter-q')?.value || '';
     gainsFilterState.category = document.getElementById('gains-filter-category')?.value || '';
     gainsFilterState.accountId = document.getElementById('gains-filter-account')?.value || '';
-    gainsFilterState.period = document.getElementById('gains-period-filter')?.value || 'current-month';
+    gainsFilterState.period = document.getElementById('gains-period-filter')?.value || getDefaultPeriodValue();
 }
 
 function getFilteredGainsList() {
@@ -1836,7 +1833,7 @@ function populateGainFilterSelects() {
     if (!catSel || !accSel) return;
     const prevCat = catSel.value;
     const prevAcc = accSel.value;
-    const period = gainsFilterState.period || 'current-month';
+    const period = gainsFilterState.period || getDefaultPeriodValue();
     const inPeriod = sorted.filter((t) => movementDateInListPeriod(t.date, period));
     const cats = [
         ...new Set(inPeriod.map((t) => {
@@ -1978,7 +1975,7 @@ function setupTransactionTableFilters() {
         if (q) q.value = '';
         if (c) c.value = '';
         if (a) a.value = '';
-        if (p) p.value = 'current-month';
+        if (p) p.value = getDefaultPeriodValue();
         applyExpensesFilters();
         closeFilterDrawer('expenses-filter-drawer');
     });
@@ -1998,7 +1995,7 @@ function setupTransactionTableFilters() {
         if (q) q.value = '';
         if (c) c.value = '';
         if (a) a.value = '';
-        if (p) p.value = 'current-month';
+        if (p) p.value = getDefaultPeriodValue();
         applyGainsFilters();
         closeFilterDrawer('gains-filter-drawer');
     });
@@ -3133,6 +3130,50 @@ function accountTypeVisualKey(type) {
     return 'out';
 }
 
+/** Normaliza o nome da conta para combinar tema visual de banco (acentos, caixa). */
+function normalizeAccountNameForBankTheme(name) {
+    return String(name || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/\p{M}/gu, '');
+}
+
+/**
+ * Se o nome corresponder a um banco conhecido, retorna a classe `account-card--bank-*`
+ * (a ordem das regras evita ambiguidade entre nomes parecidos).
+ */
+function resolveBankThemeClass(name) {
+    const s = normalizeAccountNameForBankTheme(name);
+    if (!s.trim()) return '';
+    const rules = [
+        ['account-card--bank-caixa', () => s.includes('caixa economica') || s.includes('cef') || (s.includes('caixa') && s.includes('federal'))],
+        ['account-card--bank-bb', () => s.includes('banco do brasil') || /\bbb\b/.test(s)],
+        ['account-card--bank-mercado-pago', () => s.includes('mercado pago') || s.includes('mercadopago')],
+        [
+            'account-card--bank-inter',
+            () =>
+                s.includes('banco inter') ||
+                s === 'inter' ||
+                /^inter\s/.test(s) ||
+                s.endsWith(' inter')
+        ],
+        ['account-card--bank-picpay', () => s.includes('picpay')],
+        ['account-card--bank-pagbank', () => s.includes('pagbank') || s.includes('pag bank')],
+        ['account-card--bank-c6', () => /\bc6\b/.test(s)],
+        ['account-card--bank-santander', () => s.includes('santander')],
+        ['account-card--bank-bradesco', () => s.includes('bradesco')],
+        ['account-card--bank-nubank', () => s.includes('nubank')],
+        ['account-card--bank-itau', () => s.includes('itau')],
+        ['account-card--bank-pan', () => s.includes('banco pan') || s.includes('bancopan')],
+        ['account-card--bank-neon', () => s.includes('neon')],
+        ['account-card--bank-riachuelo', () => s.includes('riachuelo')]
+    ];
+    for (const [cls, test] of rules) {
+        if (test()) return cls;
+    }
+    return '';
+}
+
 // --- LÓGICA DE CONTAS E CARTÕES ---
 export function loadAccountsData(accounts, currency) {
     const list = document.getElementById('accounts-list');
@@ -3144,16 +3185,17 @@ export function loadAccountsData(accounts, currency) {
             <div class="accounts-empty-state">
                 <div class="accounts-empty-state__icon" aria-hidden="true"><i class="fas fa-wallet"></i></div>
                 <p class="accounts-empty-state__title">Nenhuma conta cadastrada</p>
-                <p class="accounts-empty-state__text">Use <strong>Nova Conta</strong> para corrente, poupança, investimento
-                    ou outras contas — os cartões ficam na página <strong>Cartões</strong>.</p>
+                <p class="accounts-empty-state__text">Use <strong>Nova conta</strong> para corrente, poupança, investimento
+                    ou outras contas — os cartões ficam na secção <strong>Cartões</strong> abaixo.</p>
             </div>`;
         return;
     }
     rows.forEach((acc, index) => {
         const article = document.createElement('article');
-        const tint = index % 5;
         const tipo = accountTypeVisualKey(acc.type);
-        article.className = `account-card account-card--landscape account-card--tipo-${tipo} account-card--tint-${tint}`;
+        const bankClass = resolveBankThemeClass(acc.name);
+        const tint = bankClass ? '' : ` account-card--tint-${index % 5}`;
+        article.className = `account-card account-card--landscape account-card--tipo-${tipo}${bankClass ? ` ${bankClass}` : ''}${tint}`;
         const nameSafe = escapeHtml(acc.name);
         const holderRaw = acc.holderName != null && String(acc.holderName).trim() !== '' ? String(acc.holderName).trim() : '';
         const holderBlock = holderRaw
@@ -3191,10 +3233,6 @@ export function loadAccountsData(accounts, currency) {
             <div class="account-card__body">
                 <h3 class="account-card__title">${nameSafe}</h3>
                 ${holderBlock}
-                <div class="account-card__balance-block">
-                    <span class="account-card__balance-label">Saldo</span>
-                    <span class="account-card__balance">${formatCurrency(acc.currentBalance, currency)}</span>
-                </div>
             </div>`;
         list.appendChild(article);
     });
@@ -3205,8 +3243,6 @@ function openNewAccountModal() {
     setAccountTypeSelectMode('full');
     form.reset();
     form['account-id'].value = '';
-    const bal = document.getElementById('account-initial-balance');
-    if (bal) bal.value = '0';
     document.getElementById('account-modal-title').textContent = 'Nova Conta';
     toggleCreditCardFields(form['account-type'].value);
     openModal('account-modal');
@@ -3217,7 +3253,7 @@ function openNewCreditCardModal() {
     if (bankCount === 0) {
         showToast(
             'Conta necessária',
-            'Cadastre pelo menos uma conta em Contas antes de criar um cartão vinculado.',
+            'Cadastre pelo menos uma conta na secção Contas desta página antes de criar um cartão vinculado.',
             'warning'
         );
         return;
@@ -3257,10 +3293,6 @@ function fillAndOpenAccountForm(acc) {
         form['card-limit'].value = acc.limit != null ? acc.limit : '';
         form['card-closing-day'].value = acc.closeDay != null ? acc.closeDay : '';
         form['card-due-day'].value = acc.dueDay != null ? acc.dueDay : '';
-    } else if (acc.type === 'cartao_debito') {
-        form['account-initial-balance'].value = '';
-    } else {
-        form['account-initial-balance'].value = acc.initialBalance != null ? acc.initialBalance : '';
     }
     document.getElementById('account-modal-title').textContent = isCardAccountType(acc.type)
         ? 'Editar cartão'
@@ -3284,13 +3316,8 @@ async function handleAccountFormSubmit(e) {
         type: type
     };
 
-    if (type !== 'cartao_credito' && type !== 'cartao_debito') {
-        const initialBalance = parseInitialBalanceInput(form['account-initial-balance'].value);
-        if (!Number.isFinite(initialBalance)) {
-            showMessage('account-message', 'Informe um saldo inicial válido (use 0 para saldo zero).', 'error');
-            return;
-        }
-        data.initialBalance = initialBalance;
+    if (type !== 'cartao_credito' && type !== 'cartao_debito' && !id) {
+        data.initialBalance = 0;
     }
 
     const holderTrim = (form['card-holder-name']?.value || '').trim();
@@ -3688,99 +3715,6 @@ function handleCardPurchasesModalActions(e) {
     handleCardButtonActions(e);
 }
 
-function updateCardsPageSummary(accounts, expenses, currency, userProfile = null) {
-    const cur = currency || 'BRL';
-    const allCardAccounts = (accounts || []).filter((a) => isCardAccountType(a.type));
-    const totalCards = allCardAccounts.length;
-    const now = new Date();
-
-    const sumCardMonth = (year, monthIndex, monthKey) => {
-        let sum = 0;
-        (expenses || []).forEach((e) => {
-            const acc = (accounts || []).find((a) => a.id === e.accountId);
-            if (!acc || !isCardAccountType(acc.type)) return;
-            if (isCreditCardType(acc.type)) {
-                sum += creditCardCashOutForCalendarMonth(e, acc, monthKey, now, userProfile);
-            } else {
-                const d = movementDateToJsDate(e.date);
-                if (d.getFullYear() === year && d.getMonth() === monthIndex) {
-                    sum += Number(e.amount) || 0;
-                }
-            }
-        });
-        return sum;
-    };
-
-    /** Próximo mês: crédito usa previsão (parcelas com vencimento naquele mês), não só caixa já pago. */
-    const sumCardMonthForecast = (year, monthIndex, monthKey) => {
-        let sum = 0;
-        (expenses || []).forEach((e) => {
-            const acc = (accounts || []).find((a) => a.id === e.accountId);
-            if (!acc || !isCardAccountType(acc.type)) return;
-            if (isCreditCardType(acc.type)) {
-                sum += creditCardForecastForCalendarMonth(e, acc, monthKey, now);
-            } else {
-                const d = movementDateToJsDate(e.date);
-                if (d.getFullYear() === year && d.getMonth() === monthIndex) {
-                    sum += Number(e.amount) || 0;
-                }
-            }
-        });
-        return sum;
-    };
-
-    let parceladoAberto = 0;
-    (expenses || []).forEach((e) => {
-        const acc = (accounts || []).find((a) => a.id === e.accountId);
-        if (!acc || !isCardAccountType(acc.type)) return;
-        parceladoAberto += getExpenseRemainingOpenAmount(e, acc, now, financeUserProfile);
-    });
-
-    const y = now.getFullYear();
-    const mo = now.getMonth();
-    const monthKey = `${y}-${String(mo + 1).padStart(2, '0')}`;
-    const currentMonthTotal = sumCardMonth(y, mo, monthKey);
-
-    const nextRef = new Date(y, mo + 1, 1);
-    const nextY = nextRef.getFullYear();
-    const nextMo = nextRef.getMonth();
-    const nextMonthKey = `${nextY}-${String(nextMo + 1).padStart(2, '0')}`;
-    const nextMonthTotal = sumCardMonthForecast(nextY, nextMo, nextMonthKey);
-
-    const elOpen = document.getElementById('cards-summary-open-installments');
-    if (elOpen) {
-        elOpen.textContent = totalCards === 0 ? '—' : formatCurrency(parceladoAberto, cur);
-    }
-
-    const elCur = document.getElementById('cards-summary-current-month');
-    const elCurLabel = document.getElementById('cards-summary-current-label');
-    if (elCur) {
-        elCur.textContent = totalCards === 0 ? '—' : formatCurrency(currentMonthTotal, cur);
-    }
-    if (elCurLabel) {
-        const parts = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).formatToParts(now);
-        const monthName = parts.find((p) => p.type === 'month')?.value || '';
-        const year = parts.find((p) => p.type === 'year')?.value || '';
-        const labelMonth = monthName ? monthName.charAt(0).toUpperCase() + monthName.slice(1) : '';
-        elCurLabel.textContent =
-            labelMonth && year ? `Total em ${labelMonth} ${year}` : 'Total no mês atual';
-    }
-
-    const elNext = document.getElementById('cards-summary-next-month');
-    const elNextLabel = document.getElementById('cards-summary-next-label');
-    if (elNext) {
-        elNext.textContent = totalCards === 0 ? '—' : formatCurrency(nextMonthTotal, cur);
-    }
-    if (elNextLabel) {
-        const nextParts = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).formatToParts(nextRef);
-        const nm = nextParts.find((p) => p.type === 'month')?.value || '';
-        const ny = nextParts.find((p) => p.type === 'year')?.value || '';
-        const labelNext = nm ? nm.charAt(0).toUpperCase() + nm.slice(1) : '';
-        elNextLabel.textContent =
-            labelNext && ny ? `Total em ${labelNext} ${ny}` : 'Total no próximo mês';
-    }
-}
-
 function buildCreditCardArticleElement(card, index, expenses, currency) {
     const cardElement = document.createElement('article');
     cardElement.className = 'credit-card-card credit-card-card--interactive';
@@ -3840,11 +3774,7 @@ function buildCreditCardArticleElement(card, index, expenses, currency) {
             })
             .reduce((sum, t) => sum + t.amount, 0);
         statsBlock = `
-                <div class="credit-card-plastic__stats">
-                    <div class="credit-card-plastic__stat">
-                        <span class="credit-card-plastic__stat-lbl">Saldo da conta</span>
-                        <span class="credit-card-plastic__stat-val">${formatCurrency(card.currentBalance ?? 0, currency)}</span>
-                    </div>
+                <div class="credit-card-plastic__stats credit-card-plastic__stats--single">
                     <div class="credit-card-plastic__stat">
                         <span class="credit-card-plastic__stat-lbl">Gastos no mês</span>
                         <span class="credit-card-plastic__stat-val credit-card-plastic__stat-val--bill">${formatCurrency(monthSpend, currency)}</span>
@@ -3877,7 +3807,6 @@ function buildCreditCardArticleElement(card, index, expenses, currency) {
 
 export function loadCardsData(accounts, expenses, currency) {
     lastCardsPageCurrency = currency || 'BRL';
-    updateCardsPageSummary(accounts, expenses, lastCardsPageCurrency, financeUserProfile);
     const list = document.getElementById('credit-cards-list');
     if (!list) return;
     const cards = (accounts || []).filter((acc) => isCardAccountType(acc.type));

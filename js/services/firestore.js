@@ -148,6 +148,20 @@ export async function fetchBalanceSnapshots(days = 365) {
     return api(`/api/balance-snapshots?days=${encodeURIComponent(d)}`);
 }
 
+/**
+ * Saldo total (contas de caixa) no fim do período — último estado oficial no intervalo (servidor / ledger).
+ */
+export async function fetchDashboardPeriodBalance(startDate, endDate) {
+    const from = startDate instanceof Date ? startDate.toISOString() : String(startDate);
+    const to = endDate instanceof Date ? endDate.toISOString() : String(endDate);
+    const r = await api(
+        `/api/dashboard/balance?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
+    );
+    if (r == null || r.balance == null) return null;
+    const n = Number(r.balance);
+    return Number.isFinite(n) ? n : null;
+}
+
 /** Rateio de despesas entre usuários */
 export async function lookupUserByEmail(email) {
     return api(`/api/users/lookup?email=${encodeURIComponent(String(email || '').trim())}`);

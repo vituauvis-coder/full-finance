@@ -388,6 +388,7 @@ export function closeModal(modalId) {
  */
 export function navigateTo(pageId) {
     if (pageId === 'reports') pageId = 'dashboard';
+    if (pageId === 'accounts' || pageId === 'cards') pageId = 'wallet';
     const targetPageId = `${pageId}-page`;
     const pageEls = document.querySelectorAll('#main-content .page');
     pageEls.forEach((page) => {
@@ -418,8 +419,7 @@ export function navigateTo(pageId) {
         dashboard: { icon: 'fa-chart-pie', title: 'Dashboard' },
         expenses: { icon: 'fa-arrow-down', title: 'Saídas' },
         gains: { icon: 'fa-arrow-up', title: 'Entradas' },
-        accounts: { icon: 'fa-wallet', title: 'Contas' },
-        cards: { icon: 'fa-credit-card', title: 'Cartões' },
+        wallet: { icon: 'fa-wallet', title: 'Carteira' },
         goals: { icon: 'fa-flag-checkered', title: 'Objetivos' },
         investments: { icon: 'fa-chart-line', title: 'Investimentos' },
         debts: { icon: 'fa-triangle-exclamation', title: 'Dívidas' },

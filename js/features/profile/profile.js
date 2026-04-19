@@ -26,6 +26,9 @@ export function initProfile(user, onRefreshAllData) {
 
     document.getElementById('finance-preferences-form')?.addEventListener('submit', handleFinancePreferencesSubmit);
     document.getElementById('finance-pref-manual-enabled')?.addEventListener('change', syncFinancePrefSuboptions);
+
+    document.getElementById('default-currency')?.addEventListener('change', syncAccountSnapshot);
+    window.addEventListener('fullfinan-themechange', syncAccountSnapshot);
 }
 
 /**
@@ -36,15 +39,42 @@ async function loadProfileData() {
         const userData = await api('/api/profile');
         document.getElementById('profile-name').value = userData.name || '';
         const nameDisplay = document.getElementById('user-name-display');
-        if (nameDisplay) nameDisplay.textContent = userData.name || currentUser.email || '';
+        const displayName = userData.name || currentUser.email || '';
+        if (nameDisplay) nameDisplay.textContent = displayName;
+        const heroTitle = document.getElementById('profile-hero-title');
+        if (heroTitle) heroTitle.textContent = displayName;
+        const heroEmail = document.getElementById('profile-hero-email');
+        if (heroEmail) heroEmail.textContent = currentUser.email || '';
         document.getElementById('profile-email').value = currentUser.email;
         document.getElementById('default-currency').value = userData.currency || 'BRL';
         updateProfileImages(userData.profilePhotoURL);
         fillFinancePreferencesForm(userData);
+        syncAccountSnapshot();
         refreshSidebarCollapseTabPosition();
     } catch (error) {
         console.error('Erro ao carregar dados do perfil: ', error);
         showMessage('profile-message', 'Não foi possível carregar seus dados. Verifique se a API local está rodando.', 'error');
+    }
+}
+
+/** Atualiza o painel «Detalhes da conta» (e-mail, moeda, tema). */
+function syncAccountSnapshot() {
+    const emailInput = document.getElementById('profile-email');
+    const snapEmail = document.getElementById('profile-snapshot-email');
+    if (emailInput && snapEmail) {
+        snapEmail.textContent = (emailInput.value || '').trim() || '—';
+    }
+
+    const cur = document.getElementById('default-currency');
+    const snapCur = document.getElementById('profile-snapshot-currency');
+    if (cur && snapCur) {
+        const opt = cur.options[cur.selectedIndex];
+        snapCur.textContent = opt ? opt.textContent.replace(/\s+/g, ' ').trim() : '—';
+    }
+
+    const snapTheme = document.getElementById('profile-snapshot-theme');
+    if (snapTheme) {
+        snapTheme.textContent = document.documentElement.getAttribute('data-theme') === 'dark' ? 'Escuro' : 'Claro';
     }
 }
 
@@ -110,6 +140,8 @@ async function handleProfileUpdate(e) {
     try {
         await updateUserProfile(currentUser.uid, { name: newName });
         document.getElementById('user-name-display').textContent = newName;
+        const heroTitle = document.getElementById('profile-hero-title');
+        if (heroTitle) heroTitle.textContent = newName;
         refreshSidebarCollapseTabPosition();
         showMessage('profile-message', 'Nome atualizado com sucesso!', 'success');
     } catch (error) {

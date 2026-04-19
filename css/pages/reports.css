@@ -10,13 +10,21 @@
     gap: 1rem;
 }
 
+.reports-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 220px;
+}
+
 .reports-filters label {
     font-weight: 600;
     color: var(--text-color);
     font-size: 1rem;
 }
 
-.period-select {
+.period-select,
+.category-select {
     padding: 0.5rem 1rem;
     border: 1px solid var(--border-color);
     border-radius: 8px;
@@ -27,10 +35,17 @@
     transition: border-color 0.3s ease;
 }
 
-.period-select:focus {
+.period-select:focus,
+.category-select:focus {
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+
+@media (max-width: 900px) {
+    .reports-filters {
+        flex-wrap: wrap;
+    }
 }
 
 .reports-chart-container {

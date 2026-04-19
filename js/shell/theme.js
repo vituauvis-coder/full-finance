@@ -19,8 +19,15 @@ function updateMetaThemeColor(isDark) {
 }
 
 function syncToggle(isDark) {
-    const el = document.getElementById('theme-dark-toggle');
-    if (el) el.checked = isDark;
+    const sidebarToggle = document.getElementById('sidebar-theme-toggle');
+    if (sidebarToggle) {
+        sidebarToggle.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+        sidebarToggle.title = isDark ? 'Desativar modo escuro' : 'Ativar modo escuro';
+        const label = sidebarToggle.querySelector('.sidebar-footer-label');
+        if (label) label.textContent = isDark ? 'Modo escuro' : 'Modo claro';
+        const icon = sidebarToggle.querySelector('i');
+        if (icon) icon.className = isDark ? 'fas fa-moon' : 'fas fa-sun';
+    }
 }
 
 /**
@@ -52,10 +59,15 @@ export function initThemeFromStorage() {
 }
 
 export function initThemeToggle() {
-    const toggle = document.getElementById('theme-dark-toggle');
-    if (!toggle) return;
-    toggle.checked = getStoredTheme() === 'dark';
-    toggle.addEventListener('change', () => {
-        applyTheme(toggle.checked ? 'dark' : 'light');
-    });
+    const sidebarToggle = document.getElementById('sidebar-theme-toggle');
+    const isDark = getStoredTheme() === 'dark';
+    syncToggle(isDark);
+
+    if (sidebarToggle && !sidebarToggle.dataset.themeBound) {
+        sidebarToggle.dataset.themeBound = '1';
+        sidebarToggle.addEventListener('click', () => {
+            const currentIsDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            applyTheme(currentIsDark ? 'light' : 'dark');
+        });
+    }
 }
