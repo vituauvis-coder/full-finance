@@ -16,7 +16,8 @@ import {
     isInstallmentDuePaidForCashOut,
     isLoanExpense,
     isMonthlyFixedCashAccountExpense,
-    loanInstallmentCashOutForCalendarMonth
+    loanInstallmentCashOutForCalendarMonth,
+    shouldDeferCashOutForMonthlyFixedSeries
 } from '../../core/credit-installments.js';
 import { expenseContributionToCalendarMonth as expenseContributionToCurrentCalendarMonth } from '../../core/expense-calendar-month.js';
 import {
@@ -52,8 +53,6 @@ import {
     acceptExpenseSplitRequest,
     rejectExpenseSplitRequest,
     cancelExpenseSplitRequest,
-    patchExpenseSplitProof,
-    uploadFile,
     fetchUsersForSplit
 } from '../../services/firestore.js';
 import { TablePaginationController } from '../../shared/table-pagination.js';
@@ -66,11 +65,9 @@ import {
 } from '../../shared/table-sort.js';
 import {
     calendarDayKeyFromDate,
-    getFinancePreferences,
     isPeriodConfirmedForDebit,
     monthKeyFromDate,
-    parseCashOutConfirmedPeriods,
-    shouldDeferMonthlyFixedCashOut
+    parseCashOutConfirmedPeriods
 } from '../../core/finance-preferences.js';
 
 function escapeHtml(text) {
@@ -109,8 +106,7 @@ function setFormSubmittingState(form, isSubmitting, busyLabel = 'Salvando...') {
 /** Série mensal em conta de caixa + preferência «conta fixa» — mesma lógica do saldo e do painel de pendentes. */
 function expenseUsesMonthlyFixedCashListUi(t, account, userProfile) {
     if (!account) return false;
-    const prefs = getFinancePreferences(userProfile);
-    return shouldDeferMonthlyFixedCashOut(prefs) && isMonthlyFixedCashAccountExpense(t, account);
+    return shouldDeferCashOutForMonthlyFixedSeries(t, account, userProfile);
 }
 
 function formatMonthlyFixedCashListStatusHtml(t, account, userProfile, now) {
@@ -127,30 +123,6 @@ function formatMonthlyFixedCashListStatusHtml(t, account, userProfile, now) {
         return `<button type="button" class="expense-status-badge expense-status-badge--pay expense-inst-confirm-btn" data-expense-id="${eid}" data-period-key="${pkEsc}" title="Registrar pagamento no caixa">Pagar</button>`;
     }
     return '<span class="expense-status-badge expense-status-badge--pending">Pendente</span>';
-}
-
-/** Tag do mês (competência) na coluna Descrição — clique confirma no saldo (chave YYYY-MM). */
-function buildMonthlyFixedCashRowTagsHtml(t, userProfile, now) {
-    const d = movementDateToJsDate(t.date);
-    const confirmed = parseCashOutConfirmedPeriods(t);
-    const paid = isPeriodConfirmedForDebit(confirmed, d);
-    const lab = formatLoanMonthTagLabel(d);
-    const pk = monthKeyFromDate(d);
-    const nowMk = monthKeyFromDate(now);
-    const dueMk = monthKeyFromDate(d);
-    const unpaidDueOrPast = !paid && dueMk <= nowMk;
-    let cls = 'expense-loan-month-tag';
-    if (paid) cls += ' expense-loan-month-tag--paid';
-    else {
-        cls += ' expense-loan-month-tag--pending';
-        if (unpaidDueOrPast) cls += ' expense-loan-month-tag--current';
-    }
-    if (paid) {
-        return `<div class="expense-loan-month-tags expense-loan-month-tags--table" role="group" aria-label="Competência no caixa"><span class="${cls}" title="Pago no saldo">${escapeHtml(lab)}</span></div>`;
-    }
-    const eid = escapeHtml(String(t.id));
-    const pkEsc = escapeHtml(pk);
-    return `<div class="expense-loan-month-tags expense-loan-month-tags--table" role="group" aria-label="Competência no caixa"><button type="button" class="${cls} expense-inst-confirm-btn" data-expense-id="${eid}" data-period-key="${pkEsc}" title="Confirmar pagamento no saldo">${escapeHtml(lab)}</button></div>`;
 }
 
 /** Tooltip do ↻ na coluna Valor — saídas (linha principal). */
@@ -236,13 +208,14 @@ function formatLoanMonthTagLabel(d) {
     return d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
 }
 
-function buildLoanMonthTagsHtml(dueDates, paidKeys, now) {
+function buildLoanMonthTagsHtml(dueDates, paidKeys, now, useMonthPeriodKeys = false) {
     const paidSet = new Set(paidKeys);
     const nowMk = monthKeyFromDate(now);
     const parts = ['<div class="expense-loan-month-tags" role="group" aria-label="Parcelas no caixa">'];
     for (const d of dueDates) {
-        const pk = calendarDayKeyFromDate(d);
-        const isPaid = paidSet.has(pk);
+        const pk = useMonthPeriodKeys ? monthKeyFromDate(d) : calendarDayKeyFromDate(d);
+        const isPaid =
+            paidSet.has(pk) || (!useMonthPeriodKeys && paidSet.has(monthKeyFromDate(d)));
         const dueMk = monthKeyFromDate(d);
         const unpaidDueOrPast = !isPaid && dueMk <= nowMk;
         let cls = 'expense-loan-month-tag';
@@ -341,28 +314,35 @@ function movementDateInListPeriod(dateField, period) {
 }
 
 /**
- * Período da lista de saídas: data do lançamento OU vencimento no intervalo
- * (empréstimo parcelado; cartão em qualquer n incluindo 1x — vencimento pode ser outro mês que a compra).
+ * Período da lista de saídas:
+ * — Cartão de crédito: só entra no mês em que há vencimento de parcela (fatura), não no mês da compra
+ *   (ex.: compra 19/04 em 10x com 1ª parcela em maio não aparece em «abril»).
+ * — Demais: data do lançamento no intervalo OU (empréstimo parcelado) vencimento no intervalo.
  */
 function expenseMatchesListPeriod(t, period) {
-    if (movementDateInListPeriod(t.date, period)) return true;
     const n = Math.max(1, parseInt(String(t.installmentCount ?? '1'), 10) || 1);
     const { startDate, endDate } = getMovementListPeriodBounds(period);
     const acc = userAccounts?.find((a) => a.id === t.accountId);
-    if (!acc) return false;
     const purchase = movementDateToJsDate(t.date);
     if (Number.isNaN(purchase.getTime())) return false;
+
+    if (acc && isCreditCardType(acc.type)) {
+        const cd = acc.closeDay ?? acc.closingDay;
+        const dd = acc.dueDay ?? acc.dueDate;
+        const dueDates = getInstallmentDueDates(purchase, n, cd, dd);
+        if (dueDates.length > 0) {
+            return dueDates.some((d) => d >= startDate && d <= endDate);
+        }
+        return movementDateInListPeriod(t.date, period);
+    }
+
+    if (movementDateInListPeriod(t.date, period)) return true;
+
+    if (!acc) return false;
 
     if (isLoanExpense(t) && !isCreditCardType(acc.type)) {
         if (n < 2) return false;
         const dueDates = getLoanInstallmentDueDates(purchase, n);
-        return dueDates.some((d) => d >= startDate && d <= endDate);
-    }
-
-    if (isCreditCardType(acc.type)) {
-        const cd = acc.closeDay ?? acc.closingDay;
-        const dd = acc.dueDay ?? acc.dueDate;
-        const dueDates = getInstallmentDueDates(purchase, n, cd, dd);
         return dueDates.some((d) => d >= startDate && d <= endDate);
     }
 
@@ -692,53 +672,42 @@ function renderOutgoingSplitsPanel(currency) {
         return;
     }
     panel.classList.remove('hidden');
+    const n = pending.length;
+    const headIntro =
+        n === 1
+            ? 'A outra pessoa pode aceitar ou recusar no app. Você pode cancelar a qualquer momento antes da resposta.'
+            : `${n} solicitações aguardando resposta. Cada destinatário pode aceitar ou recusar no app.`;
     const parts = [
-        '<div class="expense-splits-panel__header">',
-        '  <h4 class="expense-splits-panel__title">Divisões enviadas (pendentes)</h4>',
-        '  <p class="expense-splits-panel__hint">Comprovante opcional</p>',
-        '</div>'
+        '<div class="expense-splits-panel__hero">',
+        '  <div class="expense-splits-panel__hero-icon" aria-hidden="true"><i class="fas fa-paper-plane"></i></div>',
+        '  <div class="expense-splits-panel__hero-text">',
+        `    <h4 class="expense-splits-panel__title">${escapeHtml(n === 1 ? 'Divisão enviada' : 'Divisões enviadas')}</h4>`,
+        `    <p class="expense-splits-panel__lead">${escapeHtml(headIntro)}</p>`,
+        '  </div>',
+        '</div>',
+        '<ul class="expense-splits-panel__list" role="list">'
     ];
     pending.forEach((s) => {
         const name = s.recipient?.name || s.recipient?.email || 'Destinatário';
-        const desc = s.sourceExpense?.description || 'Compra';
-        const proof = s.senderProofUrl
-            ? `<a href="${escapeHtml(s.senderProofUrl)}" target="_blank" rel="noopener">Ver</a>`
-            : '<span style="opacity:0.8;">Sem</span>';
-        parts.push(`<div class="expense-splits-panel__row" data-split-id="${escapeHtml(String(s.id))}">
-            <div class="expense-splits-panel__meta">
-                <strong>${escapeHtml(name)}</strong> · ${escapeHtml(formatCurrency(s.amount, currency))}
-                <span class="expense-splits-panel__sub">${escapeHtml(desc)}</span>
+        const desc = s.sourceExpense?.description || 'Saída';
+        const amt = escapeHtml(formatCurrency(s.amount, currency));
+        parts.push(`<li class="expense-splits-panel__card" data-split-id="${escapeHtml(String(s.id))}">
+            <div class="expense-splits-panel__card-body">
+                <span class="expense-splits-panel__status-pill" title="Aguardando o outro usuário">Aguardando</span>
+                <div class="expense-splits-panel__card-main">
+                    <strong class="expense-splits-panel__who">${escapeHtml(name)}</strong>
+                    <span class="expense-splits-panel__amount" aria-label="Valor da parte">${amt}</span>
+                    <span class="expense-splits-panel__desc">${escapeHtml(desc)}</span>
+                </div>
             </div>
-            <div class="expense-splits-panel__actions">
-                <span class="expense-splits-panel__proof">Comprovante: ${proof}</span>
-                <label class="btn-secondary expense-splits-panel__btn" style="cursor:pointer;">
-                    Anexar
-                    <input type="file" class="expense-split-proof-input hidden" accept="image/*,.pdf" aria-label="Anexar comprovante">
-                </label>
-                <button type="button" class="btn-secondary expense-splits-panel__btn expense-split-cancel-btn" data-split-id="${escapeHtml(String(s.id))}">Remover</button>
-            </div>
-        </div>`);
+            <button type="button" class="btn-secondary expense-splits-panel__cancel expense-split-cancel-btn" data-split-id="${escapeHtml(String(s.id))}">
+                <i class="fas fa-times" aria-hidden="true"></i> Cancelar
+            </button>
+        </li>`);
     });
+    parts.push('</ul>');
     panel.innerHTML = parts.join('');
 
-    panel.querySelectorAll('.expense-split-proof-input').forEach((input) => {
-        input.addEventListener('change', async (ev) => {
-            const file = ev.target.files?.[0];
-            const row = ev.target.closest('.expense-splits-panel__row');
-            const sid = row?.dataset?.splitId;
-            if (!file || !sid) return;
-            try {
-                const url = await uploadFile(file, currentUser?.uid);
-                await patchExpenseSplitProof(sid, url);
-                showToast('Comprovante', 'Arquivo anexado.', 'success');
-                onUpdateCallback?.();
-            } catch (err) {
-                console.error(err);
-                showToast('Erro', 'Não foi possível enviar o arquivo.', 'error');
-            }
-            ev.target.value = '';
-        });
-    });
     panel.querySelectorAll('.expense-split-cancel-btn').forEach((btn) => {
         btn.addEventListener('click', async () => {
             const sid = btn.dataset.splitId;
@@ -947,6 +916,7 @@ export function initFinance(
     document.getElementById('expense-payment-method')?.addEventListener('change', () => syncExpenseInstallmentsRow());
     document.getElementById('expense-installments')?.addEventListener('input', () => syncExpenseInstallmentsRow());
     document.getElementById('expense-date')?.addEventListener('change', () => syncExpenseInstallmentsRow());
+    document.getElementById('expense-recurring-mode')?.addEventListener('change', () => syncExpenseInstallmentsRow());
     document.getElementById('expense-category-select')?.addEventListener('change', () => {
         syncExpensePaymentMethodForLoanCategory();
         syncExpenseInstallmentsRow();
@@ -1283,6 +1253,22 @@ function coerceDayOfMonth(value) {
     return n;
 }
 
+/** Datas de cada mês da série «até dezembro» (mesmo dia do mês que a data inicial). */
+function getRecurringSeriesDueDatesFromPurchase(purchase) {
+    const p = purchase instanceof Date ? new Date(purchase.getTime()) : movementDateToJsDate(purchase);
+    if (Number.isNaN(p.getTime())) return [];
+    const y = p.getFullYear();
+    const startM = p.getMonth();
+    const dayW = p.getDate();
+    const out = [];
+    for (let m = startM; m <= 11; m++) {
+        const lastDay = new Date(y, m + 1, 0).getDate();
+        const day = Math.min(dayW, lastDay);
+        out.push(new Date(y, m, day, 12, 0, 0, 0));
+    }
+    return out;
+}
+
 function expenseContributionPaidThroughMonthKey(t, acc, monthKey, cutoffEndInclusive, userProfile = null) {
     const cutoffT = endOfDay(cutoffEndInclusive).getTime();
     const amt = Number(t.amount) || 0;
@@ -1321,6 +1307,14 @@ function expenseContributionPaidThroughMonthKey(t, acc, monthKey, cutoffEndInclu
             sum += per;
         }
         return sum;
+    }
+
+    if (acc && shouldDeferCashOutForMonthlyFixedSeries(t, acc, userProfile)) {
+        if (monthKeyFromDateObj(purchase) !== monthKey) return 0;
+        if (purchase.getTime() > cutoffT) return 0;
+        if (!expenseCountsAsCashOut(t, acc)) return 0;
+        if (!isPeriodConfirmedForDebit(parseCashOutConfirmedPeriods(t), purchase)) return 0;
+        return amt;
     }
 
     if (monthKeyFromDateObj(purchase) !== monthKey) return 0;
@@ -1745,15 +1739,9 @@ function renderExpensesBodySlice() {
         const amountHtml = recMeta.show
             ? `<span class="movement-amount-with-rec-inner">${recBadge}${formatCurrency(displayAmt, currency)}</span>`
             : formatCurrency(displayAmt, currency);
-        const descTags = expenseUsesMonthlyFixedCashListUi(t, account, userProfile)
-            ? buildMonthlyFixedCashRowTagsHtml(t, userProfile, now)
-            : '';
-        const descCell = descTags
-            ? `<div class="expenses-td-desc-with-tags"><span class="expenses-td-desc-text">${escapeHtml(t.description)}</span>${descTags}</div>`
-            : escapeHtml(t.description);
         tr.innerHTML = `
             <td>${movementDateToJsDate(t.date).toLocaleDateString('pt-BR')}</td>
-            <td>${descCell}</td>
+            <td>${escapeHtml(t.description)}</td>
             <td>${escapeHtml(categoryDisplay)}</td>
             <td>${escapeHtml(account?.name || 'N/A')}</td>
             <td class="${rowCls}"${amountTitle}>${amountHtml}</td>
@@ -2495,6 +2483,70 @@ function updateExpenseInstallmentPreview() {
         return;
     }
 
+    const form = document.getElementById('expense-form');
+    const recMode = document.getElementById('expense-recurring-mode')?.value === '1';
+    const inSeries = Boolean(form?.dataset?.expenseRecurrenceGroupId?.trim());
+    if ((recMode || inSeries) && acc && !credit && !loan) {
+        const purchase = new Date(dateEl.value + 'T12:00:00');
+        if (Number.isNaN(purchase.getTime())) {
+            prev.classList.add('hidden');
+            prev.innerHTML = '';
+            return;
+        }
+        const dueDates = getRecurringSeriesDueDatesFromPurchase(purchase);
+        if (dueDates.length < 2) {
+            prev.classList.add('hidden');
+            prev.innerHTML = '';
+            return;
+        }
+        const now = new Date();
+        const validMk = new Set(dueDates.map((d) => monthKeyFromDate(d)));
+        const curKeys = getLoanPaidPeriodKeysFromForm(form).filter(
+            (k) =>
+                validMk.has(k) ||
+                dueDates.some((d) => calendarDayKeyFromDate(d) === k)
+        );
+        setLoanPaidPeriodKeysOnForm(form, curKeys);
+        const paidKeys = getLoanPaidPeriodKeysFromForm(form);
+        const total = dueDates.length;
+        const paidCount = dueDates.filter((d) => {
+            const mk = monthKeyFromDate(d);
+            const dk = calendarDayKeyFromDate(d);
+            return paidKeys.includes(mk) || paidKeys.includes(dk);
+        }).length;
+        const remaining = total - paidCount;
+        const year = purchase.getFullYear();
+        const st = { applies: true, total, paidCount, remaining, allPaid: remaining === 0 };
+        const tags = buildLoanMonthTagsHtml(dueDates, paidKeys, now, true);
+        prev.classList.remove('hidden');
+        if (remaining === 0) {
+            prev.innerHTML = `<div class="installment-remaining-summary installment-remaining-summary--recurring-year installment-remaining-summary--with-append" role="status" aria-label="${htmlAttrEscape(
+                `Conta fixa ${year}: todos os meses confirmados no caixa`
+            )}">
+  <div class="installment-remaining-copy">
+    <span class="installment-remaining-title">${escapeHtml(`Conta fixa em ${year}`)}</span>
+    <span class="installment-remaining-line">Os <strong>${total}</strong> meses previstos para este ano já foram confirmados no caixa.</span>
+    <span class="installment-remaining-hint">Despesa recorrente: um lançamento por mês até dezembro. Use as tags abaixo para revisar cada mês.</span>
+  </div>
+  <div class="installment-remaining-append">${tags}</div>
+</div>`;
+            return;
+        }
+        const summary = formatInstallmentRemainingSummaryHtml(st, {
+            loan: true,
+            summaryVariant: 'recurringYear',
+            summaryTitle: `Conta fixa em ${year}`,
+            summaryLineHtml: `Faltam <strong>${remaining}</strong> de <strong>${total}</strong> meses neste ano a confirmar no caixa.`,
+            ariaLabel: `Conta fixa em ${year}: faltam ${remaining} de ${total} meses a confirmar no caixa`,
+            hint: 'É uma despesa recorrente (conta fixa), não uma compra parcelada: um lançamento por mês até dezembro. Toque no mês quando o pagamento sair da conta.',
+            appendHtml: tags
+        });
+        prev.innerHTML =
+            summary ||
+            `<div class="installment-remaining-summary installment-remaining-summary--recurring-year installment-remaining-summary--with-append" role="status"><div class="installment-remaining-append">${tags}</div></div>`;
+        return;
+    }
+
     prev.classList.add('hidden');
     prev.innerHTML = '';
 }
@@ -2787,12 +2839,26 @@ async function handleExpenseFormSubmit(e) {
         }
     }
 
+    const orig = id ? userExpenses?.find((t) => t.id === id) : null;
+    const isSeriesRow = Boolean(orig?.recurrenceGroupId && String(orig.recurrenceGroupId).trim() !== '');
+
+    if (!needsInstallments && isSeriesRow && accForInstallments && !isCreditCardType(accForInstallments.type) && !loanCat) {
+        const keys = getLoanPaidPeriodKeysFromForm(form);
+        const mk = monthKeyFromDate(dateWithTime);
+        const dk = calendarDayKeyFromDate(dateWithTime);
+        isPaidFinal = keys.some((k) => k === mk || k === dk);
+    }
+
     const cardExpense = Boolean(accForInstallments && isCardAccountType(accForInstallments.type));
     const recurringMonthly = isSplitRateio
         ? false
         : loanCat || cardExpense
           ? false
           : document.getElementById('expense-recurring-mode')?.value === '1';
+
+    if (!id && recurringMonthly && accForInstallments && !isCreditCardType(accForInstallments.type) && !loanCat && !isSplitRateio) {
+        isPaidFinal = false;
+    }
 
     const data = {
         userId: currentUser.uid,
@@ -2825,11 +2891,15 @@ async function handleExpenseFormSubmit(e) {
         }
     }
 
+    if (!needsInstallments && isSeriesRow && accForInstallments && !isCreditCardType(accForInstallments.type) && !loanCat) {
+        const keys = getLoanPaidPeriodKeysFromForm(form);
+        const mk = monthKeyFromDate(dateWithTime);
+        const paid = keys.some((k) => k === mk || k === calendarDayKeyFromDate(dateWithTime));
+        data.cashOutConfirmedPeriods = paid ? JSON.stringify([mk]) : null;
+    }
+
     setFormSubmittingState(form, true, 'Salvando saída...');
     try {
-        const orig = id ? userExpenses?.find((t) => t.id === id) : null;
-        const isSeriesRow = Boolean(orig?.recurrenceGroupId && String(orig.recurrenceGroupId).trim() !== '');
-
         let result;
         if (id && recurringMonthly && !loanCat && !cardExpense && !isSeriesRow) {
             await deleteExpense(id);
@@ -2838,6 +2908,37 @@ async function handleExpenseFormSubmit(e) {
             result = await saveExpense({ ...data, recurringMonthly: false }, id);
         } else {
             result = await saveExpense(data, id || null);
+        }
+
+        if (id && isSeriesRow && accForInstallments && !isCreditCardType(accForInstallments.type) && !loanCat) {
+            const keys = getLoanPaidPeriodKeysFromForm(form);
+            const gid = orig.recurrenceGroupId;
+            const siblings = (userExpenses || []).filter(
+                (x) => x.id !== id && String(x.recurrenceGroupId) === String(gid)
+            );
+            for (const e of siblings) {
+                const d = movementDateToJsDate(e.date);
+                const mk = monthKeyFromDate(d);
+                const dk = calendarDayKeyFromDate(d);
+                const paid = keys.some((k) => k === mk || k === dk);
+                await saveExpense(
+                    {
+                        userId: currentUser.uid,
+                        description: e.description,
+                        amount: e.amount,
+                        date: e.date,
+                        accountId: e.accountId,
+                        category: e.category,
+                        subcategory: e.subcategory,
+                        isPaid: paid,
+                        isInvestment: e.isInvestment ?? false,
+                        installmentCount: e.installmentCount ?? null,
+                        recurringMonthly: false,
+                        cashOutConfirmedPeriods: paid ? JSON.stringify([mk]) : null
+                    },
+                    e.id
+                );
+            }
         }
 
         const seriesCreated = result && result.recurring === true && Number(result.count) > 0;
@@ -3075,13 +3176,22 @@ async function handleExpenseRowActions(e) {
                     ic != null && Number(ic) >= 1 ? String(Math.min(99, parseInt(String(ic), 10))) : '1';
             }
             let loanPaidKeys = [];
-            const cop = row.cashOutConfirmedPeriods;
-            if (cop != null && cop !== '') {
-                try {
-                    const parsed = typeof cop === 'string' ? JSON.parse(cop) : cop;
-                    if (Array.isArray(parsed)) loanPaidKeys = parsed.map((x) => String(x).trim()).filter(Boolean);
-                } catch {
-                    loanPaidKeys = [];
+            if (row.recurrenceGroupId != null && String(row.recurrenceGroupId).trim() !== '') {
+                const merged = new Set();
+                for (const ex of userExpenses || []) {
+                    if (String(ex.recurrenceGroupId) !== String(row.recurrenceGroupId)) continue;
+                    parseCashOutConfirmedPeriods(ex).forEach((k) => merged.add(k));
+                }
+                loanPaidKeys = [...merged];
+            } else {
+                const cop = row.cashOutConfirmedPeriods;
+                if (cop != null && cop !== '') {
+                    try {
+                        const parsed = typeof cop === 'string' ? JSON.parse(cop) : cop;
+                        if (Array.isArray(parsed)) loanPaidKeys = parsed.map((x) => String(x).trim()).filter(Boolean);
+                    } catch {
+                        loanPaidKeys = [];
+                    }
                 }
             }
             form.dataset.loanPaidPeriodKeys = JSON.stringify(loanPaidKeys);

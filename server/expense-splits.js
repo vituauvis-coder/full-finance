@@ -484,17 +484,21 @@ export function registerExpenseSplitRoutes(app, { requireAuth }) {
         try {
             const uid = req.session.userId;
             const id = String(req.params.id ?? '').trim();
-            const senderProofUrl = req.body?.senderProofUrl;
-            if (senderProofUrl == null || typeof senderProofUrl !== 'string') {
-                return res.status(400).json({ error: 'senderProofUrl obrigatório' });
+            const body = req.body || {};
+            if (!Object.prototype.hasOwnProperty.call(body, 'senderProofUrl')) {
+                return res.status(400).json({ error: 'senderProofUrl obrigatório (string ou null)' });
             }
-            const url = String(senderProofUrl).trim();
+            const raw = body.senderProofUrl;
+            if (raw !== null && typeof raw !== 'string') {
+                return res.status(400).json({ error: 'senderProofUrl inválido' });
+            }
+            const url = raw === null ? null : String(raw).trim() || null;
             const { rows: updatedRows } = await query(
                 `UPDATE expense_split_requests
                  SET sender_proof_url = $3, updated_at = now()
                  WHERE id = $1 AND requester_user_id = $2
                  RETURNING id`,
-                [id, uid, url || null]
+                [id, uid, url]
             );
             if (!updatedRows[0]) return res.status(404).json({ error: 'Não encontrado' });
             const { rows } = await query(baseSplitSelectSql(`WHERE esr.id = $1 LIMIT 1`), [id]);

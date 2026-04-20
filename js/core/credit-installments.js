@@ -51,6 +51,17 @@ export function isMonthlyFixedCashAccountExpense(expense, account) {
 }
 
 /**
+ * Débito no caixa só após marcar o mês: série «um por mês até dezembro» sempre;
+ * conta fixa mensal única só se a preferência do perfil estiver ativa.
+ */
+export function shouldDeferCashOutForMonthlyFixedSeries(expense, account, userProfile) {
+    if (!isMonthlyFixedCashAccountExpense(expense, account)) return false;
+    const gid = expense?.recurrenceGroupId;
+    if (gid != null && String(gid).trim() !== '') return true;
+    return shouldDeferMonthlyFixedCashOut(getFinancePreferences(userProfile));
+}
+
+/**
  * Início do acompanhamento no app: momento em que a saída foi salva (`createdAt`).
  * Sem isso (dados antigos), usa a data do contrato para não alterar comportamento legado.
  */
@@ -245,10 +256,7 @@ export function isInstallmentDuePaidForCashOut(expense, account, dueDate, userPr
         }
         return startOfDay(dueDate).getTime() <= startOfDay(now).getTime();
     }
-    if (
-        isMonthlyFixedCashAccountExpense(expense, account) &&
-        shouldDeferMonthlyFixedCashOut(prefs)
-    ) {
+    if (shouldDeferCashOutForMonthlyFixedSeries(expense, account, userProfile)) {
         return isPeriodConfirmedForDebit(confirmed, dueDate);
     }
     return startOfDay(dueDate).getTime() <= startOfDay(now).getTime();
@@ -282,11 +290,7 @@ export function canConfirmInstallmentPeriodForCashOut(expense, account, dueDate,
     ) {
         return true;
     }
-    if (
-        isMonthlyFixedCashAccountExpense(expense, account) &&
-        shouldDeferMonthlyFixedCashOut(prefs) &&
-        dueOk
-    ) {
+    if (shouldDeferCashOutForMonthlyFixedSeries(expense, account, userProfile) && dueOk) {
         return true;
     }
     return false;
@@ -1052,6 +1056,7 @@ export function formatInstallmentPopoverHtml(
 
 /**
  * Cabeçalho visual do preview de parcelas (modal): anel + “Faltam N de M”.
+ * Opções: `summaryTitle`, `summaryLineHtml`, `ariaLabel` — sobrescrevem o texto de compra parcelada (cartão/empréstimo).
  */
 export function formatInstallmentRemainingSummaryHtml(st, options = {}) {
     if (!st.applies || st.total < 2) return '';
@@ -1061,7 +1066,10 @@ export function formatInstallmentRemainingSummaryHtml(st, options = {}) {
     const circumference = 2 * Math.PI * r;
     const frac = total > 0 ? paidCount / total : 0;
     const dashOffset = circumference * (1 - frac);
-    const aria = `${remaining} parcela${remaining === 1 ? '' : 's'} restante${remaining === 1 ? '' : 's'} de ${total}`;
+    const aria =
+        options.ariaLabel != null && String(options.ariaLabel).trim() !== ''
+            ? String(options.ariaLabel)
+            : `${remaining} parcela${remaining === 1 ? '' : 's'} restante${remaining === 1 ? '' : 's'} de ${total}`;
     let hint;
     if (options.hint !== undefined && options.hint !== null) {
         hint = options.hint;
@@ -1075,7 +1083,16 @@ export function formatInstallmentRemainingSummaryHtml(st, options = {}) {
     const appendBlock = appendHtml
         ? `<div class="installment-remaining-append">${appendHtml}</div>`
         : '';
-    return `<div class="installment-remaining-summary${appendHtml ? ' installment-remaining-summary--with-append' : ''}" role="status" aria-label="${aria.replace(/"/g, '&quot;')}">
+    const title =
+        options.summaryTitle != null && String(options.summaryTitle).trim() !== ''
+            ? esc(String(options.summaryTitle))
+            : 'Parcelas restantes';
+    const lineHtml =
+        options.summaryLineHtml != null && String(options.summaryLineHtml).trim() !== ''
+            ? String(options.summaryLineHtml)
+            : `<strong>${remaining}</strong> de <strong>${total}</strong> a pagar`;
+    const extraCls = options.summaryVariant === 'recurringYear' ? ' installment-remaining-summary--recurring-year' : '';
+    return `<div class="installment-remaining-summary${extraCls}${appendHtml ? ' installment-remaining-summary--with-append' : ''}" role="status" aria-label="${esc(aria)}">
   <div class="installment-remaining-ring" aria-hidden="true">
     <svg class="installment-remaining-ring__svg" viewBox="0 0 52 52" width="52" height="52">
       <circle class="installment-remaining-ring__track" cx="26" cy="26" r="${r}" fill="none" />
@@ -1088,8 +1105,8 @@ export function formatInstallmentRemainingSummaryHtml(st, options = {}) {
     <span class="installment-remaining-ring__num">${remaining}</span>
   </div>
   <div class="installment-remaining-copy">
-    <span class="installment-remaining-title">Parcelas restantes</span>
-    <span class="installment-remaining-line"><strong>${remaining}</strong> de <strong>${total}</strong> a pagar</span>
+    <span class="installment-remaining-title">${title}</span>
+    <span class="installment-remaining-line">${lineHtml}</span>
     ${hintBlock}
     ${appendBlock}
   </div>

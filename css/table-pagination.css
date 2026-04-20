@@ -1,16 +1,12 @@
-/* Barra de paginação abaixo/acima das tabelas */
+/* Barra de paginação abaixo da tabela */
 
 .table-pagination-host {
-    margin-bottom: 0.75rem;
-}
-
-.table-pagination-host + .table-container table,
-.table-pagination-host + table {
-    margin-top: 0;
+    margin-top: 0.75rem;
+    margin-bottom: 0;
 }
 
 .card-purchases-table-wrap .table-pagination-host {
-    margin-bottom: 0.65rem;
+    margin-top: 0.65rem;
 }
 
 .table-pagination {

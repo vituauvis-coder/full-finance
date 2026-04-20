@@ -134,10 +134,19 @@ function updateProfileImages(photoURL) {
     const defaultPhoto =
         "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%23e2e8f0'/><text x='50' y='55' text-anchor='middle' font-size='30' fill='%2394a3b8'>👤</text></svg>";
     const url = photoURL || defaultPhoto;
-    document.getElementById('profile-photo-preview').src = url;
-    document.getElementById('sidebar-user-photo').src = url;
-    document.getElementById('remove-photo-btn').classList.toggle('hidden', !photoURL);
+    const preview = document.getElementById('profile-photo-preview');
+    const side = document.getElementById('sidebar-user-photo');
+    if (preview) preview.src = url;
+    if (side) side.src = url;
+    document.getElementById('remove-photo-btn')?.classList.toggle('hidden', !photoURL);
     refreshSidebarCollapseTabPosition();
+}
+
+/** Usa `userProfile` já carregado em `/api/data` (ex.: após F5) para não depender só da página Perfil. */
+export function applyProfilePhotoFromUserProfile(userProfile) {
+    const raw = userProfile?.profilePhotoURL;
+    const url = raw != null && String(raw).trim() !== '' ? String(raw) : null;
+    updateProfileImages(url);
 }
 
 async function handleProfileUpdate(e) {

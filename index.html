@@ -537,9 +537,8 @@
                             </div>
                         </div>
                     </div>
-                    <div id="expense-splits-outgoing-panel" class="expense-splits-panel hidden" aria-live="polite"></div>
+                    <div id="expense-splits-outgoing-panel" class="expense-splits-panel expense-splits-panel--outgoing hidden" aria-live="polite"></div>
                     <div class="table-container">
-                        <div id="expenses-pagination" class="table-pagination-host"></div>
                         <table id="expenses-table">
                             <thead>
                                 <tr>
@@ -554,6 +553,7 @@
                             </thead>
                             <tbody></tbody>
                         </table>
+                        <div id="expenses-pagination" class="table-pagination-host"></div>
                     </div>
                 </section>
 
@@ -616,7 +616,6 @@
                         </div>
                     </div>
                     <div class="table-container">
-                        <div id="gains-pagination" class="table-pagination-host"></div>
                         <table id="gains-table">
                             <thead>
                                 <tr>
@@ -630,6 +629,7 @@
                             </thead>
                             <tbody></tbody>
                         </table>
+                        <div id="gains-pagination" class="table-pagination-host"></div>
                     </div>
                 </section>
 
@@ -2042,7 +2042,6 @@
                         <button type="button" id="card-purchases-filter-clear" class="btn-secondary table-filters__clear">Limpar</button>
                     </div>
                 </div>
-                <div id="card-purchases-pagination" class="table-pagination-host"></div>
                 <table class="card-purchases-table" id="card-purchases-table">
                     <thead>
                         <tr>
@@ -2057,6 +2056,7 @@
                     </thead>
                     <tbody id="card-purchases-tbody"></tbody>
                 </table>
+                <div id="card-purchases-pagination" class="table-pagination-host"></div>
                 </div>
             </section>
             <div id="card-purchases-empty" class="card-purchases-empty hidden" role="status">

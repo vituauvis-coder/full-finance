@@ -14,8 +14,10 @@ import {
     getLoanInstallmentDueDates,
     getLoanInstallmentMonthAllocationsIncludingFuture,
     isExpenseInstallmentDueCountedInCashFlow,
-    isLoanExpense
+    isLoanExpense,
+    shouldDeferCashOutForMonthlyFixedSeries
 } from '../../core/credit-installments.js';
+import { isPeriodConfirmedForDebit, parseCashOutConfirmedPeriods } from '../../core/finance-preferences.js';
 import { getTotalInvestedSum } from '../investments/investments.js';
 import { getPeriodDateBounds, getPeriodTitleParts } from '../../core/period-filters.js';
 import {
@@ -392,6 +394,15 @@ function expenseContributionPaidThroughToMonthKey(t, acc, monthKey, cutoffEndInc
             sum += per;
         }
         return sum;
+    }
+
+    const purchasePlain = movementDateToJsDate(t.date);
+    if (!Number.isNaN(purchasePlain.getTime()) && acc && shouldDeferCashOutForMonthlyFixedSeries(t, acc, userProfile)) {
+        if (monthKeyFromDate(purchasePlain) !== monthKey) return 0;
+        if (purchasePlain.getTime() > cutoffT) return 0;
+        if (!expenseCountsAsCashOut(t, acc)) return 0;
+        if (!isPeriodConfirmedForDebit(parseCashOutConfirmedPeriods(t), purchasePlain)) return 0;
+        return amt;
     }
 
     // Demais contas: pela data do lançamento

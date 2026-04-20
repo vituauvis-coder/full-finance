@@ -7,6 +7,7 @@ import {
     isLoanDueEligibleForAutoCashOut,
     isLoanExpense,
     isMonthlyFixedCashAccountExpense,
+    shouldDeferCashOutForMonthlyFixedSeries,
     startOfDay
 } from '../../core/credit-installments.js';
 import {
@@ -16,8 +17,7 @@ import {
     monthKeyFromDate,
     parseCashOutConfirmedPeriods,
     shouldDeferCreditCardCashOut,
-    shouldDeferLoanCashOut,
-    shouldDeferMonthlyFixedCashOut
+    shouldDeferLoanCashOut
 } from '../../core/finance-preferences.js';
 import { isCreditCardType, movementDateToJsDate } from '../../core/utils.js';
 
@@ -42,12 +42,13 @@ export function buildPendingCashOutItems(userAccounts, userExpenses, userProfile
     for (const e of userExpenses || []) {
         const acc = byId.get(e.accountId);
         if (e.isPaid === true) {
+            const isRecSeries = e.recurrenceGroupId != null && String(e.recurrenceGroupId).trim() !== '';
             const stillNeedsCashConfirm =
-                manualEnabled &&
                 acc &&
                 !isCreditCardType(acc.type) &&
                 isMonthlyFixedCashAccountExpense(e, acc) &&
-                shouldDeferMonthlyFixedCashOut(prefs) &&
+                shouldDeferCashOutForMonthlyFixedSeries(e, acc, userProfile) &&
+                (manualEnabled || isRecSeries) &&
                 !isPeriodConfirmedForDebit(parseCashOutConfirmedPeriods(e), movementDateToJsDate(e.date));
             if (!stillNeedsCashConfirm) continue;
         }
@@ -166,12 +167,12 @@ export function buildPendingCashOutItems(userAccounts, userExpenses, userProfile
             continue;
         }
 
+        const isRecSeries = e.recurrenceGroupId != null && String(e.recurrenceGroupId).trim() !== '';
         if (
-            manualEnabled &&
             acc &&
             !isCreditCardType(acc.type) &&
-            isMonthlyFixedCashAccountExpense(e, acc) &&
-            shouldDeferMonthlyFixedCashOut(prefs)
+            shouldDeferCashOutForMonthlyFixedSeries(e, acc, userProfile) &&
+            (manualEnabled || isRecSeries)
         ) {
             const d = movementDateToJsDate(e.date);
             if (startOfDay(d).getTime() > t0) continue;
@@ -180,7 +181,7 @@ export function buildPendingCashOutItems(userAccounts, userExpenses, userProfile
             items.push({
                 expenseId: e.id,
                 periodKey: pk,
-                title: `Conta fixa · ${e.description || e.category || 'Mensal'}`,
+                title: `${isRecSeries ? 'Série mensal' : 'Conta fixa'} · ${e.description || e.category || 'Mensal'}`,
                 detail: `${e.category || 'Saída'} · ${d.toLocaleDateString('pt-BR')}`,
                 amount: Number(e.amount) || 0
             });

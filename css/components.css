@@ -487,97 +487,145 @@
     color: var(--primary-color);
 }
 
-/* Rateio de despesas */
-.expense-splits-panel {
-    margin: 0 0 1rem;
-    padding: 1rem 1.25rem;
-    border-radius: var(--border-radius, 8px);
-    border: 1px solid var(--border-color, rgba(0, 0, 0, 0.12));
-    background: var(--card-bg, var(--bg-color));
+/* Rateio de despesas — solicitações enviadas (pendentes) */
+.expense-splits-panel--outgoing {
+    margin: 0 0 1.5rem;
+    padding: 1.25rem 1.5rem;
+    border-radius: 12px;
+    background: var(--bg-light);
+    box-shadow: var(--shadow);
+    border: none;
 }
 
-.expense-splits-panel h4 {
-    margin: 0 0 0.75rem;
-    font-size: 1rem;
-    font-weight: 600;
-}
-
-.expense-splits-panel__header {
+.expense-splits-panel__hero {
     display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 0.75rem;
-    margin: 0 0 0.6rem;
+    align-items: center;
+    gap: 1rem;
+    padding: 0 0 1rem;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 1rem;
+}
+
+.expense-splits-panel__hero-icon {
+    flex-shrink: 0;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-color);
+    color: var(--primary-color);
+    font-size: 1.25rem;
+}
+
+.expense-splits-panel__hero-text {
+    min-width: 0;
 }
 
 .expense-splits-panel__title {
+    margin: 0 0 0.15rem;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.expense-splits-panel__lead {
     margin: 0;
+    font-size: 0.88rem;
+    color: var(--text-light);
+    line-height: 1.4;
+}
+
+.expense-splits-panel__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.expense-splits-panel__card {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1rem;
+    padding: 0.85rem 1.1rem;
+    border-radius: 10px;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+}
+
+.expense-splits-panel__card-body {
+    flex: 1;
+    min-width: min(100%, 240px);
+    display: flex;
+    gap: 0.85rem;
+    align-items: center;
+}
+
+.expense-splits-panel__status-pill {
+    flex-shrink: 0;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--warning-color);
+}
+
+.expense-splits-panel__card-main {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.35rem 0.6rem;
+    min-width: 0;
+}
+
+.expense-splits-panel__label {
+    font-size: 0.8rem;
+    color: var(--text-light);
+}
+
+.expense-splits-panel__who {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.expense-splits-panel__amount {
     font-size: 1rem;
     font-weight: 700;
-}
-
-.expense-splits-panel__hint {
-    margin: 0;
-    font-size: 0.82rem;
-    color: var(--text-secondary, var(--text-light));
-}
-
-.expense-splits-panel__row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.45rem 0.75rem;
-    padding: 0.5rem 0;
-    border-top: 1px dashed var(--border-color, rgba(0, 0, 0, 0.12));
-    font-size: 0.88rem;
-}
-
-.expense-splits-panel__row:first-of-type {
-    border-top: none;
-    padding-top: 0;
-}
-
-.expense-splits-panel__meta {
-    flex: 1;
-    min-width: 14rem;
-    line-height: 1.35;
-}
-
-.expense-splits-panel__sub {
-    display: block;
-    margin-top: 0.1rem;
-    font-size: 0.82rem;
-    color: var(--text-secondary, var(--text-light));
-    opacity: 0.9;
-}
-
-.expense-splits-panel__actions {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-}
-
-.expense-splits-panel__proof {
-    font-size: 0.82rem;
-    color: var(--text-secondary, var(--text-light));
-}
-
-.expense-splits-panel__proof a {
     color: var(--primary-color);
-    text-decoration: none;
-    font-weight: 600;
 }
 
-.expense-splits-panel__proof a:hover {
-    text-decoration: underline;
+.expense-splits-panel__desc {
+    font-size: 0.82rem;
+    color: var(--text-light);
+    font-style: italic;
 }
 
-.expense-splits-panel__btn {
+.expense-splits-panel__cancel {
     margin: 0;
-    padding: 0.35rem 0.6rem;
-    border-radius: 10px;
-    font-size: 0.78rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    white-space: nowrap;
+}
+
+.expense-splits-panel__cancel i {
+    margin-right: 0.35rem;
+}
+
+[data-theme='dark'] .expense-splits-panel--outgoing {
+    background: var(--bg-light);
+}
+
+[data-theme='dark'] .expense-splits-panel__card {
+    background: var(--bg-color);
 }
 
 .modal-content--wide {

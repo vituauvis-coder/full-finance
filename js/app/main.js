@@ -13,7 +13,7 @@ import {
     loadCardsData,
     showPendingSplitsLoginModal
 } from '../features/finance/index.js';
-import { initProfile } from '../features/profile/profile.js';
+import { initProfile, applyProfilePhotoFromUserProfile } from '../features/profile/profile.js';
 import { initTools } from '../features/tools/tools.js';
 import { initSupport } from '../features/support/support.js';
 import { initGoals, loadGoalsData } from '../features/goals/index.js';
@@ -157,6 +157,7 @@ async function refreshAllData() {
     if (data.userProfile?.currency) {
         AppState.currency = data.userProfile.currency;
     }
+    applyProfilePhotoFromUserProfile(AppState.userProfile);
 
     // Recalcula saldos das contas após buscar os dados
     AppState.accounts = calculateAllBalances(

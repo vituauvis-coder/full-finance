@@ -200,6 +200,16 @@ ensureDirs();
 
 query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS balance_offset double precision NOT NULL DEFAULT 0`).catch(e => console.error('Migration error:', e.message));
 
+/** Data URLs em Base64 excedem VARCHAR curtos; sem TEXT a foto não persiste após F5. */
+query(
+    `ALTER TABLE users ALTER COLUMN profile_photo_url TYPE text USING profile_photo_url::text`
+).catch((e) => {
+    const msg = e?.message || String(e);
+    if (!/does not exist|undefined_column/i.test(msg)) {
+        console.error('Migration profile_photo_url→text:', msg);
+    }
+});
+
 const app = express();
 /** Railway / Vercel: um hop de proxy; necessário para cookies Secure e IP correta */
 if (process.env.TRUST_PROXY !== 'false') {
@@ -842,7 +852,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                 amount: base.amount,
                 description: base.description,
                 date,
-                isPaid: base.isPaid,
+                isPaid: false,
                 isInvestment: base.isInvestment,
                 installmentCount: null,
                 recurringMonthly: false,
