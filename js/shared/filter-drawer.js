@@ -14,7 +14,7 @@ export function closeFilterDrawer(drawerId) {
     if (openBtn) openBtn.setAttribute('aria-expanded', 'false');
 }
 
-export function setupFilterDrawer({ drawerId, openBtnId }) {
+export function setupFilterDrawer({ drawerId, openBtnId, onOpen }) {
     const drawer = document.getElementById(drawerId);
     const openBtn = document.getElementById(openBtnId);
     if (!drawer || !openBtn) return;
@@ -31,6 +31,11 @@ export function setupFilterDrawer({ drawerId, openBtnId }) {
         drawer.setAttribute('aria-hidden', 'false');
         document.body.classList.add('filter-drawer-open');
         openBtn.setAttribute('aria-expanded', 'true');
+        try {
+            onOpen?.();
+        } catch (err) {
+            console.error('[filter-drawer] onOpen', err);
+        }
     }
 
     openBtn.addEventListener('click', (e) => {

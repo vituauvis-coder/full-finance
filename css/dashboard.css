@@ -52,6 +52,18 @@
     color: var(--text-light);
 }
 
+/* Variação % logo abaixo do valor principal (Saídas/Entradas) */
+.movements-summary .card-content .dashboard-card-scope {
+    display: block;
+    margin-top: 0.35rem;
+    min-height: 1.25rem;
+    line-height: 1.4;
+}
+
+.movements-summary .summary-mom-pct {
+    font-size: 0.95rem;
+}
+
 .dashboard-pending-cash-outs {
     background: var(--bg-light);
     border-radius: 12px;

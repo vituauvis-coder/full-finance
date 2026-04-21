@@ -1,5 +1,8 @@
 // js/reports.js
-import { expenseContributionToCalendarMonth } from '../../core/expense-calendar-month.js';
+import {
+    expenseContributionToCalendarMonth,
+    expenseContributionProjectedToMonthKey
+} from '../../core/expense-calendar-month.js';
 import {
     expenseCountsAsCashOut,
     formatCurrency,
@@ -412,23 +415,6 @@ function expenseContributionPaidThroughToMonthKey(t, acc, monthKey, cutoffEndInc
     if (d.getTime() > cutoffT) return 0;
     if (!expenseCountsAsCashOut(t, acc)) return 0;
     return amt;
-}
-
-function expenseContributionProjectedToMonthKey(t, acc, monthKey, now, userProfile = null) {
-    const nInst = Math.max(1, parseInt(String(t.installmentCount ?? '1'), 10) || 1);
-    if (acc && isCreditCardType(acc.type)) {
-        const allocs = getCreditInstallmentMonthAllocationsIncludingFuture(t, acc, now, userProfile);
-        return allocs[monthKey] || 0;
-    }
-    if (isLoanExpense(t) && (!acc || !isCreditCardType(acc.type)) && nInst >= 2) {
-        const allocs = getLoanInstallmentMonthAllocationsIncludingFuture(t);
-        return allocs[monthKey] || 0;
-    }
-    const d = movementDateToJsDate(t.date);
-    const mk = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    if (mk !== monthKey) return 0;
-    if (!expenseCountsAsCashOut(t, acc)) return 0;
-    return Number(t.amount) || 0;
 }
 
 /**

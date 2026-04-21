@@ -19,7 +19,10 @@ import {
     loanInstallmentCashOutForCalendarMonth,
     shouldDeferCashOutForMonthlyFixedSeries
 } from '../../core/credit-installments.js';
-import { expenseContributionToCalendarMonth as expenseContributionToCurrentCalendarMonth } from '../../core/expense-calendar-month.js';
+import {
+    expenseContributionToCalendarMonth as expenseContributionToCurrentCalendarMonth,
+    expenseContributionProjectedToMonthKey
+} from '../../core/expense-calendar-month.js';
 import {
     expenseCountsAsCashOut,
     formatCurrency,
@@ -298,8 +301,34 @@ let cardPurchasesCache = { sorted: [], currency: 'BRL', userProfile: null };
 /** Texto do filtro do modal de compras (sincronizado com o input). */
 let cardPurchasesFilterQ = '';
 
-const expensesFilterState = { q: '', category: '', accountId: '', period: getDefaultPeriodValue() };
-const gainsFilterState = { q: '', category: '', accountId: '', period: getDefaultPeriodValue() };
+const expensesFilterState = {
+    q: '',
+    category: '',
+    subcategory: '',
+    paymentType: '',
+    status: '',
+    description: '',
+    amountMin: null,
+    amountMax: null,
+    dateFrom: '',
+    dateTo: '',
+    accountId: '',
+    period: getDefaultPeriodValue()
+};
+const gainsFilterState = {
+    q: '',
+    category: '',
+    subcategory: '',
+    paymentType: '',
+    status: '',
+    description: '',
+    amountMin: null,
+    amountMax: null,
+    dateFrom: '',
+    dateTo: '',
+    accountId: '',
+    period: getDefaultPeriodValue()
+};
 
 /** Mesmos intervalos do relatório por período — lista de saídas/entradas. */
 function getMovementListPeriodBounds(period) {
@@ -928,8 +957,26 @@ export function initFinance(
     });
 
     setupTransactionTableFilters();
-    setupFilterDrawer({ drawerId: 'expenses-filter-drawer', openBtnId: 'expenses-filter-open-btn' });
-    setupFilterDrawer({ drawerId: 'gains-filter-drawer', openBtnId: 'gains-filter-open-btn' });
+    setupFilterDrawer({
+        drawerId: 'expenses-filter-drawer',
+        openBtnId: 'expenses-filter-open-btn',
+        onOpen: () => {
+            readExpensesFilterFromDom();
+            syncDrawerDateInputsToPeriod('expenses-filter', document.getElementById('expenses-period-filter')?.value);
+            populateExpenseFilterSelects();
+            syncRangeLabels('expenses-filter', expensesRenderCache.currency);
+        }
+    });
+    setupFilterDrawer({
+        drawerId: 'gains-filter-drawer',
+        openBtnId: 'gains-filter-open-btn',
+        onOpen: () => {
+            readGainsFilterFromDom();
+            syncDrawerDateInputsToPeriod('gains-filter', document.getElementById('gains-period-filter')?.value);
+            populateGainFilterSelects();
+            syncRangeLabels('gains-filter', gainsRenderCache.currency);
+        }
+    });
     setupInstallmentCashOutConfirmModal();
     setupExpenseSplitUi();
 }
@@ -1164,6 +1211,19 @@ function toggleCreditCardFields(type) {
 function readExpensesFilterFromDom() {
     expensesFilterState.q = document.getElementById('expenses-filter-q')?.value || '';
     expensesFilterState.category = document.getElementById('expenses-filter-category')?.value || '';
+    expensesFilterState.subcategory = document.getElementById('expenses-filter-subcategory')?.value || '';
+    expensesFilterState.paymentType = document.getElementById('expenses-filter-payment-type')?.value || '';
+    expensesFilterState.status = document.getElementById('expenses-filter-status')?.value || '';
+    expensesFilterState.description = document.getElementById('expenses-filter-description')?.value || '';
+    const amin = document.getElementById('expenses-filter-amount-min')?.value;
+    const amax = document.getElementById('expenses-filter-amount-max')?.value;
+    expensesFilterState.amountMin = amin != null && amin !== '' ? Number(amin) : null;
+    expensesFilterState.amountMax = amax != null && amax !== '' ? Number(amax) : null;
+    const df = document.getElementById('expenses-filter-date-from');
+    const dt = document.getElementById('expenses-filter-date-to');
+    const manual = df?.dataset?.manual === '1' || dt?.dataset?.manual === '1';
+    expensesFilterState.dateFrom = manual ? df?.value || '' : '';
+    expensesFilterState.dateTo = manual ? dt?.value || '' : '';
     expensesFilterState.accountId = document.getElementById('expenses-filter-account')?.value || '';
     expensesFilterState.period =
         document.getElementById('expenses-period-filter')?.value || getDefaultPeriodValue();
@@ -1323,12 +1383,48 @@ function expenseContributionPaidThroughMonthKey(t, acc, monthKey, cutoffEndInclu
     return amt;
 }
 
+/**
+ * Comparativo % do valor principal do card (saídas/entradas) vs mês calendário anterior ao primeiro mês do filtro.
+ * Só mostra a % com sentido quando o filtro é um único mês (month-0 … month-11).
+ * @param {boolean} invertExpenseSemantics - true = saídas (aumento pior = vermelho)
+ */
+function setMovementSummaryMomVariation(el, totalPeriod, totalPrevMonth, isSingleMonth, invertExpenseSemantics) {
+    if (!el) return;
+    if (!isSingleMonth) {
+        el.innerHTML =
+            '<span class="card-metric-hint" title="Selecione um único mês no período para ver a variação em relação ao mês anterior.">—</span>';
+        return;
+    }
+    if (totalPrevMonth > 0) {
+        const diff = ((totalPeriod - totalPrevMonth) / totalPrevMonth) * 100;
+        const isIncrease = diff > 0;
+        const icon = isIncrease ? '↑' : '↓';
+        const color = invertExpenseSemantics
+            ? isIncrease
+                ? 'var(--danger-color)'
+                : 'var(--secondary-color)'
+            : isIncrease
+              ? 'var(--secondary-color)'
+              : 'var(--danger-color)';
+        el.innerHTML = `<span class="summary-mom-pct" style="color: ${color}; font-weight: 600;">${icon} ${Math.abs(diff).toFixed(1)}%</span> <span class="card-metric-hint" style="display:inline;">vs mês anterior</span>`;
+        return;
+    }
+    if (totalPeriod > 0) {
+        el.innerHTML =
+            '<span class="card-metric-hint" title="No mês anterior não havia valor para calcular a variação percentual.">Sem base no mês anterior</span>';
+        return;
+    }
+    el.innerHTML =
+        '<span class="card-metric-hint" title="Sem valores no mês selecionado e no mês anterior.">—</span>';
+}
+
 function updateExpensesSummaryCards() {
     const cache = expensesRenderCache;
     if (!cache?.sorted) return;
     const { sorted, currency, userProfile } = cache;
     const now = new Date();
     const period = expensesFilterState?.period || getDefaultPeriodValue();
+    const isSingleMonth = /^month-\d+$/.test(period);
 
     // Determina quais meses entram pelo filtro («este ano» = jan–dez; meses futuros no ano ainda sem caixa = 0)
     const currentMonthKey = monthKeyFromDateObj(now);
@@ -1336,6 +1432,7 @@ function updateExpensesSummaryCards() {
 
     // Total do período (soma de contribuições por mês)
     let totalPeriod = 0;
+    let totalPending = 0;
     for (const mk of months) {
         if (period === 'current-year' && mk > currentMonthKey) continue;
         const cutoff =
@@ -1344,11 +1441,50 @@ function updateExpensesSummaryCards() {
                 : new Date(Number(mk.slice(0, 4)), Number(mk.slice(5, 7)) - 1 + 1, 0, 23, 59, 59, 999);
         sorted.forEach((t) => {
             const acc = userAccounts?.find((a) => a.id === t.accountId);
-            totalPeriod +=
+            const contrib =
                 mk === currentMonthKey
                     ? expenseContributionToCurrentCalendarMonth(t, acc, mk, now, userProfile)
                     : expenseContributionPaidThroughMonthKey(t, acc, mk, cutoff, userProfile);
+            totalPeriod += contrib;
+
+            // Cálculo do pendente: se a contribuição projetada para o mês for maior que a paga
+            const projected = expenseContributionProjectedToMonthKey(t, acc, mk, now, userProfile);
+            if (projected > contrib) {
+                totalPending += projected - contrib;
+            }
         });
+    }
+
+    // Cálculo do mês anterior para variação %
+    let totalPrevMonth = 0;
+    let projectionPrevMonth = 0;
+    let topCatPrevMonthAmt = 0;
+    const firstMonthParts = months[0].split('-');
+    const prevMonthDate = new Date(Number(firstMonthParts[0]), Number(firstMonthParts[1]) - 1 - 1, 1);
+    const prevMonthKey = monthKeyFromDateObj(prevMonthDate);
+    const prevMonthCutoff = new Date(prevMonthDate.getFullYear(), prevMonthDate.getMonth() + 1, 0, 23, 59, 59, 999);
+    
+    {
+        const byCatPrev = new Map();
+        sorted.forEach((t) => {
+            const acc = userAccounts?.find((a) => a.id === t.accountId);
+            const contrib = expenseContributionPaidThroughMonthKey(t, acc, prevMonthKey, prevMonthCutoff, userProfile);
+            totalPrevMonth += contrib;
+            if (contrib > 0) {
+                const k = expenseTopLevelCategory(t);
+                byCatPrev.set(k, (byCatPrev.get(k) || 0) + contrib);
+            }
+
+            // Card de "pendente" removido da UI (mantemos apenas a variação do total/projeção/categoria).
+        });
+        byCatPrev.forEach((amt) => {
+            if (amt > topCatPrevMonthAmt) topCatPrevMonthAmt = amt;
+        });
+    }
+
+    if (isSingleMonth) {
+        // No mês anterior completo, projeção ≈ total do mês (média diária * dias do mês = total)
+        projectionPrevMonth = totalPrevMonth;
     }
 
     const byCat = new Map();
@@ -1379,21 +1515,62 @@ function updateExpensesSummaryCards() {
         }
     });
 
-    // (Card anual removido)
+    // Projeção (usa média diária apenas internamente)
+    let dailyAvg = 0;
+    let projection = 0;
+    if (isSingleMonth) {
+        const { startDate, endDate } = getPeriodDateBounds(period, now);
+        const isCurrentMonth = monthKeyFromDateObj(startDate) === currentMonthKey;
+        
+        const daysInMonth = endDate.getDate();
+        const daysPassed = isCurrentMonth ? now.getDate() : daysInMonth;
+        
+        dailyAvg = totalPeriod / daysPassed;
+        projection = dailyAvg * daysInMonth;
+    }
+
+    // Atualiza a UI
     const elTop = document.getElementById('expenses-summary-top-cat');
     const elTopIcon = document.getElementById('expenses-summary-top-cat-icon');
     if (elTop) {
-        elTop.textContent = topCatAmt > 0 ? formatCurrency(topCatAmt, currency) : '—';
+        elTop.textContent = topCatAmt > 0 && topCat ? topCat : '—';
     }
     if (elTopIcon) {
         elTopIcon.title =
             topCatAmt > 0 && topCat
-                ? topCat
+                ? `${topCat}: ${formatCurrency(topCatAmt, currency)}`
                 : 'Nenhuma saída neste mês calendário';
     }
 
     const elMonth = document.getElementById('expenses-summary-month');
     if (elMonth) elMonth.textContent = formatCurrency(totalPeriod, currency);
+
+    setMovementSummaryMomVariation(
+        document.getElementById('expenses-summary-variation'),
+        totalPeriod,
+        totalPrevMonth,
+        isSingleMonth,
+        true
+    );
+    setMovementSummaryMomVariation(
+        document.getElementById('expenses-summary-projection-variation'),
+        projection,
+        projectionPrevMonth,
+        isSingleMonth,
+        true
+    );
+    setMovementSummaryMomVariation(
+        document.getElementById('expenses-summary-top-cat-variation'),
+        topCatAmt,
+        topCatPrevMonthAmt,
+        isSingleMonth,
+        true
+    );
+
+    // Cards
+    const elProjection = document.getElementById('expenses-summary-projection');
+    if (elProjection) elProjection.textContent = isSingleMonth ? formatCurrency(projection, currency) : '—';
+
     const elMonthIcon = document.getElementById('expenses-summary-month-icon');
     if (elMonthIcon) {
         const p = getPeriodTitleParts(period, now);
@@ -1407,19 +1584,16 @@ function updateExpensesSummaryCards() {
     }
 
     // Atualiza títulos (h3) conforme o período
-    const t = getPeriodTitleParts(period, now);
+    const tParts = getPeriodTitleParts(period, now);
     const elMonthTitle = document.getElementById('expenses-summary-month-title');
     const elTopTitle = document.getElementById('expenses-summary-top-cat-title');
-    if (t.kind === 'year') {
-        if (elMonthTitle) elMonthTitle.textContent = `Saídas de ${t.label}`;
-        if (elTopTitle) elTopTitle.textContent = `Principal categoria de ${t.label}`;
-    } else if (t.kind === 'month') {
-        if (elMonthTitle) elMonthTitle.textContent = `Saídas de ${t.label}`;
-        if (elTopTitle) elTopTitle.textContent = `Principal categoria de ${t.label}`;
-    } else {
-        if (elMonthTitle) elMonthTitle.textContent = `Saídas · ${t.label}`;
-        if (elTopTitle) elTopTitle.textContent = `Principal categoria · ${t.label}`;
-    }
+    const elProjTitle = document.getElementById('expenses-summary-projection-title');
+
+    const label = tParts.label;
+    if (elMonthTitle) elMonthTitle.textContent = `Saídas de ${label}`;
+    if (elTopTitle) elTopTitle.textContent = `Principal categoria de ${label}`;
+    if (elProjTitle) elProjTitle.textContent = `Projeção de ${label}`;
+
     syncExpensesFilterButtonHighlight();
 }
 
@@ -1430,12 +1604,44 @@ function updateGainsSummaryCards() {
     const { sorted, currency } = cache;
     const now = new Date();
     const period = gainsFilterState.period || getDefaultPeriodValue();
+    const isSingleMonth = /^month-\d+$/.test(period);
+
+    const currentMonthKey = monthKeyFromDateObj(now);
+    const months = getMonthKeysInPeriod(period, now);
 
     const inPeriod = sorted.filter((t) => movementDateInListPeriod(t.date, period));
-    const totalPeriod = sumMovementAmounts(inPeriod);
+    let totalPeriod = 0;
+    let totalPending = 0;
+    inPeriod.forEach((t) => {
+        const amt = Number(t.amount) || 0;
+        totalPeriod += amt;
+        if (t.isPaid === false) totalPending += amt;
+    });
 
-    const inCurrentMonth = filterMovementsInCurrentMonth(sorted);
-    const totalCurrentMonth = sumMovementAmounts(inCurrentMonth);
+    let totalPrevMonth = 0;
+    let projectionPrevMonth = 0;
+    let topCatPrevMonthAmt = 0;
+    const firstMonthParts = months[0].split('-');
+    const prevMonthDate = new Date(Number(firstMonthParts[0]), Number(firstMonthParts[1]) - 1 - 1, 1);
+    const prevMonthKey = monthKeyFromDateObj(prevMonthDate);
+    {
+        const byCatPrev = new Map();
+        sorted.forEach((t) => {
+            const d = movementDateToJsDate(t.date);
+            if (monthKeyFromDateObj(d) !== prevMonthKey) return;
+            const amt = Number(t.amount) || 0;
+            totalPrevMonth += amt;
+            const k = gainTopLevelCategory(t);
+            byCatPrev.set(k, (byCatPrev.get(k) || 0) + amt);
+        });
+        byCatPrev.forEach((amt) => {
+            if (amt > topCatPrevMonthAmt) topCatPrevMonthAmt = amt;
+        });
+    }
+
+    if (isSingleMonth) {
+        projectionPrevMonth = totalPrevMonth;
+    }
 
     const byCat = new Map();
     inPeriod.forEach((t) => {
@@ -1451,69 +1657,67 @@ function updateGainsSummaryCards() {
         }
     });
 
-    const elYear = document.getElementById('gains-summary-year');
-    const elMonth = document.getElementById('gains-summary-month');
-    const elTop = document.getElementById('gains-summary-top-cat');
-    const elTopIcon = document.getElementById('gains-summary-top-cat-icon');
-    const elYearIcon = document.getElementById('gains-summary-year-icon');
-    const elMonthIcon = document.getElementById('gains-summary-month-icon');
-
-    if (elYear) elYear.textContent = formatCurrency(totalPeriod, currency);
-    if (period === 'current-year' && elMonth) {
-        elMonth.textContent = formatCurrency(totalCurrentMonth, currency);
-    } else if (elMonth) {
-        elMonth.textContent = formatCurrency(totalPeriod, currency);
+    // Projeção (usa média diária apenas internamente)
+    let dailyAvg = 0;
+    let projection = 0;
+    if (isSingleMonth) {
+        const { startDate, endDate } = getPeriodDateBounds(period, now);
+        const isCurrentMonth = monthKeyFromDateObj(startDate) === currentMonthKey;
+        const daysInMonth = endDate.getDate();
+        const daysPassed = isCurrentMonth ? now.getDate() : daysInMonth;
+        dailyAvg = totalPeriod / daysPassed;
+        projection = dailyAvg * daysInMonth;
     }
 
+    const elTotal = document.getElementById('gains-summary-total');
+    const elProjection = document.getElementById('gains-summary-projection');
+    const elTop = document.getElementById('gains-summary-top-cat');
+    const elTopIcon = document.getElementById('gains-summary-top-cat-icon');
+
+    if (elTotal) elTotal.textContent = formatCurrency(totalPeriod, currency);
+    if (elProjection) elProjection.textContent = isSingleMonth ? formatCurrency(projection, currency) : '—';
+
     if (elTop) {
-        elTop.textContent = topCatAmt > 0 ? formatCurrency(topCatAmt, currency) : '—';
+        elTop.textContent = topCatAmt > 0 && topCat ? topCat : '—';
     }
     if (elTopIcon) {
         elTopIcon.title =
-            topCatAmt > 0 && topCat ? topCat : 'Nenhuma entrada no período do filtro';
+            topCatAmt > 0 && topCat
+                ? `${topCat}: ${formatCurrency(topCatAmt, currency)}`
+                : 'Nenhuma entrada no período do filtro';
     }
 
-    const p = getPeriodTitleParts(period, now);
-    const elYearTitle = document.getElementById('gains-summary-year-title');
-    const elMonthTitle = document.getElementById('gains-summary-month-title');
+    setMovementSummaryMomVariation(
+        document.getElementById('gains-summary-variation'),
+        totalPeriod,
+        totalPrevMonth,
+        isSingleMonth,
+        false
+    );
+    setMovementSummaryMomVariation(
+        document.getElementById('gains-summary-projection-variation'),
+        projection,
+        projectionPrevMonth,
+        isSingleMonth,
+        false
+    );
+    setMovementSummaryMomVariation(
+        document.getElementById('gains-summary-top-cat-variation'),
+        topCatAmt,
+        topCatPrevMonthAmt,
+        isSingleMonth,
+        false
+    );
+
+    const tParts = getPeriodTitleParts(period, now);
+    const label = tParts.label;
+    const elTotalTitle = document.getElementById('gains-summary-total-title');
+    const elProjTitle = document.getElementById('gains-summary-projection-title');
     const elTopTitle = document.getElementById('gains-summary-top-cat-title');
 
-    if (period === 'current-year') {
-        if (elYearTitle) elYearTitle.textContent = `Entradas de ${now.getFullYear()}`;
-        if (elMonthTitle) elMonthTitle.textContent = 'No mês atual';
-        if (elTopTitle) elTopTitle.textContent = `Principal categoria em ${now.getFullYear()}`;
-        if (elYearIcon) {
-            elYearIcon.title = 'Soma das entradas com data entre 1/1 e 31/12 do ano (inclui datas futuras no ano)';
-        }
-        if (elMonthIcon) {
-            const parts = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).formatToParts(now);
-            const monthName = parts.find((x) => x.type === 'month')?.value || '';
-            const yPart = parts.find((x) => x.type === 'year')?.value || '';
-            const labelMonth = monthName ? monthName.charAt(0).toUpperCase() + monthName.slice(1) : '';
-            elMonthIcon.title =
-                labelMonth && yPart
-                    ? `Entradas com data em ${labelMonth} ${yPart}`
-                    : 'Mês calendário atual';
-        }
-    } else if (p.kind === 'year') {
-        if (elYearTitle) elYearTitle.textContent = `Entradas de ${p.label}`;
-        if (elMonthTitle) elMonthTitle.textContent = `Entradas de ${p.label}`;
-        if (elTopTitle) elTopTitle.textContent = `Principal categoria em ${p.label}`;
-        if (elYearIcon) elYearIcon.title = 'Total no período selecionado (ano calendário completo)';
-        if (elMonthIcon) elMonthIcon.title = 'Mesmo total do período';
-    } else if (p.kind === 'month') {
-        if (elYearTitle) elYearTitle.textContent = `Entradas de ${p.label}`;
-        if (elMonthTitle) elMonthTitle.textContent = `Entradas de ${p.label}`;
-        if (elTopTitle) elTopTitle.textContent = `Principal categoria em ${p.label}`;
-        if (elYearIcon) elYearIcon.title = 'Entradas com data no período do filtro';
-        if (elMonthIcon) elMonthIcon.title = 'Mesmo total do período';
-    } else {
-        if (elYearTitle) elYearTitle.textContent = `Entradas · ${p.label}`;
-        if (elMonthTitle) elMonthTitle.textContent = `Entradas · ${p.label}`;
-        if (elTopTitle) elTopTitle.textContent = `Principal categoria · ${p.label}`;
-        if (elYearIcon) elYearIcon.title = 'Entradas com data no intervalo selecionado';
-        if (elMonthIcon) elMonthIcon.title = 'Mesmo total do período';
-    }
+    if (elTotalTitle) elTotalTitle.textContent = `Entradas de ${label}`;
+    if (elProjTitle) elProjTitle.textContent = `Projeção de ${label}`;
+    if (elTopTitle) elTopTitle.textContent = `Principal categoria de ${label}`;
 
     syncGainsFilterButtonHighlight();
 }
@@ -1540,20 +1744,42 @@ function syncGainsFilterButtonHighlight() {
 
 function getFilteredExpensesList() {
     const { sorted, accounts, currency, userProfile } = expensesRenderCache;
-    const { q, category, accountId, period } = expensesFilterState;
-    let list = sorted.filter((t) => expenseMatchesListPeriod(t, period));
+    const { q, category, subcategory, paymentType, status, description, amountMin, amountMax, dateFrom, dateTo, accountId, period } = expensesFilterState;
+    // Período é o filtro principal; só é ignorado quando o usuário seleciona Data (de/até).
+    let list = (dateFrom || dateTo)
+        ? [...sorted]
+        : sorted.filter((t) => expenseMatchesListPeriod(t, period));
     if (category) {
-        if (category.includes(' > ')) {
-            // Filtro por subcategoria específica
-            const [cat, sub] = category.split(' > ');
-            list = list.filter((t) => t.category === cat && t.subcategory === sub);
-        } else {
-            // Filtro por categoria principal (inclui todas as subcategorias)
-            list = list.filter((t) => t.category === category);
-        }
+        list = list.filter((t) => t.category === category);
+    }
+    if (category && subcategory) {
+        list = list.filter((t) => String(t.subcategory ?? '') === String(subcategory));
     }
     if (accountId) {
         list = list.filter((t) => t.accountId === accountId);
+    }
+    if (paymentType) {
+        list = list.filter((t) => accountPaymentType(accounts.find((a) => a.id === t.accountId)) === paymentType);
+    }
+    if (status === 'paid') list = list.filter((t) => t.isPaid !== false);
+    if (status === 'unpaid') list = list.filter((t) => t.isPaid === false);
+    if (description && description.trim()) {
+        const needleDesc = description.trim().toLowerCase();
+        list = list.filter((t) => String(t.description ?? '').toLowerCase().includes(needleDesc));
+    }
+    if (amountMin != null || amountMax != null) {
+        const min = amountMin != null ? Number(amountMin) : null;
+        const max = amountMax != null ? Number(amountMax) : null;
+        list = list.filter((t) => {
+            const acc = accounts.find((a) => a.id === t.accountId);
+            const v = getExpenseAmountForFilter(t, acc);
+            if (min != null && v < min) return false;
+            if (max != null && v > max) return false;
+            return true;
+        });
+    }
+    if (dateFrom || dateTo) {
+        list = list.filter((t) => movementMatchesDateRange(t, dateFrom, dateTo));
     }
     const needle = q.trim().toLowerCase();
     if (needle) {
@@ -1593,19 +1819,23 @@ function getFilteredExpensesList() {
 function populateExpenseFilterSelects() {
     const { sorted, accounts } = expensesRenderCache;
     const catSel = document.getElementById('expenses-filter-category');
+    const subSel = document.getElementById('expenses-filter-subcategory');
+    const subRow = document.getElementById('expenses-filter-subcategory-row');
     const accSel = document.getElementById('expenses-filter-account');
     if (!catSel || !accSel) return;
     const prevCat = catSel.value;
+    const prevSub = subSel?.value || '';
     const prevAcc = accSel.value;
     const period = expensesFilterState.period || getDefaultPeriodValue();
     const inPeriod = sorted.filter((t) => expenseMatchesListPeriod(t, period));
+    const dfEl = document.getElementById('expenses-filter-date-from');
+    const dtEl = document.getElementById('expenses-filter-date-to');
+    const manual = dfEl?.dataset?.manual === '1' || dtEl?.dataset?.manual === '1';
+    const dateFrom = manual ? dfEl?.value || '' : '';
+    const dateTo = manual ? dtEl?.value || '' : '';
+    const baseList = (dateFrom || dateTo) ? sorted.filter((t) => movementMatchesDateRange(t, dateFrom, dateTo)) : inPeriod;
     const cats = [
-        ...new Set(inPeriod.map((t) => {
-            if (t.subcategory) {
-                return `${t.category} > ${t.subcategory}`;
-            }
-            return t.category;
-        }).filter((c) => c != null && String(c).trim() !== ''))
+        ...new Set(baseList.map((t) => String(t.category ?? '').trim()).filter((c) => c))
     ].sort((a, b) => String(a).localeCompare(String(b), 'pt-BR'));
     catSel.innerHTML = '<option value="">Todas as categorias</option>';
     cats.forEach((c) => {
@@ -1616,7 +1846,31 @@ function populateExpenseFilterSelects() {
     });
     if (cats.includes(prevCat)) catSel.value = prevCat;
 
-    const accIds = [...new Set(inPeriod.map((t) => t.accountId).filter(Boolean))];
+    if (subSel && subRow) {
+        const cat = catSel.value;
+        const subs = cat
+            ? [
+                  ...new Set(
+                      baseList
+                          .filter((t) => String(t.category ?? '') === cat)
+                          .map((t) => String(t.subcategory ?? '').trim())
+                          .filter((s) => s)
+                  )
+              ].sort((a, b) => String(a).localeCompare(String(b), 'pt-BR'))
+            : [];
+        subSel.innerHTML = '<option value="">Todas as subcategorias</option>';
+        subs.forEach((s) => {
+            const o = document.createElement('option');
+            o.value = s;
+            o.textContent = s;
+            subSel.appendChild(o);
+        });
+        subRow.classList.toggle('hidden', !cat || subs.length === 0);
+        if (subs.includes(prevSub)) subSel.value = prevSub;
+        else subSel.value = '';
+    }
+
+    const accIds = [...new Set(baseList.map((t) => t.accountId).filter(Boolean))];
     const accList = accIds
         .map((id) => accounts.find((a) => a.id === id))
         .filter(Boolean)
@@ -1629,11 +1883,15 @@ function populateExpenseFilterSelects() {
         accSel.appendChild(o);
     });
     if (accIds.includes(prevAcc)) accSel.value = prevAcc;
+
+    // Bounds do slider de valor (baseado no conjunto atual: período OU data de/até)
+    initAmountRangeBounds('expenses-filter', baseList, expensesRenderCache.currency, accounts);
 }
 
 function applyExpensesFilters() {
     readExpensesFilterFromDom();
     populateExpenseFilterSelects();
+    syncRangeLabels('expenses-filter', expensesRenderCache.currency);
     if (!expensesPagination) return;
     expensesPagination.setTotal(getSortedFilteredExpensesList().length, { resetPage: true });
     renderExpensesBodySlice();
@@ -1761,6 +2019,7 @@ export function loadExpensesData(expenses, accounts, currency, userProfile = nul
     );
     expensesRenderCache = { sorted, accounts, currency, userProfile: userProfile ?? null };
     readExpensesFilterFromDom();
+    syncDrawerDateInputsToPeriod('expenses-filter', document.getElementById('expenses-period-filter')?.value);
     populateExpenseFilterSelects();
 
     const bar = document.getElementById('expenses-pagination');
@@ -1786,26 +2045,127 @@ export function loadExpensesData(expenses, accounts, currency, userProfile = nul
 function readGainsFilterFromDom() {
     gainsFilterState.q = document.getElementById('gains-filter-q')?.value || '';
     gainsFilterState.category = document.getElementById('gains-filter-category')?.value || '';
+    gainsFilterState.subcategory = document.getElementById('gains-filter-subcategory')?.value || '';
+    gainsFilterState.paymentType = document.getElementById('gains-filter-payment-type')?.value || '';
+    gainsFilterState.status = document.getElementById('gains-filter-status')?.value || '';
+    gainsFilterState.description = document.getElementById('gains-filter-description')?.value || '';
+    const amin = document.getElementById('gains-filter-amount-min')?.value;
+    const amax = document.getElementById('gains-filter-amount-max')?.value;
+    gainsFilterState.amountMin = amin != null && amin !== '' ? Number(amin) : null;
+    gainsFilterState.amountMax = amax != null && amax !== '' ? Number(amax) : null;
+    const df = document.getElementById('gains-filter-date-from');
+    const dt = document.getElementById('gains-filter-date-to');
+    const manual = df?.dataset?.manual === '1' || dt?.dataset?.manual === '1';
+    gainsFilterState.dateFrom = manual ? df?.value || '' : '';
+    gainsFilterState.dateTo = manual ? dt?.value || '' : '';
     gainsFilterState.accountId = document.getElementById('gains-filter-account')?.value || '';
     gainsFilterState.period = document.getElementById('gains-period-filter')?.value || getDefaultPeriodValue();
 }
 
+function toLocalDateInputValue(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
+function syncDrawerDateInputsToPeriod(prefix, periodValue) {
+    const df = document.getElementById(`${prefix}-date-from`);
+    const dt = document.getElementById(`${prefix}-date-to`);
+    if (!df || !dt) return;
+    const manual = df.dataset.manual === '1' || dt.dataset.manual === '1';
+    if (manual) return; // usuário assumiu controle do filtro de data
+    const now = new Date();
+    const { startDate, endDate } = getPeriodDateBounds(periodValue || getDefaultPeriodValue(), now);
+    // Não usar toISOString() — em fusos como America/Sao_Paulo o dia pode “voltar” um dia.
+    df.value = toLocalDateInputValue(startDate);
+    dt.value = toLocalDateInputValue(endDate);
+    df.dataset.manual = '0';
+    dt.dataset.manual = '0';
+}
+
+function movementMatchesDateRange(t, fromStr, toStr) {
+    if (!fromStr && !toStr) return true;
+    const d = movementDateToJsDate(t.date);
+    if (fromStr) {
+        const from = new Date(fromStr + 'T00:00:00');
+        if (d.getTime() < from.getTime()) return false;
+    }
+    if (toStr) {
+        const to = new Date(toStr + 'T23:59:59');
+        if (d.getTime() > to.getTime()) return false;
+    }
+    return true;
+}
+
+function accountPaymentType(acc) {
+    const t = String(acc?.type ?? '').toLowerCase();
+    if (!t) return 'other';
+    if (isCreditCardType(t)) return 'credit';
+    if (t.includes('debito')) return 'debit';
+    if (t.includes('dinheiro') || t.includes('cash')) return 'cash';
+    if (t.includes('conta') || t.includes('banco') || t.includes('corrente') || t.includes('poup')) return 'bank';
+    return 'other';
+}
+
+function clampRangePair(minV, maxV) {
+    const a = Number(minV);
+    const b = Number(maxV);
+    if (!Number.isFinite(a) || !Number.isFinite(b)) return { min: minV, max: maxV };
+    if (a <= b) return { min: a, max: b };
+    return { min: b, max: a };
+}
+
+function syncRangeLabels(prefix, currency) {
+    const minEl = document.getElementById(`${prefix}-amount-min`);
+    const maxEl = document.getElementById(`${prefix}-amount-max`);
+    const minLbl = document.getElementById(`${prefix}-amount-min-label`);
+    const maxLbl = document.getElementById(`${prefix}-amount-max-label`);
+    if (!minEl || !maxEl || !minLbl || !maxLbl) return;
+    const { min, max } = clampRangePair(minEl.value, maxEl.value);
+    if (Number.isFinite(min)) minEl.value = String(min);
+    if (Number.isFinite(max)) maxEl.value = String(max);
+    minLbl.textContent = Number.isFinite(min) ? formatCurrency(min, currency) : '';
+    maxLbl.textContent = Number.isFinite(max) ? formatCurrency(max, currency) : '';
+}
+
 function getFilteredGainsList() {
     const { sorted, accounts, currency } = gainsRenderCache;
-    const { q, category, accountId, period } = gainsFilterState;
-    let list = sorted.filter((t) => movementDateInListPeriod(t.date, period));
+    const { q, category, subcategory, paymentType, status, description, amountMin, amountMax, dateFrom, dateTo, accountId, period } = gainsFilterState;
+    // Período é o filtro principal; só é ignorado quando o usuário seleciona Data (de/até).
+    let list = (dateFrom || dateTo)
+        ? [...sorted]
+        : sorted.filter((t) => movementDateInListPeriod(t.date, period));
     if (category) {
-        if (category.includes(' > ')) {
-            // Filtro por subcategoria específica
-            const [cat, sub] = category.split(' > ');
-            list = list.filter((t) => t.category === cat && t.subcategory === sub);
-        } else {
-            // Filtro por categoria principal (inclui todas as subcategorias)
-            list = list.filter((t) => t.category === category);
-        }
+        list = list.filter((t) => t.category === category);
+    }
+    if (category && subcategory) {
+        list = list.filter((t) => String(t.subcategory ?? '') === String(subcategory));
     }
     if (accountId) {
         list = list.filter((t) => t.accountId === accountId);
+    }
+    if (paymentType) {
+        list = list.filter((t) => accountPaymentType(accounts.find((a) => a.id === t.accountId)) === paymentType);
+    }
+    if (status === 'paid') list = list.filter((t) => t.isPaid !== false);
+    if (status === 'unpaid') list = list.filter((t) => t.isPaid === false);
+    if (description && description.trim()) {
+        const needleDesc = description.trim().toLowerCase();
+        list = list.filter((t) => String(t.description ?? '').toLowerCase().includes(needleDesc));
+    }
+    if (amountMin != null || amountMax != null) {
+        const min = amountMin != null ? Number(amountMin) : null;
+        const max = amountMax != null ? Number(amountMax) : null;
+        list = list.filter((t) => {
+            const v = Number(t.amount) || 0;
+            if (min != null && v < min) return false;
+            if (max != null && v > max) return false;
+            return true;
+        });
+    }
+    if (dateFrom || dateTo) {
+        list = list.filter((t) => movementMatchesDateRange(t, dateFrom, dateTo));
     }
     const needle = q.trim().toLowerCase();
     if (needle) {
@@ -1837,19 +2197,23 @@ function getFilteredGainsList() {
 function populateGainFilterSelects() {
     const { sorted, accounts } = gainsRenderCache;
     const catSel = document.getElementById('gains-filter-category');
+    const subSel = document.getElementById('gains-filter-subcategory');
+    const subRow = document.getElementById('gains-filter-subcategory-row');
     const accSel = document.getElementById('gains-filter-account');
     if (!catSel || !accSel) return;
     const prevCat = catSel.value;
+    const prevSub = subSel?.value || '';
     const prevAcc = accSel.value;
     const period = gainsFilterState.period || getDefaultPeriodValue();
     const inPeriod = sorted.filter((t) => movementDateInListPeriod(t.date, period));
+    const dfEl = document.getElementById('gains-filter-date-from');
+    const dtEl = document.getElementById('gains-filter-date-to');
+    const manual = dfEl?.dataset?.manual === '1' || dtEl?.dataset?.manual === '1';
+    const dateFrom = manual ? dfEl?.value || '' : '';
+    const dateTo = manual ? dtEl?.value || '' : '';
+    const baseList = (dateFrom || dateTo) ? sorted.filter((t) => movementMatchesDateRange(t, dateFrom, dateTo)) : inPeriod;
     const cats = [
-        ...new Set(inPeriod.map((t) => {
-            if (t.subcategory) {
-                return `${t.category} > ${t.subcategory}`;
-            }
-            return t.category;
-        }).filter((c) => c != null && String(c).trim() !== ''))
+        ...new Set(baseList.map((t) => String(t.category ?? '').trim()).filter((c) => c))
     ].sort((a, b) => String(a).localeCompare(String(b), 'pt-BR'));
     catSel.innerHTML = '<option value="">Todas as categorias</option>';
     cats.forEach((c) => {
@@ -1860,7 +2224,31 @@ function populateGainFilterSelects() {
     });
     if (cats.includes(prevCat)) catSel.value = prevCat;
 
-    const accIds = [...new Set(inPeriod.map((t) => t.accountId).filter(Boolean))];
+    if (subSel && subRow) {
+        const cat = catSel.value;
+        const subs = cat
+            ? [
+                  ...new Set(
+                      baseList
+                          .filter((t) => String(t.category ?? '') === cat)
+                          .map((t) => String(t.subcategory ?? '').trim())
+                          .filter((s) => s)
+                  )
+              ].sort((a, b) => String(a).localeCompare(String(b), 'pt-BR'))
+            : [];
+        subSel.innerHTML = '<option value="">Todas as subcategorias</option>';
+        subs.forEach((s) => {
+            const o = document.createElement('option');
+            o.value = s;
+            o.textContent = s;
+            subSel.appendChild(o);
+        });
+        subRow.classList.toggle('hidden', !cat || subs.length === 0);
+        if (subs.includes(prevSub)) subSel.value = prevSub;
+        else subSel.value = '';
+    }
+
+    const accIds = [...new Set(baseList.map((t) => t.accountId).filter(Boolean))];
     const accList = accIds
         .map((id) => accounts.find((a) => a.id === id))
         .filter(Boolean)
@@ -1873,15 +2261,212 @@ function populateGainFilterSelects() {
         accSel.appendChild(o);
     });
     if (accIds.includes(prevAcc)) accSel.value = prevAcc;
+
+    initAmountRangeBounds('gains-filter', baseList, gainsRenderCache.currency, accounts);
+}
+
+function parseNumericAmount(v) {
+    if (v == null) return null;
+    if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+    const s0 = String(v).trim();
+    if (!s0) return null;
+    // pt-BR: "1.234,56" → 1234.56
+    const hasComma = s0.includes(',');
+    const s = hasComma ? s0.replace(/\./g, '').replace(',', '.') : s0;
+    const n = Number(s);
+    return Number.isFinite(n) ? n : null;
+}
+
+function roundMoney2(v) {
+    return Math.round((Number(v) || 0) * 100) / 100;
+}
+
+/** Mesmo critério usado na lista e no filtro por faixa de valor. */
+function getExpenseAmountForFilter(t, account) {
+    let v = getExpensePerInstallmentDisplayAmount(t, account);
+    if (!Number.isFinite(v)) v = parseNumericAmount(t.amount);
+    if (!Number.isFinite(v)) v = Number(t.amount) || 0;
+    return roundMoney2(v);
+}
+
+function initAmountRangeBounds(prefix, list, currency, accounts) {
+    const minEl = document.getElementById(`${prefix}-amount-min`);
+    const maxEl = document.getElementById(`${prefix}-amount-max`);
+    if (!minEl || !maxEl) return;
+    const isExpense = prefix.startsWith('expenses-');
+    const accList = accounts || userAccounts || [];
+    const values = (list || [])
+        .map((t) => {
+            if (isExpense) {
+                const acc = accList.find((a) => a.id === t.accountId);
+                return getExpenseAmountForFilter(t, acc);
+            }
+            return roundMoney2((parseNumericAmount(t.amount) ?? Number(t.amount)) || 0);
+        })
+        .filter((v) => Number.isFinite(v));
+
+    if (!values.length) {
+        minEl.min = '0';
+        minEl.max = '0';
+        maxEl.min = '0';
+        maxEl.max = '0';
+        minEl.step = '0.01';
+        maxEl.step = '0.01';
+        minEl.value = '0';
+        maxEl.value = '0';
+        syncRangeLabels(prefix, currency);
+        return;
+    }
+
+    let minV = Math.min(...values);
+    let maxV = Math.max(...values);
+    minV = roundMoney2(minV);
+    maxV = roundMoney2(maxV);
+    if (minV === maxV) {
+        const pad = minV > 0 ? Math.min(0.01, minV) : 0.01;
+        minV = roundMoney2(Math.max(0, minV - pad));
+        maxV = roundMoney2(maxV + pad);
+    }
+
+    const minBound = minV;
+    const maxBound = maxV;
+
+    minEl.min = String(minBound);
+    minEl.max = String(maxBound);
+    maxEl.min = String(minBound);
+    maxEl.max = String(maxBound);
+    minEl.step = '0.01';
+    maxEl.step = '0.01';
+
+    const manual = minEl.dataset.manual === '1' || maxEl.dataset.manual === '1';
+    let curMin = parseNumericAmount(minEl.value);
+    let curMax = parseNumericAmount(maxEl.value);
+
+    if (!manual || curMin == null || curMax == null) {
+        // Estado inicial: range completo.
+        minEl.value = String(minBound);
+        maxEl.value = String(maxBound);
+    } else {
+        // Preserva a interação do usuário e apenas limita ao novo bound.
+        curMin = Math.min(maxBound, Math.max(minBound, curMin));
+        curMax = Math.min(maxBound, Math.max(minBound, curMax));
+        const pair = clampRangePair(curMin, curMax);
+        minEl.value = String(pair.min);
+        maxEl.value = String(pair.max);
+    }
+    syncRangeLabels(prefix, currency);
 }
 
 function applyGainsFilters() {
     readGainsFilterFromDom();
     populateGainFilterSelects();
+    syncRangeLabels('gains-filter', gainsRenderCache.currency);
     if (!gainsPagination) return;
     gainsPagination.setTotal(getSortedFilteredGainsList().length, { resetPage: true });
     renderGainsBodySlice();
     updateGainsSummaryCards();
+}
+
+function initMovementFilterDrawerEvents() {
+    const exp = [
+        'expenses-filter-q',
+        'expenses-filter-category',
+        'expenses-filter-subcategory',
+        'expenses-filter-payment-type',
+        'expenses-filter-status',
+        'expenses-filter-description',
+        'expenses-filter-amount-min',
+        'expenses-filter-amount-max',
+        'expenses-filter-account'
+    ];
+    exp.forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener(id.includes('q') || id.includes('description') ? 'input' : 'change', () => {
+            applyExpensesFilters();
+        });
+        if (id.includes('amount-')) {
+            el.addEventListener('input', () => {
+                const minEl = document.getElementById('expenses-filter-amount-min');
+                const maxEl = document.getElementById('expenses-filter-amount-max');
+                if (minEl) minEl.dataset.manual = '1';
+                if (maxEl) maxEl.dataset.manual = '1';
+                applyExpensesFilters();
+            });
+        }
+    });
+    // Período global controla o default do filtro de data (visual); ao mudar o período, volta a seguir o global
+    document.getElementById('expenses-period-filter')?.addEventListener('change', () => {
+        const df = document.getElementById('expenses-filter-date-from');
+        const dt = document.getElementById('expenses-filter-date-to');
+        if (df) df.dataset.manual = '0';
+        if (dt) dt.dataset.manual = '0';
+        syncDrawerDateInputsToPeriod('expenses-filter', document.getElementById('expenses-period-filter')?.value);
+    });
+    // Quando usuário muda date-from/to, ativa filtro manual de data
+    const expDf = document.getElementById('expenses-filter-date-from');
+    const expDt = document.getElementById('expenses-filter-date-to');
+    const markExpManual = () => {
+        if (expDf) expDf.dataset.manual = '1';
+        if (expDt) expDt.dataset.manual = '1';
+    };
+    expDf?.addEventListener('change', () => {
+        markExpManual();
+        applyExpensesFilters();
+    });
+    expDt?.addEventListener('change', () => {
+        markExpManual();
+        applyExpensesFilters();
+    });
+
+    const gains = [
+        'gains-filter-q',
+        'gains-filter-category',
+        'gains-filter-subcategory',
+        'gains-filter-payment-type',
+        'gains-filter-status',
+        'gains-filter-description',
+        'gains-filter-amount-min',
+        'gains-filter-amount-max',
+        'gains-filter-account'
+    ];
+    gains.forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener(id.includes('q') || id.includes('description') ? 'input' : 'change', () => {
+            applyGainsFilters();
+        });
+        if (id.includes('amount-')) {
+            el.addEventListener('input', () => {
+                const minEl = document.getElementById('gains-filter-amount-min');
+                const maxEl = document.getElementById('gains-filter-amount-max');
+                if (minEl) minEl.dataset.manual = '1';
+                if (maxEl) maxEl.dataset.manual = '1';
+                applyGainsFilters();
+            });
+        }
+    });
+    document.getElementById('gains-period-filter')?.addEventListener('change', () => {
+        const df = document.getElementById('gains-filter-date-from');
+        const dt = document.getElementById('gains-filter-date-to');
+        if (df) df.dataset.manual = '0';
+        if (dt) dt.dataset.manual = '0';
+        syncDrawerDateInputsToPeriod('gains-filter', document.getElementById('gains-period-filter')?.value);
+    });
+    const gainDf = document.getElementById('gains-filter-date-from');
+    const gainDt = document.getElementById('gains-filter-date-to');
+    const markGainsManual = () => {
+        if (gainDf) gainDf.dataset.manual = '1';
+        if (gainDt) gainDt.dataset.manual = '1';
+    };
+    gainDf?.addEventListener('change', () => {
+        markGainsManual();
+        applyGainsFilters();
+    });
+    gainDt?.addEventListener('change', () => {
+        markGainsManual();
+        applyGainsFilters();
+    });
 }
 
 function getSortedFilteredGainsList() {
@@ -1947,6 +2532,7 @@ export function loadGainsData(gains, accounts, currency) {
     );
     gainsRenderCache = { sorted, accounts, currency };
     readGainsFilterFromDom();
+    syncDrawerDateInputsToPeriod('gains-filter', document.getElementById('gains-period-filter')?.value);
     populateGainFilterSelects();
 
     const bar = document.getElementById('gains-pagination');
@@ -1968,6 +2554,8 @@ function setupTransactionTableFilters() {
     if (tableFiltersListenersBound) return;
     tableFiltersListenersBound = true;
 
+    initMovementFilterDrawerEvents();
+
     document.getElementById('expenses-filter-q')?.addEventListener('input', () => {
         clearTimeout(expensesFilterDebounce);
         expensesFilterDebounce = setTimeout(() => applyExpensesFilters(), 200);
@@ -1978,12 +2566,33 @@ function setupTransactionTableFilters() {
     document.getElementById('expenses-filter-clear')?.addEventListener('click', () => {
         const q = document.getElementById('expenses-filter-q');
         const c = document.getElementById('expenses-filter-category');
+        const sc = document.getElementById('expenses-filter-subcategory');
+        const pt = document.getElementById('expenses-filter-payment-type');
+        const st = document.getElementById('expenses-filter-status');
+        const desc = document.getElementById('expenses-filter-description');
+        const amin = document.getElementById('expenses-filter-amount-min');
+        const amax = document.getElementById('expenses-filter-amount-max');
+        const df = document.getElementById('expenses-filter-date-from');
+        const dt = document.getElementById('expenses-filter-date-to');
         const a = document.getElementById('expenses-filter-account');
         const p = document.getElementById('expenses-period-filter');
         if (q) q.value = '';
         if (c) c.value = '';
+        if (sc) sc.value = '';
+        if (pt) pt.value = '';
+        if (st) st.value = '';
+        if (desc) desc.value = '';
+        if (amin) amin.value = amin.min;
+        if (amax) amax.value = amax.max;
+        if (amin) amin.dataset.manual = '0';
+        if (amax) amax.dataset.manual = '0';
+        if (df) df.value = '';
+        if (dt) dt.value = '';
+        if (df) df.dataset.manual = '0';
+        if (dt) dt.dataset.manual = '0';
         if (a) a.value = '';
         if (p) p.value = getDefaultPeriodValue();
+        syncDrawerDateInputsToPeriod('expenses-filter', getDefaultPeriodValue());
         applyExpensesFilters();
         closeFilterDrawer('expenses-filter-drawer');
     });
@@ -1998,12 +2607,33 @@ function setupTransactionTableFilters() {
     document.getElementById('gains-filter-clear')?.addEventListener('click', () => {
         const q = document.getElementById('gains-filter-q');
         const c = document.getElementById('gains-filter-category');
+        const sc = document.getElementById('gains-filter-subcategory');
+        const pt = document.getElementById('gains-filter-payment-type');
+        const st = document.getElementById('gains-filter-status');
+        const desc = document.getElementById('gains-filter-description');
+        const amin = document.getElementById('gains-filter-amount-min');
+        const amax = document.getElementById('gains-filter-amount-max');
+        const df = document.getElementById('gains-filter-date-from');
+        const dt = document.getElementById('gains-filter-date-to');
         const a = document.getElementById('gains-filter-account');
         const p = document.getElementById('gains-period-filter');
         if (q) q.value = '';
         if (c) c.value = '';
+        if (sc) sc.value = '';
+        if (pt) pt.value = '';
+        if (st) st.value = '';
+        if (desc) desc.value = '';
+        if (amin) amin.value = amin.min;
+        if (amax) amax.value = amax.max;
+        if (amin) amin.dataset.manual = '0';
+        if (amax) amax.dataset.manual = '0';
+        if (df) df.value = '';
+        if (dt) dt.value = '';
+        if (df) df.dataset.manual = '0';
+        if (dt) dt.dataset.manual = '0';
         if (a) a.value = '';
         if (p) p.value = getDefaultPeriodValue();
+        syncDrawerDateInputsToPeriod('gains-filter', getDefaultPeriodValue());
         applyGainsFilters();
         closeFilterDrawer('gains-filter-drawer');
     });
@@ -2361,6 +2991,7 @@ function syncExpenseInstallmentsRow() {
     }
     updateExpenseInstallmentPreview();
     syncExpenseRecurringModeVisibility();
+    syncExpensePaidRowFromForm();
 }
 
 /**
@@ -2577,6 +3208,8 @@ function openExpenseModal(forEdit, options = null) {
 
     const recRow = document.getElementById('expense-recurring-mode-row');
     const instRow = document.getElementById('expense-installments-row');
+    const paidRow = document.getElementById('expense-paid-row');
+    const paidInput = document.getElementById('expense-is-paid');
     const amtInput = document.getElementById('expense-amount');
 
     if (newRow) newRow.classList.add('hidden');
@@ -2591,6 +3224,8 @@ function openExpenseModal(forEdit, options = null) {
         populateExpensePaymentMethodSelect(forEdit ? undefined : null);
         syncExpensePaymentMethodForLoanCategory();
         syncExpenseInstallmentsRow();
+        if (paidRow) paidRow.classList.add('hidden');
+        if (paidInput) paidInput.checked = false;
         if (!forEdit) {
             if (src?.date) {
                 try {
@@ -2624,6 +3259,8 @@ function openExpenseModal(forEdit, options = null) {
         }
         if (recRow) recRow.classList.remove('hidden');
         if (instRow) instRow.classList.remove('hidden');
+        if (paidRow) paidRow.classList.add('hidden');
+        if (paidInput) paidInput.checked = false;
 
         if (splitOpts) {
             form.dataset.splitRequestId = String(splitOpts.splitRequestId);
@@ -2660,6 +3297,24 @@ function openExpenseModal(forEdit, options = null) {
     }
 
     finishOpen();
+}
+
+function syncExpensePaidRowFromForm() {
+    const form = document.getElementById('expense-form');
+    const row = document.getElementById('expense-paid-row');
+    const input = document.getElementById('expense-is-paid');
+    if (!form || !row || !input) return;
+    const isEdit = Boolean(form['expense-id']?.value);
+    const acc = getSelectedExpensePaymentAccount();
+    const credit = Boolean(acc && isCreditCardType(acc.type));
+    const loan = isExpenseLoanCategorySelected();
+    const inst = Number(document.getElementById('expense-installments')?.value || 1);
+    const needsInstallments = Number.isFinite(inst) && inst >= 2 && (credit || (loan && acc && !credit));
+    const rg = form.dataset.expenseRecurrenceGroupId != null && String(form.dataset.expenseRecurrenceGroupId).trim() !== '';
+
+    // Só permite editar "pago" em saídas simples (fora de cartão/parcelas/empréstimo/séries).
+    const canEditPaid = isEdit && !credit && !loan && !needsInstallments && !rg;
+    row.classList.toggle('hidden', !canEditPaid);
 }
 
 function openGainModal(forEdit) {
@@ -2858,6 +3513,16 @@ async function handleExpenseFormSubmit(e) {
 
     if (!id && recurringMonthly && accForInstallments && !isCreditCardType(accForInstallments.type) && !loanCat && !isSplitRateio) {
         isPaidFinal = false;
+    }
+
+    // Edição: permite marcar como paga/não paga (somente para saídas simples)
+    if (id && !needsInstallments && !loanCat && !isSeriesRow) {
+        const acc = getSelectedExpensePaymentAccount();
+        const credit = Boolean(acc && isCreditCardType(acc.type));
+        if (!credit) {
+            const paidInput = document.getElementById('expense-is-paid');
+            if (paidInput) isPaidFinal = Boolean(paidInput.checked);
+        }
     }
 
     const data = {
@@ -3152,6 +3817,17 @@ async function handleExpenseRowActions(e) {
             form['expense-description'].value = row.description;
             form['expense-amount'].value = row.amount;
             form['expense-date'].value = movementDateToJsDate(row.date).toISOString().split('T')[0];
+            const paidInput = document.getElementById('expense-is-paid');
+            if (paidInput) paidInput.checked = Boolean(row.isPaid);
+            // Mostra o toggle apenas quando é uma saída simples (sem parcelas/cartão/empréstimo/série)
+            const acc = userAccounts?.find((a) => a.id === row.accountId);
+            const credit = Boolean(acc && isCreditCardType(acc.type));
+            const loan = isLoanExpense(row);
+            const instCount = Number(row.installmentCount) || 0;
+            const rg2 = row.recurrenceGroupId != null && String(row.recurrenceGroupId).trim() !== '';
+            const canEditPaid = !credit && !loan && instCount < 2 && !rg2;
+            syncExpensePaidRowFromForm();
+            document.getElementById('expense-paid-row')?.classList.toggle('hidden', !canEditPaid);
             // Aguarda o carregamento das categorias antes de selecionar
             populateExpensePaymentMethodSelect(row.accountId);
             populateExpenseCategorySelect(row.category).then(() => {
@@ -3159,6 +3835,7 @@ async function handleExpenseRowActions(e) {
                 form.dataset.loanPaymentAccountId = row.accountId;
                 syncExpensePaymentMethodForLoanCategory();
                 syncExpenseInstallmentsRow();
+                syncExpensePaidRowFromForm();
                 const recMode = document.getElementById('expense-recurring-mode');
                 if (recMode) {
                     if (row.recurrenceGroupId) {

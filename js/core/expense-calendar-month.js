@@ -4,6 +4,8 @@
  */
 import {
     creditCardCashOutForCalendarMonth,
+    getCreditInstallmentMonthAllocationsIncludingFuture,
+    getLoanInstallmentMonthAllocationsIncludingFuture,
     isLoanExpense,
     loanInstallmentCashOutForCalendarMonth,
     shouldDeferCashOutForMonthlyFixedSeries
@@ -26,5 +28,22 @@ export function expenseContributionToCalendarMonth(t, acc, monthKey, now = new D
     if (acc && shouldDeferCashOutForMonthlyFixedSeries(t, acc, userProfile)) {
         if (!isPeriodConfirmedForDebit(parseCashOutConfirmedPeriods(t), d)) return 0;
     }
+    return Number(t.amount) || 0;
+}
+
+export function expenseContributionProjectedToMonthKey(t, acc, monthKey, now, userProfile = null) {
+    const nInst = Math.max(1, parseInt(String(t.installmentCount ?? '1'), 10) || 1);
+    if (acc && isCreditCardType(acc.type)) {
+        const allocs = getCreditInstallmentMonthAllocationsIncludingFuture(t, acc, now, userProfile);
+        return allocs[monthKey] || 0;
+    }
+    if (isLoanExpense(t) && (!acc || !isCreditCardType(acc.type)) && nInst >= 2) {
+        const allocs = getLoanInstallmentMonthAllocationsIncludingFuture(t);
+        return allocs[monthKey] || 0;
+    }
+    const d = movementDateToJsDate(t.date);
+    const mk = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    if (mk !== monthKey) return 0;
+    if (!expenseCountsAsCashOut(t, acc)) return 0;
     return Number(t.amount) || 0;
 }

@@ -1,7 +1,8 @@
-import { updateUserProfile, deleteUserAccount } from '../../services/firestore.js';
+import { updateUserProfile, deleteUserAccount, fetchDashboardPeriodBalance } from '../../services/firestore.js';
 import { showMessage, openModal, closeModal, refreshSidebarCollapseTabPosition } from '../../shell/app-shell.js';
 import { api } from '../../api-client.js';
 import { DEFAULT_FINANCE_PREFERENCES, getFinancePreferences } from '../../core/finance-preferences.js';
+import { getPeriodDateBounds } from '../../core/period-filters.js';
 
 let currentUser = null;
 let onAppDataRefresh = null;
@@ -51,8 +52,10 @@ async function loadProfileData() {
         
         const balanceInput = document.getElementById('profile-current-balance');
         if (balanceInput) {
-            const balanceData = await api('/api/dashboard/balance');
-            balanceInput.value = balanceData?.balance || 0;
+            const now = new Date();
+            const { startDate, endDate } = getPeriodDateBounds(`month-${now.getMonth()}`, now);
+            const balance = await fetchDashboardPeriodBalance(startDate, endDate);
+            balanceInput.value = balance || 0;
         }
 
         updateProfileImages(userData.profilePhotoURL);

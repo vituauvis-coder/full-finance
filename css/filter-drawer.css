@@ -129,6 +129,118 @@ body.filter-drawer-open {
     width: 100%;
 }
 
+/* Data (de/até) no drawer */
+.filter-date-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+
+.filter-date-grid__field small {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-light);
+    margin-bottom: 0.35rem;
+}
+
+.filter-date-grid__field input[type='date'].table-filters__select {
+    min-width: 0;
+    width: 100%;
+    background: var(--bg-color);
+}
+
+/* Slider de faixa com dois thumbs: trilho fixo atrás + faixas transparentes (thumbs por cima) */
+.dual-range {
+    position: relative;
+    padding-top: 0.35rem;
+    min-height: 2.75rem;
+}
+
+.dual-range__track {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 1.15rem;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--border-color);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.dual-range__input {
+    -webkit-appearance: none;
+    appearance: none;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0.85rem;
+    width: 100%;
+    height: 24px;
+    margin: 0;
+    background: transparent;
+    outline: none;
+    z-index: 1;
+    pointer-events: none; /* evita o input de cima capturar clique do outro thumb */
+}
+
+.dual-range__input--min {
+    z-index: 3;
+}
+
+.dual-range__input--max {
+    z-index: 2;
+}
+
+.dual-range__input::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 999px;
+    background: transparent;
+}
+
+.dual-range__input::-moz-range-track {
+    height: 6px;
+    border-radius: 999px;
+    background: transparent;
+}
+
+.dual-range__input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    margin-top: -5px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    border: 2px solid var(--bg-light);
+    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.16);
+    cursor: pointer;
+    pointer-events: auto; /* thumb continua arrastável/clicável */
+}
+
+.dual-range__input::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    border: 2px solid var(--bg-light);
+    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.16);
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+.dual-range__labels {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: 2.1rem;
+}
+
+.dual-range__labels .card-metric-hint {
+    margin-top: 0;
+}
+
 /* Botão “Filtros” na barra de ações */
 .filter-drawer-trigger {
     position: relative;

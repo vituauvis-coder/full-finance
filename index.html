@@ -527,13 +527,23 @@
                             <div class="card-content">
                                 <h3 id="expenses-summary-month-title">Saídas esse mês</h3>
                                 <p id="expenses-summary-month">—</p>
+                                <span id="expenses-summary-variation" class="dashboard-card-scope"></span>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-icon expense movements-summary-card-icon" id="expenses-summary-projection-icon"><i class="fas fa-forward" aria-hidden="true"></i></div>
+                            <div class="card-content">
+                                <h3 id="expenses-summary-projection-title">Projeção do mês</h3>
+                                <p id="expenses-summary-projection">—</p>
+                                <span id="expenses-summary-projection-variation" class="dashboard-card-scope"></span>
                             </div>
                         </div>
                         <div class="card">
                             <div class="card-icon expense movements-summary-card-icon" id="expenses-summary-top-cat-icon"><i class="fas fa-tags" aria-hidden="true"></i></div>
                             <div class="card-content">
-                                <h3 id="expenses-summary-top-cat-title">Principal categoria do mês</h3>
+                                <h3 id="expenses-summary-top-cat-title">Principal categoria</h3>
                                 <p id="expenses-summary-top-cat">—</p>
+                                <span id="expenses-summary-top-cat-variation" class="dashboard-card-scope"></span>
                             </div>
                         </div>
                     </div>
@@ -593,18 +603,19 @@
                     </div>
                     <div class="summary-cards movements-summary" aria-label="Resumo de entradas">
                         <div class="card">
-                            <div class="card-icon income movements-summary-card-icon" id="gains-summary-year-icon"
-                                title=""><i class="fas fa-calendar" aria-hidden="true"></i></div>
+                            <div class="card-icon income movements-summary-card-icon" id="gains-summary-total-icon"><i class="fas fa-calendar-check" aria-hidden="true"></i></div>
                             <div class="card-content">
-                                <h3 id="gains-summary-year-title">Entradas no período</h3>
-                                <p id="gains-summary-year">—</p>
+                                <h3 id="gains-summary-total-title">Entradas no período</h3>
+                                <p id="gains-summary-total">—</p>
+                                <span id="gains-summary-variation" class="dashboard-card-scope"></span>
                             </div>
                         </div>
                         <div class="card">
-                            <div class="card-icon income movements-summary-card-icon" id="gains-summary-month-icon"><i class="fas fa-calendar-day" aria-hidden="true"></i></div>
+                            <div class="card-icon income movements-summary-card-icon" id="gains-summary-projection-icon"><i class="fas fa-forward" aria-hidden="true"></i></div>
                             <div class="card-content">
-                                <h3 id="gains-summary-month-title">Entradas (detalhe)</h3>
-                                <p id="gains-summary-month">—</p>
+                                <h3 id="gains-summary-projection-title">Projeção do mês</h3>
+                                <p id="gains-summary-projection">—</p>
+                                <span id="gains-summary-projection-variation" class="dashboard-card-scope"></span>
                             </div>
                         </div>
                         <div class="card">
@@ -612,6 +623,7 @@
                             <div class="card-content">
                                 <h3 id="gains-summary-top-cat-title">Principal categoria</h3>
                                 <p id="gains-summary-top-cat">—</p>
+                                <span id="gains-summary-top-cat-variation" class="dashboard-card-scope"></span>
                             </div>
                         </div>
                     </div>
@@ -1368,11 +1380,65 @@
                                 <option value="">Todas as categorias</option>
                             </select>
                         </div>
+                        <div class="filter-drawer-field hidden" id="expenses-filter-subcategory-row">
+                            <label for="expenses-filter-subcategory">Subcategoria</label>
+                            <select id="expenses-filter-subcategory" class="table-filters__select" aria-label="Subcategoria">
+                                <option value="">Todas as subcategorias</option>
+                            </select>
+                        </div>
+                        <div class="filter-drawer-field">
+                            <label for="expenses-filter-payment-type">Tipo de pagamento</label>
+                            <select id="expenses-filter-payment-type" class="table-filters__select" aria-label="Tipo de pagamento">
+                                <option value="">Todos</option>
+                                <option value="credit">Cartão de crédito</option>
+                                <option value="debit">Cartão de débito</option>
+                                <option value="bank">Conta bancária</option>
+                                <option value="cash">Dinheiro</option>
+                                <option value="other">Outros</option>
+                            </select>
+                        </div>
+                        <div class="filter-drawer-field">
+                            <label for="expenses-filter-status">Status do pagamento</label>
+                            <select id="expenses-filter-status" class="table-filters__select" aria-label="Status do pagamento">
+                                <option value="">Todos</option>
+                                <option value="paid">Pago</option>
+                                <option value="unpaid">Pendente</option>
+                            </select>
+                        </div>
+                        <div class="filter-drawer-field">
+                            <label for="expenses-filter-description">Descrição</label>
+                            <input id="expenses-filter-description" type="text" class="table-filters__select" placeholder="Ex.: mercado, aluguel…" autocomplete="off">
+                        </div>
+                        <div class="filter-drawer-field">
+                            <label>Valor (faixa)</label>
+                            <div class="dual-range">
+                                <div class="dual-range__track" aria-hidden="true"></div>
+                                <input id="expenses-filter-amount-min" class="dual-range__input dual-range__input--min" type="range" min="0" max="100" step="0.01" value="0" aria-label="Valor mínimo">
+                                <input id="expenses-filter-amount-max" class="dual-range__input dual-range__input--max" type="range" min="0" max="100" step="0.01" value="100" aria-label="Valor máximo">
+                                <div class="dual-range__labels">
+                                    <span id="expenses-filter-amount-min-label" class="card-metric-hint"></span>
+                                    <span id="expenses-filter-amount-max-label" class="card-metric-hint"></span>
+                                </div>
+                            </div>
+                        </div>
                         <div class="filter-drawer-field">
                             <label for="expenses-filter-account">Conta</label>
                             <select id="expenses-filter-account" class="table-filters__select" aria-label="Conta">
                                 <option value="">Todas as contas</option>
                             </select>
+                        </div>
+                        <div class="filter-drawer-field">
+                            <label>Data (de/até)</label>
+                            <div class="filter-date-grid">
+                                <div class="filter-date-grid__field">
+                                    <small>De</small>
+                                    <input id="expenses-filter-date-from" type="date" class="table-filters__select">
+                                </div>
+                                <div class="filter-date-grid__field">
+                                    <small>Até</small>
+                                    <input id="expenses-filter-date-to" type="date" class="table-filters__select">
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <footer class="filter-drawer__footer">
@@ -1405,11 +1471,65 @@
                                 <option value="">Todas as categorias</option>
                             </select>
                         </div>
+                        <div class="filter-drawer-field hidden" id="gains-filter-subcategory-row">
+                            <label for="gains-filter-subcategory">Subcategoria</label>
+                            <select id="gains-filter-subcategory" class="table-filters__select" aria-label="Subcategoria">
+                                <option value="">Todas as subcategorias</option>
+                            </select>
+                        </div>
+                        <div class="filter-drawer-field">
+                            <label for="gains-filter-payment-type">Tipo de pagamento</label>
+                            <select id="gains-filter-payment-type" class="table-filters__select" aria-label="Tipo de pagamento">
+                                <option value="">Todos</option>
+                                <option value="credit">Cartão de crédito</option>
+                                <option value="debit">Cartão de débito</option>
+                                <option value="bank">Conta bancária</option>
+                                <option value="cash">Dinheiro</option>
+                                <option value="other">Outros</option>
+                            </select>
+                        </div>
+                        <div class="filter-drawer-field">
+                            <label for="gains-filter-status">Status do pagamento</label>
+                            <select id="gains-filter-status" class="table-filters__select" aria-label="Status do pagamento">
+                                <option value="">Todos</option>
+                                <option value="paid">Recebido</option>
+                                <option value="unpaid">A receber</option>
+                            </select>
+                        </div>
+                        <div class="filter-drawer-field">
+                            <label for="gains-filter-description">Descrição</label>
+                            <input id="gains-filter-description" type="text" class="table-filters__select" placeholder="Ex.: salário, freelance…" autocomplete="off">
+                        </div>
+                        <div class="filter-drawer-field">
+                            <label>Valor (faixa)</label>
+                            <div class="dual-range">
+                                <div class="dual-range__track" aria-hidden="true"></div>
+                                <input id="gains-filter-amount-min" class="dual-range__input dual-range__input--min" type="range" min="0" max="100" step="0.01" value="0" aria-label="Valor mínimo">
+                                <input id="gains-filter-amount-max" class="dual-range__input dual-range__input--max" type="range" min="0" max="100" step="0.01" value="100" aria-label="Valor máximo">
+                                <div class="dual-range__labels">
+                                    <span id="gains-filter-amount-min-label" class="card-metric-hint"></span>
+                                    <span id="gains-filter-amount-max-label" class="card-metric-hint"></span>
+                                </div>
+                            </div>
+                        </div>
                         <div class="filter-drawer-field">
                             <label for="gains-filter-account">Conta</label>
                             <select id="gains-filter-account" class="table-filters__select" aria-label="Conta">
                                 <option value="">Todas as contas</option>
                             </select>
+                        </div>
+                        <div class="filter-drawer-field">
+                            <label>Data (de/até)</label>
+                            <div class="filter-date-grid">
+                                <div class="filter-date-grid__field">
+                                    <small>De</small>
+                                    <input id="gains-filter-date-from" type="date" class="table-filters__select">
+                                </div>
+                                <div class="filter-date-grid__field">
+                                    <small>Até</small>
+                                    <input id="gains-filter-date-to" type="date" class="table-filters__select">
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <footer class="filter-drawer__footer">
@@ -1574,6 +1694,12 @@
                             <option value="1">Sim</option>
                         </select>
                     </div>
+                </div>
+                <div id="expense-paid-row" class="form-group hidden">
+                    <label class="checkbox-label" for="expense-is-paid">
+                        <input type="checkbox" id="expense-is-paid">
+                        Marcar como paga
+                    </label>
                 </div>
                 <div id="expense-installments-row" class="form-group hidden">
                     <label for="expense-installments">Parcelas no cartão de crédito</label>
