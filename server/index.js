@@ -790,6 +790,10 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                     recipient_user_id AS "recipientUserId",
                     amount,
                     requester_credit_account_id AS "requesterCreditAccountId",
+                    COALESCE(split_scope, 'FULL_EXPENSE') AS "splitScope",
+                    target_installment_index AS "targetInstallmentIndex",
+                    target_period_key AS "targetPeriodKey",
+                    COALESCE(is_settled, false) AS "isSettled",
                     status,
                     sender_proof_url AS "senderProofUrl",
                     created_gain_id AS "createdGainId",
@@ -1010,7 +1014,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
 
                 const { rows: splitRows } = await client.query(
                     `UPDATE expense_split_requests
-                     SET status = 'ACCEPTED', created_gain_id = $2, updated_at = now()
+                     SET status = 'ACCEPTED', created_gain_id = $2, is_settled = true, updated_at = now()
                      WHERE id = $1
                      RETURNING
                         id,
@@ -1019,6 +1023,10 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                         recipient_user_id AS "recipientUserId",
                         amount,
                         requester_credit_account_id AS "requesterCreditAccountId",
+                        COALESCE(split_scope, 'FULL_EXPENSE') AS "splitScope",
+                        target_installment_index AS "targetInstallmentIndex",
+                        target_period_key AS "targetPeriodKey",
+                        COALESCE(is_settled, false) AS "isSettled",
                         status,
                         sender_proof_url AS "senderProofUrl",
                         created_gain_id AS "createdGainId",
@@ -1726,18 +1734,44 @@ app.put('/api/gains/:id', requireAuth, async (req, res) => {
 });
 
 app.delete('/api/gains/:id', requireAuth, async (req, res) => {
-    const uid = req.session.userId;
-    const { rows: existingRows } = await query(`SELECT id FROM gains WHERE id = $1 AND user_id = $2`, [
-        req.params.id,
-        uid
-    ]);
-    const existing = existingRows[0] || null;
-    if (!existing) return res.status(404).json({ error: 'Não encontrado' });
-    await query(`DELETE FROM gains WHERE id = $1 AND user_id = $2`, [req.params.id, uid]);
-    // Para exclusão, o ledger precisaria de um recálculo total ou ajuste incremental negativo.
-    // Por simplicidade e para evitar centenas de registros, vamos apenas atualizar o snapshot.
-    await safeUpsertBalanceSnapshot(uid);
-    res.json({ ok: true });
+    try {
+        const uid = req.session.userId;
+        const gainId = String(req.params.id ?? '').trim();
+        if (!gainId) return res.status(400).json({ error: 'ID inválido' });
+
+        const { rows: existingRows } = await query(
+            `SELECT id, category, description, related_expense_id AS "relatedExpenseId"
+             FROM gains
+             WHERE id = $1 AND user_id = $2`,
+            [gainId, uid]
+        );
+        const existing = existingRows[0] || null;
+        if (!existing) return res.status(404).json({ error: 'Não encontrado' });
+
+        // Bloqueia remoção de extornos gerados por split (FK em expense_split_requests.created_gain_id).
+        const { rows: refRows } = await query(
+            `SELECT id
+             FROM expense_split_requests
+             WHERE created_gain_id = $1
+             LIMIT 1`,
+            [gainId]
+        );
+        if (refRows[0]) {
+            return res.status(409).json({
+                error: 'Esta entrada foi gerada por um split e não pode ser excluída.',
+                code: 'GAIN_LINKED_TO_SPLIT'
+            });
+        }
+
+        await query(`DELETE FROM gains WHERE id = $1 AND user_id = $2`, [gainId, uid]);
+        // Para exclusão, o ledger precisaria de um recálculo total ou ajuste incremental negativo.
+        // Por simplicidade e para evitar centenas de registros, vamos apenas atualizar o snapshot.
+        await safeUpsertBalanceSnapshot(uid);
+        res.json({ ok: true });
+    } catch (e) {
+        console.error('DELETE /api/gains/:id', e);
+        res.status(500).json({ error: e.message || 'Erro ao excluir entrada' });
+    }
 });
 
 const ACCOUNT_FIELDS = new Set([

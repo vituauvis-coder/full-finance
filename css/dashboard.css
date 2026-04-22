@@ -347,6 +347,8 @@
     vertical-align: middle;
 }
 
+/* Coluna de ações: regras ficam em `css/components.css` via `.transaction-actions__inner`. */
+
 #expenses-table th,
 #gains-table th,
 #transactions-table th,
@@ -392,6 +394,16 @@
 #expenses-table td .movement-amount-with-rec-inner .gain-recurrence-badge,
 #gains-table td .movement-amount-with-rec-inner .gain-recurrence-badge {
     margin-right: 0;
+}
+
+.expense-split-gross-strike {
+    text-decoration: line-through;
+    opacity: 0.65;
+    margin-right: 0.35rem;
+}
+
+.expense-split-net-amount {
+    font-weight: 700;
 }
 
 #expenses-table td.expenses-td-status {

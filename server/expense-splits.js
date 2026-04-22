@@ -51,25 +51,43 @@ const SOURCE_EXPENSE_API_SELECT = {
 /** Saída pode ser origem de rateio: não recorrente/parcelada de forma ambígua. */
 export function expenseAllowsSplit(expense) {
     if (!expense) return false;
-    if (expense.recurrenceGroupId != null && String(expense.recurrenceGroupId).trim() !== '') return false;
-    if (expense.recurringMonthly === true) return false;
-    const ic = expense.installmentCount;
-    if (ic != null) {
-        const n = parseInt(String(ic), 10);
-        if (Number.isFinite(n) && n > 1) return false;
-    }
     return true;
 }
 
-async function sumAllocatedSplitAmount(sourceExpenseId, excludeRequestId = null) {
-    const params = [sourceExpenseId];
+function normalizeSplitScope(raw) {
+    const scope = String(raw ?? 'FULL_EXPENSE').trim().toUpperCase();
+    return scope === 'INSTALLMENT' ? 'INSTALLMENT' : 'FULL_EXPENSE';
+}
+
+function getSplitTargetGrossAmount(expense, splitScope, targetInstallmentIndex) {
+    const total = Number(expense?.amount) || 0;
+    const n = Math.max(1, parseInt(String(expense?.installmentCount ?? '1'), 10) || 1);
+    if (splitScope === 'INSTALLMENT') {
+        if (n < 2) return total;
+        return total / n;
+    }
+    return total;
+}
+
+async function sumAllocatedSplitAmount(
+    sourceExpenseId,
+    splitScope = 'FULL_EXPENSE',
+    targetInstallmentIndex = null,
+    excludeRequestId = null
+) {
+    const params = [sourceExpenseId, splitScope];
     let sql = `SELECT COALESCE(SUM(amount), 0) AS total
                FROM expense_split_requests
                WHERE source_expense_id = $1
+                 AND COALESCE(split_scope, 'FULL_EXPENSE') = $2
                  AND status IN ('PENDING','ACCEPTED')`;
+    if (splitScope === 'INSTALLMENT') {
+        params.push(targetInstallmentIndex);
+        sql += ` AND target_installment_index = $${params.length}`;
+    }
     if (excludeRequestId) {
         params.push(excludeRequestId);
-        sql += ` AND id <> $2`;
+        sql += ` AND id <> $${params.length}`;
     }
     const { rows } = await query(sql, params);
     return Number(rows[0]?.total) || 0;
@@ -85,6 +103,10 @@ function baseSplitSelectSql(extraWhereSql = '') {
             esr.amount,
             esr.requester_credit_account_id AS "requesterCreditAccountId",
             esr.status,
+            COALESCE(esr.split_scope, 'FULL_EXPENSE') AS "splitScope",
+            esr.target_installment_index AS "targetInstallmentIndex",
+            esr.target_period_key AS "targetPeriodKey",
+            COALESCE(esr.is_settled, false) AS "isSettled",
             esr.sender_proof_url AS "senderProofUrl",
             esr.created_gain_id AS "createdGainId",
             esr.created_at AS "createdAt",
@@ -98,7 +120,10 @@ function baseSplitSelectSql(extraWhereSql = '') {
                 'date', se.date,
                 'category', se.category,
                 'subcategory', se.subcategory,
-                'isInvestment', se.is_investment
+                'isInvestment', se.is_investment,
+                'installmentCount', se.installment_count,
+                'recurringMonthly', se.recurring_monthly,
+                'recurrenceGroupId', se.recurrence_group_id
             ) AS "sourceExpense"
         FROM expense_split_requests esr
         JOIN users req ON req.id = esr.requester_user_id
@@ -245,6 +270,14 @@ export function registerExpenseSplitRoutes(app, { requireAuth }) {
             const sourceExpenseId = String(req.body?.sourceExpenseId ?? '').trim();
             const amount = Number(req.body?.amount);
             const requesterCreditAccountId = String(req.body?.requesterCreditAccountId ?? '').trim();
+            const splitScope = normalizeSplitScope(req.body?.splitScope);
+            const targetInstallmentIndexRaw = req.body?.targetInstallmentIndex;
+            const targetInstallmentIndex =
+                targetInstallmentIndexRaw == null || targetInstallmentIndexRaw === ''
+                    ? null
+                    : parseInt(String(targetInstallmentIndexRaw), 10);
+            const targetPeriodKey =
+                req.body?.targetPeriodKey == null ? null : String(req.body.targetPeriodKey).trim() || null;
             let recipientUserId = String(req.body?.recipientUserId ?? '').trim();
             const recipientEmail = String(req.body?.recipientEmail ?? '')
                 .trim()
@@ -283,11 +316,35 @@ export function registerExpenseSplitRoutes(app, { requireAuth }) {
                 );
             }
 
-            const totalExp = Number(expense.amount) || 0;
-            const already = await sumAllocatedSplitAmount(sourceExpenseId);
-            if (already + amount > totalExp + 0.01) {
+            const nInst = Math.max(1, parseInt(String(expense.installmentCount ?? '1'), 10) || 1);
+            if (splitScope === 'INSTALLMENT') {
+                if (nInst < 2) {
+                    throw httpError('Esta saída não possui parcelas para divisão por parcela.');
+                }
+                if (!Number.isFinite(targetInstallmentIndex) || targetInstallmentIndex < 1 || targetInstallmentIndex > nInst) {
+                    throw httpError(`Parcela inválida. Escolha entre 1 e ${nInst}.`);
+                }
+            }
+            const normalizedTargetPeriodKey =
+                splitScope === 'INSTALLMENT'
+                    ? targetPeriodKey ||
+                      (() => {
+                          const d = new Date(expense.date);
+                          if (Number.isNaN(d.getTime())) return null;
+                          d.setMonth(d.getMonth() + Math.max(0, Number(targetInstallmentIndex || 1) - 1));
+                          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                      })()
+                    : null;
+
+            const totalTarget = getSplitTargetGrossAmount(expense, splitScope, targetInstallmentIndex);
+            const already = await sumAllocatedSplitAmount(
+                sourceExpenseId,
+                splitScope,
+                splitScope === 'INSTALLMENT' ? targetInstallmentIndex : null
+            );
+            if (already + amount > totalTarget + 0.01) {
                 throw httpError(
-                    `O valor dividido não pode ultrapassar o total da saída (${totalExp}).`
+                    `O valor dividido não pode ultrapassar o total disponível no alvo (${totalTarget}).`
                 );
             }
 
@@ -301,9 +358,19 @@ export function registerExpenseSplitRoutes(app, { requireAuth }) {
             await query(
                 `INSERT INTO expense_split_requests (
                     id, source_expense_id, requester_user_id, recipient_user_id,
-                    amount, requester_credit_account_id, status, created_at, updated_at
-                 ) VALUES ($1,$2,$3,$4,$5,$6,'PENDING', now(), now())`,
-                [id, sourceExpenseId, uid, recipientUserId, amount, requesterCreditAccountId]
+                    amount, requester_credit_account_id, status, split_scope, target_installment_index, target_period_key, is_settled, created_at, updated_at
+                 ) VALUES ($1,$2,$3,$4,$5,$6,'PENDING',$7,$8,$9,false, now(), now())`,
+                [
+                    id,
+                    sourceExpenseId,
+                    uid,
+                    recipientUserId,
+                    amount,
+                    requesterCreditAccountId,
+                    splitScope,
+                    splitScope === 'INSTALLMENT' ? targetInstallmentIndex : null,
+                    normalizedTargetPeriodKey
+                ]
             );
             const { rows: splitRows } = await query(
                 baseSplitSelectSql(`WHERE esr.id = $1 LIMIT 1`),
@@ -333,14 +400,54 @@ export function registerExpenseSplitRoutes(app, { requireAuth }) {
                         recipient_user_id AS "recipientUserId",
                         amount,
                         requester_credit_account_id AS "requesterCreditAccountId",
+                        COALESCE(split_scope, 'FULL_EXPENSE') AS "splitScope",
+                        target_installment_index AS "targetInstallmentIndex",
+                        target_period_key AS "targetPeriodKey",
+                        COALESCE(is_settled, false) AS "isSettled",
+                        created_gain_id AS "createdGainId",
                         status
                      FROM expense_split_requests
-                     WHERE id = $1 AND recipient_user_id = $2 AND status = 'PENDING'
+                     WHERE id = $1 AND recipient_user_id = $2
                      FOR UPDATE`,
                     [id, uid]
                 );
                 const split = splitRows[0] || null;
                 if (!split) throw httpError('Solicitação não encontrada', 404);
+                const status = String(split.status ?? '').toUpperCase();
+                if (status === 'ACCEPTED') {
+                    const { rows: fullRows } = await client.query(
+                        baseSplitSelectSql(`WHERE esr.id = $1 LIMIT 1`),
+                        [split.id]
+                    );
+                    const fullSplit = fullRows[0] || null;
+                    let gain = null;
+                    if (split.createdGainId) {
+                        const { rows: gainRows } = await client.query(
+                            `SELECT
+                                id,
+                                user_id AS "userId",
+                                account_id AS "accountId",
+                                category,
+                                subcategory,
+                                amount,
+                                description,
+                                date,
+                                is_paid AS "isPaid",
+                                recurrence_group_id AS "recurrenceGroupId",
+                                related_expense_id AS "relatedExpenseId",
+                                reference_only AS "referenceOnly"
+                             FROM gains
+                             WHERE id = $1
+                             LIMIT 1`,
+                            [split.createdGainId]
+                        );
+                        gain = gainRows[0] || null;
+                    }
+                    return { gain, split: fullSplit };
+                }
+                if (status !== 'PENDING') {
+                    throw httpError(`Solicitação não pode ser aceita (status: ${status || '—'})`);
+                }
 
                 const gainAccountId = String(split.requesterCreditAccountId ?? '').trim();
                 if (!gainAccountId)
@@ -405,7 +512,7 @@ export function registerExpenseSplitRoutes(app, { requireAuth }) {
 
                 await client.query(
                     `UPDATE expense_split_requests
-                     SET status = 'ACCEPTED', created_gain_id = $2, updated_at = now()
+                     SET status = 'ACCEPTED', created_gain_id = $2, is_settled = true, updated_at = now()
                      WHERE id = $1`,
                     [split.id, gain.id]
                 );
@@ -422,7 +529,7 @@ export function registerExpenseSplitRoutes(app, { requireAuth }) {
 
             res.json({
                 split: normalizeSplitRow(result.split),
-                gain: normalizeMovement(result.gain)
+                gain: result.gain ? normalizeMovement(result.gain) : null
             });
         } catch (e) {
             console.error('POST /api/expense-splits/:id/accept', e);

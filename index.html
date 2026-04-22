@@ -1594,6 +1594,19 @@
                         <option value="">Carregando lista…</option>
                     </select>
                 </div>
+                <div class="form-group">
+                    <label for="expense-split-scope">Tipo de divisão</label>
+                    <select id="expense-split-scope" name="expense-split-scope">
+                        <option value="FULL_EXPENSE">Lançamento inteiro</option>
+                        <option value="INSTALLMENT">Parcela específica</option>
+                    </select>
+                </div>
+                <div class="form-group hidden" id="expense-split-installment-row">
+                    <label for="expense-split-installment-index">Parcela alvo</label>
+                    <select id="expense-split-installment-index" name="expense-split-installment-index">
+                        <option value="">Selecione a parcela</option>
+                    </select>
+                </div>
                 <div class="expense-split-modal__grid">
                     <div class="form-group">
                         <label for="expense-split-amount">Valor da parte</label>

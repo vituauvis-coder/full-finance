@@ -129,6 +129,14 @@ model ExpenseSplitRequest {
   amount                    Float
   /** Conta do solicitante onde entra o extorno após o aceite. */
   requesterCreditAccountId  String?
+  /** FULL_EXPENSE | INSTALLMENT */
+  splitScope                String   @default("FULL_EXPENSE") @db.NVarChar(30)
+  /** Parcela alvo quando splitScope = INSTALLMENT (1..N). */
+  targetInstallmentIndex    Int?
+  /** Chave opcional de período (ex.: YYYY-MM) para alvos mensais. */
+  targetPeriodKey           String?  @db.NVarChar(20)
+  /** Só considera no líquido depois de aprovado e efetivamente liquidado. */
+  isSettled                 Boolean  @default(false)
   /** PENDING | ACCEPTED | REJECTED | CANCELLED */
   status                    String   @default("PENDING") @db.NVarChar(20)
   senderProofUrl            String?  @db.NVarChar(Max)
@@ -144,6 +152,7 @@ model ExpenseSplitRequest {
   @@index([recipientUserId, status])
   @@index([requesterUserId, status])
   @@index([sourceExpenseId])
+  @@index([sourceExpenseId, splitScope, targetInstallmentIndex])
 }
 
 model Goal {

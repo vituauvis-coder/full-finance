@@ -164,7 +164,8 @@ async function refreshAllData() {
         AppState.accounts,
         AppState.expenses,
         AppState.gains,
-        AppState.userProfile
+        AppState.userProfile,
+        AppState.expenseSplitRequests?.outgoing || []
     );
     syncFinanceState(
         AppState.accounts,
@@ -203,7 +204,8 @@ function loadPageData(pageName) {
                 AppState.accounts,
                 AppState.currency,
                 AppState.investments,
-                AppState.userProfile
+                AppState.userProfile,
+                AppState.expenseSplitRequests
             );
             break;
         case 'debts':

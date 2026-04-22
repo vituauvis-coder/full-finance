@@ -12,6 +12,7 @@ import {
     getLoanInstallmentMonthAllocationsIncludingFuture,
     isLoanExpense
 } from './credit-installments.js';
+import { applySplitNetToContribution, isSplitReimbursementGain } from './split-net.js';
 
 /** Mês-calendário estritamente após o mês de referência (projeção). */
 export function isProjectionMonth(mo, ref = new Date()) {
@@ -55,7 +56,8 @@ export function sumOutflowsProjectedForCalendarMonth(
     userExpenses,
     userAccounts,
     now,
-    userProfile = null
+    userProfile = null,
+    splitRequests = null
 ) {
     const accountsById = new Map((userAccounts || []).map((a) => [a.id, a]));
     const mk = `${mo.start.getFullYear()}-${String(mo.start.getMonth() + 1).padStart(2, '0')}`;
@@ -75,14 +77,14 @@ export function sumOutflowsProjectedForCalendarMonth(
                 );
             }
             const allocs = allocCache.get(cacheKey);
-            sum += allocs[mk] || 0;
+            sum += applySplitNetToContribution(t, mk, allocs[mk] || 0, splitRequests);
         } else if (isLoanExpense(t) && (!acc || !isCreditCardType(acc.type)) && nInst >= 2) {
             const cacheKey = t.id || `loan|${t.accountId}|${String(t.date)}|${t.amount}`;
             if (!allocCache.has(cacheKey)) {
                 allocCache.set(cacheKey, getLoanInstallmentMonthAllocationsIncludingFuture(t));
             }
             const allocs = allocCache.get(cacheKey);
-            sum += allocs[mk] || 0;
+            sum += applySplitNetToContribution(t, mk, allocs[mk] || 0, splitRequests);
         } else {
             const d = movementDateToJsDate(t.date);
             if (Number.isNaN(d.getTime())) continue;
@@ -91,13 +93,13 @@ export function sumOutflowsProjectedForCalendarMonth(
             if (t.recurringMonthly === true) {
                 const baseMonthOrdinal = d.getFullYear() * 12 + d.getMonth();
                 if (targetMonthOrdinal >= baseMonthOrdinal && expenseCountsAsCashOut(t, acc)) {
-                    sum += Number(t.amount) || 0;
+                    sum += applySplitNetToContribution(t, mk, Number(t.amount) || 0, splitRequests);
                 }
                 continue;
             }
 
             if (d >= mo.start && d <= mo.end && expenseCountsAsCashOut(t, acc)) {
-                sum += Number(t.amount) || 0;
+                sum += applySplitNetToContribution(t, mk, Number(t.amount) || 0, splitRequests);
             }
         }
     }
@@ -109,6 +111,7 @@ export function sumProjectedGainsForCalendarMonth(mo, userGains) {
     let sum = 0;
     for (const t of userGains || []) {
         if (t.referenceOnly) continue;
+        if (isSplitReimbursementGain(t)) continue;
         const d = movementDateToJsDate(t.date);
         if (d >= mo.start && d <= mo.end) sum += Number(t.amount) || 0;
     }
@@ -127,13 +130,21 @@ export function projectedCashBalanceAfterFuturePeriod(
     accounts,
     expenses,
     gains,
-    userProfile
+    userProfile,
+    splitRequests = null
 ) {
     const months = enumerateCalendarMonths(fromD, toD);
     let bal = Number(baseBalance) || 0;
     for (const mo of months) {
         const inc = sumProjectedGainsForCalendarMonth(mo, gains);
-        const out = sumOutflowsProjectedForCalendarMonth(mo, expenses, accounts, now, userProfile);
+        const out = sumOutflowsProjectedForCalendarMonth(
+            mo,
+            expenses,
+            accounts,
+            now,
+            userProfile,
+            splitRequests
+        );
         bal += inc - out;
     }
     return bal;

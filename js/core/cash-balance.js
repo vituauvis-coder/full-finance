@@ -15,6 +15,12 @@ import {
     isCreditCardType,
     movementDateToJsDate
 } from './utils.js';
+import {
+    isSplitReimbursementGain,
+    movementMonthKey,
+    sumAcceptedSettledFullSplitForExpense,
+    sumAcceptedSettledInstallmentSplitThroughMonth
+} from './split-net.js';
 
 /** Contas de caixa: exibição por conta não fica negativa por somatório (limite inferior 0). Não aplicar ao somar o total. */
 function clampCashAccountBalance(type, value) {
@@ -36,7 +42,8 @@ export function computeCashAccountRawBalance(
     userExpenses,
     userGains,
     asOfEndInclusive,
-    userProfile = null
+    userProfile = null,
+    splitRequests = null
 ) {
     if (account.type === 'cartao_credito' || account.type === 'cartao_debito') return 0;
     const cutoff = asOfEndInclusive.getTime();
@@ -48,15 +55,25 @@ export function computeCashAccountRawBalance(
     if (!Number.isFinite(currentBalance)) currentBalance = 0;
     (userGains || [])
         .filter((g) => g.accountId === account.id && onOrBeforeCutoff(g.date))
+        .filter((g) => !isSplitReimbursementGain(g))
         .forEach((g) => {
             currentBalance += Number(g.amount) || 0;
         });
     (userExpenses || [])
         .filter((e) => e.accountId === account.id)
         .forEach((e) => {
+            const fullSplit = sumAcceptedSettledFullSplitForExpense(e.id, splitRequests);
+            const ratioBase = Number(e.amount) || 0;
+            const ratio = ratioBase > 0 ? Math.max(0, ratioBase - fullSplit) / ratioBase : 1;
+            const cutoffMonthKey = movementMonthKey(asOfEndInclusive);
+            const instSplitThrough = sumAcceptedSettledInstallmentSplitThroughMonth(
+                e.id,
+                cutoffMonthKey,
+                splitRequests
+            );
             const loanOut = getLoanCumulativeCashOutThrough(e, asOfEndInclusive, userProfile);
             if (loanOut != null) {
-                currentBalance -= loanOut;
+                currentBalance -= Math.max(0, loanOut * ratio - instSplitThrough);
                 return;
             }
             if (onOrBeforeCutoff(e.date)) {
@@ -66,7 +83,7 @@ export function computeCashAccountRawBalance(
                         return;
                     }
                 }
-                currentBalance -= Number(e.amount) || 0;
+                currentBalance -= Math.max(0, (Number(e.amount) || 0) * ratio - instSplitThrough);
             }
         });
     (userAccounts || []).forEach((card) => {
@@ -74,7 +91,17 @@ export function computeCashAccountRawBalance(
         if (card.linkedAccountId !== account.id) return;
         (userExpenses || []).forEach((e) => {
             if (e.accountId !== card.id) return;
-            currentBalance -= getCreditCardCumulativeCashOutThrough(e, card, asOfEndInclusive, userProfile);
+            const fullSplit = sumAcceptedSettledFullSplitForExpense(e.id, splitRequests);
+            const ratioBase = Number(e.amount) || 0;
+            const ratio = ratioBase > 0 ? Math.max(0, ratioBase - fullSplit) / ratioBase : 1;
+            const cutoffMonthKey = movementMonthKey(asOfEndInclusive);
+            const instSplitThrough = sumAcceptedSettledInstallmentSplitThroughMonth(
+                e.id,
+                cutoffMonthKey,
+                splitRequests
+            );
+            const creditOut = getCreditCardCumulativeCashOutThrough(e, card, asOfEndInclusive, userProfile);
+            currentBalance -= Math.max(0, creditOut * ratio - instSplitThrough);
         });
     });
     return currentBalance;
@@ -83,7 +110,13 @@ export function computeCashAccountRawBalance(
 /**
  * Calcula os saldos das contas com base em despesas e ganhos (valor exibido por conta com clamp).
  */
-export function calculateAllBalances(userAccounts, userExpenses, userGains, userProfile = null) {
+export function calculateAllBalances(
+    userAccounts,
+    userExpenses,
+    userGains,
+    userProfile = null,
+    splitRequests = null
+) {
     const asOf = new Date();
     asOf.setHours(23, 59, 59, 999);
     userAccounts.forEach((account) => {
@@ -98,7 +131,8 @@ export function calculateAllBalances(userAccounts, userExpenses, userGains, user
                 userExpenses,
                 userGains,
                 asOf,
-                userProfile
+                userProfile,
+                splitRequests
             );
             account.currentBalance = clampCashAccountBalance(account.type, raw);
         }
@@ -125,7 +159,8 @@ export function computeCashBalanceTotalAsOf(
     userExpenses,
     userGains,
     asOfEndInclusive,
-    userProfile = null
+    userProfile = null,
+    splitRequests = null
 ) {
     const accs = (userAccounts || []).map((a) => ({ ...a }));
     const rawById = new Map();
@@ -142,7 +177,8 @@ export function computeCashBalanceTotalAsOf(
                 userExpenses,
                 userGains,
                 asOfEndInclusive,
-                userProfile
+                userProfile,
+                splitRequests
             );
             rawById.set(account.id, raw);
             account.currentBalance = clampCashAccountBalance(account.type, raw);
@@ -179,13 +215,28 @@ export function computeCashBalanceChangeCurrentMonth(
     userExpenses,
     userGains,
     now = new Date(),
-    userProfile = null
+    userProfile = null,
+    splitRequests = null
 ) {
     const endOfToday = new Date(now);
     endOfToday.setHours(23, 59, 59, 999);
     const endOfPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
     return (
-        computeCashBalanceTotalAsOf(userAccounts, userExpenses, userGains, endOfToday, userProfile) -
-        computeCashBalanceTotalAsOf(userAccounts, userExpenses, userGains, endOfPrevMonth, userProfile)
+        computeCashBalanceTotalAsOf(
+            userAccounts,
+            userExpenses,
+            userGains,
+            endOfToday,
+            userProfile,
+            splitRequests
+        ) -
+        computeCashBalanceTotalAsOf(
+            userAccounts,
+            userExpenses,
+            userGains,
+            endOfPrevMonth,
+            userProfile,
+            splitRequests
+        )
     );
 }

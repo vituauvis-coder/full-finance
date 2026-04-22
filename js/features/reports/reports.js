@@ -30,6 +30,11 @@ import {
     sumProjectedGainsForCalendarMonth
 } from '../../core/projected-period-net.js';
 import { fetchDashboardPeriodBalance } from '../../services/firestore.js';
+import {
+    applySplitNetToContribution,
+    isAcceptedSettledSplitRequest,
+    isSplitReimbursementGain
+} from '../../core/split-net.js';
 let reportsChart = null;
 let financialProgressionChart = null;
 let lastReportsLoadArgs = null;
@@ -246,10 +251,23 @@ export async function loadReportsData(
     userAccounts,
     userCurrency,
     userInvestments,
-    userProfile = null
+    userProfile = null,
+    expenseSplitRequests = null
 ) {
     ensureReportsListeners();
-    lastReportsLoadArgs = [userExpenses, userGains, userAccounts, userCurrency, userInvestments, userProfile];
+    lastReportsLoadArgs = [
+        userExpenses,
+        userGains,
+        userAccounts,
+        userCurrency,
+        userInvestments,
+        userProfile,
+        expenseSplitRequests
+    ];
+    const outgoingAcceptedSplits = (expenseSplitRequests?.outgoing || []).filter((s) =>
+        isAcceptedSettledSplitRequest(s)
+    );
+    const gainsForTotals = (userGains || []).filter((g) => !isSplitReimbursementGain(g));
 
     const periodFilter = document.getElementById('period-filter');
     if (!periodFilter) return;
@@ -261,7 +279,8 @@ export async function loadReportsData(
         userExpenses,
         userAccounts,
         now,
-        userProfile
+        userProfile,
+        outgoingAcceptedSplits
     );
     const selectedCategory = refreshCategoryFilterOptions(allExpensesForCategoryChart);
     const categoryScopedExpenses = filterExpensesByCategory(userExpenses, selectedCategory);
@@ -272,17 +291,19 @@ export async function loadReportsData(
         categoryScopedExpenses,
         userAccounts,
         now,
-        userProfile
+        userProfile,
+        outgoingAcceptedSplits
     );
     const expensesByCategory = aggregateExpensesByCategory(expensesForCategoryChart);
 
     await updateDashboardCardsAndTitlesForPeriod(
         selectedPeriod,
         userExpenses,
-        userGains,
+        gainsForTotals,
         userAccounts,
         userCurrency,
-        userProfile
+        userProfile,
+        outgoingAcceptedSplits
     );
 
     if (Object.keys(expensesByCategory).length === 0) {
@@ -294,11 +315,12 @@ export async function loadReportsData(
     renderUnifiedFinancialChart(
         selectedPeriod,
         categoryScopedExpenses,
-        userGains,
+        gainsForTotals,
         userAccounts,
         userInvestments,
         userCurrency,
-        userProfile
+        userProfile,
+        outgoingAcceptedSplits
     );
 }
 
@@ -343,7 +365,14 @@ function coerceDayOfMonth(value) {
  *
  * Não depende de confirmações manuais de caixa (evita "zerar" em meses passados/ano).
  */
-function expenseContributionPaidThroughToMonthKey(t, acc, monthKey, cutoffEndInclusive, userProfile = null) {
+function expenseContributionPaidThroughToMonthKey(
+    t,
+    acc,
+    monthKey,
+    cutoffEndInclusive,
+    userProfile = null,
+    splitRequests = null
+) {
     const cutoffT = endOfDay(cutoffEndInclusive).getTime();
     const amt = Number(t.amount) || 0;
     const nInst = Math.max(1, parseInt(String(t.installmentCount ?? '1'), 10) || 1);
@@ -360,7 +389,7 @@ function expenseContributionPaidThroughToMonthKey(t, acc, monthKey, cutoffEndInc
             if (monthKeyFromDate(purchase) !== monthKey) return 0;
             if (purchase.getTime() > cutoffT) return 0;
             if (!expenseCountsAsCashOut(t, acc)) return 0;
-            return amt;
+            return applySplitNetToContribution(t, monthKey, amt, splitRequests);
         }
 
         if (nInst < 2) {
@@ -369,7 +398,7 @@ function expenseContributionPaidThroughToMonthKey(t, acc, monthKey, cutoffEndInc
             const due = dues[0] || purchase;
             if (monthKeyFromDate(due) !== monthKey) return 0;
             if (due.getTime() > cutoffT) return 0;
-            return amt;
+            return applySplitNetToContribution(t, monthKey, amt, splitRequests);
         }
 
         const dues = getInstallmentDueDates(purchase, nInst, cd, dd);
@@ -381,7 +410,7 @@ function expenseContributionPaidThroughToMonthKey(t, acc, monthKey, cutoffEndInc
             if (d.getTime() > cutoffT) continue;
             sum += per;
         }
-        return sum;
+        return applySplitNetToContribution(t, monthKey, sum, splitRequests);
     }
 
     // Empréstimo: vencimentos mensais
@@ -396,7 +425,7 @@ function expenseContributionPaidThroughToMonthKey(t, acc, monthKey, cutoffEndInc
             if (d.getTime() > cutoffT) continue;
             sum += per;
         }
-        return sum;
+        return applySplitNetToContribution(t, monthKey, sum, splitRequests);
     }
 
     const purchasePlain = movementDateToJsDate(t.date);
@@ -405,7 +434,7 @@ function expenseContributionPaidThroughToMonthKey(t, acc, monthKey, cutoffEndInc
         if (purchasePlain.getTime() > cutoffT) return 0;
         if (!expenseCountsAsCashOut(t, acc)) return 0;
         if (!isPeriodConfirmedForDebit(parseCashOutConfirmedPeriods(t), purchasePlain)) return 0;
-        return amt;
+        return applySplitNetToContribution(t, monthKey, amt, splitRequests);
     }
 
     // Demais contas: pela data do lançamento
@@ -414,7 +443,7 @@ function expenseContributionPaidThroughToMonthKey(t, acc, monthKey, cutoffEndInc
     if (monthKeyFromDate(d) !== monthKey) return 0;
     if (d.getTime() > cutoffT) return 0;
     if (!expenseCountsAsCashOut(t, acc)) return 0;
-    return amt;
+    return applySplitNetToContribution(t, monthKey, amt, splitRequests);
 }
 
 /**
@@ -423,7 +452,14 @@ function expenseContributionPaidThroughToMonthKey(t, acc, monthKey, cutoffEndInc
  * Meses futuros no período: projeção por vencimento/parcelas (`expenseContributionProjectedToMonthKey`)
  * para o gráfico «Distribuição das saídas» mostrar saídas previstas (ex.: parcelas, recorrências).
  */
-function mapExpensesToPeriodContributions(period, userExpenses, userAccounts, now, userProfile = null) {
+function mapExpensesToPeriodContributions(
+    period,
+    userExpenses,
+    userAccounts,
+    now,
+    userProfile = null,
+    splitRequests = null
+) {
     const { startDate, endDate } = getPeriodDateBounds(period, now);
     const months = enumerateCalendarMonths(startDate, endDate);
     const accountsById = new Map((userAccounts || []).map((a) => [a.id, a]));
@@ -439,11 +475,18 @@ function mapExpensesToPeriodContributions(period, userExpenses, userAccounts, no
 
             let v;
             if (projection) {
-                v = expenseContributionProjectedToMonthKey(t, acc, mk, now, userProfile);
+                v = expenseContributionProjectedToMonthKey(t, acc, mk, now, userProfile, splitRequests);
             } else if (periodUsesCashCalendarMonthRule(period, mo, now)) {
-                v = expenseContributionToCalendarMonth(t, acc, mk, now, userProfile);
+                v = expenseContributionToCalendarMonth(t, acc, mk, now, userProfile, splitRequests);
             } else {
-                v = expenseContributionPaidThroughToMonthKey(t, acc, mk, cutoff, userProfile);
+                v = expenseContributionPaidThroughToMonthKey(
+                    t,
+                    acc,
+                    mk,
+                    cutoff,
+                    userProfile,
+                    splitRequests
+                );
             }
             if (!v || v <= 0) continue;
             out.push({
@@ -474,7 +517,14 @@ function setTextIfExists(id, text) {
     if (el) el.textContent = text;
 }
 
-function sumOutflowsForPeriod(period, userExpenses, userAccounts, now, userProfile = null) {
+function sumOutflowsForPeriod(
+    period,
+    userExpenses,
+    userAccounts,
+    now,
+    userProfile = null,
+    splitRequests = null
+) {
     let { startDate, endDate } = getPeriodDateBounds(period, now);
     if (startDate > endDate) return 0;
     const months = enumerateCalendarMonths(startDate, endDate);
@@ -483,8 +533,22 @@ function sumOutflowsForPeriod(period, userExpenses, userAccounts, now, userProfi
         return (
             sum +
             (proj
-                ? sumOutflowsProjectedForCalendarMonth(mo, userExpenses, userAccounts, now, userProfile)
-                : sumOutflowsForCalendarMonth(mo, userExpenses, userAccounts, now, userProfile))
+                ? sumOutflowsProjectedForCalendarMonth(
+                      mo,
+                      userExpenses,
+                      userAccounts,
+                      now,
+                      userProfile,
+                      splitRequests
+                  )
+                : sumOutflowsForCalendarMonth(
+                      mo,
+                      userExpenses,
+                      userAccounts,
+                      now,
+                      userProfile,
+                      splitRequests
+                  ))
         );
     }, 0);
 }
@@ -503,7 +567,8 @@ async function updateDashboardCardsAndTitlesForPeriod(
     userGains,
     userAccounts,
     userCurrency,
-    userProfile = null
+    userProfile = null,
+    splitRequests = null
 ) {
     const now = new Date();
     const parts = getPeriodTitleParts(period, now);
@@ -534,7 +599,7 @@ async function updateDashboardCardsAndTitlesForPeriod(
 
     // Valores dos cards respondendo ao período do filtro
     const income = sumGainsForPeriod(period, userGains);
-    const out = sumOutflowsForPeriod(period, userExpenses, userAccounts, now, userProfile);
+    const out = sumOutflowsForPeriod(period, userExpenses, userAccounts, now, userProfile, splitRequests);
     setTextIfExists('monthly-income', formatCurrency(income, userCurrency));
     setTextIfExists('monthly-expenses', formatCurrency(out, userCurrency));
 
@@ -559,14 +624,16 @@ async function updateDashboardCardsAndTitlesForPeriod(
                           userExpenses,
                           userAccounts,
                           now,
-                          userProfile
+                          userProfile,
+                          splitRequests
                       )
                     : sumOutflowsForCalendarMonth(
                           mo,
                           userExpenses,
                           userAccounts,
                           now,
-                          userProfile
+                          userProfile,
+                          splitRequests
                       );
                 netProj += gains - outflows;
             }
@@ -599,7 +666,12 @@ async function updateDashboardCardsAndTitlesForPeriod(
                     for (const mo of enumerateCalendarMonths(nextMonthStart, endDate)) {
                         const inc = sumProjectedGainsForCalendarMonth(mo, userGains);
                         const outMo = sumOutflowsProjectedForCalendarMonth(
-                            mo, userExpenses, userAccounts, now, userProfile
+                            mo,
+                            userExpenses,
+                            userAccounts,
+                            now,
+                            userProfile,
+                            splitRequests
                         );
                         projected += inc - outMo;
                     }
@@ -1112,7 +1184,14 @@ function sumMovementsInRange(items, rangeStart, rangeEnd) {
  * Total de saídas no mês-calendário — mesma regra do card «Saídas do mês» (dashboard) e do resumo da lista:
  * {@link expenseContributionToCalendarMonth} (cartão/empréstimo por vencimento efetivo no caixa; demais pela data).
  */
-function sumOutflowsForCalendarMonth(mo, userExpenses, userAccounts, now, userProfile = null) {
+function sumOutflowsForCalendarMonth(
+    mo,
+    userExpenses,
+    userAccounts,
+    now,
+    userProfile = null,
+    splitRequests = null
+) {
     const accountsById = new Map((userAccounts || []).map((a) => [a.id, a]));
     const mk = `${mo.start.getFullYear()}-${String(mo.start.getMonth() + 1).padStart(2, '0')}`;
     let sum = 0;
@@ -1122,8 +1201,15 @@ function sumOutflowsForCalendarMonth(mo, userExpenses, userAccounts, now, userPr
         // Para o mês atual, mantém a regra "do caixa" que você disse estar correta.
         // Para meses encerrados, conta parcelas por vencimento (pago até o fim do mês).
         sum += isCurrentMonthObj(mo, now)
-            ? expenseContributionToCalendarMonth(t, acc, mk, now, userProfile)
-            : expenseContributionPaidThroughToMonthKey(t, acc, mk, cutoff, userProfile);
+            ? expenseContributionToCalendarMonth(t, acc, mk, now, userProfile, splitRequests)
+            : expenseContributionPaidThroughToMonthKey(
+                  t,
+                  acc,
+                  mk,
+                  cutoff,
+                  userProfile,
+                  splitRequests
+              );
     }
     return sum;
 }
@@ -1138,7 +1224,8 @@ function renderUnifiedFinancialChart(
     userAccounts,
     userInvestments,
     userCurrency,
-    userProfile = null
+    userProfile = null,
+    splitRequests = null
 ) {
     const canvas = document.getElementById('financial-progression-chart');
     if (!canvas) return;
@@ -1157,8 +1244,15 @@ function renderUnifiedFinancialChart(
     const projectionFlags = months.map((mo) => isProjectionMonth(mo, now));
     const dataGastos = months.map((mo) =>
         isProjectionMonth(mo, now)
-            ? sumOutflowsProjectedForCalendarMonth(mo, expenses, userAccounts, now, userProfile)
-            : sumOutflowsForCalendarMonth(mo, expenses, userAccounts, now, userProfile)
+            ? sumOutflowsProjectedForCalendarMonth(
+                  mo,
+                  expenses,
+                  userAccounts,
+                  now,
+                  userProfile,
+                  splitRequests
+              )
+            : sumOutflowsForCalendarMonth(mo, expenses, userAccounts, now, userProfile, splitRequests)
     );
     const dataGanhos = months.map((mo) => sumMovementsInRange(gains, mo.start, mo.end));
     const dataInvest = investmentSeriesNoProjection(months, investedTotal);
