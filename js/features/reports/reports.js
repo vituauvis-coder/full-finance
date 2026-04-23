@@ -803,18 +803,6 @@ function aggregateExpensesForStackedBarByCategory(transactions) {
     catTotals.sort((a, b) => b.total - a.total);
     const categoryLabels = catTotals.map((x) => x.cat);
 
-    const subNameToCats = new Map();
-    for (const cat of categoryLabels) {
-        for (const sub of byCat.get(cat).keys()) {
-            if (!subNameToCats.has(sub)) subNameToCats.set(sub, new Set());
-            subNameToCats.get(sub).add(cat);
-        }
-    }
-    const ambiguousSub = new Set();
-    for (const [sub, cats] of subNameToCats) {
-        if (cats.size > 1) ambiguousSub.add(sub);
-    }
-
     const palette = getReportsStackColors();
     const barBorder = isDarkTheme() ? 'rgba(15, 23, 42, 0.45)' : 'rgba(255, 255, 255, 0.92)';
     const datasets = [];
@@ -825,7 +813,7 @@ function aggregateExpensesForStackedBarByCategory(transactions) {
         const entries = [...subs.entries()].sort((a, b) => b[1] - a[1]);
         for (const [sub, amount] of entries) {
             const data = categoryLabels.map((c) => (c === cat ? amount : 0));
-            const label = ambiguousSub.has(sub) ? `${cat} — ${sub}` : sub;
+            const label = sub;
             datasets.push({
                 label,
                 data,
@@ -1082,7 +1070,7 @@ function renderReportsChart(filteredExpenses, userCurrency, selectedCategory = A
                                     return `${sub}: ${formatCurrency(val, userCurrency)}  (${pct}% do período)`;
                                 }
                                 const cat = raw?._data?.category || raw?.category || '—';
-                                return `${cat} — ${sub}: ${formatCurrency(val, userCurrency)}  (${pct}% do período)`;
+                                return `${cat} (${sub}): ${formatCurrency(val, userCurrency)}  (${pct}% do período)`;
                             }
                             return `${ctx.dataset.label}: ${formatCurrency(v, userCurrency)}`;
                         },
