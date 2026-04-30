@@ -1,26 +1,26 @@
 /* Tema escuro — <html data-theme="dark"> */
 
 [data-theme="dark"] {
-    /* Acentos claros neutros; verde reservado a entradas via --gains-accent */
-    --primary-color: #f1f5f9;
-    --primary-color-dark: #e2e8f0;
-    --secondary-color: #94a3b8;
+    /* Fundos cinza neutro (sem azul slate) */
+    --primary-color: #fafafa;
+    --primary-color-dark: #e5e5e5;
+    --secondary-color: #a3a3a3;
     --gains-accent: #34d399;
     --danger-color: #f87171;
     --warning-color: #fbbf24;
     --info-color: #60a5fa;
-    --bg-color: #0f172a;
-    --bg-light: #1e293b;
-    --text-color: #f1f5f9;
-    --text-light: #94a3b8;
-    --border-color: #334155;
+    --bg-color: #171717;
+    --bg-light: #262626;
+    --text-color: #fafafa;
+    --text-light: #a3a3a3;
+    --border-color: #404040;
     --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.45), 0 2px 4px -2px rgba(0, 0, 0, 0.35);
     --card-elevated-shadow:
-        6px 6px 0 rgba(248, 250, 252, 0.04),
+        6px 6px 0 rgba(255, 255, 255, 0.03),
         0 4px 6px rgba(0, 0, 0, 0.35),
         0 14px 32px rgba(0, 0, 0, 0.45);
     --card-elevated-shadow-hover:
-        8px 8px 0 rgba(248, 250, 252, 0.07),
+        8px 8px 0 rgba(255, 255, 255, 0.05),
         0 8px 12px rgba(0, 0, 0, 0.35),
         0 22px 44px rgba(0, 0, 0, 0.5);
 }
@@ -28,11 +28,11 @@
 /* Botões/ações com acento claro: texto escuro para contraste */
 [data-theme="dark"] .btn-primary,
 [data-theme="dark"] .segmented-control .sg-btn.active {
-    color: #0f172a;
+    color: #171717;
 }
 
 [data-theme="dark"] .fab {
-    color: #0f172a;
+    color: #171717;
 }
 
 [data-theme="dark"] .fab-expense,
@@ -129,7 +129,7 @@
 }
 
 [data-theme="dark"] .auth-box {
-    background: rgba(30, 41, 59, 0.85);
+    background: rgba(38, 38, 38, 0.94);
     box-shadow: none;
 }
 
@@ -137,7 +137,7 @@
     box-shadow:
         0 4px 6px rgba(0, 0, 0, 0.35),
         0 24px 48px rgba(0, 0, 0, 0.45),
-        0 0 0 1px rgba(148, 163, 184, 0.12);
+        0 0 0 1px rgba(163, 163, 163, 0.12);
 }
 
 [data-theme="dark"] .auth-title {
@@ -193,43 +193,43 @@
 }
 
 [data-theme="dark"] .sidebar-menu li a:hover {
-    background: rgba(148, 163, 184, 0.12);
-    border-color: rgba(148, 163, 184, 0.2);
+    background: rgba(163, 163, 163, 0.1);
+    border-color: rgba(163, 163, 163, 0.18);
 }
 
 [data-theme="dark"] .sidebar-menu li a.active {
-    color: #f8fafc;
-    background: linear-gradient(135deg, rgba(248, 250, 252, 0.14), rgba(51, 65, 85, 0.92));
-    border-color: rgba(248, 250, 252, 0.22);
+    color: #fafafa;
+    background: linear-gradient(135deg, rgba(250, 250, 250, 0.1), rgba(38, 38, 38, 0.95));
+    border-color: rgba(250, 250, 250, 0.18);
     box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05),
         0 10px 22px rgba(0, 0, 0, 0.32);
 }
 
 [data-theme="dark"] .sidebar-menu li a.active i {
-    color: #f8fafc;
+    color: #fafafa;
 }
 
 [data-theme="dark"] #logout-btn {
-    background-color: rgba(15, 23, 42, 0.45);
+    background-color: rgba(23, 23, 23, 0.72);
 }
 
 [data-theme="dark"] #sidebar-theme-toggle {
-    background: rgba(248, 250, 252, 0.08);
-    border-color: rgba(248, 250, 252, 0.18);
-    color: #cbd5e1;
+    background: rgba(250, 250, 250, 0.06);
+    border-color: rgba(250, 250, 250, 0.12);
+    color: #a3a3a3;
 }
 
 [data-theme="dark"] #sidebar-theme-toggle:hover {
-    background: rgba(248, 250, 252, 0.12);
-    border-color: rgba(248, 250, 252, 0.28);
-    color: #f1f5f9;
+    background: rgba(250, 250, 250, 0.1);
+    border-color: rgba(250, 250, 250, 0.2);
+    color: #fafafa;
 }
 
 [data-theme="dark"] #sidebar-theme-toggle[aria-pressed="true"] {
-    background: linear-gradient(135deg, rgba(248, 250, 252, 0.18), rgba(51, 65, 85, 0.9));
-    border-color: rgba(248, 250, 252, 0.35);
-    color: #f8fafc;
+    background: linear-gradient(135deg, rgba(250, 250, 250, 0.14), rgba(38, 38, 38, 0.92));
+    border-color: rgba(250, 250, 250, 0.28);
+    color: #fafafa;
 }
 
 [data-theme="dark"] #logout-btn:hover {
@@ -261,11 +261,11 @@
 }
 
 [data-theme="dark"] .installment-ring-compact__track {
-    stroke: rgba(148, 163, 184, 0.28);
+    stroke: rgba(163, 163, 163, 0.22);
 }
 
 [data-theme="dark"] .installment-ring-compact__num {
-    color: #e2e8f0;
+    color: #e5e5e5;
 }
 
 [data-theme="dark"] .card-purchases-status-ring .installment-ring-fallback {
@@ -286,12 +286,12 @@
 }
 
 [data-theme="dark"] .installment-tooltip-summary {
-    background: rgba(248, 250, 252, 0.06);
-    border-color: rgba(148, 163, 184, 0.22);
+    background: rgba(250, 250, 250, 0.05);
+    border-color: rgba(163, 163, 163, 0.2);
 }
 
 [data-theme="dark"] .installment-tooltip-line-label {
-    color: #94a3b8;
+    color: #a3a3a3;
 }
 
 [data-theme="dark"] .installment-tooltip-pill--paid {
@@ -300,8 +300,8 @@
 }
 
 [data-theme="dark"] .installment-tooltip-pill--pending {
-    background: rgba(148, 163, 184, 0.12);
-    color: #94a3b8;
+    background: rgba(163, 163, 163, 0.12);
+    color: #a3a3a3;
 }
 
 [data-theme="dark"] .installment-tooltip-pill--current-month.installment-tooltip-pill--pending {
@@ -349,25 +349,25 @@
 }
 
 [data-theme="dark"] .goal-card:not(.goal-card--veiculo) .goal-card__separator {
-    background: rgba(248, 250, 252, 0.1);
+    background: rgba(250, 250, 250, 0.08);
 }
 
 /* Contraste da área de progresso no cartão (fundo escuro + trilha visível) */
 [data-theme="dark"] .goal-card:not(.goal-card--veiculo) .goal-card__progress-track {
-    background: rgba(241, 245, 249, 0.14);
+    background: rgba(250, 250, 250, 0.1);
 }
 
 [data-theme="dark"] .goal-modal__subtitle {
-    background: linear-gradient(180deg, rgba(248, 250, 252, 0.08) 0%, transparent 100%);
+    background: linear-gradient(180deg, rgba(250, 250, 250, 0.06) 0%, transparent 100%);
 }
 
 [data-theme="dark"] .goal-form-note {
-    background: rgba(15, 23, 42, 0.65);
+    background: rgba(23, 23, 23, 0.72);
     border-color: var(--border-color);
     color: var(--text-color);
 }
 
 [data-theme="dark"] .goal-form-group--account {
-    border-top-color: rgba(148, 163, 184, 0.2);
+    border-top-color: rgba(163, 163, 163, 0.18);
 }
 

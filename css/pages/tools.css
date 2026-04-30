@@ -65,7 +65,7 @@
 .calculator-form input:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
 }
 
 .calculator-btn {
@@ -111,7 +111,7 @@
 }
 
 .result-item.highlight {
-    background-color: rgba(124, 58, 237, 0.1);
+    background-color: rgba(0, 0, 0, 0.1);
     border-color: var(--primary-color);
 }
 
@@ -773,7 +773,7 @@
 .kanban-upload-label:hover {
     border-color: var(--primary-color);
     color: var(--primary-color);
-    background: linear-gradient(135deg, rgba(124, 58, 237, 0.08) 0%, rgba(124, 58, 237, 0.02) 100%);
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.08) 0%, rgba(0, 0, 0, 0.02) 100%);
 }
 
 .kanban-upload-label:active {
@@ -911,7 +911,7 @@
 }
 
 .kanban-column-content.drag-over {
-    background-color: rgba(99, 102, 241, 0.1);
+    background-color: rgba(115, 115, 115, 0.1);
     border: 2px dashed var(--primary-color);
     border-radius: 8px;
 }

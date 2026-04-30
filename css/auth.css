@@ -149,10 +149,10 @@
     inset: 0;
     z-index: 0;
     background:
-        radial-gradient(ellipse 120% 80% at 50% -30%, rgba(248, 250, 252, 0.28), transparent 55%),
-        radial-gradient(ellipse 90% 60% at 100% 50%, rgba(148, 163, 184, 0.22), transparent 50%),
-        radial-gradient(ellipse 70% 50% at 0% 80%, rgba(203, 213, 225, 0.18), transparent 45%),
-        linear-gradient(165deg, #0f172a 0%, #1e293b 38%, #334155 72%, #1e293b 100%);
+        radial-gradient(ellipse 120% 80% at 50% -30%, rgba(250, 250, 250, 0.14), transparent 55%),
+        radial-gradient(ellipse 90% 60% at 100% 50%, rgba(163, 163, 163, 0.12), transparent 50%),
+        radial-gradient(ellipse 70% 50% at 0% 80%, rgba(115, 115, 115, 0.1), transparent 45%),
+        linear-gradient(165deg, #171717 0%, #262626 40%, #404040 75%, #262626 100%);
     animation: heroMeshShift 18s ease-in-out infinite alternate;
 }
 
@@ -245,7 +245,7 @@
 }
 
 .hero-title-gradient {
-    background: linear-gradient(125deg, #fff 0%, #f1f5f9 40%, #e2e8f0 100%);
+    background: linear-gradient(125deg, #fff 0%, #f5f5f5 40%, #e5e5e5 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -286,7 +286,7 @@
     flex-shrink: 0;
     margin-top: 0.2rem;
     font-size: 0.95rem;
-    color: #e2e8f0;
+    color: #e5e5e5;
     opacity: 0.95;
 }
 
@@ -462,7 +462,7 @@
     gap: 0.65rem;
     width: 100%;
     padding: 0.15rem 0.85rem 0.15rem 0.65rem;
-    border: 1px solid #e2e8f0;
+    border: 1px solid #e5e5e5;
     border-radius: 12px;
     background: #fff;
     transition: border-color 0.2s, box-shadow 0.2s;
@@ -474,7 +474,7 @@
 }
 
 .auth-input-icon {
-    color: #94a3b8;
+    color: #a3a3a3;
     font-size: 0.95rem;
     flex-shrink: 0;
 }
@@ -493,7 +493,7 @@
 }
 
 .auth-input-wrap input::placeholder {
-    color: #94a3b8;
+    color: #a3a3a3;
 }
 
 .auth-input-wrap input:focus {
@@ -599,8 +599,8 @@
 .landing-footer {
     padding: 2rem;
     text-align: center;
-    background: #1e293b;
-    color: #94a3b8;
+    background: #262626;
+    color: #a3a3a3;
 }
 
 .landing-footer p {
@@ -608,7 +608,7 @@
 }
 
 .landing-footer strong {
-    color: #f1f5f9;
+    color: #fafafa;
 }
 
 .footer-version {

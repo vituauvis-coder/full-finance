@@ -39,7 +39,7 @@
 .category-select:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
 }
 
 @media (max-width: 900px) {
@@ -81,7 +81,7 @@
     padding: 0.25rem;
     border-radius: 10px;
     border: 1px solid var(--border-color);
-    background: color-mix(in srgb, var(--bg-light) 86%, var(--bg-dark) 14%);
+    background: color-mix(in srgb, var(--bg-light) 92%, var(--bg-color) 8%);
 }
 
 .chart-type-btn {

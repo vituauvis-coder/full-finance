@@ -135,7 +135,7 @@ async function handleFinancePreferencesSubmit(e) {
 
 function updateProfileImages(photoURL) {
     const defaultPhoto =
-        "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%23e2e8f0'/><text x='50' y='55' text-anchor='middle' font-size='30' fill='%2394a3b8'>👤</text></svg>";
+        "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%23e5e5e5'/><text x='50' y='55' text-anchor='middle' font-size='30' fill='%23a3a3a3'>👤</text></svg>";
     const url = photoURL || defaultPhoto;
     const preview = document.getElementById('profile-photo-preview');
     const side = document.getElementById('sidebar-user-photo');

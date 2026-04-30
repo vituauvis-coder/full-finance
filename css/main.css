@@ -1,35 +1,32 @@
 /* --- Variáveis Globais (Tema) --- */
 :root {
-    /* UI base neutra (branco/cinza); verde só em --gains-accent / telas de entradas */
-    --primary-color: #334155;
-    --primary-color-dark: #1e293b;
-    --secondary-color: #64748b;
+    /* Neutro “true gray” (menos azul que slate); verde só em --gains-accent */
+    --primary-color: #404040;
+    --primary-color-dark: #262626;
+    --secondary-color: #737373;
     --gains-accent: #10b981;
     --danger-color: #ef4444;
     /* Vermelho para despesas */
     --warning-color: #f59e0b;
     /* Amarelo para alertas */
     --info-color: #3b82f6;
-    /* Azul para informações */
-    --bg-color: #ffffff;
-    /* Tela base branca; cards podem contrastar levemente */
+    /* Azul só para informação pontual */
+    --bg-color: #fafafa;
+    /* Fundo app: branco levemente térmico */
     --bg-light: #ffffff;
-    /* Fundo de cards e modais */
-    --text-color: #334155;
-    /* Texto principal */
-    --text-light: #64748b;
-    /* Texto secundário */
-    --border-color: #e2e8f0;
-    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-    /* Cards elevados (contas, objetivos, investimentos) — mesma pilha em todos */
+    /* Cards e modais */
+    --text-color: #262626;
+    --text-light: #737373;
+    --border-color: #e5e5e5;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
     --card-elevated-shadow:
-        6px 6px 0 rgba(15, 23, 42, 0.06),
-        0 4px 6px rgba(15, 23, 42, 0.06),
-        0 18px 40px rgba(15, 23, 42, 0.08);
+        6px 6px 0 rgba(0, 0, 0, 0.04),
+        0 4px 6px rgba(0, 0, 0, 0.05),
+        0 18px 40px rgba(0, 0, 0, 0.06);
     --card-elevated-shadow-hover:
-        8px 8px 0 rgba(15, 23, 42, 0.09),
-        0 10px 16px rgba(15, 23, 42, 0.08),
-        0 24px 48px rgba(15, 23, 42, 0.14);
+        8px 8px 0 rgba(0, 0, 0, 0.055),
+        0 10px 16px rgba(0, 0, 0, 0.06),
+        0 24px 48px rgba(0, 0, 0, 0.08);
     --font-family: 'Poppins', sans-serif;
 }
 

@@ -15,7 +15,7 @@ function updateMetaThemeColor(isDark) {
         meta.name = 'theme-color';
         document.head.appendChild(meta);
     }
-    meta.content = isDark ? '#0f172a' : '#ffffff';
+    meta.content = isDark ? '#171717' : '#fafafa';
 }
 
 function syncToggle(isDark) {

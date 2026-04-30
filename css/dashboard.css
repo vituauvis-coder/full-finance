@@ -232,7 +232,7 @@
 }
 
 .movements-summary .card-icon.investments {
-    background: rgba(51, 65, 85, 0.08);
+    background: rgba(64, 64, 64, 0.06);
     color: var(--primary-color);
 }
 
@@ -950,12 +950,12 @@ button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='
     border: 1px solid var(--border-color);
     border-radius: 1rem;
     box-shadow: var(--shadow);
-    background: color-mix(in srgb, var(--bg-light) 94%, var(--bg-dark) 6%);
+    background: color-mix(in srgb, var(--bg-light) 96%, var(--bg-color) 4%);
 }
 
 [data-theme='dark'] .dashboard-reports-section .reports-chart-container.dashboard-flux-chart-card {
-    background: #171923;
-    border-color: rgba(30, 41, 59, 0.85);
+    background: var(--bg-light);
+    border-color: var(--border-color);
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
 }
 
@@ -991,7 +991,7 @@ button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='
 
 /* Chart.js 4 usa a cor CSS do canvas como fallback da legenda; garante contraste no tema escuro */
 [data-theme='dark'] .dashboard-reports-charts-grid .chart-wrapper canvas {
-    color: #e2e8f0;
+    color: var(--text-color, #fafafa);
 }
 
 /* Sobrescreve accounts.css (#financial-progression-chart min-height) para caber no wrapper */
@@ -1310,7 +1310,7 @@ button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='
 }
 
 .treemap-block:focus-visible {
-    box-shadow: 0 0 0 2px var(--bg-color), 0 0 0 4px var(--primary-color, #334155);
+    box-shadow: 0 0 0 2px var(--bg-color), 0 0 0 4px var(--primary-color, #404040);
 }
 
 /* Cores por categoria; posição = porcentagens (squarify no JS). */

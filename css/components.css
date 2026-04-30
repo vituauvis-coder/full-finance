@@ -226,13 +226,13 @@
 
 .file-input:hover {
     border-color: var(--primary-color);
-    background-color: rgba(124, 58, 237, 0.05);
+    background-color: rgba(0, 0, 0, 0.05);
 }
 
 .file-input:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
 }
 
 .file-input::file-selector-button {
@@ -255,7 +255,7 @@
 /* Estilo para mostrar arquivo selecionado */
 .file-input.has-file {
     border-color: var(--primary-color);
-    background-color: rgba(51, 65, 85, 0.04);
+    background-color: rgba(64, 64, 64, 0.035);
 }
 
 /* Loading state */

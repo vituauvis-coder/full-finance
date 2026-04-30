@@ -8,7 +8,7 @@
     align-items: center;
     justify-content: center;
     padding: 1.25rem;
-    background: rgba(15, 23, 42, 0.45);
+    background: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
 }
@@ -33,10 +33,10 @@
     padding: 0;
     border-radius: 16px;
     overflow: hidden;
-    border: 1px solid rgba(148, 163, 184, 0.35);
+    border: 1px solid rgba(163, 163, 163, 0.35);
     box-shadow:
-        0 25px 50px -12px rgba(15, 23, 42, 0.2),
-        0 0 0 1px rgba(15, 23, 42, 0.04);
+        0 25px 50px -12px rgba(0, 0, 0, 0.18),
+        0 0 0 1px rgba(0, 0, 0, 0.04);
     animation: modalContentIn 0.3s cubic-bezier(0.34, 1.2, 0.64, 1);
 }
 
@@ -56,7 +56,7 @@
     display: block;
     height: 4px;
     width: 100%;
-    background: linear-gradient(90deg, #f1f5f9 0%, #e2e8f0 55%, #cbd5e1 100%);
+    background: linear-gradient(90deg, #f5f5f5 0%, #e5e5e5 55%, #d4d4d4 100%);
 }
 
 .modal-content.delete-account-modal::before {
@@ -73,7 +73,7 @@
     line-height: 1.35;
     color: var(--text-color);
     border-bottom: 1px solid var(--border-color);
-    background: linear-gradient(180deg, rgba(15, 23, 42, 0.04) 0%, transparent 100%);
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.03) 0%, transparent 100%);
 }
 
 .modal-content > h3 i {
@@ -217,8 +217,8 @@
     margin: 0;
     padding: 0.75rem 0.85rem;
     border-radius: 12px;
-    border: 1px solid rgba(148, 163, 184, 0.28);
-    background: linear-gradient(180deg, rgba(124, 58, 237, 0.06) 0%, rgba(124, 58, 237, 0.02) 100%);
+    border: 1px solid rgba(163, 163, 163, 0.28);
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.06) 0%, rgba(0, 0, 0, 0.02) 100%);
 }
 
 #expense-split-modal .expense-split-modal-existing-title {
@@ -242,7 +242,7 @@
     align-items: center;
     gap: 0.35rem 0.6rem;
     padding: 0.4rem 0;
-    border-bottom: 1px dashed rgba(148, 163, 184, 0.35);
+    border-bottom: 1px dashed rgba(163, 163, 163, 0.35);
     font-size: 0.85rem;
 }
 
@@ -279,7 +279,7 @@
 
 #expense-split-modal .expense-split-status--rejected,
 #expense-split-modal .expense-split-status--cancelled {
-    background: rgba(148, 163, 184, 0.2);
+    background: rgba(163, 163, 163, 0.2);
     color: var(--text-light);
 }
 
@@ -442,7 +442,7 @@
 .modal-content .form-group textarea:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.18);
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.18);
 }
 
 .modal-content .form-group select {
@@ -512,14 +512,14 @@
 .modal-content .form-group input[type='date']:focus::-webkit-datetime-edit-month-field,
 .modal-content .form-group input[type='date']:focus::-webkit-datetime-edit-day-field,
 .modal-content .form-group input[type='date']:focus::-webkit-datetime-edit-year-field {
-    background-color: rgba(124, 58, 237, 0.12);
+    background-color: rgba(0, 0, 0, 0.12);
     color: var(--text-color);
 }
 
 [data-theme='dark'] .modal-content .form-group input[type='date']:focus::-webkit-datetime-edit-month-field,
 [data-theme='dark'] .modal-content .form-group input[type='date']:focus::-webkit-datetime-edit-day-field,
 [data-theme='dark'] .modal-content .form-group input[type='date']:focus::-webkit-datetime-edit-year-field {
-    background-color: rgba(167, 139, 250, 0.15);
+    background-color: rgba(163, 163, 163, 0.15);
 }
 
 /* Ícone do calendário: tamanho contido para não forçar altura extra do campo */
@@ -532,7 +532,7 @@
     border-radius: 8px;
     opacity: 0.92;
     background-color: transparent;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23334155' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cpath d='M16 2v4M8 2v4M3 10h18'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23404040' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cpath d='M16 2v4M8 2v4M3 10h18'/%3E%3C/svg%3E");
     background-size: 1.05rem 1.05rem;
     background-repeat: no-repeat;
     background-position: center;
@@ -545,12 +545,12 @@
 
 .modal-content .form-group input[type='date']:hover::-webkit-calendar-picker-indicator {
     opacity: 1;
-    background-color: rgba(124, 58, 237, 0.1);
+    background-color: rgba(0, 0, 0, 0.1);
 }
 
 .modal-content .form-group input[type='date']:focus::-webkit-calendar-picker-indicator {
     opacity: 1;
-    background-color: rgba(124, 58, 237, 0.14);
+    background-color: rgba(0, 0, 0, 0.14);
 }
 
 .modal-content .form-group input[type='date']::-webkit-calendar-picker-indicator:active {
@@ -562,11 +562,11 @@
 }
 
 [data-theme='dark'] .modal-content .form-group input[type='date']:hover::-webkit-calendar-picker-indicator {
-    background-color: rgba(167, 139, 250, 0.14);
+    background-color: rgba(163, 163, 163, 0.14);
 }
 
 [data-theme='dark'] .modal-content .form-group input[type='date']:focus::-webkit-calendar-picker-indicator {
-    background-color: rgba(167, 139, 250, 0.2);
+    background-color: rgba(163, 163, 163, 0.2);
 }
 
 .modal-content .form-group small {
@@ -615,8 +615,8 @@
     margin-bottom: 1rem;
     padding: 1rem 1.1rem;
     border-radius: 12px;
-    border: 1px dashed rgba(124, 58, 237, 0.35);
-    background: linear-gradient(145deg, rgba(124, 58, 237, 0.05), rgba(99, 102, 241, 0.03));
+    border: 1px dashed rgba(0, 0, 0, 0.35);
+    background: linear-gradient(145deg, rgba(0, 0, 0, 0.05), rgba(115, 115, 115, 0.03));
 }
 
 .modal-content #credit-card-fields .form-group:last-child {
@@ -655,7 +655,7 @@
 
 .modal-content .category-chip:hover {
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.15);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 /* Despesa: select de categoria + nova categoria */
@@ -816,7 +816,7 @@
     border-radius: 10px;
     font-weight: 600;
     font-size: 0.95rem;
-    box-shadow: 0 4px 14px rgba(124, 58, 237, 0.28);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
     transition:
         background-color 0.2s ease,
         box-shadow 0.2s ease,
@@ -824,7 +824,7 @@
 }
 
 .modal-content form > button.btn-primary[type='submit']:hover {
-    box-shadow: 0 6px 20px rgba(124, 58, 237, 0.35);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
     transform: translateY(-1px);
 }
 
@@ -870,7 +870,7 @@
     margin-top: 0;
     padding: 1.2rem 1.5rem 1.55rem;
     border-top: 1px solid var(--border-color);
-    background: linear-gradient(180deg, transparent 0%, rgba(124, 58, 237, 0.04) 100%);
+    background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.04) 100%);
 }
 
 /* Modal exclusão de conta */
@@ -905,25 +905,25 @@
 }
 
 [data-theme='dark'] .modal-content {
-    border-color: rgba(71, 85, 105, 0.5);
+    border-color: rgba(64, 64, 64, 0.55);
     box-shadow:
         0 25px 50px -12px rgba(0, 0, 0, 0.55),
         0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 
 [data-theme='dark'] .modal-content::before {
-    background: linear-gradient(90deg, rgba(248, 250, 252, 0.35) 0%, rgba(148, 163, 184, 0.45) 50%, rgba(71, 85, 105, 0.5) 100%);
+    background: linear-gradient(90deg, rgba(250, 250, 250, 0.22) 0%, rgba(163, 163, 163, 0.35) 50%, rgba(64, 64, 64, 0.55) 100%);
 }
 
 [data-theme='dark'] .modal-content > h3 {
-    background: linear-gradient(180deg, rgba(248, 250, 252, 0.06) 0%, transparent 100%);
+    background: linear-gradient(180deg, rgba(250, 250, 250, 0.05) 0%, transparent 100%);
 }
 
 [data-theme='dark'] .modal-content .form-group input:not([type='checkbox']),
 [data-theme='dark'] .modal-content .form-group select,
 [data-theme='dark'] .modal-content .form-group textarea {
-    background-color: rgba(30, 41, 59, 0.6);
-    border-color: rgba(71, 85, 105, 0.8);
+    background-color: rgba(38, 38, 38, 0.75);
+    border-color: rgba(82, 82, 82, 0.85);
 }
 
 [data-theme='dark'] .modal-content .form-group select {
@@ -1140,7 +1140,7 @@
 .card-tone-item:has(input:checked)::after {
     box-shadow:
         0 0 0 3px var(--bg-light, #fff),
-        0 0 0 6px var(--primary-color, #334155),
+        0 0 0 6px var(--primary-color, #404040),
         0 10px 28px rgba(15, 23, 42, 0.38);
     transform: scale(1.44);
 }
@@ -1194,7 +1194,7 @@
 [data-theme='dark'] .card-tone-item::before {
     background-color: var(--bg-light, #1e293b);
     color: var(--text-color, #f1f5f9);
-    border-color: rgba(148, 163, 184, 0.35);
+    border-color: rgba(163, 163, 163, 0.35);
 }
 
 [data-theme='dark'] .card-tone-item:has(input:checked)::after {
@@ -1329,7 +1329,7 @@
 }
 
 .installment-pill--pending {
-    background: rgba(148, 163, 184, 0.28);
+    background: rgba(163, 163, 163, 0.28);
     color: #475569;
 }
 
@@ -1374,7 +1374,7 @@
 }
 
 [data-theme='dark'] .installment-pill--pending {
-    background: rgba(148, 163, 184, 0.12);
+    background: rgba(163, 163, 163, 0.12);
     color: #94a3b8;
 }
 
@@ -1395,8 +1395,8 @@
     padding: 0.65rem 0.75rem;
     margin-bottom: 0.6rem;
     border-radius: 12px;
-    background: linear-gradient(135deg, rgba(124, 58, 237, 0.08), rgba(16, 185, 129, 0.06));
-    border: 1px solid rgba(124, 58, 237, 0.15);
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.03), rgba(115, 115, 115, 0.06));
+    border: 1px solid var(--border-color);
 }
 
 .installment-remaining-ring {
@@ -1411,7 +1411,7 @@
 }
 
 .installment-remaining-ring__track {
-    stroke: rgba(148, 163, 184, 0.45);
+    stroke: rgba(163, 163, 163, 0.45);
     stroke-width: 4;
 }
 
@@ -1486,12 +1486,12 @@
 }
 
 [data-theme='dark'] .installment-remaining-summary {
-    background: linear-gradient(135deg, rgba(248, 250, 252, 0.1), rgba(148, 163, 184, 0.08));
-    border-color: rgba(148, 163, 184, 0.22);
+    background: linear-gradient(135deg, rgba(250, 250, 250, 0.06), rgba(64, 64, 64, 0.35));
+    border-color: rgba(163, 163, 163, 0.22);
 }
 
 [data-theme='dark'] .installment-remaining-ring__track {
-    stroke: rgba(148, 163, 184, 0.28);
+    stroke: rgba(163, 163, 163, 0.28);
 }
 
 [data-theme='dark'] .installment-remaining-ring__num {
@@ -1537,9 +1537,9 @@ button.expense-loan-month-tag:focus-visible {
 }
 
 .expense-loan-month-tag--pending {
-    background: rgba(148, 163, 184, 0.32);
+    background: rgba(163, 163, 163, 0.32);
     color: #475569;
-    border-color: rgba(148, 163, 184, 0.45);
+    border-color: rgba(163, 163, 163, 0.45);
 }
 
 /* Pendente: mês do vencimento ≤ mês atual (não só o mês corrente) */
@@ -1556,9 +1556,9 @@ button.expense-loan-month-tag:focus-visible {
 }
 
 [data-theme='dark'] .expense-loan-month-tag--pending {
-    background: rgba(148, 163, 184, 0.14);
+    background: rgba(163, 163, 163, 0.14);
     color: #94a3b8;
-    border-color: rgba(148, 163, 184, 0.25);
+    border-color: rgba(163, 163, 163, 0.25);
 }
 
 [data-theme='dark'] .expense-loan-month-tag--pending.expense-loan-month-tag--current {
