@@ -50,7 +50,7 @@ import {
     isDefaultPeriodValue,
     syncPeriodFilterSelectsToCurrentMonth
 } from '../../core/period-filters.js';
-import { populateExpenseCategorySelect, populateExpenseSubcategorySelect, setupExpenseCategoryUi } from './expense-categories.js';
+import { populateExpenseCategorySelect, populateExpenseSubcategorySelect, setupExpenseCategoryUi, getSubcategoriesForCategory } from './expense-categories.js';
 import { populateGainCategorySelect, setupGainCategoryUi } from './gain-categories.js';
 import { setupFilterDrawer, closeFilterDrawer } from '../../shared/filter-drawer.js';
 import { openModal, closeModal, showMessage, showToast, navigateTo } from '../../shell/app-shell.js';
@@ -62,6 +62,7 @@ import {
     deleteExpense,
     deleteGain,
     confirmExpenseCashOut,
+    patchExpensesBatch,
     createExpenseSplitRequest,
     acceptExpenseSplitRequest,
     rejectExpenseSplitRequest,
@@ -480,6 +481,9 @@ let tableFiltersListenersBound = false;
 
 /** Modal de confirmação de parcela (lista de saídas): id + periodKey até confirmar. */
 let pendingInstallmentCashOut = null;
+
+/** Evita vários PATCH ao clicar depressa nas pílulas Fixa (mesmo id em várias linhas parcela). */
+const expenseFixedTogglePendingIds = new Set();
 
 /** Ordenação atual das tabelas (cabeçalhos clicáveis). */
 let expensesSort = { key: 'date', dir: 'desc' };
@@ -1248,6 +1252,242 @@ export function initFinance(
     });
     setupInstallmentCashOutConfirmModal();
     setupExpenseSplitUi();
+    setupExpenseBatchEditUi();
+}
+
+function setupExpenseBatchEditUi() {
+    const tbody = document.querySelector('#expenses-table tbody');
+    tbody?.addEventListener('change', (e) => {
+        const t = e.target;
+        if (!(t instanceof HTMLInputElement)) return;
+        if (!t.classList.contains('expense-batch-check')) return;
+        syncExpensesBatchToolbar();
+    });
+
+    document.getElementById('expenses-table-select-all')?.addEventListener('change', (e) => {
+        const master = e.target;
+        const on = master instanceof HTMLInputElement && master.checked;
+        document.querySelectorAll('#expenses-table tbody .expense-batch-check').forEach((node) => {
+            if (node instanceof HTMLInputElement) node.checked = on;
+        });
+        syncExpensesBatchToolbar();
+    });
+
+    document.getElementById('expenses-batch-open-modal-btn')?.addEventListener('click', () => {
+        void openExpenseBatchModal();
+    });
+
+    document.getElementById('expenses-batch-clear-btn')?.addEventListener('click', () => {
+        clearExpenseBatchSelection();
+    });
+
+    document.getElementById('expense-batch-category')?.addEventListener('change', () => {
+        void fillExpenseBatchSubcategorySelect();
+    });
+
+    document.getElementById('expense-batch-cancel-btn')?.addEventListener('click', () => {
+        closeModal('expense-batch-modal');
+    });
+
+    document.getElementById('expense-batch-form')?.addEventListener('submit', handleExpenseBatchFormSubmit);
+}
+
+function getExpenseBatchSelectedIds() {
+    const seen = new Set();
+    document.querySelectorAll('#expenses-table tbody .expense-batch-check:checked').forEach((c) => {
+        if (!(c instanceof HTMLInputElement)) return;
+        const id = (c.dataset.expenseId || '').trim();
+        if (id) seen.add(id);
+    });
+    return [...seen];
+}
+
+function syncExpensesBatchToolbar() {
+    const n = getExpenseBatchSelectedIds().length;
+    const bar = document.getElementById('expenses-batch-toolbar');
+    const txt = document.getElementById('expenses-batch-toolbar-text');
+    if (!bar) return;
+
+    if (n <= 0) {
+        bar.classList.add('hidden');
+        const m = document.getElementById('expenses-table-select-all');
+        if (m instanceof HTMLInputElement) {
+            m.checked = false;
+            m.indeterminate = false;
+        }
+        return;
+    }
+
+    bar.classList.remove('hidden');
+    if (txt) {
+        txt.textContent = n === 1 ? '1 saída selecionada' : `${n} saídas selecionadas`;
+    }
+
+    const vis = document.querySelectorAll('#expenses-table tbody .expense-batch-check').length;
+    const chk = document.querySelectorAll('#expenses-table tbody .expense-batch-check:checked').length;
+    const master = document.getElementById('expenses-table-select-all');
+    if (master instanceof HTMLInputElement) {
+        master.checked = vis > 0 && chk === vis;
+        master.indeterminate = chk > 0 && chk < vis;
+    }
+}
+
+function clearExpenseBatchSelection() {
+    document.querySelectorAll('#expenses-table tbody .expense-batch-check').forEach((c) => {
+        if (c instanceof HTMLInputElement) c.checked = false;
+    });
+    syncExpensesBatchToolbar();
+}
+
+function populateBatchExpenseAccountSelect() {
+    const sel = document.getElementById('expense-batch-account');
+    if (!sel) return;
+    populatePaymentMethodSelect(sel, undefined);
+    const first = sel.options[0];
+    if (first) {
+        first.value = '';
+        first.textContent = 'Manter conta atual';
+    }
+    sel.value = '';
+}
+
+async function fillExpenseBatchCategorySelect() {
+    await populateExpenseCategorySelect('', false);
+    const src = document.getElementById('expense-category-select');
+    const dst = document.getElementById('expense-batch-category');
+    if (!dst) return;
+
+    dst.innerHTML = '';
+    const ph = document.createElement('option');
+    ph.value = '';
+    ph.textContent = 'Manter categoria atual';
+    dst.appendChild(ph);
+
+    if (!src) return;
+    const skipVals = new Set(['', '__manage_categories__', '__add_new__']);
+    for (const opt of [...src.options]) {
+        const v = String(opt.value || '');
+        if (skipVals.has(v) || opt.disabled) continue;
+        dst.appendChild(new Option(opt.textContent, v));
+    }
+}
+
+async function fillExpenseBatchSubcategorySelect() {
+    const catSel = document.getElementById('expense-batch-category');
+    const subSel = document.getElementById('expense-batch-subcategory');
+    if (!subSel) return;
+
+    const cat = (catSel?.value || '').trim();
+    subSel.innerHTML = '';
+
+    const ph = document.createElement('option');
+    ph.value = '';
+    ph.textContent = cat ? 'Manter subcategoria atual' : 'Escolha uma categoria para listar subcategorias';
+    subSel.appendChild(ph);
+
+    const clearOpt = document.createElement('option');
+    clearOpt.value = '__clear__';
+    clearOpt.textContent = 'Limpar subcategoria';
+    subSel.appendChild(clearOpt);
+
+    if (!cat) {
+        subSel.disabled = true;
+        subSel.value = '';
+        return;
+    }
+
+    subSel.disabled = false;
+    const subs = await getSubcategoriesForCategory(cat);
+    subs.forEach((s) => subSel.appendChild(new Option(s, s)));
+    subSel.value = '';
+}
+
+async function openExpenseBatchModal() {
+    const ids = getExpenseBatchSelectedIds();
+    if (ids.length === 0) {
+        showToast('Seleção', 'Marque pelo menos uma saída na tabela.', 'warning');
+        return;
+    }
+
+    populateBatchExpenseAccountSelect();
+    await fillExpenseBatchCategorySelect();
+    await fillExpenseBatchSubcategorySelect();
+
+    document.getElementById('expense-batch-fixed').value = '';
+    document.getElementById('expense-batch-paid').value = '';
+    document.getElementById('expense-batch-investment').value = '';
+
+    const sum = document.getElementById('expense-batch-modal-summary');
+    if (sum) {
+        sum.textContent = `Serão atualizadas ${ids.length} saída(s) distinta(s). Só os campos que não estiverem em «Manter» serão gravados.`;
+    }
+
+    openModal('expense-batch-modal');
+}
+
+async function handleExpenseBatchFormSubmit(e) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    if (!(form instanceof HTMLFormElement)) return;
+    const ids = getExpenseBatchSelectedIds();
+    if (ids.length === 0) {
+        showToast('Seleção', 'Nenhuma saída selecionada.', 'warning');
+        return;
+    }
+
+    const patch = {};
+    const acc = document.getElementById('expense-batch-account')?.value?.trim() || '';
+    if (acc) patch.accountId = acc;
+
+    const fx = document.getElementById('expense-batch-fixed')?.value;
+    if (fx === '1' || fx === '0') patch.isFixed = fx === '1';
+
+    const pd = document.getElementById('expense-batch-paid')?.value;
+    if (pd === '1' || pd === '0') patch.isPaid = pd === '1';
+
+    const inv = document.getElementById('expense-batch-investment')?.value;
+    if (inv === '1' || inv === '0') patch.isInvestment = inv === '1';
+
+    const cat = document.getElementById('expense-batch-category')?.value?.trim() || '';
+    if (cat) patch.category = cat;
+
+    const sub = document.getElementById('expense-batch-subcategory')?.value || '';
+    if (sub === '__clear__') patch.subcategory = null;
+    else if (sub) {
+        if (!cat) {
+            showToast(
+                'Categoria',
+                'Para escolher uma subcategoria, selecione também a categoria. Para só remover subcategorias, use «Limpar subcategoria».',
+                'warning'
+            );
+            return;
+        }
+        patch.subcategory = sub;
+    }
+
+    if (Object.keys(patch).length === 0) {
+        showToast('Campos', 'Altere pelo menos um campo ou cancele.', 'warning');
+        return;
+    }
+
+    setFormSubmittingState(form, true, 'Aplicando…');
+    try {
+        const r = await patchExpensesBatch(ids, patch);
+        closeModal('expense-batch-modal');
+        const m = Number(r?.modified) || 0;
+        showToast(
+            'Edição em lote',
+            m === 0 ? 'Nenhuma saída foi atualizada (verifique permissões ou ids).' : `${m} saída(s) atualizadas.`,
+            m === 0 ? 'warning' : 'success'
+        );
+        clearExpenseBatchSelection();
+        onUpdateCallback?.();
+    } catch (err) {
+        console.error(err);
+        showToast('Erro', err?.message || 'Não foi possível aplicar as alterações.', 'error');
+    } finally {
+        setFormSubmittingState(form, false);
+    }
 }
 
 function setupInstallmentCashOutConfirmModal() {
@@ -1587,6 +1827,14 @@ function expenseIsMarkedFixed(t) {
             t.isFixed === 1 ||
             t.isFixed === '1'
     );
+}
+
+/** Pílula Sim/Não na coluna Fixa da tabela de saídas (clique alterna `isFixed` via PATCH em lote). */
+function expenseFixedCellHtmlForTable(t) {
+    const idEsc = htmlAttrEscape(t?.id);
+    return expenseIsMarkedFixed(t)
+        ? `<button type="button" class="expense-fixed-pill expense-fixed-pill--yes expense-fixed-toggle" data-expense-id="${idEsc}" title="Clique para marcar como variável (não fixa)" aria-label="Desmarcar despesa fixa">Sim</button>`
+        : `<button type="button" class="expense-fixed-pill expense-fixed-pill--no expense-fixed-toggle" data-expense-id="${idEsc}" title="Clique para marcar como despesa fixa" aria-label="Marcar como despesa fixa">Não</button>`;
 }
 
 function gainTopLevelCategory(t) {
@@ -2326,7 +2574,8 @@ function getFilteredExpensesList() {
                 t.isPaid ? 'pago' : 'parcelado',
                 parcelasLbl,
                 statusTxt,
-                movementAccountPaymentKindLabel(acc)
+                movementAccountPaymentKindLabel(acc),
+                expenseIsMarkedFixed(t) ? 'sim fixa despesa fixa' : 'não variável não fixa'
             ]
                 .join(' ')
                 .toLowerCase();
@@ -2506,12 +2755,15 @@ function renderExpensesBodySlice() {
             const amountHtmlInst = showSplitStrike
                 ? `<span class="expense-split-gross-strike">${formatCurrency(instGross, currency)}</span> <span class="expense-split-net-amount">${amountHtmlInstBase}</span>`
                 : amountHtmlInstBase;
+            const eidAttr = htmlAttrEscape(String(t.id));
             tr.innerHTML = `
+            <td class="expenses-td-batch"><label class="expense-batch-row-hit"><span class="sr-only">Selecionar para edição em lote</span><input type="checkbox" class="expense-batch-check" data-expense-id="${eidAttr}"></label></td>
             <td>${dateStr}</td>
             <td>${escapeHtml(t.description)}${escapeHtml(descSuffix)}</td>
             <td>${escapeHtml(categoryDisplay)}</td>
             <td>${escapeHtml(account?.name || 'N/A')}</td>
             <td>${paymentKindText}</td>
+            <td class="expenses-td-fixed">${expenseFixedCellHtmlForTable(t)}</td>
             <td class="${rowCls}"${amountTitle}>${amountHtmlInst}</td>
             <td class="expenses-td-status">${statusCell}</td>
             <td class="transaction-actions">
@@ -2581,12 +2833,15 @@ function renderExpensesBodySlice() {
         const amountHtml = showSplitNet
             ? `<span class="expense-split-gross-strike">${formatCurrency(grossShown, currency)}</span> <span class="expense-split-net-amount">${amountHtmlBase}</span>`
             : amountHtmlBase;
+        const eidAttrNorm = htmlAttrEscape(String(t.id));
         tr.innerHTML = `
+            <td class="expenses-td-batch"><label class="expense-batch-row-hit"><span class="sr-only">Selecionar para edição em lote</span><input type="checkbox" class="expense-batch-check" data-expense-id="${eidAttrNorm}"></label></td>
             <td>${movementDateToJsDate(t.date).toLocaleDateString('pt-BR')}</td>
             <td>${escapeHtml(t.description)}</td>
             <td>${escapeHtml(categoryDisplay)}</td>
             <td>${escapeHtml(account?.name || 'N/A')}</td>
             <td>${paymentKindText}</td>
+            <td class="expenses-td-fixed">${expenseFixedCellHtmlForTable(t)}</td>
             <td class="${rowCls}"${amountTitle}>${amountHtml}</td>
             <td class="expenses-td-status">${statusCell}</td>
             <td class="transaction-actions">
@@ -2598,6 +2853,7 @@ function renderExpensesBodySlice() {
             </td>`;
         tbody.appendChild(tr);
     });
+    syncExpensesBatchToolbar();
 }
 
 export function loadExpensesData(expenses, accounts, currency, userProfile = null) {
@@ -2624,6 +2880,7 @@ export function loadExpensesData(expenses, accounts, currency, userProfile = nul
         'date',
         'amount',
         'payment',
+        'isFixed',
         'status'
     ]);
     renderExpensesBodySlice();
@@ -3128,7 +3385,10 @@ function renderGainsBodySlice() {
             ? `<span class="movement-amount-with-rec-inner">${recBadge}${formatCurrency(t.amount, currency)}</span>`
             : formatCurrency(t.amount, currency);
         const paymentKindText = escapeHtml(movementAccountPaymentKindLabel(account));
-        const receivedText = t.isPaid === false ? 'Não' : 'Sim';
+        const receivedCell =
+            t.isPaid === false
+                ? `<span class="expense-status-badge expense-status-badge--pending">Não</span>`
+                : `<span class="expense-status-badge expense-status-badge--paid">Sim</span>`;
         const isSynthSplit = Boolean(t.__syntheticExpectedSplit);
         const actionBtns = isSynthSplit
             ? ''
@@ -3143,7 +3403,7 @@ function renderGainsBodySlice() {
             <td>${escapeHtml(account?.name || 'N/A')}</td>
             <td>${paymentKindText}</td>
             <td class="receita">${amountHtml}</td>
-            <td class="gains-td-received"><span class="gain-received-badge${t.isPaid === false ? ' gain-received-badge--no' : ''}">${receivedText}</span></td>
+            <td class="gains-td-received">${receivedCell}</td>
             <td class="transaction-actions">
                 <div class="transaction-actions__inner">
                     ${actionBtns}
@@ -3249,6 +3509,7 @@ function setupTableSortClicks() {
             'date',
             'amount',
             'payment',
+            'isFixed',
             'status'
         ]);
         renderExpensesBodySlice();
@@ -4476,6 +4737,54 @@ async function handleExpenseRowActions(e) {
         const periodKey = ringBtn.dataset.periodKey;
         if (expenseId && periodKey) {
             openInstallmentCashOutConfirmModal(expenseId, periodKey);
+        }
+        return;
+    }
+    const fixedToggleBtn = e.target.closest('button.expense-fixed-toggle');
+    if (fixedToggleBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const expenseId = fixedToggleBtn.dataset.expenseId?.trim();
+        if (!expenseId || expenseFixedTogglePendingIds.has(expenseId)) return;
+        const exp = userExpenses?.find((x) => x.id === expenseId);
+        if (!exp) {
+            showToast('Saída', 'Registo não encontrado na lista atual.', 'warning');
+            return;
+        }
+        const nextFixed = !expenseIsMarkedFixed(exp);
+        expenseFixedTogglePendingIds.add(expenseId);
+        const togglesSameExpense = [...document.querySelectorAll('#expenses-table tbody button.expense-fixed-toggle')].filter(
+            (b) => String(b.dataset.expenseId ?? '').trim() === expenseId
+        );
+        const snapshots = togglesSameExpense.map((btn) => ({ btn, html: btn.innerHTML }));
+        snapshots.forEach(({ btn }) => {
+            btn.disabled = true;
+            btn.setAttribute('aria-busy', 'true');
+            btn.innerHTML =
+                '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i><span class="sr-only">A atualizar…</span>';
+        });
+        let succeeded = false;
+        try {
+            await patchExpensesBatch([expenseId], { isFixed: nextFixed });
+            succeeded = true;
+            onUpdateCallback?.();
+        } catch (error) {
+            console.error('Erro ao atualizar despesa fixa:', error);
+            showToast(
+                'Não foi possível atualizar',
+                error?.message || 'Tente novamente.',
+                error?.status === 409 ? 'warning' : 'error'
+            );
+        } finally {
+            expenseFixedTogglePendingIds.delete(expenseId);
+            if (!succeeded) {
+                snapshots.forEach(({ btn, html }) => {
+                    if (!btn.isConnected) return;
+                    btn.innerHTML = html;
+                    btn.removeAttribute('aria-busy');
+                    btn.disabled = false;
+                });
+            }
         }
         return;
     }

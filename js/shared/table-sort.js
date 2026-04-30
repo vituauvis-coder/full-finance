@@ -8,6 +8,16 @@ import {
     movementDateToUnixSeconds
 } from '../core/utils.js';
 
+function expenseMarkedFixedForSort(exp) {
+    if (!exp) return false;
+    return !!(
+        exp.isFixed === true ||
+        exp.isFixed === 'true' ||
+        exp.isFixed === 1 ||
+        exp.isFixed === '1'
+    );
+}
+
 /**
  * Alterna coluna/direção ao clicar no cabeçalho.
  * @param {{ key: string, dir: 'asc'|'desc' }} current
@@ -86,6 +96,15 @@ export function sortExpenseRows(list, sort, accounts) {
                 const pa = movementAccountPaymentKindLabel(accounts.find((x) => x.id === a.accountId));
                 const pb = movementAccountPaymentKindLabel(accounts.find((x) => x.id === b.accountId));
                 cmp = pa.localeCompare(pb, 'pt-BR');
+                if (cmp === 0 && a.__instParcelIndex != null && b.__instParcelIndex != null) {
+                    cmp = a.__instParcelIndex - b.__instParcelIndex;
+                }
+                break;
+            }
+            case 'isFixed': {
+                const fa = expenseMarkedFixedForSort(a) ? 1 : 0;
+                const fb = expenseMarkedFixedForSort(b) ? 1 : 0;
+                cmp = fa - fb;
                 if (cmp === 0 && a.__instParcelIndex != null && b.__instParcelIndex != null) {
                     cmp = a.__instParcelIndex - b.__instParcelIndex;
                 }

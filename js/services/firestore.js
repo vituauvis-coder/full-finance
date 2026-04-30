@@ -92,6 +92,14 @@ async function deleteDocument(collectionName, docId) {
 }
 
 export const saveExpense = (data, docId) => saveDocument('expenses', data, docId);
+
+/** Atualiza campos permitidos em várias saídas (`PATCH /api/expenses/batch`). */
+export async function patchExpensesBatch(ids, patch) {
+    return api('/api/expenses/batch', {
+        method: 'PATCH',
+        body: JSON.stringify({ ids, patch })
+    });
+}
 export const saveGain = (data, docId) => saveDocument('gains', data, docId);
 export const saveAccount = (data, docId) => saveDocument('accounts', data, docId);
 export const saveGoal = (data, docId) => saveDocument('goals', data, docId);

@@ -375,36 +375,203 @@
     font-weight: 600;
 }
 
-/* Coluna Valor: alinhamento à direita (com e sem ícone ↻) */
-#expenses-table th:nth-child(5),
-#expenses-table td:nth-child(5),
-#gains-table th:nth-child(5),
-#gains-table td:nth-child(5) {
+/* Valor (#expenses 8.ª após checklist+Fixa); #gains mantém na 6.ª */
+#expenses-table th:nth-child(8),
+#expenses-table td:nth-child(8),
+#gains-table th:nth-child(6),
+#gains-table td:nth-child(6) {
     text-align: right;
 }
 
-#gains-table th:nth-child(6),
-#gains-table td:nth-child(6) {
+/* Fixa (#expenses, 7.ª) — pílulas Sim/Não */
+#expenses-table td:nth-child(7).expenses-td-fixed {
+    text-align: center;
+    vertical-align: middle;
+    white-space: nowrap;
+    width: 1%;
+    padding-top: 0.55rem;
+    padding-bottom: 0.55rem;
+}
+
+/* Coluna seleção (#expenses): mesma linha-base que os outros <th> ordenáveis */
+#expenses-table .expenses-th-batch,
+#expenses-table td.expenses-td-batch {
+    width: 3.25rem;
+    min-width: 3rem;
+    max-width: 3.5rem;
+    text-align: center;
+    vertical-align: middle;
+    white-space: nowrap;
+    padding: 1rem 0.55rem;
+}
+
+#expenses-table thead .expenses-th-batch {
+    line-height: 1;
+    vertical-align: middle;
+}
+
+#expenses-table tbody td.expenses-td-batch {
+    vertical-align: middle;
+}
+
+/* Tipo (#expenses — 6.ª): alinhado ao cabeçalho centrado (table-sort.css) */
+#expenses-table td:nth-child(6) {
+    text-align: center;
+}
+
+/* Status (#expenses — 9.ª): pílulas alinhadas ao título centrado */
+#expenses-table td:nth-child(9).expenses-td-status {
+    text-align: center;
+}
+
+/* Ações (#expenses): última coluna alinhada ao restante do cabeçalho */
+#expenses-table thead th:last-child {
+    text-align: center;
+}
+
+/* Checkboxes edição em lote — mesmo estilo no cabeçalho e nas linhas */
+#expenses-table .expense-batch-check,
+#expenses-table .expense-batch-check-all {
+    appearance: none;
+    -webkit-appearance: none;
+    box-sizing: border-box;
+    width: 1.25rem;
+    height: 1.25rem;
+    margin: 0;
+    border-radius: 5px;
+    border: 2px solid rgba(100, 116, 139, 0.5);
+    background: var(--bg-color);
+    cursor: pointer;
+    flex-shrink: 0;
+    position: relative;
+    transition:
+        border-color 0.15s ease,
+        background 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+#expenses-table .expense-batch-check:hover,
+#expenses-table .expense-batch-check-all:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+}
+
+#expenses-table .expense-batch-check:focus-visible,
+#expenses-table .expense-batch-check-all:focus-visible {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.32);
+}
+
+#expenses-table .expense-batch-check:checked,
+#expenses-table .expense-batch-check-all:checked {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+#expenses-table .expense-batch-check:checked::after,
+#expenses-table .expense-batch-check-all:checked::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 45%;
+    width: 0.32rem;
+    height: 0.55rem;
+    margin-left: -0.12rem;
+    margin-top: -0.38rem;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+#expenses-table .expense-batch-check-all:indeterminate {
+    background: rgba(124, 58, 237, 0.2);
+    border-color: var(--primary-color);
+}
+
+#expenses-table .expense-batch-check-all:indeterminate::after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    right: 4px;
+    top: 50%;
+    height: 2px;
+    margin-top: -1px;
+    border: none;
+    transform: none;
+    background: var(--primary-color);
+    border-radius: 1px;
+}
+
+[data-theme='dark'] #expenses-table .expense-batch-check,
+[data-theme='dark'] #expenses-table .expense-batch-check-all {
+    border-color: rgba(148, 163, 184, 0.45);
+    background: var(--bg-light);
+}
+
+[data-theme='dark'] #expenses-table .expense-batch-check:checked,
+[data-theme='dark'] #expenses-table .expense-batch-check-all:checked {
+    border-color: #a78bfa;
+}
+
+#expenses-table label.expense-batch-head-hit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+    min-height: 2rem;
+    margin: 0 auto;
+    padding: 0.2rem;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+#expenses-table label.expense-batch-head-hit:hover {
+    background: rgba(124, 58, 237, 0.1);
+}
+
+#expenses-table label.expense-batch-row-hit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.4rem;
+    min-height: 2.35rem;
+    margin: 0 auto;
+    padding: 0.35rem;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+#expenses-table label.expense-batch-row-hit:hover {
+    background: rgba(124, 58, 237, 0.07);
+}
+
+[data-theme='dark'] #expenses-table label.expense-batch-head-hit:hover,
+[data-theme='dark'] #expenses-table label.expense-batch-row-hit:hover {
+    background: rgba(167, 139, 250, 0.12);
+}
+
+#gains-table th:nth-child(7),
+#gains-table td:nth-child(7) {
+    text-align: center;
+}
+
+/* Tipo nas entradas (5.ª coluna) */
+#gains-table td:nth-child(5) {
+    text-align: center;
+}
+
+#gains-table thead th:last-child {
     text-align: center;
 }
 
 #gains-table .gains-td-received {
     white-space: nowrap;
-}
-
-.gain-received-badge {
-    display: inline-block;
-    font-size: 0.8rem;
-    font-weight: 700;
-    padding: 0.2rem 0.55rem;
-    border-radius: 6px;
-    background: rgba(16, 185, 129, 0.22);
-    color: #047857;
-}
-
-.gain-received-badge--no {
-    background: rgba(234, 179, 8, 0.35);
-    color: #a16207;
+    width: 1%;
+    padding-top: 0.55rem;
+    padding-bottom: 0.55rem;
 }
 
 #gains-table tr.gain-tr-expected-split td:first-child {
@@ -443,7 +610,7 @@
 }
 
 /* Uma linha por parcela (período ≠ «este mês»): uma faixa roxa à esquerda da linha (não repetir em cada coluna) */
-#expenses-table tr.expense-tr-installment td:first-child {
+#expenses-table tr.expense-tr-installment td:nth-child(2) {
     border-left: 3px solid rgba(124, 58, 237, 0.4);
     padding-left: calc(1rem - 3px);
 }
@@ -493,6 +660,65 @@
 [data-theme='dark'] .expense-status-badge--pay {
     background: rgba(167, 139, 250, 0.22);
     color: #c4b5fd;
+}
+
+.expense-fixed-pill {
+    display: inline-block;
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 0.2rem 0.52rem;
+    border-radius: 6px;
+    line-height: 1.2;
+}
+
+button.expense-fixed-pill {
+    appearance: none;
+    -webkit-appearance: none;
+    margin: 0;
+    border: none;
+    font: inherit;
+    cursor: pointer;
+    vertical-align: baseline;
+}
+
+button.expense-fixed-pill:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+button.expense-fixed-pill:disabled[aria-busy='true'] {
+    opacity: 1;
+    cursor: wait;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.25rem;
+    min-height: 1.35rem;
+}
+
+button.expense-fixed-pill:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+.expense-fixed-pill--yes {
+    background: rgba(59, 130, 246, 0.2);
+    color: #1d4ed8;
+}
+
+.expense-fixed-pill--no {
+    background: rgba(100, 116, 139, 0.14);
+    color: var(--text-light);
+}
+
+[data-theme='dark'] .expense-fixed-pill--yes {
+    background: rgba(96, 165, 250, 0.2);
+    color: #93c5fd;
+}
+
+[data-theme='dark'] .expense-fixed-pill--no {
+    background: rgba(148, 163, 184, 0.14);
+    color: #cbd5e1;
 }
 
 #expenses-table .expense-parcelas-tag {
@@ -584,3 +810,43 @@
     }
 }
 
+/* Edição em lote — página Saídas */
+.expenses-batch-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.65rem 1rem;
+    margin-bottom: 0.85rem;
+    padding: 0.65rem 1rem;
+    border-radius: 8px;
+    background: rgba(124, 58, 237, 0.08);
+    border: 1px solid var(--border-color);
+}
+
+.expenses-batch-toolbar__text {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.expenses-batch-toolbar__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.expense-batch-modal__content {
+    max-width: 560px;
+    width: 100%;
+}
+
+.expense-batch-modal__intro {
+    margin-bottom: 1rem;
+}
+
+.expenses-batch-toolbar__clear {
+    font-size: 0.88rem;
+    padding: 0.4rem 0.85rem;
+}

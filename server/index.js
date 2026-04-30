@@ -1628,6 +1628,153 @@ app.put('/api/expenses/:id', requireAuth, async (req, res) => {
     }
 });
 
+/**
+ * Edição em lote: apenas campos listados em `patch` são alterados nas saídas cujos `ids`
+ * pertencem ao utilizador ({ accountId?, isFixed?, isPaid?, isInvestment?, category?, subcategory? }).
+ */
+app.patch('/api/expenses/batch', requireAuth, async (req, res) => {
+    try {
+        const uid = req.session.userId;
+        const rawIds = req.body?.ids;
+        const patchRaw = req.body?.patch && typeof req.body.patch === 'object' ? req.body.patch : null;
+        if (!Array.isArray(rawIds) || rawIds.length === 0 || !patchRaw) {
+            return res.status(400).json({ error: 'Envie ids (array) e patch (objeto)' });
+        }
+        const ids = [...new Set(rawIds.map((x) => String(x ?? '').trim()).filter(Boolean))].slice(0, 150);
+        if (ids.length === 0) {
+            return res.status(400).json({ error: 'Nenhum id válido' });
+        }
+
+        const patchApplied = {};
+        const accIn = patchRaw.accountId != null ? String(patchRaw.accountId).trim() : '';
+        if (accIn) patchApplied.accountId = accIn;
+        if ('isFixed' in patchRaw)
+            patchApplied.isFixed =
+                patchRaw.isFixed === true ||
+                patchRaw.isFixed === 'true' ||
+                patchRaw.isFixed === 1 ||
+                patchRaw.isFixed === '1';
+        if ('isPaid' in patchRaw)
+            patchApplied.isPaid =
+                patchRaw.isPaid === true ||
+                patchRaw.isPaid === 'true' ||
+                patchRaw.isPaid === 1 ||
+                patchRaw.isPaid === '1';
+        if ('isInvestment' in patchRaw)
+            patchApplied.isInvestment =
+                patchRaw.isInvestment === true ||
+                patchRaw.isInvestment === 'true' ||
+                patchRaw.isInvestment === 1 ||
+                patchRaw.isInvestment === '1';
+        if ('category' in patchRaw && patchRaw.category != null) {
+            const c = String(patchRaw.category).trim();
+            if (c) patchApplied.category = c;
+        }
+        if ('subcategory' in patchRaw) {
+            const s = patchRaw.subcategory;
+            if (s === null || s === '')
+                patchApplied.subcategory = null;
+            else {
+                const t = String(s).trim();
+                patchApplied.subcategory = t || null;
+            }
+        }
+
+        if (Object.keys(patchApplied).length === 0) {
+            return res.status(400).json({ error: 'Nenhum campo para atualizar em patch' });
+        }
+
+        if (patchApplied.accountId) await assertAccountBelongsToUser(patchApplied.accountId, uid);
+
+        let modified = 0;
+        for (const id of ids) {
+            const { rows: selRows } = await query(
+                `SELECT
+                    id,
+                    user_id AS "userId",
+                    account_id AS "accountId",
+                    category,
+                    subcategory,
+                    amount,
+                    description,
+                    date,
+                    created_at AS "createdAt",
+                    is_paid AS "isPaid",
+                    is_investment AS "isInvestment",
+                    installment_count AS "installmentCount",
+                    cash_out_confirmed_periods AS "cashOutConfirmedPeriods",
+                    recurring_monthly AS "recurringMonthly",
+                    recurrence_group_id AS "recurrenceGroupId",
+                    split_request_id AS "splitRequestId",
+                    reference_only AS "referenceOnly",
+                    is_fixed AS "isFixed"
+                 FROM expenses
+                 WHERE id = $1 AND user_id = $2`,
+                [id, uid]
+            );
+            const ex = selRows[0] || null;
+            if (!ex) continue;
+
+            const merged = { ...ex };
+            if ('accountId' in patchApplied) merged.accountId = patchApplied.accountId;
+            if ('isFixed' in patchApplied) merged.isFixed = patchApplied.isFixed;
+            if ('isPaid' in patchApplied) merged.isPaid = patchApplied.isPaid;
+            if ('isInvestment' in patchApplied) merged.isInvestment = patchApplied.isInvestment;
+            if ('category' in patchApplied) {
+                merged.category = patchApplied.category;
+                if (!('subcategory' in patchApplied)) merged.subcategory = null;
+            }
+            if ('subcategory' in patchApplied) merged.subcategory = patchApplied.subcategory;
+
+            await assertAccountBelongsToUser(merged.accountId, uid);
+            const refOnlyPut = await referenceOnlyForUserMovement(uid, merged.date);
+
+            await query(
+                `UPDATE expenses SET
+                    account_id = $3,
+                    category = $4,
+                    subcategory = $5,
+                    amount = $6,
+                    description = $7,
+                    date = $8,
+                    is_paid = $9,
+                    is_investment = $10,
+                    installment_count = $11,
+                    reference_only = $12,
+                    recurring_monthly = $13,
+                    is_fixed = $14,
+                    cash_out_confirmed_periods = $15
+                WHERE id = $1 AND user_id = $2`,
+                [
+                    id,
+                    uid,
+                    merged.accountId,
+                    merged.category,
+                    merged.subcategory,
+                    merged.amount,
+                    merged.description,
+                    merged.date,
+                    merged.isPaid,
+                    merged.isInvestment,
+                    merged.installmentCount ?? null,
+                    refOnlyPut,
+                    merged.recurringMonthly ?? false,
+                    merged.isFixed ?? false,
+                    merged.cashOutConfirmedPeriods ?? null
+                ]
+            );
+            modified += 1;
+        }
+
+        await safeUpsertBalanceSnapshot(uid);
+        res.json({ modified, requested: ids.length });
+    } catch (e) {
+        console.error('PATCH /api/expenses/batch', e);
+        const code = e.statusCode || 500;
+        res.status(code).json({ error: e.message || 'Erro ao atualizar saídas em lote' });
+    }
+});
+
 /** Marca um período (YYYY-MM-DD ou YYYY-MM) como pago para efeito de débito no saldo (modo confirmação manual). */
 app.post('/api/expenses/:id/confirm-cash-out', requireAuth, async (req, res) => {
     try {

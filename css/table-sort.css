@@ -2,6 +2,7 @@
 
 .sortable-th {
     white-space: nowrap;
+    vertical-align: middle;
 }
 
 .sortable-th__btn {
@@ -46,9 +47,34 @@
     background: rgba(167, 139, 250, 0.12);
 }
 
-/* Cabeçalho «Valor» alinhado à direita (mesma coluna que os números) */
-#expenses-table thead th:nth-child(5) .sortable-th__btn,
-#gains-table thead th:nth-child(5) .sortable-th__btn {
+/* Cabeçalho «Valor»: #expenses 8.ª col (após Fixa); #gains 6.ª col */
+#expenses-table thead th:nth-child(8) .sortable-th__btn,
+#gains-table thead th:nth-child(6) .sortable-th__btn {
     justify-content: flex-end;
     text-align: right;
+}
+
+/* Tipo (#expenses, 6.ª) */
+#expenses-table thead th:nth-child(6) .sortable-th__btn {
+    justify-content: center;
+    text-align: center;
+}
+
+/* Fixa (#expenses, 7.ª): Sim/Não centrados */
+#expenses-table thead th:nth-child(7) .sortable-th__btn {
+    justify-content: center;
+    text-align: center;
+}
+
+/* Status (#expenses, 9.ª) */
+#expenses-table thead th:nth-child(9) .sortable-th__btn {
+    justify-content: center;
+    text-align: center;
+}
+
+/* Entradas: Tipo (5.ª), Recebido (7.ª) */
+#gains-table thead th:nth-child(5) .sortable-th__btn,
+#gains-table thead th:nth-child(7) .sortable-th__btn {
+    justify-content: center;
+    text-align: center;
 }
