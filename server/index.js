@@ -14,6 +14,8 @@ import { safeUpsertBalanceSnapshot } from './balance-snapshot.js';
 import { getDashboardBalanceAtPeriodEnd, setManualBalance, addLedgerEntryForMovement } from './balance-ledger.js';
 import { referenceOnlyForUserMovement } from './reference-only.js';
 import { registerExpenseSplitRoutes, fetchExpenseSplitBundleForUser } from './expense-splits.js';
+import { isLoanExpense } from '../js/core/credit-installments.js';
+import { getInstallmentDueDates } from '../js/core/credit-installments.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
@@ -181,6 +183,7 @@ function toFirestoreLikeDate(isoOrObj) {
 }
 
 function normalizeMovement(t) {
+    if (t == null) return t;
     const out = { ...t, date: toFirestoreLikeDate(t.date) };
     if (t.createdAt != null) {
         out.createdAt = toFirestoreLikeDate(t.createdAt);
@@ -780,6 +783,15 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
         let splitRequestBind = null;
         let splitRequestRow = null;
         let splitAlreadyAccepted = false;
+        /** Parcelas da despesa de origem (só usado no fluxo com splitRequestId). */
+        let srcInstallmentCountForSplit = 1;
+        /** Data da compra original (espelho no destinatário quando splitRequestId). */
+        let srcDateForSplit = null;
+        let splitDebugGid = '';
+        let splitDebugSeriesCount = 0;
+        let splitDebugNFromSrc = 1;
+        let splitDebugPerMonthAmount = 0;
+        let splitMonthlySeriesMirror = false;
         if (req.body?.splitRequestId) {
             const srId = String(req.body.splitRequestId).trim();
             const { rows: srRows } = await query(
@@ -797,6 +809,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                     status,
                     sender_proof_url AS "senderProofUrl",
                     created_gain_id AS "createdGainId",
+                    source_installment_count AS "sourceInstallmentCount",
                     created_at AS "createdAt",
                     updated_at AS "updatedAt"
                  FROM expense_split_requests
@@ -813,16 +826,135 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                 throw httpMovementError(`Solicitação de rateio não pode ser usada (status: ${st || '—'})`);
             }
             if (!splitAlreadyAccepted && !sr.requesterCreditAccountId) {
-                throw httpMovementError('Conta de extorno não configurada nesta solicitação');
+                throw httpMovementError('Conta de estorno não configurada nesta solicitação');
             }
             const { rows: dupRows } = await query(
                 `SELECT id FROM expenses WHERE split_request_id = $1 LIMIT 1`,
                 [srId]
             );
             if (dupRows[0]) throw httpMovementError('Esta divisão já foi registrada como saída');
-            req.body.amount = sr.amount;
+            const { rows: splitSrcRows } = await query(
+                `SELECT
+                    COALESCE(e.installment_count, 1) AS n,
+                    e.date,
+                    e.recurrence_group_id AS "recurrenceGroupId",
+                    e.account_id AS "accountId",
+                    a.type AS "accountType",
+                    a.close_day AS "closeDay",
+                    a.due_day AS "dueDay"
+                 FROM expenses e
+                 JOIN accounts a ON a.id = e.account_id AND a.user_id = e.user_id
+                 WHERE e.id = $1 AND e.user_id = $2
+                 LIMIT 1`,
+                [sr.sourceExpenseId, sr.requesterUserId]
+            );
+            const splitSrcRow = splitSrcRows[0] || null;
+            srcInstallmentCountForSplit = Math.max(
+                1,
+                parseInt(String(splitSrcRow?.n ?? '1'), 10) || 1
+            );
+            const srStoredN = parseInt(String(sr?.sourceInstallmentCount ?? ''), 10);
+            if (Number.isFinite(srStoredN) && srStoredN >= 2 && srStoredN <= 99) {
+                srcInstallmentCountForSplit = Math.max(
+                    srcInstallmentCountForSplit,
+                    srStoredN
+                );
+            }
+            const gidSrc = splitSrcRow?.recurrenceGroupId
+                ? String(splitSrcRow.recurrenceGroupId).trim()
+                : '';
+            if (gidSrc) {
+                const { rows: serRows } = await query(
+                    `SELECT COUNT(*)::int AS c FROM expenses
+                     WHERE user_id = $1 AND recurrence_group_id = $2`,
+                    [sr.requesterUserId, gidSrc]
+                );
+                const nc = Math.max(1, parseInt(String(serRows[0]?.c ?? '1'), 10) || 1);
+                splitDebugGid = gidSrc;
+                splitDebugSeriesCount = nc;
+                if (nc >= 2) {
+                    srcInstallmentCountForSplit = Math.max(srcInstallmentCountForSplit, nc);
+                }
+            }
+            const srcDateRaw = splitSrcRow?.date;
+            if (srcDateRaw != null) {
+                const sd = srcDateRaw instanceof Date ? srcDateRaw : new Date(srcDateRaw);
+                if (!Number.isNaN(sd.getTime())) {
+                    // Regra: em cartão, a "data" a espelhar no destinatário deve ser o vencimento da 1ª parcela;
+                    // em conta/PIX, mantém a data do lançamento (normalmente já é a 1ª parcela/contrato).
+                    const srcAccType = String(splitSrcRow?.accountType ?? '');
+                    if (srcAccType === 'cartao_credito' && srcInstallmentCountForSplit >= 2) {
+                        const dueDates = getInstallmentDueDates(
+                            sd,
+                            srcInstallmentCountForSplit,
+                            splitSrcRow?.closeDay,
+                            splitSrcRow?.dueDay
+                        );
+                        const firstDue = dueDates?.[0];
+                        if (firstDue && !Number.isNaN(new Date(firstDue).getTime())) {
+                            srcDateForSplit = new Date(firstDue).toISOString();
+                            req.body.date = srcDateForSplit;
+                        } else {
+                            srcDateForSplit = sd.toISOString();
+                            req.body.date = srcDateForSplit;
+                        }
+                    } else {
+                        srcDateForSplit = sd.toISOString();
+                        req.body.date = srcDateForSplit;
+                    }
+                }
+            }
+            const splitScopeForMirror = String(sr.splitScope ?? 'FULL_EXPENSE')
+                .trim()
+                .toUpperCase();
+            if (splitScopeForMirror !== 'INSTALLMENT' && srcInstallmentCountForSplit < 2) {
+                const bodyMirrorN = parseInt(
+                    String(req.body?.mirrorInstallmentCount ?? req.body?.sourceInstallmentCount ?? ''),
+                    10
+                );
+                if (Number.isFinite(bodyMirrorN) && bodyMirrorN >= 2 && bodyMirrorN <= 99) {
+                    const { rows: srcAccRows } = await query(
+                        `SELECT a.type
+                         FROM expenses e
+                         JOIN accounts a ON a.id = e.account_id AND a.user_id = e.user_id
+                         WHERE e.id = $1 AND e.user_id = $2
+                         LIMIT 1`,
+                        [sr.sourceExpenseId, sr.requesterUserId]
+                    );
+                    const srcPayType = String(srcAccRows[0]?.type ?? '');
+                    // Cartão: data da 1ª fatura já corrigida acima. Conta/PIX: empréstimo parcelado
+                    // (installment_count por vezes não persiste na origem) — a UI envia mirrorInstallmentCount.
+                    if (
+                        srcPayType === 'cartao_credito' ||
+                        (srcPayType && srcPayType !== 'cartao_debito')
+                    ) {
+                        srcInstallmentCountForSplit = bodyMirrorN;
+                    }
+                }
+            }
+            // Em série mensal, cada linha tem installment_count=1: o valor do pedido é a «parte do outro»
+            // **naquele mês**. Um único registo com N parcelas em conta/cartão usa `amount` = total do
+            // contrato; a parcela exibida é amount/N — por isso aqui acumulamos o total (N × parte mensal).
+            const nFromSrcRow = Math.max(1, parseInt(String(splitSrcRow?.n ?? '1'), 10) || 1);
+            splitDebugNFromSrc = nFromSrcRow;
+            splitDebugPerMonthAmount = Number(sr.amount) || 0;
+            splitMonthlySeriesMirror =
+                splitScopeForMirror === 'FULL_EXPENSE' &&
+                nFromSrcRow < 2 &&
+                Boolean(String(gidSrc || '').trim()) &&
+                splitDebugSeriesCount >= 2;
+            let splitRecipientTotalAmount = Number(sr.amount) || 0;
+            if (
+                !splitMonthlySeriesMirror &&
+                splitScopeForMirror === 'FULL_EXPENSE' &&
+                srcInstallmentCountForSplit >= 2 &&
+                nFromSrcRow < 2 &&
+                gidSrc
+            ) {
+                splitRecipientTotalAmount = splitRecipientTotalAmount * srcInstallmentCountForSplit;
+            }
+            req.body.amount = splitRecipientTotalAmount;
             req.body.recurringMonthly = false;
-            if (req.body.installmentCount != null) req.body.installmentCount = 1;
             splitRequestBind = srId;
             splitRequestRow = sr;
         }
@@ -834,7 +966,62 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
             base.splitRequestId = splitRequestBind;
             base.recurrenceGroupId = null;
             base.recurringMonthly = false;
-            base.installmentCount = null;
+            // Identificação visual na lista de saídas do destinatário.
+            // Evita duplicar prefixo em reenvios/fluxos antigos.
+            const desc = String(base.description ?? '').trim();
+            if (desc && !/^divis[aã]o\s+—\s+/i.test(desc)) {
+                base.description = `Divisão — ${desc}`;
+            }
+            const splitScope = String(splitRequestRow.splitScope ?? 'FULL_EXPENSE')
+                .trim()
+                .toUpperCase();
+            if (splitScope === 'INSTALLMENT') {
+                base.installmentCount = 1;
+            } else if (splitMonthlySeriesMirror) {
+                // Série mensal (um lançamento por mês na origem): espelha N saídas com o mesmo grupo, não um contrato parcelado.
+                base.installmentCount = null;
+            } else if (srcInstallmentCountForSplit >= 2) {
+                const { rows: splitAccRows } = await query(
+                    `SELECT type FROM accounts WHERE id = $1 AND user_id = $2 LIMIT 1`,
+                    [base.accountId, uid]
+                );
+                const accType = String(splitAccRows[0]?.type ?? '');
+                const mirrorInstallments =
+                    accType === 'cartao_credito' ||
+                    // Em conta bancária (não cartão): permitir espelhar parcelas mesmo sem categoria "Empréstimo".
+                    (accType !== 'cartao_credito' && accType !== 'cartao_debito');
+                base.installmentCount = mirrorInstallments ? srcInstallmentCountForSplit : null;
+            } else {
+                base.installmentCount = null;
+            }
+            // #region agent log
+            try {
+                fs.appendFileSync(
+                    path.join(ROOT, 'debug-7cece4.log'),
+                    JSON.stringify({
+                        sessionId: '7cece4',
+                        runId: 'pre-fix',
+                        hypothesisId: 'A',
+                        location: 'index.js:POST/api/expenses:splitPath',
+                        message: 'split mirror: recipient payload before insert',
+                        data: {
+                            srcInstallmentCountForSplit,
+                            splitDebugGid: splitDebugGid || null,
+                            splitDebugSeriesCount,
+                            splitDebugNFromSrc,
+                            splitDebugPerMonthAmount,
+                            bodyAmount: Number(base.amount) || 0,
+                            baseInstallmentCount: base.installmentCount ?? null,
+                            splitMonthlySeriesMirror,
+                            willSkipWantRecurring: true
+                        },
+                        timestamp: Date.now()
+                    }) + '\n'
+                );
+            } catch {
+                /* ignore */
+            }
+            // #endregion
         }
 
         const wantRecurring =
@@ -907,6 +1094,167 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
 
         const createData = { ...base, recurrenceGroupId: null };
         if (!splitRequestBind) delete createData.splitRequestId;
+        if (splitRequestBind && splitRequestRow && !splitAlreadyAccepted && splitMonthlySeriesMirror) {
+            const { rows: srcMonthRows } = await query(
+                `SELECT e.date, e.id
+                 FROM expenses e
+                 WHERE e.user_id = $1 AND e.recurrence_group_id = $2
+                 ORDER BY e.date`,
+                [splitRequestRow.requesterUserId, splitDebugGid]
+            );
+            if (Array.isArray(srcMonthRows) && srcMonthRows.length >= 2) {
+                const newGroupId = crypto.randomUUID();
+                const perAm = Number(splitRequestRow.amount) || 0;
+                const refGainPre = await referenceOnlyForUserMovement(
+                    splitRequestRow.requesterUserId,
+                    new Date()
+                );
+                const result = await withTransaction(async (client) => {
+                    let firstExpense = null;
+                    for (let i = 0; i < srcMonthRows.length; i++) {
+                        const srcRow = srcMonthRows[i];
+                        const d =
+                            srcRow.date instanceof Date ? srcRow.date : new Date(srcRow.date);
+                        const refExpM = await referenceOnlyForUserMovement(uid, d);
+                        const eid = crypto.randomUUID();
+                        const splitIdThis = i === 0 ? splitRequestBind : null;
+                        const { rows: expRows } = await client.query(
+                            `INSERT INTO expenses (
+                                id, user_id, account_id, category, subcategory, amount, description,
+                                date, created_at, is_paid, is_investment, installment_count,
+                                cash_out_confirmed_periods, recurring_monthly, recurrence_group_id,
+                                split_request_id, reference_only
+                             ) VALUES (
+                                $1,$2,$3,$4,$5,$6,$7,
+                                $8, now(), $9,$10,$11,
+                                $12,$13,$14,
+                                $15,$16
+                             )
+                             RETURNING
+                                id,
+                                user_id AS "userId",
+                                account_id AS "accountId",
+                                category,
+                                subcategory,
+                                amount,
+                                description,
+                                date,
+                                created_at AS "createdAt",
+                                is_paid AS "isPaid",
+                                is_investment AS "isInvestment",
+                                installment_count AS "installmentCount",
+                                cash_out_confirmed_periods AS "cashOutConfirmedPeriods",
+                                recurring_monthly AS "recurringMonthly",
+                                recurrence_group_id AS "recurrenceGroupId",
+                                split_request_id AS "splitRequestId",
+                                reference_only AS "referenceOnly"`,
+                            [
+                                eid,
+                                createData.userId,
+                                createData.accountId,
+                                createData.category,
+                                createData.subcategory,
+                                perAm,
+                                createData.description,
+                                d,
+                                createData.isPaid,
+                                createData.isInvestment,
+                                null,
+                                createData.cashOutConfirmedPeriods ?? null,
+                                false,
+                                newGroupId,
+                                splitIdThis,
+                                refExpM
+                            ]
+                        );
+                        if (i === 0) firstExpense = expRows[0];
+                    }
+
+                    const { rows: sourceRows } = await client.query(
+                        `SELECT description
+                         FROM expenses
+                         WHERE id = $1 AND user_id = $2`,
+                        [splitRequestRow.sourceExpenseId, splitRequestRow.requesterUserId]
+                    );
+                    const sourceDesc = String(sourceRows[0]?.description ?? 'Compra').trim() || 'Compra';
+
+                    const scope = String(splitRequestRow.splitScope ?? 'FULL_EXPENSE')
+                        .trim()
+                        .toUpperCase();
+                    const deferReimbursement = scope === 'FULL_EXPENSE' && srcInstallmentCountForSplit >= 2;
+                    let gain = null;
+                    if (!deferReimbursement) {
+                        const gainId = crypto.randomUUID();
+                        const { rows: gainRows } = await client.query(
+                            `INSERT INTO gains (
+                                id, user_id, account_id, category, subcategory, amount, description,
+                                date, is_paid, recurrence_group_id, related_expense_id, reference_only
+                             ) VALUES (
+                                $1,$2,$3,$4,$5,$6,$7,
+                                now(), true, NULL, $8, $9
+                             )
+                             RETURNING
+                                id,
+                                user_id AS "userId",
+                                account_id AS "accountId",
+                                category,
+                                subcategory,
+                                amount,
+                                description,
+                                date,
+                                is_paid AS "isPaid",
+                                recurrence_group_id AS "recurrenceGroupId",
+                                related_expense_id AS "relatedExpenseId",
+                                reference_only AS "referenceOnly"`,
+                            [
+                                gainId,
+                                splitRequestRow.requesterUserId,
+                                splitRequestRow.requesterCreditAccountId,
+                                'Reembolsos',
+                                null,
+                                Number(splitRequestRow.amount) || 0,
+                                `Estorno parcial — ${sourceDesc}`,
+                                splitRequestRow.sourceExpenseId,
+                                refGainPre
+                            ]
+                        );
+                        gain = gainRows[0];
+                    }
+
+                    const { rows: splitRows } = await client.query(
+                        `UPDATE expense_split_requests
+                         SET status = 'ACCEPTED', created_gain_id = $2, is_settled = $3, updated_at = now()
+                         WHERE id = $1
+                         RETURNING
+                            id,
+                            source_expense_id AS "sourceExpenseId",
+                            requester_user_id AS "requesterUserId",
+                            recipient_user_id AS "recipientUserId",
+                            amount,
+                            requester_credit_account_id AS "requesterCreditAccountId",
+                            COALESCE(split_scope, 'FULL_EXPENSE') AS "splitScope",
+                            target_installment_index AS "targetInstallmentIndex",
+                            target_period_key AS "targetPeriodKey",
+                            COALESCE(is_settled, false) AS "isSettled",
+                            status,
+                            sender_proof_url AS "senderProofUrl",
+                            created_gain_id AS "createdGainId",
+                            created_at AS "createdAt",
+                            updated_at AS "updatedAt"`,
+                        [splitRequestBind, gain?.id || null, deferReimbursement ? false : true]
+                    );
+                    return { expense: firstExpense, gain, split: splitRows[0] };
+                });
+
+                await safeUpsertBalanceSnapshot(uid);
+                await safeUpsertBalanceSnapshot(splitRequestRow.requesterUserId);
+                return res.json({
+                    expense: normalizeMovement(result.expense),
+                    gain: result.gain ? normalizeMovement(result.gain) : null,
+                    split: result.split
+                });
+            }
+        }
         if (splitRequestBind && splitRequestRow && !splitAlreadyAccepted) {
             // Confirma o aceite APÓS criar a saída do destinatário.
             const refExpSplit = await referenceOnlyForUserMovement(uid, createData.date);
@@ -976,45 +1324,52 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                 );
                 const sourceDesc = String(sourceRows[0]?.description ?? 'Compra').trim() || 'Compra';
 
-                const gainId = crypto.randomUUID();
-                const { rows: gainRows } = await client.query(
-                    `INSERT INTO gains (
-                        id, user_id, account_id, category, subcategory, amount, description,
-                        date, is_paid, recurrence_group_id, related_expense_id, reference_only
-                     ) VALUES (
-                        $1,$2,$3,$4,$5,$6,$7,
-                        now(), true, NULL, $8, $9
-                     )
-                     RETURNING
-                        id,
-                        user_id AS "userId",
-                        account_id AS "accountId",
-                        category,
-                        subcategory,
-                        amount,
-                        description,
-                        date,
-                        is_paid AS "isPaid",
-                        recurrence_group_id AS "recurrenceGroupId",
-                        related_expense_id AS "relatedExpenseId",
-                        reference_only AS "referenceOnly"`,
-                    [
-                        gainId,
-                        splitRequestRow.requesterUserId,
-                        splitRequestRow.requesterCreditAccountId,
-                        'Reembolsos',
-                        null,
-                        Number(splitRequestRow.amount) || 0,
-                        `Extorno parcial — ${sourceDesc}`,
-                        splitRequestRow.sourceExpenseId,
-                        refGainSplit
-                    ]
-                );
-                const gain = gainRows[0];
+                const scope = String(splitRequestRow.splitScope ?? 'FULL_EXPENSE')
+                    .trim()
+                    .toUpperCase();
+                const deferReimbursement = scope === 'FULL_EXPENSE' && srcInstallmentCountForSplit >= 2;
+                let gain = null;
+                if (!deferReimbursement) {
+                    const gainId = crypto.randomUUID();
+                    const { rows: gainRows } = await client.query(
+                        `INSERT INTO gains (
+                            id, user_id, account_id, category, subcategory, amount, description,
+                            date, is_paid, recurrence_group_id, related_expense_id, reference_only
+                         ) VALUES (
+                            $1,$2,$3,$4,$5,$6,$7,
+                            now(), true, NULL, $8, $9
+                         )
+                         RETURNING
+                            id,
+                            user_id AS "userId",
+                            account_id AS "accountId",
+                            category,
+                            subcategory,
+                            amount,
+                            description,
+                            date,
+                            is_paid AS "isPaid",
+                            recurrence_group_id AS "recurrenceGroupId",
+                            related_expense_id AS "relatedExpenseId",
+                            reference_only AS "referenceOnly"`,
+                        [
+                            gainId,
+                            splitRequestRow.requesterUserId,
+                            splitRequestRow.requesterCreditAccountId,
+                            'Reembolsos',
+                            null,
+                            Number(splitRequestRow.amount) || 0,
+                            `Estorno parcial — ${sourceDesc}`,
+                            splitRequestRow.sourceExpenseId,
+                            refGainSplit
+                        ]
+                    );
+                    gain = gainRows[0];
+                }
 
                 const { rows: splitRows } = await client.query(
                     `UPDATE expense_split_requests
-                     SET status = 'ACCEPTED', created_gain_id = $2, is_settled = true, updated_at = now()
+                     SET status = 'ACCEPTED', created_gain_id = $2, is_settled = $3, updated_at = now()
                      WHERE id = $1
                      RETURNING
                         id,
@@ -1032,7 +1387,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                         created_gain_id AS "createdGainId",
                         created_at AS "createdAt",
                         updated_at AS "updatedAt"`,
-                    [splitRequestBind, gain.id]
+                    [splitRequestBind, gain?.id || null, deferReimbursement ? false : true]
                 );
                 const split = splitRows[0];
 
@@ -1251,13 +1606,37 @@ app.post('/api/expenses/:id/confirm-cash-out', requireAuth, async (req, res) => 
             return res.status(400).json({ error: 'periodKey é obrigatório' });
         }
         const { rows: existingRows } = await query(
-            `SELECT cash_out_confirmed_periods AS "cashOutConfirmedPeriods"
+            `SELECT
+                cash_out_confirmed_periods AS "cashOutConfirmedPeriods",
+                split_request_id AS "splitRequestId",
+                account_id AS "accountId",
+                recurrence_group_id AS "recurrenceGroupId"
              FROM expenses
              WHERE id = $1 AND user_id = $2`,
             [req.params.id, uid]
         );
         const existing = existingRows[0] || null;
         if (!existing) return res.status(404).json({ error: 'Não encontrado' });
+        let effectiveSplitRequestId = existing.splitRequestId
+            ? String(existing.splitRequestId)
+            : '';
+        if (!effectiveSplitRequestId && existing.recurrenceGroupId) {
+            const rg = String(existing.recurrenceGroupId).trim();
+            if (rg) {
+                const { rows: sib } = await query(
+                    `SELECT split_request_id AS "splitRequestId"
+                     FROM expenses
+                     WHERE user_id = $1
+                       AND recurrence_group_id = $2
+                       AND split_request_id IS NOT NULL
+                     LIMIT 1`,
+                    [uid, rg]
+                );
+                if (sib[0]?.splitRequestId) {
+                    effectiveSplitRequestId = String(sib[0].splitRequestId);
+                }
+            }
+        }
         let arr = [];
         try {
             arr = JSON.parse(existing.cashOutConfirmedPeriods || '[]');
@@ -1265,7 +1644,8 @@ app.post('/api/expenses/:id/confirm-cash-out', requireAuth, async (req, res) => 
             arr = [];
         }
         if (!Array.isArray(arr)) arr = [];
-        if (!arr.includes(periodKey)) arr.push(periodKey);
+        const alreadyHad = arr.includes(periodKey);
+        if (!alreadyHad) arr.push(periodKey);
         const { rows: updatedRows } = await query(
             `UPDATE expenses
              SET cash_out_confirmed_periods = $3
@@ -1293,6 +1673,112 @@ app.post('/api/expenses/:id/confirm-cash-out', requireAuth, async (req, res) => 
         const updated = updatedRows[0] || null;
         if (updated) await addLedgerEntryForMovement(uid, updated, 'expense');
         await safeUpsertBalanceSnapshot(uid);
+
+        // Split parcelado: extorno por parcela SOMENTE em despesas que NÃO são cartão.
+        // Cartão: o split serve para "custo líquido" e não gera entrada (reembolso) no caixa.
+        // (idempotente: só roda quando este periodKey foi adicionado agora).
+        if (!alreadyHad && effectiveSplitRequestId) {
+            const srId = String(effectiveSplitRequestId).trim();
+            if (srId) {
+                const { rows: payAccRows } = await query(
+                    `SELECT type FROM accounts WHERE id = $1 AND user_id = $2 LIMIT 1`,
+                    [existing.accountId, uid]
+                );
+                const payType = String(payAccRows[0]?.type ?? '');
+                if (payType === 'cartao_credito') {
+                    // Não cria ganhos por confirmação para cartão.
+                    res.json(normalizeMovement(updated));
+                    return;
+                }
+                const { rows: srRows } = await query(
+                    `SELECT
+                        id,
+                        source_expense_id AS "sourceExpenseId",
+                        requester_user_id AS "requesterUserId",
+                        recipient_user_id AS "recipientUserId",
+                        amount,
+                        requester_credit_account_id AS "requesterCreditAccountId",
+                        COALESCE(split_scope, 'FULL_EXPENSE') AS "splitScope",
+                        status,
+                        source_installment_count AS "sourceInstallmentCount"
+                     FROM expense_split_requests
+                     WHERE id = $1`,
+                    [srId]
+                );
+                const sr = srRows[0] || null;
+                const st = String(sr?.status ?? '').toUpperCase();
+                const scope = String(sr?.splitScope ?? 'FULL_EXPENSE').toUpperCase();
+                if (sr && st === 'ACCEPTED' && scope === 'FULL_EXPENSE') {
+                    const { rows: srcRows } = await query(
+                        `SELECT
+                            description,
+                            COALESCE(installment_count, 1) AS n,
+                            recurrence_group_id AS "recurrenceGroupId"
+                         FROM expenses
+                         WHERE id = $1 AND user_id = $2
+                         LIMIT 1`,
+                        [sr.sourceExpenseId, sr.requesterUserId]
+                    );
+                    const nDb = Math.max(1, parseInt(String(srcRows[0]?.n ?? '1'), 10) || 1);
+                    const nSr = parseInt(String(sr?.sourceInstallmentCount ?? ''), 10);
+                    const n =
+                        Number.isFinite(nSr) && nSr >= 2 && nSr <= 99
+                            ? Math.max(nDb, nSr)
+                            : nDb;
+                    if (n >= 2) {
+                        const hasSeries =
+                            srcRows[0]?.recurrenceGroupId != null &&
+                            String(srcRows[0].recurrenceGroupId).trim() !== '';
+                        // Série: `sr.amount` no pedido é a parte do outro **por mês**; o total da saída
+                        // do destinatário = sr.amount × n. Aqui o extorno por mês = sr.amount, não amount/n.
+                        const per = hasSeries && nDb < 2
+                            ? Number(sr.amount) || 0
+                            : (Number(sr.amount) || 0) / n;
+                        const gainAccountId = String(sr.requesterCreditAccountId ?? '').trim();
+                        if (per > 0 && gainAccountId) {
+                            const sourceDesc =
+                                String(srcRows[0]?.description ?? 'Compra').trim() || 'Compra';
+                            const gainDescription = `Estorno parcela ${periodKey} — ${sourceDesc}`;
+                            const { rows: dupGainRows } = await query(
+                                `SELECT id
+                                 FROM gains
+                                 WHERE user_id = $1
+                                   AND related_expense_id = $2
+                                   AND description = $3
+                                 LIMIT 1`,
+                                [sr.requesterUserId, sr.sourceExpenseId, gainDescription]
+                            );
+                            if (!dupGainRows[0]) {
+                                const refGain = await referenceOnlyForUserMovement(
+                                    sr.requesterUserId,
+                                    new Date()
+                                );
+                                await query(
+                                    `INSERT INTO gains (
+                                        id, user_id, account_id, category, subcategory, amount, description,
+                                        date, is_paid, recurrence_group_id, related_expense_id, reference_only
+                                     ) VALUES (
+                                        $1,$2,$3,'Reembolsos',NULL,$4,$5,
+                                        now(), true, NULL, $6, $7
+                                     )`,
+                                    [
+                                        crypto.randomUUID(),
+                                        sr.requesterUserId,
+                                        gainAccountId,
+                                        per,
+                                        gainDescription,
+                                        sr.sourceExpenseId,
+                                        refGain
+                                    ]
+                                );
+                                await safeUpsertBalanceSnapshot(sr.requesterUserId);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         res.json(normalizeMovement(updated));
     } catch (e) {
         console.error('POST /api/expenses/:id/confirm-cash-out', e);

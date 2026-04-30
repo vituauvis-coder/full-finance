@@ -20,7 +20,6 @@ import {
     shouldDeferCashOutForMonthlyFixedSeries
 } from '../../core/credit-installments.js';
 import {
-    expenseContributionToCalendarMonth as expenseContributionToCurrentCalendarMonth,
     expenseContributionProjectedToMonthKey
 } from '../../core/expense-calendar-month.js';
 import {
@@ -586,6 +585,87 @@ function syncExpenseSplitTargetUi(expense, preferredScope = null) {
     };
 }
 
+/** Contexto de valores do modal «Dividir saída» (alvo, restante, parcelas). */
+function computeExpenseSplitFormMoneyContext() {
+    const form = document.getElementById('expense-split-form');
+    const sourceExpenseId = form?.['expense-split-source-id']?.value?.trim();
+    const exp = sourceExpenseId ? userExpenses?.find((e) => String(e.id) === String(sourceExpenseId)) : null;
+    if (!exp || !sourceExpenseId) return null;
+    const scopeSel = document.getElementById('expense-split-scope');
+    const instSel = document.getElementById('expense-split-installment-index');
+    const scope = normalizeSplitScope(scopeSel?.value || 'FULL_EXPENSE');
+    const total = Number(exp.amount) || 0;
+    const n = Math.max(1, parseInt(String(exp.installmentCount ?? '1'), 10) || 1);
+    const per = n >= 2 ? total / n : total;
+    const targetMax = scope === 'INSTALLMENT' ? per : total;
+    let instIdx = null;
+    if (scope === 'INSTALLMENT') {
+        instIdx = parseInt(String(instSel?.value || ''), 10);
+        if (!Number.isFinite(instIdx)) instIdx = null;
+    }
+    const allocated =
+        scope === 'INSTALLMENT' && !Number.isFinite(instIdx)
+            ? 0
+            : sumClientAllocatedSplitForTarget(sourceExpenseId, scope, instIdx);
+    const remaining = Math.max(0.01, targetMax - allocated);
+    return { exp, sourceExpenseId, scope, n, total, per, targetMax, allocated, remaining };
+}
+
+function isExpenseSplitPerInstallmentAmountMode() {
+    const modeRow = document.getElementById('expense-split-amount-mode-row');
+    const modeSel = document.getElementById('expense-split-amount-mode');
+    if (!modeRow || modeRow.classList.contains('hidden') || !modeSel) return false;
+    return modeSel.value === 'per_installment';
+}
+
+/** Atualiza modo total vs por parcela, limites e valor sugerido no modal de divisão. */
+function refreshExpenseSplitAmountModeUi() {
+    const ctx = computeExpenseSplitFormMoneyContext();
+    const modeRow = document.getElementById('expense-split-amount-mode-row');
+    const modeSel = document.getElementById('expense-split-amount-mode');
+    const amtEl = document.getElementById('expense-split-amount');
+    const amtLabel = document.querySelector('label[for="expense-split-amount"]');
+    const hint = document.getElementById('expense-split-amount-mode-hint');
+    if (!amtEl || !modeRow || !modeSel) return;
+    const cur = expensesRenderCache.currency || 'BRL';
+    if (!ctx) {
+        modeRow.classList.add('hidden');
+        if (amtLabel) amtLabel.textContent = 'Valor da parte';
+        if (hint) hint.textContent = '';
+        return;
+    }
+    const { scope, n, total, per, remaining } = ctx;
+    if (scope === 'FULL_EXPENSE' && n >= 2) {
+        modeRow.classList.remove('hidden');
+        const perMode = isExpenseSplitPerInstallmentAmountMode();
+        if (amtLabel) {
+            amtLabel.textContent = perMode
+                ? 'Valor da parte do outro em cada parcela'
+                : 'Valor total da parte do outro';
+        }
+        if (hint) {
+            hint.textContent = perMode
+                ? `Compra em ${n} parcelas de ${formatCurrency(per, cur)}. Máximo ${formatCurrency(remaining / n, cur)} por parcela (até ${formatCurrency(remaining, cur)} no total neste alvo).`
+                : `Máximo a repassar neste alvo: ${formatCurrency(remaining, cur)}.`;
+        }
+        if (perMode) {
+            const maxPer = remaining / n;
+            amtEl.max = String(Math.max(0.01, maxPer).toFixed(2));
+            const defPer = Math.min(maxPer, per / 2);
+            amtEl.value = String(Math.max(0.01, defPer).toFixed(2));
+        } else {
+            amtEl.max = String(remaining);
+            amtEl.value = String(Math.min(remaining, Math.max(0.01, remaining / 2)).toFixed(2));
+        }
+    } else {
+        modeRow.classList.add('hidden');
+        if (amtLabel) amtLabel.textContent = 'Valor da parte';
+        if (hint) hint.textContent = '';
+        amtEl.max = String(remaining);
+        amtEl.value = String(Math.min(remaining, Math.max(0.01, remaining / 2)).toFixed(2));
+    }
+}
+
 function splitStatusLabel(st) {
     const u = String(st ?? '').toUpperCase();
     if (u === 'PENDING') return 'Pendente';
@@ -688,7 +768,6 @@ async function openExpenseSplitModal(expenseId, options = null) {
     }
     const hid = document.getElementById('expense-split-source-id');
     const sum = document.getElementById('expense-split-modal-summary');
-    const amt = document.getElementById('expense-split-amount');
     const form = document.getElementById('expense-split-form');
     if (!hid || !form) return;
     hid.value = expenseId;
@@ -727,13 +806,7 @@ async function openExpenseSplitModal(expenseId, options = null) {
                 : '';
         sum.innerHTML = `<strong>Saída original</strong><span>${escapeHtml(desc)}${escapeHtml(targetHint)} · ${escapeHtml(formatCurrency(total, cur))} · disponível para dividir: ${escapeHtml(formatCurrency(remaining, cur))}</span>`;
     }
-    if (amt) {
-        amt.max = String(remaining);
-        amt.value =
-            remaining > 0
-                ? String(Math.min(remaining, Math.max(0.01, remaining / 2)).toFixed(2))
-                : '';
-    }
+    refreshExpenseSplitAmountModeUi();
     populateExpenseSplitCreditAccountSelect();
     await populateExpenseSplitRecipientSelect();
     renderExpenseSplitModalList(expenseId);
@@ -745,7 +818,8 @@ async function handleExpenseSplitFormSubmit(e) {
     const form = e.target;
     const sourceExpenseId = form['expense-split-source-id']?.value?.trim();
     const recipientEmail = form['expense-split-recipient-select']?.value?.trim().toLowerCase();
-    const amount = parseFloat(form['expense-split-amount']?.value);
+    const ctxMoney = computeExpenseSplitFormMoneyContext();
+    let amount = parseFloat(form['expense-split-amount']?.value);
     const requesterCreditAccountId = form['expense-split-credit-account']?.value?.trim();
     const splitScope = normalizeSplitScope(form['expense-split-scope']?.value || 'FULL_EXPENSE');
     const targetInstallmentIndex =
@@ -760,15 +834,48 @@ async function handleExpenseSplitFormSubmit(e) {
         showToast('Dados incompletos', 'Selecione o destinatário e o valor.', 'warning');
         return;
     }
+    if (
+        ctxMoney &&
+        splitScope === 'FULL_EXPENSE' &&
+        ctxMoney.n >= 2 &&
+        isExpenseSplitPerInstallmentAmountMode()
+    ) {
+        amount *= ctxMoney.n;
+    }
+    if (ctxMoney && amount > ctxMoney.remaining + 0.005) {
+        showToast(
+            'Valor acima do permitido',
+            `O máximo neste alvo é ${formatCurrency(ctxMoney.remaining, expensesRenderCache.currency || 'BRL')}.`,
+            'warning'
+        );
+        return;
+    }
     if (splitScope === 'INSTALLMENT' && !targetInstallmentIndex) {
         showToast('Parcela', 'Selecione a parcela alvo.', 'warning');
         return;
     }
     if (!requesterCreditAccountId) {
-        showToast('Conta', 'Selecione a conta para receber o extorno.', 'warning');
+        showToast('Conta', 'Selecione a conta para receber o estorno.', 'warning');
         return;
     }
     try {
+        const expForSeries = sourceExpenseId
+            ? userExpenses?.find((e) => String(e.id) === String(sourceExpenseId))
+            : null;
+        const gidS = expForSeries?.recurrenceGroupId
+            ? String(expForSeries.recurrenceGroupId).trim()
+            : '';
+        const sibLen = gidS
+            ? (userExpenses || []).filter((x) => x && String(x.recurrenceGroupId || '') === gidS)
+                  .length
+            : 0;
+        const nFromSeries = sibLen >= 2 ? Math.min(99, sibLen) : null;
+        let nSrc = null;
+        if (ctxMoney && ctxMoney.n >= 2) {
+            nSrc = Math.min(99, Math.floor(Number(ctxMoney.n)));
+        } else if (nFromSeries != null) {
+            nSrc = nFromSeries;
+        }
         await createExpenseSplitRequest({
             sourceExpenseId,
             recipientEmail,
@@ -776,21 +883,15 @@ async function handleExpenseSplitFormSubmit(e) {
             requesterCreditAccountId,
             splitScope,
             targetInstallmentIndex,
-            targetPeriodKey
+            targetPeriodKey,
+            ...(nSrc != null ? { sourceInstallmentCount: nSrc } : {})
         });
         showToast('Solicitação enviada', 'O outro usuário será notificado.', 'success');
         if (onUpdateCallback) await onUpdateCallback();
         renderExpenseSplitModalList(sourceExpenseId);
         const recSel = document.getElementById('expense-split-recipient-select');
         if (recSel) recSel.value = '';
-        const exp = userExpenses?.find((e) => e.id === sourceExpenseId);
-        const amtEl = document.getElementById('expense-split-amount');
-        if (exp && amtEl) {
-            const total = Number(exp.amount) || 0;
-            amtEl.max = String(Math.max(0.01, total));
-            amtEl.value =
-                total > 0 ? String(Math.min(total, Math.max(0.01, total / 2)).toFixed(2)) : '';
-        }
+        refreshExpenseSplitAmountModeUi();
     } catch (err) {
         console.error(err);
         showToast('Erro', err.message || 'Não foi possível enviar.', 'error');
@@ -866,6 +967,9 @@ function renderOutgoingSplitsPanel(currency) {
 
 function setupExpenseSplitUi() {
     document.getElementById('expense-split-form')?.addEventListener('submit', handleExpenseSplitFormSubmit);
+    document.getElementById('expense-split-amount-mode')?.addEventListener('change', () => {
+        refreshExpenseSplitAmountModeUi();
+    });
     document.getElementById('expense-split-scope')?.addEventListener('change', () => {
         const form = document.getElementById('expense-split-form');
         const sourceExpenseId = form?.['expense-split-source-id']?.value?.trim();
@@ -873,25 +977,7 @@ function setupExpenseSplitUi() {
         if (!exp) return;
         const scopeSel = document.getElementById('expense-split-scope');
         const instSel = document.getElementById('expense-split-installment-index');
-        const amtEl = document.getElementById('expense-split-amount');
         const splitUi = syncExpenseSplitTargetUi(exp, scopeSel?.value || 'FULL_EXPENSE');
-        const total = Number(exp.amount) || 0;
-        const n = Math.max(1, parseInt(String(exp.installmentCount ?? '1'), 10) || 1);
-        const per = n >= 2 ? total / n : total;
-        const targetMax = splitUi.scope === 'INSTALLMENT' ? per : total;
-        const allocated = sumClientAllocatedSplitForTarget(
-            sourceExpenseId,
-            splitUi.scope,
-            splitUi.scope === 'INSTALLMENT' ? instSel?.value : null
-        );
-        const remaining = Math.max(0.01, targetMax - allocated);
-        if (amtEl) {
-            amtEl.max = String(remaining);
-            const cur = parseFloat(String(amtEl.value));
-            if (!Number.isFinite(cur) || cur > remaining) {
-                amtEl.value = String(Math.min(remaining, Math.max(0.01, remaining / 2)).toFixed(2));
-            }
-        }
         if (splitUi.scope === 'INSTALLMENT' && !form?.dataset?.targetPeriodKey) {
             const idx = parseInt(String(instSel?.value || ''), 10);
             if (Number.isFinite(idx)) {
@@ -900,13 +986,13 @@ function setupExpenseSplitUi() {
                 form.dataset.targetPeriodKey = monthKeyFromDateObj(d);
             }
         }
+        refreshExpenseSplitAmountModeUi();
     });
     document.getElementById('expense-split-installment-index')?.addEventListener('change', () => {
         const form = document.getElementById('expense-split-form');
         const sourceExpenseId = form?.['expense-split-source-id']?.value?.trim();
         const exp = sourceExpenseId ? userExpenses?.find((e) => String(e.id) === String(sourceExpenseId)) : null;
         if (!exp || !form) return;
-        const amtEl = document.getElementById('expense-split-amount');
         const idx = parseInt(
             String(document.getElementById('expense-split-installment-index')?.value || ''),
             10
@@ -915,20 +1001,10 @@ function setupExpenseSplitUi() {
             const d = movementDateToJsDate(exp.date);
             d.setMonth(d.getMonth() + Math.max(0, idx - 1));
             form.dataset.targetPeriodKey = monthKeyFromDateObj(d);
-            const total = Number(exp.amount) || 0;
-            const n = Math.max(1, parseInt(String(exp.installmentCount ?? '1'), 10) || 1);
-            const per = n >= 2 ? total / n : total;
-            const allocated = sumClientAllocatedSplitForTarget(sourceExpenseId, 'INSTALLMENT', idx);
-            const remaining = Math.max(0.01, per - allocated);
-            if (amtEl) {
-                amtEl.max = String(remaining);
-                const cur = parseFloat(String(amtEl.value));
-                if (!Number.isFinite(cur) || cur > remaining) {
-                    amtEl.value = String(Math.min(remaining, Math.max(0.01, remaining / 2)).toFixed(2));
-                }
-            }
+            refreshExpenseSplitAmountModeUi();
         } else {
             delete form.dataset.targetPeriodKey;
+            refreshExpenseSplitAmountModeUi();
         }
     });
     document.querySelectorAll('[data-close-modal="expense-split-modal"]').forEach((btn) => {
@@ -1004,14 +1080,22 @@ async function handleSplitIncomingAccept(splitId) {
         const src = pending?.sourceExpense;
         if (sid != null && amt != null) {
             navigateTo('expenses');
+            const rawIc =
+                pending?.sourceInstallmentCount ??
+                src?.recurrenceSeriesLength ??
+                src?.installmentCount ??
+                src?.installment_count;
+            const parsedIc = parseInt(String(rawIc ?? ''), 10);
             openExpenseModal(false, {
                 splitRequestId: sid,
                 splitAmount: Number(amt),
-                sourceExpense: src
+                splitScope: pending?.splitScope,
+                sourceExpense: src,
+                sourceInstallmentCount: Number.isFinite(parsedIc) && parsedIc >= 2 ? parsedIc : undefined
             });
             showToast(
                 'Confirme para aceitar',
-                'Preencha e salve sua saída para concluir o aceite e gerar o extorno.',
+                'Preencha e salve sua saída para concluir o aceite e gerar o estorno.',
                 'info'
             );
         } else {
@@ -1103,6 +1187,12 @@ export function initFinance(
     document.getElementById('expense-form')?.addEventListener('submit', handleExpenseFormSubmit);
     document.getElementById('expense-form')?.addEventListener('click', handleLoanMonthTagClick);
     document.getElementById('gain-form')?.addEventListener('submit', handleGainFormSubmit);
+    document.getElementById('gain-recurring-mode')?.addEventListener('change', (e) => {
+        if (document.getElementById('gain-id')?.value) return;
+        const cb = document.getElementById('gain-is-received');
+        if (!cb) return;
+        cb.checked = e.target.value !== '1';
+    });
     document.getElementById('add-account-btn')?.addEventListener('click', openNewAccountModal);
     document.getElementById('add-credit-card-btn')?.addEventListener('click', openNewCreditCardModal);
     document.getElementById('account-form')?.addEventListener('submit', handleAccountFormSubmit);
@@ -1407,7 +1497,7 @@ function readExpensesFilterFromDom() {
         document.getElementById('expenses-period-filter')?.value || getDefaultPeriodValue();
 }
 
-/** Zera filtros do drawer (exceto período) para não “vazar” estado entre navegações. */
+/** Zera filtros do drawer (exceto período) — usado no botão «limpar»; não chamar em todo reload dos dados para não perder filtros ao editar/excluir. */
 function resetExpensesDrawerFiltersKeepPeriod() {
     const q = document.getElementById('expenses-filter-q');
     const c = document.getElementById('expenses-filter-category');
@@ -1510,6 +1600,13 @@ function monthKeyFromDateObj(d) {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
+/** Fim do mês YYYY-MM (23:59:59) — totais de saídas batem com o mês completo, inclusive parcelas ainda a vencer. */
+function endOfMonthFromMonthKey(mk) {
+    const y = Number(mk.slice(0, 4));
+    const m = Number(mk.slice(5, 7));
+    return new Date(y, m, 0, 23, 59, 59, 999);
+}
+
 function coerceDayOfMonth(value) {
     if (value == null || value === '') return undefined;
     if (typeof value === 'number' && Number.isFinite(value)) return value;
@@ -1546,8 +1643,10 @@ function expenseContributionPaidThroughMonthKey(
     monthKey,
     cutoffEndInclusive,
     userProfile = null,
-    splitRequests = null
+    splitRequests = null,
+    allUserExpenses = null
 ) {
+    const forSplit = allUserExpenses;
     const cutoffT = endOfDay(cutoffEndInclusive).getTime();
     const amt = Number(t.amount) || 0;
     const nInst = Math.max(1, parseInt(String(t.installmentCount ?? '1'), 10) || 1);
@@ -1561,7 +1660,7 @@ function expenseContributionPaidThroughMonthKey(
             if (monthKeyFromDateObj(purchase) !== monthKey) return 0;
             if (purchase.getTime() > cutoffT) return 0;
             if (!expenseCountsAsCashOut(t, acc)) return 0;
-            return applySplitNetToContribution(t, monthKey, amt, splitRequests);
+            return applySplitNetToContribution(t, monthKey, amt, splitRequests, forSplit);
         }
         const dues = getInstallmentDueDates(purchase, Math.max(1, nInst), cd, dd);
         if (!dues.length) return 0;
@@ -1572,7 +1671,7 @@ function expenseContributionPaidThroughMonthKey(
             if (due.getTime() > cutoffT) continue;
             sum += per;
         }
-        return applySplitNetToContribution(t, monthKey, sum, splitRequests);
+        return applySplitNetToContribution(t, monthKey, sum, splitRequests, forSplit);
     }
 
     if (isLoanExpense(t) && (!acc || !isCreditCardType(acc.type)) && nInst >= 2) {
@@ -1584,21 +1683,22 @@ function expenseContributionPaidThroughMonthKey(
             if (due.getTime() > cutoffT) continue;
             sum += per;
         }
-        return applySplitNetToContribution(t, monthKey, sum, splitRequests);
+        return applySplitNetToContribution(t, monthKey, sum, splitRequests, forSplit);
     }
 
     if (acc && shouldDeferCashOutForMonthlyFixedSeries(t, acc, userProfile)) {
         if (monthKeyFromDateObj(purchase) !== monthKey) return 0;
         if (purchase.getTime() > cutoffT) return 0;
         if (!expenseCountsAsCashOut(t, acc)) return 0;
-        if (!isPeriodConfirmedForDebit(parseCashOutConfirmedPeriods(t), purchase)) return 0;
-        return applySplitNetToContribution(t, monthKey, amt, splitRequests);
+        // Confirmação no caixa ainda manda na coluna de status; o total do mês na lista e no card
+        // inclui o compromisso ainda «Pendente» (mesma base que a tabela com valor líquido).
+        return applySplitNetToContribution(t, monthKey, amt, splitRequests, forSplit);
     }
 
     if (monthKeyFromDateObj(purchase) !== monthKey) return 0;
     if (purchase.getTime() > cutoffT) return 0;
     if (!expenseCountsAsCashOut(t, acc)) return 0;
-    return applySplitNetToContribution(t, monthKey, amt, splitRequests);
+    return applySplitNetToContribution(t, monthKey, amt, splitRequests, forSplit);
 }
 
 /**
@@ -1654,30 +1754,19 @@ function updateExpensesSummaryCards() {
     let totalPending = 0;
     for (const mk of months) {
         if (period === 'current-year' && mk > currentMonthKey) continue;
-        const cutoff =
-            mk === currentMonthKey
-                ? now
-                : new Date(Number(mk.slice(0, 4)), Number(mk.slice(5, 7)) - 1 + 1, 0, 23, 59, 59, 999);
+        const cutoff = endOfMonthFromMonthKey(mk);
         sorted.forEach((t) => {
             const acc = userAccounts?.find((a) => a.id === t.accountId);
-            const contrib =
-                mk === currentMonthKey
-                    ? expenseContributionToCurrentCalendarMonth(
-                          t,
-                          acc,
-                          mk,
-                          now,
-                          userProfile,
-                          acceptedSplits
-                      )
-                    : expenseContributionPaidThroughMonthKey(
-                          t,
-                          acc,
-                          mk,
-                          cutoff,
-                          userProfile,
-                          acceptedSplits
-                      );
+            // Sempre o mês civil completo (vencimentos até o último dia), não só «até hoje».
+            const contrib = expenseContributionPaidThroughMonthKey(
+                t,
+                acc,
+                mk,
+                cutoff,
+                userProfile,
+                acceptedSplits,
+                sorted
+            );
             totalPeriod += contrib;
 
             // Cálculo do pendente: se a contribuição projetada para o mês for maior que a paga
@@ -1687,7 +1776,8 @@ function updateExpensesSummaryCards() {
                 mk,
                 now,
                 userProfile,
-                acceptedSplits
+                acceptedSplits,
+                sorted
             );
             if (projected > contrib) {
                 totalPending += projected - contrib;
@@ -1714,7 +1804,8 @@ function updateExpensesSummaryCards() {
                 prevMonthKey,
                 prevMonthCutoff,
                 userProfile,
-                acceptedSplits
+                acceptedSplits,
+                sorted
             );
             totalPrevMonth += contrib;
             if (contrib > 0) {
@@ -1738,30 +1829,18 @@ function updateExpensesSummaryCards() {
     // Principal categoria no período (usa a soma das contribuições do(s) mês(es) do filtro)
     for (const mk of months) {
         if (period === 'current-year' && mk > currentMonthKey) continue;
-        const cutoff =
-            mk === currentMonthKey
-                ? now
-                : new Date(Number(mk.slice(0, 4)), Number(mk.slice(5, 7)) - 1 + 1, 0, 23, 59, 59, 999);
+        const cutoff = endOfMonthFromMonthKey(mk);
         sorted.forEach((t) => {
             const acc = userAccounts?.find((a) => a.id === t.accountId);
-            const contrib =
-                mk === currentMonthKey
-                    ? expenseContributionToCurrentCalendarMonth(
-                          t,
-                          acc,
-                          mk,
-                          now,
-                          userProfile,
-                          acceptedSplits
-                      )
-                    : expenseContributionPaidThroughMonthKey(
-                          t,
-                          acc,
-                          mk,
-                          cutoff,
-                          userProfile,
-                          acceptedSplits
-                      );
+            const contrib = expenseContributionPaidThroughMonthKey(
+                t,
+                acc,
+                mk,
+                cutoff,
+                userProfile,
+                acceptedSplits,
+                sorted
+            );
             if (contrib <= 0) return;
             const key = expenseTopLevelCategory(t);
             byCat.set(key, (byCat.get(key) || 0) + contrib);
@@ -1858,6 +1937,229 @@ function updateExpensesSummaryCards() {
     syncExpensesFilterButtonHighlight();
 }
 
+// Exposto para depuração rápida no console quando um total mensal parece errado.
+// Uso: `window.__debugExpensesMonthContrib('2026-05')` ou sem args para usar o mês do filtro atual.
+if (typeof window !== 'undefined') {
+    window.__debugExpensesMonthContrib = function __debugExpensesMonthContrib(monthKey = null) {
+        try {
+            const cache = expensesRenderCache;
+            if (!cache?.sorted) return [];
+            const { sorted, userProfile } = cache;
+            const now = new Date();
+            const acceptedSplits = getOutgoingAcceptedSettledSplits();
+            const currentMonthKey = monthKeyFromDateObj(now);
+            const mk =
+                monthKey ||
+                (() => {
+                    const period = expensesFilterState?.period || getDefaultPeriodValue();
+                    const months = getMonthKeysInPeriod(period, now);
+                    return months?.[0] || currentMonthKey;
+                })();
+            const cutoff = endOfMonthFromMonthKey(mk);
+            const rows = [];
+            for (const t of sorted) {
+                const acc = userAccounts?.find((a) => a.id === t.accountId);
+                const contrib = expenseContributionPaidThroughMonthKey(
+                    t,
+                    acc,
+                    mk,
+                    cutoff,
+                    userProfile,
+                    acceptedSplits,
+                    sorted
+                );
+                const projected = expenseContributionProjectedToMonthKey(
+                    t,
+                    acc,
+                    mk,
+                    now,
+                    userProfile,
+                    acceptedSplits,
+                    sorted
+                );
+                if (contrib || projected) {
+                    rows.push({
+                        id: t.id,
+                        date: t.date,
+                        description: t.description,
+                        category: t.category,
+                        subcategory: t.subcategory ?? null,
+                        accountId: t.accountId,
+                        accountName: acc?.name || null,
+                        installmentCount: t.installmentCount ?? null,
+                        amount: Number(t.amount) || 0,
+                        contrib: Number(contrib) || 0,
+                        projected: Number(projected) || 0,
+                        pending: Math.max(0, (Number(projected) || 0) - (Number(contrib) || 0))
+                    });
+                }
+            }
+            rows.sort((a, b) => (b.contrib - a.contrib) || (b.projected - a.projected));
+            return rows;
+        } catch (e) {
+            console.error(e);
+            return [];
+        }
+    };
+}
+
+/** Normaliza "2026-5", "2026-05" ou ISO para comparação com chave YYYY-MM. */
+function normalizeYyyyMmFromPeriodKey(value) {
+    if (value == null || value === '') return '';
+    const s = String(value).trim();
+    const m = s.match(/^(\d{4})-(\d{1,2})(?:-\d+)?/);
+    if (m) {
+        return `${m[1]}-${String(m[2]).padStart(2, '0')}`;
+    }
+    return '';
+}
+
+/**
+ * Linhas sintéticas de expectativa de estorno/rateio aceito ainda sem `Gain` vinculado no pedido.
+ * Inclui cartão (o caixa não gera `Gain` no aceite, mas a expectativa ainda é útil na lista “Entradas”).
+ * FULL com várias parcelas em conta não cartão: estorno fica por parcela (INSTALLMENT) — exclui FULL nesse caso.
+ */
+function computeExpectedSplitGainsRows(period, now = new Date()) {
+    if (!period || !/^month-\d+$/.test(period)) return [];
+    const months = getMonthKeysInPeriod(period, now);
+    const mk = months[0];
+    if (!mk) return [];
+
+    const expenses = userExpenses || [];
+    const accounts = userAccounts || [];
+    const incomeRows = gainsRenderCache?.sorted || [];
+    const outgoing = (userExpenseSplitRequests?.outgoing || []).filter((s) => isAcceptedSettledSplitRequest(s));
+    const out = [];
+
+    for (const s of outgoing) {
+        const srcId = String(s.sourceExpenseId ?? s.sourceExpense?.id ?? '');
+        const src = expenses.find((e) => e && String(e.id) === srcId) || s.sourceExpense;
+        if (!src || !src.accountId) continue;
+        const acc = accounts.find((a) => a.id === src.accountId);
+
+        const scope = normalizeSplitScope(s.splitScope);
+        const nInst = Math.max(1, parseInt(String(src.installmentCount ?? '1'), 10) || 1);
+        const isCard = acc && isCreditCardType(acc.type);
+        const deferFull =
+            scope === 'FULL_EXPENSE' &&
+            nInst >= 2 &&
+            acc &&
+            !isCard;
+
+        if (scope === 'INSTALLMENT') {
+            if (normalizeYyyyMmFromPeriodKey(s.targetPeriodKey) !== mk) continue;
+            if (s.createdGainId) continue;
+        } else if (scope === 'FULL_EXPENSE') {
+            if (deferFull) continue;
+            if (s.createdGainId) continue;
+            if (movementMonthKey(src.date) !== mk) continue;
+        } else {
+            continue;
+        }
+
+        const creditAcc = String(s.requesterCreditAccountId ?? '').trim();
+        if (!creditAcc) continue;
+
+        const alreadyHaveEstorno = incomeRows.some(
+            (g) =>
+                g &&
+                g.relatedExpenseId &&
+                String(g.relatedExpenseId) === String(srcId) &&
+                isSplitReimbursementGain(g) &&
+                movementMonthKey(g.date) === mk
+        );
+        if (alreadyHaveEstorno) continue;
+
+        const y = Number(mk.slice(0, 4));
+        const m = Number(mk.slice(5, 7)) - 1;
+        const dateInMonth = new Date(y, m, Math.min(movementDateToJsDate(src.date).getDate(), new Date(y, m + 1, 0).getDate()), 12, 0, 0, 0);
+
+        const amt = Number(s.amount) || 0;
+        if (amt <= 0) continue;
+
+        const descBase = String(src.description ?? 'Compra').trim() || 'Compra';
+        out.push({
+            id: `__expSplit__${s.id}`,
+            userId: currentUser?.uid,
+            accountId: creditAcc,
+            category: 'Reembolsos',
+            subcategory: null,
+            amount: amt,
+            description: `Expectativa de estorno — ${descBase}`,
+            date: dateInMonth.toISOString(),
+            isPaid: false,
+            recurrenceGroupId: null,
+            relatedExpenseId: src.id,
+            __syntheticExpectedSplit: true,
+            __splitRequestId: s.id
+        });
+    }
+    return out;
+}
+
+function filterSyntheticGainsForCurrentFilters(synthetics) {
+    if (!synthetics?.length) return [];
+    const { category, subcategory, accountId, status, description, q, amountMin, amountMax, dateFrom, dateTo, paymentType } =
+        gainsFilterState;
+    const { accounts, currency } = gainsRenderCache;
+    return synthetics.filter((t) => {
+        if (category && t.category !== category) return false;
+        if (category && subcategory && String(t.subcategory ?? '') !== String(subcategory)) return false;
+        if (accountId && t.accountId !== accountId) return false;
+        if (status === 'paid' && t.isPaid === false) return false;
+        if (status === 'unpaid' && t.isPaid !== false) return false;
+        if (description && description.trim()) {
+            const nd = description.trim().toLowerCase();
+            if (!String(t.description ?? '').toLowerCase().includes(nd)) return false;
+        }
+        if (paymentType) {
+            const a = accounts.find((x) => x.id === t.accountId);
+            if (accountPaymentType(a) !== paymentType) return false;
+        }
+        if (amountMin != null || amountMax != null) {
+            const v = Number(t.amount) || 0;
+            if (amountMin != null && v < amountMin) return false;
+            if (amountMax != null && v > amountMax) return false;
+        }
+        if (dateFrom || dateTo) {
+            if (!movementMatchesDateRange(t, dateFrom, dateTo)) return false;
+        }
+        const needle = (q || '').trim().toLowerCase();
+        if (needle) {
+            const acc = accounts.find((a) => a.id === t.accountId);
+            const dateStr = movementDateToJsDate(t.date).toLocaleDateString('pt-BR');
+            const categoryDisplay = t.subcategory ? `${t.category} > ${t.subcategory}` : t.category;
+            const hay = [
+                dateStr,
+                String(t.description ?? ''),
+                categoryDisplay,
+                String(t.category ?? ''),
+                String(acc?.name ?? ''),
+                formatCurrency(t.amount, currency),
+                'a receber',
+                'expectativa'
+            ]
+                .join(' ')
+                .toLowerCase();
+            if (!hay.includes(needle)) return false;
+        }
+        return true;
+    });
+}
+
+function sumExpectedSplitGainsForPeriod(period, now = new Date()) {
+    const rows = filterSyntheticGainsForCurrentFilters(computeExpectedSplitGainsRows(period, now));
+    return rows.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+}
+
+function expandExpectedSplitGainsForTable(list, period, now = new Date()) {
+    const extra = filterSyntheticGainsForCurrentFilters(computeExpectedSplitGainsRows(period, now));
+    if (!extra.length) return list;
+    const ids = new Set((list || []).map((t) => String(t.id)));
+    const add = extra.filter((r) => !ids.has(String(r.id)));
+    return add.length ? [...list, ...add] : list;
+}
+
 function updateGainsSummaryCards() {
     const cache = gainsRenderCache;
     if (!cache?.sorted) return;
@@ -1867,25 +2169,29 @@ function updateGainsSummaryCards() {
     const period = gainsFilterState.period || getDefaultPeriodValue();
     const isSingleMonth = /^month-\d+$/.test(period);
 
-    const currentMonthKey = monthKeyFromDateObj(now);
     const months = getMonthKeysInPeriod(period, now);
+    const syntheticInPeriod = sumExpectedSplitGainsForPeriod(period, now);
 
     const inPeriod = sorted.filter((t) => movementDateInListPeriod(t.date, period));
-    let totalPeriod = 0;
-    let totalPending = 0;
+    let receivedTotal = 0;
+    let pendingInPeriod = 0;
     inPeriod.forEach((t) => {
         if (!gainCountsInTotals(t)) return;
         const amt = Number(t.amount) || 0;
-        totalPeriod += amt;
-        if (t.isPaid === false) totalPending += amt;
+        if (t.isPaid !== false) receivedTotal += amt;
+        else pendingInPeriod += amt;
     });
+    const forecastTotal = receivedTotal + pendingInPeriod + syntheticInPeriod;
 
-    let totalPrevMonth = 0;
-    let projectionPrevMonth = 0;
-    let topCatPrevMonthAmt = 0;
     const firstMonthParts = months[0].split('-');
     const prevMonthDate = new Date(Number(firstMonthParts[0]), Number(firstMonthParts[1]) - 1 - 1, 1);
     const prevMonthKey = monthKeyFromDateObj(prevMonthDate);
+    const periodPrev = `month-${prevMonthDate.getMonth()}`;
+
+    let totalPrevMonthReceived = 0;
+    let topCatPrevMonthAmt = 0;
+    let totalPrevMonthForecast = 0;
+    const prevSynthetic = isSingleMonth ? sumExpectedSplitGainsForPeriod(periodPrev, now) : 0;
     {
         const byCatPrev = new Map();
         sorted.forEach((t) => {
@@ -1893,7 +2199,8 @@ function updateGainsSummaryCards() {
             if (monthKeyFromDateObj(d) !== prevMonthKey) return;
             if (!gainCountsInTotals(t)) return;
             const amt = Number(t.amount) || 0;
-            totalPrevMonth += amt;
+            if (t.isPaid !== false) totalPrevMonthReceived += amt;
+            totalPrevMonthForecast += amt;
             const k = gainTopLevelCategory(t);
             byCatPrev.set(k, (byCatPrev.get(k) || 0) + amt);
         });
@@ -1901,10 +2208,7 @@ function updateGainsSummaryCards() {
             if (amt > topCatPrevMonthAmt) topCatPrevMonthAmt = amt;
         });
     }
-
-    if (isSingleMonth) {
-        projectionPrevMonth = totalPrevMonth;
-    }
+    totalPrevMonthForecast += prevSynthetic;
 
     const byCat = new Map();
     inPeriod.forEach((t) => {
@@ -1921,25 +2225,17 @@ function updateGainsSummaryCards() {
         }
     });
 
-    // Projeção (usa média diária apenas internamente)
-    let dailyAvg = 0;
-    let projection = 0;
-    if (isSingleMonth) {
-        const { startDate, endDate } = getPeriodDateBounds(period, now);
-        const isCurrentMonth = monthKeyFromDateObj(startDate) === currentMonthKey;
-        const daysInMonth = endDate.getDate();
-        const daysPassed = isCurrentMonth ? now.getDate() : daysInMonth;
-        dailyAvg = totalPeriod / daysPassed;
-        projection = dailyAvg * daysInMonth;
-    }
-
     const elTotal = document.getElementById('gains-summary-total');
     const elProjection = document.getElementById('gains-summary-projection');
     const elTop = document.getElementById('gains-summary-top-cat');
     const elTopIcon = document.getElementById('gains-summary-top-cat-icon');
 
-    if (elTotal) elTotal.textContent = formatCurrency(totalPeriod, currency);
-    if (elProjection) elProjection.textContent = isSingleMonth ? formatCurrency(projection, currency) : '—';
+    if (elTotal) elTotal.textContent = formatCurrency(receivedTotal, currency);
+    if (elProjection) {
+        elProjection.textContent = isSingleMonth
+            ? formatCurrency(forecastTotal, currency)
+            : formatCurrency(receivedTotal + pendingInPeriod + syntheticInPeriod, currency);
+    }
 
     if (elTop) {
         elTop.textContent = topCatAmt > 0 && topCat ? topCat : '—';
@@ -1953,15 +2249,15 @@ function updateGainsSummaryCards() {
 
     setMovementSummaryMomVariation(
         document.getElementById('gains-summary-variation'),
-        totalPeriod,
-        totalPrevMonth,
+        receivedTotal,
+        totalPrevMonthReceived,
         isSingleMonth,
         false
     );
     setMovementSummaryMomVariation(
         document.getElementById('gains-summary-projection-variation'),
-        projection,
-        projectionPrevMonth,
+        forecastTotal,
+        totalPrevMonthForecast,
         isSingleMonth,
         false
     );
@@ -1980,8 +2276,14 @@ function updateGainsSummaryCards() {
     const elTopTitle = document.getElementById('gains-summary-top-cat-title');
 
     if (elTotalTitle) elTotalTitle.textContent = `Entradas de ${label}`;
-    if (elProjTitle) elProjTitle.textContent = `Projeção de ${label}`;
+    if (elProjTitle) elProjTitle.textContent = `Valor previsto de ${label}`;
     if (elTopTitle) elTopTitle.textContent = `Principal categoria de ${label}`;
+
+    const projIcon = document.getElementById('gains-summary-projection-icon');
+    if (projIcon) {
+        projIcon.title =
+            'Recebido (lançamentos marcados) + a receber + expectativas de rateio quando houver';
+    }
 
     syncGainsFilterButtonHighlight();
 }
@@ -2173,19 +2475,41 @@ function getSortedFilteredExpensesList() {
 function renderExpensesBodySlice() {
     const tbody = document.querySelector('#expenses-table tbody');
     if (!tbody || !expensesPagination) return;
-    const { accounts, currency, userProfile } = expensesRenderCache;
+    const { accounts, currency, userProfile, sorted: allExpensesForSplit } = expensesRenderCache;
     const list = getSortedFilteredExpensesList();
     const { start, end } = expensesPagination.getSliceRange();
     const monthRing = isExpensesInstallmentMonthRingMode();
     const listPeriodMonth = monthRing ? getExpensesFilterListPeriod() : null;
     const now = new Date();
     const acceptedSplits = getOutgoingAcceptedSettledSplits();
+    const acceptedSplitById = new Map(
+        ([
+            ...(userExpenseSplitRequests?.incoming || []),
+            ...(userExpenseSplitRequests?.outgoing || [])
+        ] || [])
+            .filter((s) => s && String(s.status ?? '').toUpperCase() === 'ACCEPTED')
+            .map((s) => [String(s.id), s])
+    );
+    const splitRequestIdByRecGroup = new Map();
+    for (const row of list) {
+        if (row && row.recurrenceGroupId && row.splitRequestId) {
+            splitRequestIdByRecGroup.set(String(row.recurrenceGroupId), String(row.splitRequestId));
+        }
+    }
     tbody.innerHTML = '';
     list.slice(start, end).forEach((t) => {
         const account = accounts.find((acc) => acc.id === t.accountId);
         const tr = document.createElement('tr');
         if (t.__instRow) tr.classList.add('expense-tr-installment');
         const rowCls = t.isInvestment ? 'investimento' : 'despesa';
+        const splitRidForRow =
+            t.splitRequestId ||
+            (t.recurrenceGroupId
+                ? splitRequestIdByRecGroup.get(String(t.recurrenceGroupId))
+                : null) ||
+            null;
+        const relatedSplit = splitRidForRow ? acceptedSplitById.get(String(splitRidForRow)) : null;
+        const grossForRelatedSplit = relatedSplit?.sourceExpense?.amount;
 
         if (t.__instRow) {
             const dateStr = t.__instEmptyPeriod
@@ -2212,12 +2536,21 @@ function renderExpensesBodySlice() {
                 t,
                 t.__instPeriodKey,
                 t.__instParcelAmount,
-                acceptedSplits
+                acceptedSplits,
+                allExpensesForSplit
             );
             const totalAmt = Number(t.amount) || 0;
             const amountTitle = totalAmt > 0 ? ` title="Total do contrato: ${formatCurrency(totalAmt, currency)}"` : '';
             const instRecBadge = buildExpenseInstallmentRowRecBadgeSpan(t);
-            const amountHtmlInst = `<span class="movement-amount-with-rec-inner">${instRecBadge}${formatCurrency(displayAmt, currency)}</span>`;
+            const amountHtmlInstBase = `<span class="movement-amount-with-rec-inner">${instRecBadge}${formatCurrency(displayAmt, currency)}</span>`;
+            const instGross =
+                grossForRelatedSplit != null && Number.isFinite(Number(grossForRelatedSplit)) && t.__instParcelTotal >= 2
+                    ? Number(grossForRelatedSplit) / Number(t.__instParcelTotal)
+                    : Number(t.__instParcelAmount) || 0;
+            const showSplitStrike = displayAmt < instGross - 0.0001;
+            const amountHtmlInst = showSplitStrike
+                ? `<span class="expense-split-gross-strike">${formatCurrency(instGross, currency)}</span> <span class="expense-split-net-amount">${amountHtmlInstBase}</span>`
+                : amountHtmlInstBase;
             tr.innerHTML = `
             <td>${dateStr}</td>
             <td>${escapeHtml(t.description)}${escapeHtml(descSuffix)}</td>
@@ -2264,11 +2597,17 @@ function renderExpensesBodySlice() {
             t,
             movementMonthKey(t.date),
             getExpensePerInstallmentDisplayAmount(t, account),
-            acceptedSplits
+            acceptedSplits,
+            allExpensesForSplit
         );
         const totalAmt = Number(t.amount) || 0;
-        const netTotalAmt = getNetExpenseTotalAmount(t, acceptedSplits);
-        const showSplitNet = netTotalAmt < totalAmt - 0.0001;
+        const netTotalAmt = getNetExpenseTotalAmount(t, acceptedSplits, allExpensesForSplit);
+        // Mostra "total riscado + líquido" tanto para quem pagou (split líquido) quanto para quem recebeu (splitRequestId).
+        const showSplitNet =
+            (netTotalAmt < totalAmt - 0.0001) ||
+            (grossForRelatedSplit != null &&
+                Number.isFinite(Number(grossForRelatedSplit)) &&
+                Number(grossForRelatedSplit) > totalAmt + 0.0001);
         const amountTitle =
             displayAmt !== totalAmt && totalAmt > 0
                 ? ` title="Total da compra/contrato: ${formatCurrency(totalAmt, currency)}"`
@@ -2278,11 +2617,12 @@ function renderExpensesBodySlice() {
         const amountHtmlBase = recMeta.show
             ? `<span class="movement-amount-with-rec-inner">${recBadge}${formatCurrency(displayAmt, currency)}</span>`
             : formatCurrency(displayAmt, currency);
-        // No modo "parcelas por mês" (monthRing) evitamos poluir a visualização de cartão/empréstimo,
-        // mas ainda queremos mostrar split líquido em saídas simples (não parceladas / não cartão).
-        const shouldShowSplitCompact = showSplitNet && (!monthRing || !cardOrLoanInstallment);
-        const amountHtml = shouldShowSplitCompact
-            ? `<span class="expense-split-gross-strike">${formatCurrency(totalAmt, currency)}</span> <span class="expense-split-net-amount">${amountHtmlBase}</span>`
+        const grossShown =
+            grossForRelatedSplit != null && Number.isFinite(Number(grossForRelatedSplit)) && Number(grossForRelatedSplit) > 0
+                ? Number(grossForRelatedSplit)
+                : totalAmt;
+        const amountHtml = showSplitNet
+            ? `<span class="expense-split-gross-strike">${formatCurrency(grossShown, currency)}</span> <span class="expense-split-net-amount">${amountHtmlBase}</span>`
             : amountHtmlBase;
         tr.innerHTML = `
             <td>${movementDateToJsDate(t.date).toLocaleDateString('pt-BR')}</td>
@@ -2307,8 +2647,8 @@ export function loadExpensesData(expenses, accounts, currency, userProfile = nul
         (a, b) => movementDateToUnixSeconds(b.date) - movementDateToUnixSeconds(a.date)
     );
     expensesRenderCache = { sorted, accounts, currency, userProfile: userProfile ?? null };
-    resetExpensesDrawerFiltersKeepPeriod();
     syncDrawerDateInputsToPeriod('expenses-filter', document.getElementById('expenses-period-filter')?.value);
+    readExpensesFilterFromDom();
     populateExpenseFilterSelects();
     readExpensesFilterFromDom();
 
@@ -2352,6 +2692,7 @@ function readGainsFilterFromDom() {
     gainsFilterState.period = document.getElementById('gains-period-filter')?.value || getDefaultPeriodValue();
 }
 
+/** Zera filtros do drawer (exceto período) — botão «limpar». */
 function resetGainsDrawerFiltersKeepPeriod() {
     const q = document.getElementById('gains-filter-q');
     const c = document.getElementById('gains-filter-category');
@@ -2604,7 +2945,15 @@ function getExpenseAmountForFilter(t, account) {
     if (!Number.isFinite(v)) v = parseNumericAmount(t.amount);
     if (!Number.isFinite(v)) v = Number(t.amount) || 0;
     const splits = getOutgoingAcceptedSettledSplits();
-    return roundMoney2(applySplitNetToContribution(t, movementMonthKey(t.date), v, splits));
+    return roundMoney2(
+        applySplitNetToContribution(
+            t,
+            movementMonthKey(t.date),
+            v,
+            splits,
+            userExpenses || expensesRenderCache?.sorted
+        )
+    );
 }
 
 function initAmountRangeBounds(prefix, list, currency, accounts) {
@@ -2789,7 +3138,11 @@ function initMovementFilterDrawerEvents() {
 }
 
 function getSortedFilteredGainsList() {
-    return sortGainRows(getFilteredGainsList(), gainsSort, gainsRenderCache.accounts);
+    const period = gainsFilterState.period || getDefaultPeriodValue();
+    const base = getFilteredGainsList();
+    const now = new Date();
+    const expanded = expandExpectedSplitGainsForTable(base, period, now);
+    return sortGainRows(expanded, gainsSort, gainsRenderCache.accounts);
 }
 
 function renderGainsBodySlice() {
@@ -2814,29 +3167,24 @@ function renderGainsBodySlice() {
         const amountHtml = t.recurrenceGroupId
             ? `<span class="movement-amount-with-rec-inner">${recBadge}${formatCurrency(t.amount, currency)}</span>`
             : formatCurrency(t.amount, currency);
-        const isSplitReembolso = isSplitReimbursementGain(t);
-        let relatedHint = '';
-        if (t.relatedExpenseId) {
-            const orig = userExpenses?.find((ex) => ex.id === t.relatedExpenseId);
-            if (!isSplitReembolso) {
-                if (orig) {
-                    relatedHint = `<span class="gain-related-expense-hint">Compra: ${escapeHtml(String(orig.description || '').trim() || '—')}</span>`;
-                } else {
-                    relatedHint =
-                        '<span class="gain-related-expense-hint">Extorno parcial vinculado a uma compra</span>';
-                }
-            }
-        }
+        const receivedText = t.isPaid === false ? 'Não' : 'Sim';
+        const isSynthSplit = Boolean(t.__syntheticExpectedSplit);
+        const actionBtns = isSynthSplit
+            ? ''
+            : `<button class="btn-action btn-edit" data-id="${String(t.id)}" title="Editar"><i class="fas fa-pencil-alt"></i></button>
+                    <button class="btn-action btn-delete" data-id="${String(t.id)}" title="Excluir"><i class="fas fa-trash-alt"></i></button>`;
+        if (isSynthSplit) tr.classList.add('gain-tr-expected-split');
+        // Não exibe subtítulo/“hint” abaixo da descrição do ganho.
         tr.innerHTML = `
             <td>${movementDateToJsDate(t.date).toLocaleDateString('pt-BR')}</td>
-            <td>${escapeHtml(String(t.description ?? ''))}${relatedHint ? `<br>${relatedHint}` : ''}</td>
+            <td>${escapeHtml(String(t.description ?? ''))}</td>
             <td>${categoryDisplay}</td>
-            <td>${account?.name || 'N/A'}</td>
+            <td>${escapeHtml(account?.name || 'N/A')}</td>
             <td class="receita">${amountHtml}</td>
+            <td class="gains-td-received"><span class="gain-received-badge${t.isPaid === false ? ' gain-received-badge--no' : ''}">${receivedText}</span></td>
             <td class="transaction-actions">
                 <div class="transaction-actions__inner">
-                    <button class="btn-action btn-edit" data-id="${t.id}" title="Editar"><i class="fas fa-pencil-alt"></i></button>
-                    <button class="btn-action btn-delete" data-id="${t.id}" title="Excluir"><i class="fas fa-trash-alt"></i></button>
+                    ${actionBtns}
                 </div>
             </td>`;
         tbody.appendChild(tr);
@@ -2848,8 +3196,8 @@ export function loadGainsData(gains, accounts, currency) {
         (a, b) => movementDateToUnixSeconds(b.date) - movementDateToUnixSeconds(a.date)
     );
     gainsRenderCache = { sorted, accounts, currency };
-    resetGainsDrawerFiltersKeepPeriod();
     syncDrawerDateInputsToPeriod('gains-filter', document.getElementById('gains-period-filter')?.value);
+    readGainsFilterFromDom();
     populateGainFilterSelects();
     readGainsFilterFromDom();
 
@@ -2863,7 +3211,7 @@ export function loadGainsData(gains, accounts, currency) {
     if (gainsPagination) {
         gainsPagination.setTotal(getSortedFilteredGainsList().length);
     }
-    syncSortableTableHeaders(document.getElementById('gains-table'), gainsSort, ['date', 'amount']);
+    syncSortableTableHeaders(document.getElementById('gains-table'), gainsSort, ['date', 'amount', 'received']);
     renderGainsBodySlice();
     updateGainsSummaryCards();
 }
@@ -2954,7 +3302,7 @@ function setupTableSortClicks() {
         gainsSort = nextSortState(gainsSort, key, ['date', 'amount']);
         if (!gainsPagination) return;
         gainsPagination.setTotal(getSortedFilteredGainsList().length, { resetPage: true });
-        syncSortableTableHeaders(document.getElementById('gains-table'), gainsSort, ['date', 'amount']);
+        syncSortableTableHeaders(document.getElementById('gains-table'), gainsSort, ['date', 'amount', 'received']);
         renderGainsBodySlice();
     });
 
@@ -3227,9 +3575,54 @@ function syncExpenseInstallmentsRow() {
     const sel = document.getElementById('expense-payment-method');
     if (!row || !input || !sel) return;
     if (form?.dataset.splitFromRateio === '1') {
-        row.classList.add('hidden');
+        const splitN = parseInt(String(form.dataset.splitSourceInstallmentCount || ''), 10);
+        if (!Number.isFinite(splitN) || splitN < 2) {
+            input.readOnly = false;
+            input.classList.remove('input-readonly-locked');
+            row.classList.add('hidden');
+            updateExpenseInstallmentPreview();
+            syncExpenseRecurringModeVisibility();
+            return;
+        }
+        const acc = getSelectedExpensePaymentAccount();
+        const loan = isExpenseLoanCategorySelected();
+        const credit = Boolean(acc && isCreditCardType(acc.type));
+        // Compra parcelada na divisão: mostrar N parcelas mesmo antes de escolher o cartão
+        // (antes ficava oculto com "Selecione" e o utilizador gravava sem parcelas).
+        row.classList.remove('hidden');
+        input.value = String(splitN);
+        input.readOnly = true;
+        input.classList.add('input-readonly-locked');
+        const label = row.querySelector('label[for="expense-installments"]');
+        const small = row.querySelector('small');
+        if (label) {
+            label.textContent = credit
+                ? 'Parcelas no cartão de crédito'
+                : loan
+                  ? 'Parcelas do empréstimo'
+                  : 'Parcelas (espelho da divisão)';
+        }
+        if (small) {
+            if (credit) {
+                small.innerHTML =
+                    'Mesmo número de parcelas da compra original. Os vencimentos seguem o <strong>seu</strong> cartão (fechamento e vencimento).';
+                small.classList.remove('hidden');
+            } else if (loan && acc && !credit) {
+                small.innerHTML =
+                    'Mesmo número de parcelas da compra original; vencimentos mensais a partir da data da compra.';
+                small.classList.remove('hidden');
+            } else {
+                small.innerHTML =
+                    'Para gravar com estas parcelas, escolha <strong>cartão de crédito</strong> ou categoria <strong>Empréstimo</strong> debitada em conta corrente/poupança (não use PIX/cartão de débito).';
+                small.classList.remove('hidden');
+            }
+        }
+        updateExpenseInstallmentPreview();
+        syncExpenseRecurringModeVisibility();
         return;
     }
+    input.readOnly = false;
+    input.classList.remove('input-readonly-locked');
     const acc = getSelectedExpensePaymentAccount();
     const loan = isExpenseLoanCategorySelected();
     const credit = Boolean(acc && isCreditCardType(acc.type));
@@ -3259,7 +3652,6 @@ function syncExpenseInstallmentsRow() {
     }
     updateExpenseInstallmentPreview();
     syncExpenseRecurringModeVisibility();
-    syncExpensePaidRowFromForm();
 }
 
 /**
@@ -3297,6 +3689,8 @@ function updateExpenseInstallmentPreview() {
     const sel = document.getElementById('expense-payment-method');
     const dateEl = document.getElementById('expense-date');
     const instEl = document.getElementById('expense-installments');
+    const amtInput = document.getElementById('expense-amount');
+    const previewAmount = parseFloat(String(amtInput?.value ?? '0')) || 0;
     if (!prev || !sel || !dateEl) return;
     const acc = getSelectedExpensePaymentAccount();
     const n = parseInt(String(instEl?.value ?? '1'), 10) || 1;
@@ -3338,7 +3732,7 @@ function updateExpenseInstallmentPreview() {
             date: purchase.toISOString(),
             installmentCount: n,
             isPaid: false,
-            amount: 0,
+            amount: previewAmount,
             category: 'Outros',
             createdAt: now.toISOString(),
             cashOutConfirmedPeriods: JSON.stringify(paidKeys)
@@ -3351,7 +3745,9 @@ function updateExpenseInstallmentPreview() {
         return;
     }
 
-    if (loan && acc && !credit && n >= 2) {
+    // Empréstimo parcelado: não depende de cartão; podemos mostrar o cronograma mesmo antes de
+    // escolher a conta (útil no fluxo de divisão), pois as datas são mensais a partir da data inicial.
+    if (loan && !credit && n >= 2) {
         const purchase = new Date(dateEl.value + 'T12:00:00');
         if (Number.isNaN(purchase.getTime())) {
             prev.classList.add('hidden');
@@ -3368,7 +3764,7 @@ function updateExpenseInstallmentPreview() {
             date: purchase.toISOString(),
             installmentCount: n,
             isPaid: false,
-            amount: 0,
+            amount: previewAmount,
             category: 'Empréstimo',
             createdAt: now.toISOString(),
             cashOutConfirmedPeriods: JSON.stringify(paidKeys)
@@ -3492,8 +3888,6 @@ function openExpenseModal(forEdit, options = null) {
         populateExpensePaymentMethodSelect(forEdit ? undefined : null);
         syncExpensePaymentMethodForLoanCategory();
         syncExpenseInstallmentsRow();
-        if (paidRow) paidRow.classList.add('hidden');
-        if (paidInput) paidInput.checked = false;
         if (!forEdit) {
             if (src?.date) {
                 try {
@@ -3521,6 +3915,13 @@ function openExpenseModal(forEdit, options = null) {
         delete form.dataset.splitRequestId;
         delete form.dataset.splitFromRateio;
         delete form.dataset.splitSourceIsInvestment;
+        delete form.dataset.splitSourceInstallmentCount;
+        const dateInpUnlock = form['expense-date'];
+        if (dateInpUnlock) {
+            dateInpUnlock.readOnly = false;
+            dateInpUnlock.classList.remove('input-readonly-locked');
+            dateInpUnlock.removeAttribute('title');
+        }
         if (amtInput) {
             amtInput.readOnly = false;
             amtInput.classList.remove('input-readonly-locked');
@@ -3534,13 +3935,33 @@ function openExpenseModal(forEdit, options = null) {
             form.dataset.splitRequestId = String(splitOpts.splitRequestId);
             form.dataset.splitFromRateio = '1';
             if (src?.isInvestment) form.dataset.splitSourceIsInvestment = '1';
+            const splitScope = normalizeSplitScope(splitOpts.splitScope || 'FULL_EXPENSE');
+            const rawIc =
+                splitOpts.sourceInstallmentCount ??
+                src?.recurrenceSeriesLength ??
+                src?.installmentCount ??
+                src?.installment_count;
+            const parsedIc = parseInt(String(rawIc ?? ''), 10);
+            const srcInst = Number.isFinite(parsedIc) && parsedIc >= 2 ? Math.min(99, parsedIc) : 1;
+            if (splitScope === 'FULL_EXPENSE' && srcInst >= 2) {
+                form.dataset.splitSourceInstallmentCount = String(srcInst);
+            }
+            // Espelha "conta fixa em YYYY" / tags mensais quando a origem é uma série recorrente.
+            const srcRecurring = Boolean(src?.recurrenceGroupId && String(src.recurrenceGroupId).trim());
+            const srcRecurringMonthly = src?.recurringMonthly === true;
+            if (srcRecurring || srcRecurringMonthly) {
+                form.dataset.expenseRecurrenceGroupId = String(src.recurrenceGroupId || 'split-series');
+                // Não herdar pagamentos confirmados do solicitante; é um espelho para o destinatário.
+                form.dataset.loanPaidPeriodKeys = '[]';
+                const recModeEl = document.getElementById('expense-recurring-mode');
+                if (recModeEl) recModeEl.value = '1';
+            }
             if (amtInput) {
                 amtInput.value = String(splitOpts.splitAmount);
                 amtInput.readOnly = true;
                 amtInput.classList.add('input-readonly-locked');
             }
             if (recRow) recRow.classList.add('hidden');
-            if (instRow) instRow.classList.add('hidden');
         }
 
         if (splitOpts && src) {
@@ -3555,6 +3976,14 @@ function openExpenseModal(forEdit, options = null) {
             syncExpensePaymentMethodForLoanCategory();
             syncExpenseInstallmentsRow();
             finishOpen();
+            if (splitOpts) {
+                const dateInpLock = form['expense-date'];
+                if (dateInpLock) {
+                    dateInpLock.readOnly = true;
+                    dateInpLock.classList.add('input-readonly-locked');
+                    dateInpLock.title = 'Data da compra original (fixa nesta divisão).';
+                }
+            }
         });
         return;
     }
@@ -3563,26 +3992,9 @@ function openExpenseModal(forEdit, options = null) {
         amtInput.readOnly = false;
         amtInput.classList.remove('input-readonly-locked');
     }
+    if (paidRow) paidRow.classList.add('hidden');
 
     finishOpen();
-}
-
-function syncExpensePaidRowFromForm() {
-    const form = document.getElementById('expense-form');
-    const row = document.getElementById('expense-paid-row');
-    const input = document.getElementById('expense-is-paid');
-    if (!form || !row || !input) return;
-    const isEdit = Boolean(form['expense-id']?.value);
-    const acc = getSelectedExpensePaymentAccount();
-    const credit = Boolean(acc && isCreditCardType(acc.type));
-    const loan = isExpenseLoanCategorySelected();
-    const inst = Number(document.getElementById('expense-installments')?.value || 1);
-    const needsInstallments = Number.isFinite(inst) && inst >= 2 && (credit || (loan && acc && !credit));
-    const rg = form.dataset.expenseRecurrenceGroupId != null && String(form.dataset.expenseRecurrenceGroupId).trim() !== '';
-
-    // Só permite editar "pago" em saídas simples (fora de cartão/parcelas/empréstimo/séries).
-    const canEditPaid = isEdit && !credit && !loan && !needsInstallments && !rg;
-    row.classList.toggle('hidden', !canEditPaid);
 }
 
 function openGainModal(forEdit) {
@@ -3590,14 +4002,18 @@ function openGainModal(forEdit) {
     const recurringRow = document.getElementById('gain-recurring-row');
     const grid = document.getElementById('gain-date-recurring-grid');
     const recMode = document.getElementById('gain-recurring-mode');
+    const isReceived = document.getElementById('gain-is-received');
     if (!forEdit) {
         form.reset();
         form['gain-id'].value = '';
         populateGainCategorySelect('');
         if (recMode) recMode.value = '0';
+        if (isReceived) isReceived.checked = true;
     }
     if (recurringRow) recurringRow.classList.toggle('hidden', Boolean(forEdit));
     if (grid) grid.classList.toggle('expense-date-recurring-grid--recurring-off', Boolean(forEdit));
+    const receivedRow = document.getElementById('gain-is-received-row');
+    if (receivedRow) receivedRow.classList.remove('hidden');
     document.getElementById('gain-modal-title').textContent = forEdit ? 'Editar entrada' : 'Nova entrada';
     populateGainAccountSelect(forEdit ? undefined : null);
     if (!forEdit) {
@@ -3676,24 +4092,45 @@ async function handleExpenseFormSubmit(e) {
     const accountId = resolved?.accountId;
     const loanCat = isLoanExpense({ category, subcategory });
     const accForInstallments = accountId ? userAccounts?.find((a) => a.id === accountId) : null;
+    const splitSrcN = parseInt(String(form.dataset.splitSourceInstallmentCount || ''), 10);
+    const splitMirroredInstallments = Boolean(
+        isSplitRateio &&
+            Number.isFinite(splitSrcN) &&
+            splitSrcN >= 2 &&
+            accForInstallments &&
+            (isCreditCardType(accForInstallments.type) || !isCardAccountType(accForInstallments.type))
+    );
     const needsInstallments = Boolean(
-        !isSplitRateio &&
+        (!isSplitRateio &&
             ((accForInstallments && isCreditCardType(accForInstallments.type)) ||
-                (loanCat && accForInstallments && !isCreditCardType(accForInstallments.type)))
+                (loanCat && accForInstallments && !isCreditCardType(accForInstallments.type)))) ||
+            splitMirroredInstallments
     );
     let installmentCount = null;
     if (needsInstallments && resolved) {
-        const instInput = form['expense-installments'];
-        const n = parseInt(String(instInput?.value ?? ''), 10);
-        if (!Number.isFinite(n) || n < 1) {
-            markFieldError(instInput, 'Informe o número de parcelas (mín. 1)');
-            hasErrors = true;
-        } else if (n > 99) {
-            markFieldError(instInput, 'No máximo 99 parcelas');
-            hasErrors = true;
+        if (splitMirroredInstallments) {
+            installmentCount = splitSrcN;
         } else {
-            installmentCount = n;
+            const instInput = form['expense-installments'];
+            const n = parseInt(String(instInput?.value ?? ''), 10);
+            if (!Number.isFinite(n) || n < 1) {
+                markFieldError(instInput, 'Informe o número de parcelas (mín. 1)');
+                hasErrors = true;
+            } else if (n > 99) {
+                markFieldError(instInput, 'No máximo 99 parcelas');
+                hasErrors = true;
+            } else {
+                installmentCount = n;
+            }
         }
+    }
+
+    if (isSplitRateio && Number.isFinite(splitSrcN) && splitSrcN >= 2 && !splitMirroredInstallments) {
+        markFieldError(
+            form['expense-payment-method'],
+            'Esta divisão é de lançamento parcelado. Para gravar com o mesmo número de parcelas, escolha um cartão de crédito ou uma conta bancária (PIX). Cartão de débito não suporta parcelas.'
+        );
+        hasErrors = true;
     }
 
     if (hasErrors) {
@@ -3747,7 +4184,7 @@ async function handleExpenseFormSubmit(e) {
                 if (keys.length > 0) {
                     isPaidFinal = dueKeySet.size > 0 && [...dueKeySet].every((k) => keys.includes(k));
                 } else {
-                    isPaidFinal = false;
+                    isPaidFinal = !id && installmentCount === 1;
                 }
             } else {
                 isPaidFinal = false;
@@ -3757,8 +4194,12 @@ async function handleExpenseFormSubmit(e) {
             const keys = getLoanPaidPeriodKeysFromForm(form);
             installmentCashOutKeysPayload = keys;
             const dueKeySet = new Set(dueDates.map((d) => calendarDayKeyFromDate(d)));
-            isPaidFinal =
-                dueKeySet.size > 0 && [...dueKeySet].every((k) => keys.includes(k));
+            if (keys.length > 0) {
+                isPaidFinal =
+                    dueKeySet.size > 0 && [...dueKeySet].every((k) => keys.includes(k));
+            } else {
+                isPaidFinal = !id && installmentCount === 1;
+            }
         }
     }
 
@@ -3783,13 +4224,13 @@ async function handleExpenseFormSubmit(e) {
         isPaidFinal = false;
     }
 
-    // Edição: permite marcar como paga/não paga (somente para saídas simples)
+    // Edição de saída simples: permite marcar/desmarcar "paga" no modal.
     if (id && !needsInstallments && !loanCat && !isSeriesRow) {
         const acc = getSelectedExpensePaymentAccount();
         const credit = Boolean(acc && isCreditCardType(acc.type));
-        if (!credit) {
-            const paidInput = document.getElementById('expense-is-paid');
-            if (paidInput) isPaidFinal = Boolean(paidInput.checked);
+        const paidInput = document.getElementById('expense-is-paid');
+        if (!credit && orig && paidInput) {
+            isPaidFinal = Boolean(paidInput.checked);
         }
     }
 
@@ -3803,11 +4244,14 @@ async function handleExpenseFormSubmit(e) {
         subcategory: subcategory || null,
         isPaid: isPaidFinal,
         isInvestment: isSplitRateio && form.dataset.splitSourceIsInvestment === '1',
-        installmentCount: isSplitRateio ? null : installmentCount,
+        installmentCount: installmentCount ?? null,
         recurringMonthly
     };
     if (isSplitRateio && form.dataset.splitRequestId) {
         data.splitRequestId = form.dataset.splitRequestId;
+    }
+    if (isSplitRateio && Number.isFinite(splitSrcN) && splitSrcN >= 2) {
+        data.mirrorInstallmentCount = splitSrcN;
     }
 
     if (installmentCount != null && installmentCount >= 2) {
@@ -3890,6 +4334,7 @@ async function handleExpenseFormSubmit(e) {
         delete form.dataset.splitRequestId;
         delete form.dataset.splitFromRateio;
         delete form.dataset.splitSourceIsInvestment;
+        delete form.dataset.splitSourceInstallmentCount;
         onUpdateCallback();
     } catch (error) {
         console.error('Erro ao salvar saída:', error);
@@ -3978,6 +4423,9 @@ async function handleGainFormSubmit(e) {
             String(now.getSeconds()).padStart(2, '0'));
     }
     
+    const isReceivedEl = document.getElementById('gain-is-received');
+    const isPaid = isReceivedEl ? Boolean(isReceivedEl.checked) : true;
+
     const data = {
         userId: currentUser.uid,
         description,
@@ -3985,7 +4433,7 @@ async function handleGainFormSubmit(e) {
         date: dateWithTime.toISOString(),
         accountId,
         category,
-        isPaid: true
+        isPaid
     };
 
     if (!id) {
@@ -4088,6 +4536,8 @@ async function handleExpenseRowActions(e) {
         if (row) {
             openExpenseModal(true);
             const form = document.getElementById('expense-form');
+            const paidRow = document.getElementById('expense-paid-row');
+            const paidInput = document.getElementById('expense-is-paid');
             const rg = row.recurrenceGroupId != null && String(row.recurrenceGroupId).trim() !== '';
             if (rg) form.dataset.expenseRecurrenceGroupId = String(row.recurrenceGroupId);
             else delete form.dataset.expenseRecurrenceGroupId;
@@ -4095,17 +4545,6 @@ async function handleExpenseRowActions(e) {
             form['expense-description'].value = row.description;
             form['expense-amount'].value = row.amount;
             form['expense-date'].value = movementDateToJsDate(row.date).toISOString().split('T')[0];
-            const paidInput = document.getElementById('expense-is-paid');
-            if (paidInput) paidInput.checked = Boolean(row.isPaid);
-            // Mostra o toggle apenas quando é uma saída simples (sem parcelas/cartão/empréstimo/série)
-            const acc = userAccounts?.find((a) => a.id === row.accountId);
-            const credit = Boolean(acc && isCreditCardType(acc.type));
-            const loan = isLoanExpense(row);
-            const instCount = Number(row.installmentCount) || 0;
-            const rg2 = row.recurrenceGroupId != null && String(row.recurrenceGroupId).trim() !== '';
-            const canEditPaid = !credit && !loan && instCount < 2 && !rg2;
-            syncExpensePaidRowFromForm();
-            document.getElementById('expense-paid-row')?.classList.toggle('hidden', !canEditPaid);
             // Aguarda o carregamento das categorias antes de selecionar
             populateExpensePaymentMethodSelect(row.accountId);
             populateExpenseCategorySelect(row.category).then(() => {
@@ -4113,7 +4552,6 @@ async function handleExpenseRowActions(e) {
                 form.dataset.loanPaymentAccountId = row.accountId;
                 syncExpensePaymentMethodForLoanCategory();
                 syncExpenseInstallmentsRow();
-                syncExpensePaidRowFromForm();
                 const recMode = document.getElementById('expense-recurring-mode');
                 if (recMode) {
                     if (row.recurrenceGroupId) {
@@ -4129,6 +4567,21 @@ async function handleExpenseRowActions(e) {
                 const ic = row.installmentCount;
                 inst.value =
                     ic != null && Number(ic) >= 1 ? String(Math.min(99, parseInt(String(ic), 10))) : '1';
+            }
+            // Toggle pago só para saída "simples" (sem cartão/parcelas/emprestimo/série).
+            {
+                const acc = userAccounts?.find((a) => a.id === row.accountId) || null;
+                const loanCat = isLoanExpense({ category: row.category, subcategory: row.subcategory });
+                const isSeriesRow = Boolean(row.recurrenceGroupId != null && String(row.recurrenceGroupId).trim() !== '');
+                const nParc = parseInt(String(row.installmentCount ?? ''), 10);
+                const needsInstallments = Boolean(
+                    (acc && isCreditCardType(acc.type)) ||
+                        (loanCat && (!acc || !isCreditCardType(acc.type)) && Number.isFinite(nParc) && nParc >= 2) ||
+                        (Number.isFinite(nParc) && nParc >= 2)
+                );
+                const showPaidToggle = Boolean(!needsInstallments && !loanCat && !isSeriesRow);
+                if (paidRow) paidRow.classList.toggle('hidden', !showPaidToggle);
+                if (paidInput) paidInput.checked = Boolean(row.isPaid);
             }
             let loanPaidKeys = [];
             if (row.recurrenceGroupId != null && String(row.recurrenceGroupId).trim() !== '') {
@@ -4182,6 +4635,8 @@ async function handleGainRowActions(e) {
             form['gain-date'].value = movementDateToJsDate(row.date).toISOString().split('T')[0];
             await populateGainCategorySelect(row.category);
             populateGainAccountSelect(row.accountId);
+            const isReceived = document.getElementById('gain-is-received');
+            if (isReceived) isReceived.checked = row.isPaid !== false;
             document.getElementById('gain-modal-title').textContent = 'Editar entrada';
         }
     }

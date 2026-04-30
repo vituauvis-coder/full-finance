@@ -135,6 +135,12 @@ export function sortGainRows(list, sort, accounts) {
             case 'amount':
                 cmp = (a.amount || 0) - (b.amount || 0);
                 break;
+            case 'received': {
+                const pa = a.isPaid === false ? 0 : 1;
+                const pb = b.isPaid === false ? 0 : 1;
+                cmp = pa - pb;
+                break;
+            }
             default:
                 cmp = 0;
         }

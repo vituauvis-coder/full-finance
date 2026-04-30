@@ -1,8 +1,5 @@
 // js/reports.js
-import {
-    expenseContributionToCalendarMonth,
-    expenseContributionProjectedToMonthKey
-} from '../../core/expense-calendar-month.js';
+import { expenseContributionProjectedToMonthKey } from '../../core/expense-calendar-month.js';
 import {
     expenseCountsAsCashOut,
     formatCurrency,
@@ -20,7 +17,6 @@ import {
     isLoanExpense,
     shouldDeferCashOutForMonthlyFixedSeries
 } from '../../core/credit-installments.js';
-import { isPeriodConfirmedForDebit, parseCashOutConfirmedPeriods } from '../../core/finance-preferences.js';
 import { getTotalInvestedSum } from '../investments/investments.js';
 import { getPeriodDateBounds, getPeriodTitleParts } from '../../core/period-filters.js';
 import {
@@ -363,7 +359,8 @@ function coerceDayOfMonth(value) {
  * - empréstimo: parcela conta se o vencimento <= cutoff
  * - demais: conta se a data do lançamento <= cutoff
  *
- * Não depende de confirmações manuais de caixa (evita "zerar" em meses passados/ano).
+ * Para totais do mês na UI, `cutoff` é o fim do mês civil (mês completo, inclusive pendente).
+ * Não depende de confirmação manual de caixa.
  */
 function expenseContributionPaidThroughToMonthKey(
     t,
@@ -371,8 +368,10 @@ function expenseContributionPaidThroughToMonthKey(
     monthKey,
     cutoffEndInclusive,
     userProfile = null,
-    splitRequests = null
+    splitRequests = null,
+    allUserExpenses = null
 ) {
+    const forSplit = allUserExpenses;
     const cutoffT = endOfDay(cutoffEndInclusive).getTime();
     const amt = Number(t.amount) || 0;
     const nInst = Math.max(1, parseInt(String(t.installmentCount ?? '1'), 10) || 1);
@@ -389,7 +388,7 @@ function expenseContributionPaidThroughToMonthKey(
             if (monthKeyFromDate(purchase) !== monthKey) return 0;
             if (purchase.getTime() > cutoffT) return 0;
             if (!expenseCountsAsCashOut(t, acc)) return 0;
-            return applySplitNetToContribution(t, monthKey, amt, splitRequests);
+            return applySplitNetToContribution(t, monthKey, amt, splitRequests, forSplit);
         }
 
         if (nInst < 2) {
@@ -398,7 +397,7 @@ function expenseContributionPaidThroughToMonthKey(
             const due = dues[0] || purchase;
             if (monthKeyFromDate(due) !== monthKey) return 0;
             if (due.getTime() > cutoffT) return 0;
-            return applySplitNetToContribution(t, monthKey, amt, splitRequests);
+            return applySplitNetToContribution(t, monthKey, amt, splitRequests, forSplit);
         }
 
         const dues = getInstallmentDueDates(purchase, nInst, cd, dd);
@@ -410,7 +409,7 @@ function expenseContributionPaidThroughToMonthKey(
             if (d.getTime() > cutoffT) continue;
             sum += per;
         }
-        return applySplitNetToContribution(t, monthKey, sum, splitRequests);
+        return applySplitNetToContribution(t, monthKey, sum, splitRequests, forSplit);
     }
 
     // Empréstimo: vencimentos mensais
@@ -425,7 +424,7 @@ function expenseContributionPaidThroughToMonthKey(
             if (d.getTime() > cutoffT) continue;
             sum += per;
         }
-        return applySplitNetToContribution(t, monthKey, sum, splitRequests);
+        return applySplitNetToContribution(t, monthKey, sum, splitRequests, forSplit);
     }
 
     const purchasePlain = movementDateToJsDate(t.date);
@@ -433,8 +432,7 @@ function expenseContributionPaidThroughToMonthKey(
         if (monthKeyFromDate(purchasePlain) !== monthKey) return 0;
         if (purchasePlain.getTime() > cutoffT) return 0;
         if (!expenseCountsAsCashOut(t, acc)) return 0;
-        if (!isPeriodConfirmedForDebit(parseCashOutConfirmedPeriods(t), purchasePlain)) return 0;
-        return applySplitNetToContribution(t, monthKey, amt, splitRequests);
+        return applySplitNetToContribution(t, monthKey, amt, splitRequests, forSplit);
     }
 
     // Demais contas: pela data do lançamento
@@ -443,12 +441,12 @@ function expenseContributionPaidThroughToMonthKey(
     if (monthKeyFromDate(d) !== monthKey) return 0;
     if (d.getTime() > cutoffT) return 0;
     if (!expenseCountsAsCashOut(t, acc)) return 0;
-    return applySplitNetToContribution(t, monthKey, amt, splitRequests);
+    return applySplitNetToContribution(t, monthKey, amt, splitRequests, forSplit);
 }
 
 /**
  * Converte despesas em "contribuições do período" para usar em agregações por categoria.
- * Meses passados / mês atual: mesma regra dos cards de saída (caixa ou «pago até»).
+ * Meses passados / mês atual: mesma regra dos cards de saída (vencimentos/parcela «pago até» a data de corte).
  * Meses futuros no período: projeção por vencimento/parcelas (`expenseContributionProjectedToMonthKey`)
  * para o gráfico «Distribuição das saídas» mostrar saídas previstas (ex.: parcelas, recorrências).
  */
@@ -471,13 +469,19 @@ function mapExpensesToPeriodContributions(
 
         for (const t of userExpenses || []) {
             const acc = accountsById.get(t.accountId);
-            const cutoff = isCurrentMonthObj(mo, now) ? now : mo.end;
+            const cutoff = mo.end;
 
             let v;
             if (projection) {
-                v = expenseContributionProjectedToMonthKey(t, acc, mk, now, userProfile, splitRequests);
-            } else if (periodUsesCashCalendarMonthRule(period, mo, now)) {
-                v = expenseContributionToCalendarMonth(t, acc, mk, now, userProfile, splitRequests);
+                v = expenseContributionProjectedToMonthKey(
+                    t,
+                    acc,
+                    mk,
+                    now,
+                    userProfile,
+                    splitRequests,
+                    userExpenses
+                );
             } else {
                 v = expenseContributionPaidThroughToMonthKey(
                     t,
@@ -485,7 +489,8 @@ function mapExpensesToPeriodContributions(
                     mk,
                     cutoff,
                     userProfile,
-                    splitRequests
+                    splitRequests,
+                    userExpenses
                 );
             }
             if (!v || v <= 0) continue;
@@ -497,19 +502,6 @@ function mapExpensesToPeriodContributions(
         }
     }
     return out;
-}
-
-/** Mesma regra que «este mês» no filtro antigo: competência no caixa só para o mês civil atual quando o recorte é um único mês (month-N) alinhado a hoje. */
-function periodUsesCashCalendarMonthRule(period, mo, now = new Date()) {
-    if (period === 'current-month') return isCurrentMonthObj(mo, now);
-    const m = /^month-(\d+)$/.exec(period || '');
-    if (!m) return false;
-    const idx = parseInt(m[1], 10);
-    return (
-        isCurrentMonthObj(mo, now) &&
-        mo.start.getFullYear() === now.getFullYear() &&
-        mo.start.getMonth() === idx
-    );
 }
 
 function setTextIfExists(id, text) {
@@ -604,7 +596,7 @@ async function updateDashboardCardsAndTitlesForPeriod(
     setTextIfExists('monthly-expenses', formatCurrency(out, userCurrency));
 
     // Fluxo líquido (entradas − saídas): meses futuros + mês corrente no filtro; mesma regra do gráfico «Sobra» / dataSobraMes.
-    // Mês atual: entradas no intervalo + saídas com regra do caixa (`sumOutflowsForCalendarMonth`). Meses futuros: saídas projetadas.
+    // Mês atual: entradas no intervalo + saídas do mês civil completo (`sumOutflowsForCalendarMonth`). Meses futuros: saídas projetadas.
     {
         let { startDate, endDate } = getPeriodDateBounds(period, now);
         if (startDate > endDate) {
@@ -1169,8 +1161,9 @@ function sumMovementsInRange(items, rangeStart, rangeEnd) {
 }
 
 /**
- * Total de saídas no mês-calendário — mesma regra do card «Saídas do mês» (dashboard) e do resumo da lista:
- * {@link expenseContributionToCalendarMonth} (cartão/empréstimo por vencimento efetivo no caixa; demais pela data).
+ * Total de saídas no mês-calendário — mesma regra do card «Saídas do mês» e da lista:
+ * parcelas/vencimentos com competência no mês, até o fim do mês civil (inclui ainda a vencer no mês).
+ * {@link expenseContributionPaidThroughToMonthKey}
  */
 function sumOutflowsForCalendarMonth(
     mo,
@@ -1185,19 +1178,16 @@ function sumOutflowsForCalendarMonth(
     let sum = 0;
     for (const t of userExpenses || []) {
         const acc = accountsById.get(t.accountId);
-        const cutoff = isCurrentMonthObj(mo, now) ? now : mo.end;
-        // Para o mês atual, mantém a regra "do caixa" que você disse estar correta.
-        // Para meses encerrados, conta parcelas por vencimento (pago até o fim do mês).
-        sum += isCurrentMonthObj(mo, now)
-            ? expenseContributionToCalendarMonth(t, acc, mk, now, userProfile, splitRequests)
-            : expenseContributionPaidThroughToMonthKey(
-                  t,
-                  acc,
-                  mk,
-                  cutoff,
-                  userProfile,
-                  splitRequests
-              );
+        const cutoff = mo.end;
+        sum += expenseContributionPaidThroughToMonthKey(
+            t,
+            acc,
+            mk,
+            cutoff,
+            userProfile,
+            splitRequests,
+            userExpenses
+        );
     }
     return sum;
 }

@@ -77,14 +77,26 @@ export function sumOutflowsProjectedForCalendarMonth(
                 );
             }
             const allocs = allocCache.get(cacheKey);
-            sum += applySplitNetToContribution(t, mk, allocs[mk] || 0, splitRequests);
+            sum += applySplitNetToContribution(
+                t,
+                mk,
+                allocs[mk] || 0,
+                splitRequests,
+                userExpenses
+            );
         } else if (isLoanExpense(t) && (!acc || !isCreditCardType(acc.type)) && nInst >= 2) {
             const cacheKey = t.id || `loan|${t.accountId}|${String(t.date)}|${t.amount}`;
             if (!allocCache.has(cacheKey)) {
                 allocCache.set(cacheKey, getLoanInstallmentMonthAllocationsIncludingFuture(t));
             }
             const allocs = allocCache.get(cacheKey);
-            sum += applySplitNetToContribution(t, mk, allocs[mk] || 0, splitRequests);
+            sum += applySplitNetToContribution(
+                t,
+                mk,
+                allocs[mk] || 0,
+                splitRequests,
+                userExpenses
+            );
         } else {
             const d = movementDateToJsDate(t.date);
             if (Number.isNaN(d.getTime())) continue;
@@ -93,13 +105,25 @@ export function sumOutflowsProjectedForCalendarMonth(
             if (t.recurringMonthly === true) {
                 const baseMonthOrdinal = d.getFullYear() * 12 + d.getMonth();
                 if (targetMonthOrdinal >= baseMonthOrdinal && expenseCountsAsCashOut(t, acc)) {
-                    sum += applySplitNetToContribution(t, mk, Number(t.amount) || 0, splitRequests);
+                    sum += applySplitNetToContribution(
+                        t,
+                        mk,
+                        Number(t.amount) || 0,
+                        splitRequests,
+                        userExpenses
+                    );
                 }
                 continue;
             }
 
             if (d >= mo.start && d <= mo.end && expenseCountsAsCashOut(t, acc)) {
-                sum += applySplitNetToContribution(t, mk, Number(t.amount) || 0, splitRequests);
+                sum += applySplitNetToContribution(
+                    t,
+                    mk,
+                    Number(t.amount) || 0,
+                    splitRequests,
+                    userExpenses
+                );
             }
         }
     }

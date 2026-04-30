@@ -18,7 +18,7 @@ import {
 import {
     isSplitReimbursementGain,
     movementMonthKey,
-    sumAcceptedSettledFullSplitForExpense,
+    sumAcceptedSettledFullSplitForRelatedExpense,
     sumAcceptedSettledInstallmentSplitThroughMonth
 } from './split-net.js';
 
@@ -62,7 +62,7 @@ export function computeCashAccountRawBalance(
     (userExpenses || [])
         .filter((e) => e.accountId === account.id)
         .forEach((e) => {
-            const fullSplit = sumAcceptedSettledFullSplitForExpense(e.id, splitRequests);
+            const fullSplit = sumAcceptedSettledFullSplitForRelatedExpense(e, splitRequests, userExpenses);
             const ratioBase = Number(e.amount) || 0;
             const ratio = ratioBase > 0 ? Math.max(0, ratioBase - fullSplit) / ratioBase : 1;
             const cutoffMonthKey = movementMonthKey(asOfEndInclusive);
@@ -91,7 +91,7 @@ export function computeCashAccountRawBalance(
         if (card.linkedAccountId !== account.id) return;
         (userExpenses || []).forEach((e) => {
             if (e.accountId !== card.id) return;
-            const fullSplit = sumAcceptedSettledFullSplitForExpense(e.id, splitRequests);
+            const fullSplit = sumAcceptedSettledFullSplitForRelatedExpense(e, splitRequests, userExpenses);
             const ratioBase = Number(e.amount) || 0;
             const ratio = ratioBase > 0 ? Math.max(0, ratioBase - fullSplit) / ratioBase : 1;
             const cutoffMonthKey = movementMonthKey(asOfEndInclusive);

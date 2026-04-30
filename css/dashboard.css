@@ -383,6 +383,35 @@
     text-align: right;
 }
 
+#gains-table th:nth-child(6),
+#gains-table td:nth-child(6) {
+    text-align: center;
+}
+
+#gains-table .gains-td-received {
+    white-space: nowrap;
+}
+
+.gain-received-badge {
+    display: inline-block;
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    background: rgba(16, 185, 129, 0.22);
+    color: #047857;
+}
+
+.gain-received-badge--no {
+    background: rgba(234, 179, 8, 0.35);
+    color: #a16207;
+}
+
+#gains-table tr.gain-tr-expected-split td:first-child {
+    border-left: 3px solid rgba(59, 130, 246, 0.45);
+    padding-left: calc(1rem - 3px);
+}
+
 /* Ícone ↻ (recorrente) imediatamente antes do valor */
 #expenses-table td .movement-amount-with-rec-inner,
 #gains-table td .movement-amount-with-rec-inner {

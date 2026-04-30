@@ -605,7 +605,7 @@
                         <div class="card">
                             <div class="card-icon income movements-summary-card-icon" id="gains-summary-total-icon"><i class="fas fa-calendar-check" aria-hidden="true"></i></div>
                             <div class="card-content">
-                                <h3 id="gains-summary-total-title">Entradas no período</h3>
+                                <h3 id="gains-summary-total-title">Entradas de …</h3>
                                 <p id="gains-summary-total">—</p>
                                 <span id="gains-summary-variation" class="dashboard-card-scope"></span>
                             </div>
@@ -613,7 +613,7 @@
                         <div class="card">
                             <div class="card-icon income movements-summary-card-icon" id="gains-summary-projection-icon"><i class="fas fa-forward" aria-hidden="true"></i></div>
                             <div class="card-content">
-                                <h3 id="gains-summary-projection-title">Projeção do mês</h3>
+                                <h3 id="gains-summary-projection-title">Valor previsto de …</h3>
                                 <p id="gains-summary-projection">—</p>
                                 <span id="gains-summary-projection-variation" class="dashboard-card-scope"></span>
                             </div>
@@ -636,6 +636,7 @@
                                     <th scope="col" class="sortable-th" data-sort-key="category"><button type="button" class="sortable-th__btn">Categoria <i class="fas fa-sort sortable-th__icon" aria-hidden="true"></i></button></th>
                                     <th scope="col" class="sortable-th" data-sort-key="account"><button type="button" class="sortable-th__btn">Conta <i class="fas fa-sort sortable-th__icon" aria-hidden="true"></i></button></th>
                                     <th scope="col" class="sortable-th" data-sort-key="amount"><button type="button" class="sortable-th__btn">Valor <i class="fas fa-sort sortable-th__icon" aria-hidden="true"></i></button></th>
+                                    <th scope="col" class="sortable-th" data-sort-key="received"><button type="button" class="sortable-th__btn">Recebido <i class="fas fa-sort sortable-th__icon" aria-hidden="true"></i></button></th>
                                     <th scope="col">Ações</th>
                                 </tr>
                             </thead>
@@ -1601,6 +1602,14 @@
                         <option value="INSTALLMENT">Parcela específica</option>
                     </select>
                 </div>
+                <div class="form-group hidden" id="expense-split-amount-mode-row" aria-live="polite">
+                    <label for="expense-split-amount-mode">O valor abaixo representa</label>
+                    <select id="expense-split-amount-mode" name="expense-split-amount-mode">
+                        <option value="per_installment">A parte do outro em cada parcela (multiplica pelo nº de parcelas)</option>
+                        <option value="total">O total da parte do outro (soma de todas as parcelas)</option>
+                    </select>
+                    <small class="form-hint" id="expense-split-amount-mode-hint"></small>
+                </div>
                 <div class="form-group hidden" id="expense-split-installment-row">
                     <label for="expense-split-installment-index">Parcela alvo</label>
                     <select id="expense-split-installment-index" name="expense-split-installment-index">
@@ -1613,7 +1622,7 @@
                         <input type="number" id="expense-split-amount" step="0.01" min="0.01" required placeholder="R$ 0,00">
                     </div>
                     <div class="form-group">
-                        <label for="expense-split-credit-account">Conta para o extorno</label>
+                        <label for="expense-split-credit-account">Conta para o estorno</label>
                         <select id="expense-split-credit-account" required>
                             <option value="">Selecione</option>
                         </select>
@@ -1638,7 +1647,7 @@
             <h3 id="split-incoming-login-title"><i class="fas fa-users" aria-hidden="true"></i> Divisões de despesas pendentes</h3>
             <div class="split-incoming-login-body">
                 <div class="form-message info split-incoming-login-intro" role="status">
-                    Você tem solicitações para aceitar ou recusar. Ao aceitar, sua parte será lançada como saída e o solicitante receberá o extorno.
+                    Você tem solicitações para aceitar ou recusar. Ao aceitar, sua parte será lançada como saída e o solicitante receberá o estorno.
                 </div>
                 <ul id="split-incoming-login-list" class="split-incoming-login-list"></ul>
             </div>
@@ -1708,17 +1717,18 @@
                         </select>
                     </div>
                 </div>
-                <div id="expense-paid-row" class="form-group hidden">
-                    <label class="checkbox-label" for="expense-is-paid">
-                        <input type="checkbox" id="expense-is-paid">
-                        Marcar como paga
-                    </label>
-                </div>
                 <div id="expense-installments-row" class="form-group hidden">
                     <label for="expense-installments">Parcelas no cartão de crédito</label>
                     <input type="number" id="expense-installments" min="1" max="99" step="1" value="1"
                         inputmode="numeric" autocomplete="off">
                     <small>Total de parcelas. O sistema calcula automaticamente quais já venceram com base na <strong>data da compra</strong>, no <strong>fechamento</strong> e no <strong>vencimento</strong> do cartão.</small>
+                </div>
+                <div id="expense-paid-row" class="form-group hidden">
+                    <label for="expense-is-paid">Status</label>
+                    <div class="theme-toggle-row" style="justify-content: flex-start;">
+                        <span class="theme-toggle-label">Paga</span>
+                        <input type="checkbox" id="expense-is-paid">
+                    </div>
                 </div>
                 <div id="expense-installment-preview" class="form-group hidden expense-installment-preview" aria-live="polite"></div>
                 <div class="form-actions">
@@ -1785,6 +1795,12 @@
                             <option value="1">Sim</option>
                         </select>
                     </div>
+                </div>
+                <div class="form-group form-group--checkbox" id="gain-is-received-row">
+                    <label class="form-checkbox-label">
+                        <input type="checkbox" id="gain-is-received" checked>
+                        <span>Já recebi na conta (marca a entrada como recebida)</span>
+                    </label>
                 </div>
                 <div class="form-actions">
                     <button type="submit" class="btn-primary"><span>Salvar</span></button>

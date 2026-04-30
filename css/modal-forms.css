@@ -342,6 +342,30 @@
     margin-bottom: 0;
 }
 
+#gain-form #gain-is-received-row.form-group--checkbox {
+    margin-bottom: 0.75rem;
+}
+
+#gain-form .form-checkbox-label {
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+    font-size: 0.9rem;
+    text-transform: none;
+    letter-spacing: normal;
+    font-weight: 500;
+    color: var(--text-color);
+    cursor: pointer;
+    margin-bottom: 0;
+}
+
+#gain-form .form-checkbox-label input[type='checkbox'] {
+    margin-top: 0.2rem;
+    min-height: auto;
+    width: auto;
+    accent-color: var(--primary-color);
+}
+
 .modal-content .form-group {
     margin-bottom: 1.125rem;
 }

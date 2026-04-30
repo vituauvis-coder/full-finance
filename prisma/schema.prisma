@@ -141,6 +141,8 @@ model ExpenseSplitRequest {
   status                    String   @default("PENDING") @db.NVarChar(20)
   senderProofUrl            String?  @db.NVarChar(Max)
   createdGainId             String?
+  /** Parcelas da origem ao criar o pedido (espelha no destinatário se installment_count faltar na BD). */
+  sourceInstallmentCount    Int?
   createdAt                 DateTime @default(now())
   updatedAt                 DateTime @updatedAt
 
