@@ -40,7 +40,9 @@ let financialProgressionChart = null;
 let lastReportsLoadArgs = null;
 let reportsListenersBound = false;
 const ALL_CATEGORIES_FILTER_VALUE = '__all__';
-/** Após o utilizador mudar o período do painel, cartões e gráfico partilham o filtro até recarregar a página. */
+/** Eixo do fluxo mensal no painel: sempre os 12 meses do ano civil atual; o filtro de período altera só os cards. */
+const DASHBOARD_CHART_AXIS_PERIOD = 'current-year';
+/** Após o utilizador mudar o período do painel, os cartões passam a seguir o filtro até recarregar a página. */
 let dashboardPeriodLinked = false;
 
 function isDashboardPeriodLinked() {
@@ -241,11 +243,10 @@ export async function loadReportsData(
     if (!periodFilter) return;
 
     const now = new Date();
-    const chartPeriod = periodFilter.value;
-    const cardPeriod = isDashboardPeriodLinked() ? chartPeriod : getDefaultPeriodValue(now);
+    const cardPeriod = isDashboardPeriodLinked() ? periodFilter.value : getDefaultPeriodValue(now);
 
     const allExpensesForCategoryChart = mapExpensesToPeriodContributions(
-        chartPeriod,
+        DASHBOARD_CHART_AXIS_PERIOD,
         userExpenses,
         userAccounts,
         now,
@@ -263,18 +264,19 @@ export async function loadReportsData(
         userCurrency,
         userProfile,
         outgoingAcceptedSplits,
-        { chartPeriodForTitles: chartPeriod }
+        { chartPeriodForTitles: DASHBOARD_CHART_AXIS_PERIOD }
     );
 
     renderUnifiedFinancialChart(
-        chartPeriod,
+        DASHBOARD_CHART_AXIS_PERIOD,
         categoryScopedExpenses,
         gainsForTotals,
         userAccounts,
         userInvestments,
         userCurrency,
         userProfile,
-        outgoingAcceptedSplits
+        outgoingAcceptedSplits,
+        cardPeriod
     );
 
     const catSel = document.getElementById('category-filter');
@@ -283,6 +285,20 @@ export async function loadReportsData(
         const v = catSel.value;
         dashFiltBtn.classList.toggle('filter-drawer-trigger--active', Boolean(v) && v !== '__all__');
     }
+}
+
+/** Sincroniza o filtro de período do painel com um mês do grafo (Janeiro … Dezembro do ano do eixo). */
+function applyDashboardPeriodFromChartMonth(monthsForAxis, dataIndex) {
+    if (!monthsForAxis || dataIndex == null || dataIndex < 0 || dataIndex >= monthsForAxis.length) return;
+    if (!lastReportsLoadArgs) return;
+    const mo = monthsForAxis[dataIndex];
+    const periodValue = `month-${Math.min(11, Math.max(0, mo.start.getMonth()))}`;
+    const sel = document.getElementById('period-filter');
+    if (!sel?.querySelector(`option[value="${periodValue}"]`)) return;
+    if (sel.value === periodValue) return;
+    sel.value = periodValue;
+    markDashboardPeriodLinked();
+    void loadReportsData(...lastReportsLoadArgs);
 }
 
 function monthKeyFromMonthObj(mo) {
@@ -862,7 +878,19 @@ function pointBorderColorsForProjection(baseColor, projectionFlags) {
     return projectionFlags.map((pf) => (pf ? colorWithAlpha(baseColor, 0.82) : baseColor));
 }
 
-/** Faixa suave atrás do mês civil atual (modo colunas). */
+/**
+ * Índice no eixo (0…n-1) do mês destacado quando o painel está num período `month-*` do mesmo ano dos meses desenhados.
+ * Caso contrário, sem destaque (‑1).
+ */
+function resolveDashboardChartEmphasisMonthIndex(periodFilterValue, chartMonths) {
+    const monthMatch = /^month-(\d+)$/.exec(periodFilterValue || '');
+    if (!monthMatch || !chartMonths?.length) return -1;
+    const mi = Math.min(11, Math.max(0, parseInt(monthMatch[1], 10)));
+    const axisYear = chartMonths[0].start.getFullYear();
+    return chartMonths.findIndex((mo) => mo.start.getMonth() === mi && mo.start.getFullYear() === axisYear);
+}
+
+/** Faixa suave atrás do mês em destaque no painel (alinha aos cards quando o período é um mês). */
 function createCurrentMonthBandPlugin(enabled, monthIndex, monthCount) {
     return {
         id: 'dashboardCurrentMonthBand',
@@ -928,6 +956,7 @@ function sumOutflowsForCalendarMonth(
 
 /**
  * Um gráfico: total gasto, total ganhos, investimento (posição atual) e saldo em contas (igual ao card Saldo total).
+ * `dashboardHighlightPeriod` combina com os cards (`month-*` → destaque na coluna correspondente ao ano do eixo).
  */
 function renderUnifiedFinancialChart(
     period,
@@ -937,10 +966,13 @@ function renderUnifiedFinancialChart(
     userInvestments,
     userCurrency,
     userProfile = null,
-    splitRequests = null
+    splitRequests = null,
+    dashboardHighlightPeriod = ''
 ) {
     const canvas = document.getElementById('financial-progression-chart');
     if (!canvas) return;
+
+    canvas.setAttribute('title', 'Clique num mês para filtrar os cards pelo período desse mês');
 
     const now = new Date();
     let { startDate, endDate } = getPeriodDateBounds(period, now);
@@ -980,7 +1012,7 @@ function renderUnifiedFinancialChart(
     const sobraPosColor = '#10b981';
     const sobraNegColor = '#f43f5e';
 
-    const currentMonthIdx = months.findIndex((mo) => isCurrentMonthObj(mo, now));
+    const emphasisMonthIdx = resolveDashboardChartEmphasisMonthIndex(dashboardHighlightPeriod, months);
 
     const pointRadiusProj = projectionFlags.map((pf) => (pf ? 3 : 4));
 
@@ -990,7 +1022,7 @@ function renderUnifiedFinancialChart(
     const areaMode = finTypePref === 'area';
 
     const barMonthOpacity = (i) => {
-        if (currentMonthIdx >= 0 && i === currentMonthIdx) return 1;
+        if (emphasisMonthIdx >= 0 && i === emphasisMonthIdx) return 1;
         if (projectionFlags[i]) return 0.58;
         return 0.38;
     };
@@ -1132,6 +1164,15 @@ function renderUnifiedFinancialChart(
             responsive: true,
             maintainAspectRatio: false,
             interaction: { mode: 'index', intersect: false },
+            onClick: (_evt, els) => {
+                if (!els?.length) return;
+                const idx = els[0]?.index;
+                if (typeof idx !== 'number') return;
+                applyDashboardPeriodFromChartMonth(months, idx);
+            },
+            onHover: (_evt, els) => {
+                canvas.style.cursor = els?.length ? 'pointer' : 'default';
+            },
             datasets: barMode
                 ? {
                       bar: {
@@ -1193,7 +1234,7 @@ function renderUnifiedFinancialChart(
                             const i = ctx.index;
                             const labelsArr = ctx.chart.data.labels;
                             if (i < 0 || i >= labelsArr.length) return tick;
-                            if (currentMonthIdx >= 0 && i === currentMonthIdx) {
+                            if (emphasisMonthIdx >= 0 && i === emphasisMonthIdx) {
                                 return isDarkTheme() ? '#f1f5f9' : '#0f172a';
                             }
                             if (projectionFlags[i]) return colorWithAlpha(tick, 0.72);
@@ -1233,7 +1274,7 @@ function renderUnifiedFinancialChart(
             }
         },
         plugins: [
-            createCurrentMonthBandPlugin(barMode, currentMonthIdx, months.length),
+            createCurrentMonthBandPlugin(barMode, emphasisMonthIdx, months.length),
             ...(!barMode ? [createFinancialPointValueLabelsPlugin(userCurrency, labels.length)] : [])
         ]
     });
