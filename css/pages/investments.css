@@ -14,9 +14,9 @@
     --inv-badge-bg: rgba(255, 255, 255, 0.92);
     --inv-badge-fg: #334155;
     --inv-action-fg: rgba(15, 23, 42, 0.55);
-    --inv-a: #ede9fe;
-    --inv-b: #8b5cf6;
-    --inv-c: #5b21b6;
+    --inv-a: #f8fafc;
+    --inv-b: #94a3b8;
+    --inv-c: #475569;
     --inv-bar: rgba(255, 255, 255, 0.52);
     --inv-grid: rgba(255, 255, 255, 0.14);
     --inv-trend: rgba(255, 255, 255, 0.42);
@@ -40,15 +40,15 @@
 
 /* Paletas por categoria de ativo */
 .investment-card--cat-acao {
-    --inv-a: #eef2ff;
-    --inv-b: #6366f1;
-    --inv-c: #312e81;
+    --inv-a: #dbeafe;
+    --inv-b: #2563eb;
+    --inv-c: #1e3a8a;
 }
 
 .investment-card--cat-fii {
-    --inv-a: #ccfbf1;
-    --inv-b: #14b8a6;
-    --inv-c: #115e59;
+    --inv-a: #f1f5f9;
+    --inv-b: #64748b;
+    --inv-c: #334155;
 }
 
 .investment-card--cat-renda-fixa {
@@ -58,9 +58,9 @@
 }
 
 .investment-card--cat-fundo {
-    --inv-a: #f3e8ff;
-    --inv-b: #a855f7;
-    --inv-c: #6b21a8;
+    --inv-a: #e0f2fe;
+    --inv-b: #0284c7;
+    --inv-c: #0c4a6e;
 }
 
 .investment-card--cat-cripto {

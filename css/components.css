@@ -254,8 +254,8 @@
 
 /* Estilo para mostrar arquivo selecionado */
 .file-input.has-file {
-    border-color: var(--secondary-color);
-    background-color: rgba(16, 185, 129, 0.05);
+    border-color: var(--primary-color);
+    background-color: rgba(51, 65, 85, 0.04);
 }
 
 /* Loading state */
@@ -502,7 +502,7 @@
 }
 
 .btn-action.btn-split:hover {
-    color: var(--primary-color);
+    color: var(--info-color);
 }
 
 /* Rateio de despesas — solicitações enviadas (pendentes) */
@@ -713,7 +713,7 @@ input.input-readonly-locked {
 }
 
 .fab-gain {
-    background-color: var(--secondary-color, #10b981);
+    background-color: var(--gains-accent, #10b981);
 }
 
 .fab-gain:hover {
@@ -897,11 +897,11 @@ input.input-readonly-locked {
 
 /* Toast Types */
 .toast.success {
-    border-left: 4px solid var(--secondary-color);
+    border-left: 4px solid var(--primary-color);
 }
 
 .toast.success .toast-icon {
-    color: var(--secondary-color);
+    color: var(--primary-color);
 }
 
 .toast.error {
@@ -992,6 +992,89 @@ input.input-readonly-locked {
 
 .feature-preview-global.hidden {
     display: none !important;
+}
+
+/* --- Barra de Filtros Rápidos --- */
+.quick-filters-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0 0 1.5rem 0;
+}
+
+.quick-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: transparent;
+    color: var(--text-light);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.quick-filter-btn:hover {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+
+.quick-filter-btn.active {
+    background-color: rgba(225, 29, 72, 0.12);
+    border-color: rgba(225, 29, 72, 0.35);
+    color: #e11d48;
+}
+
+.quick-filter-btn.active:hover {
+    background-color: rgba(225, 29, 72, 0.18);
+    border-color: rgba(225, 29, 72, 0.5);
+}
+
+#gains-page .quick-filter-btn.active {
+    background-color: rgba(16, 185, 129, 0.12);
+    border-color: rgba(16, 185, 129, 0.35);
+    color: #10b981;
+}
+
+#gains-page .quick-filter-btn.active:hover {
+    background-color: rgba(16, 185, 129, 0.18);
+    border-color: rgba(16, 185, 129, 0.5);
+}
+
+.quick-filter-btn i {
+    font-size: 0.85rem;
+    color: var(--text-light);
+}
+
+.quick-filter-btn:hover i {
+    color: var(--text-color);
+}
+
+.quick-filter-btn.active i {
+    color: #e11d48;
+}
+
+#gains-page .quick-filter-btn.active i {
+    color: #10b981;
+}
+
+@media (max-width: 640px) {
+    .quick-filters-bar {
+        gap: 0.5rem;
+    }
+
+    .quick-filter-btn {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8rem;
+        flex: 1 1 auto;
+        justify-content: center;
+    }
 }
 
 .feature-preview-global__backdrop {

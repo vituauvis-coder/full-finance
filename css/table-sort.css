@@ -25,12 +25,12 @@
 }
 
 .sortable-th__btn:hover {
-    background: rgba(124, 58, 237, 0.08);
-    color: var(--primary-color);
+    background: rgba(15, 23, 42, 0.055);
+    color: var(--text-color);
 }
 
 .sortable-th--active .sortable-th__btn {
-    color: var(--primary-color);
+    color: var(--text-color);
 }
 
 .sortable-th__icon {
@@ -44,11 +44,11 @@
 }
 
 [data-theme='dark'] .sortable-th__btn:hover {
-    background: rgba(167, 139, 250, 0.12);
+    background: rgba(255, 255, 255, 0.06);
 }
 
-/* Cabeçalho «Valor»: #expenses 8.ª col (após Fixa); #gains 6.ª col */
-#expenses-table thead th:nth-child(8) .sortable-th__btn,
+/* Cabeçalho «Valor»: #expenses 9.ª col (após Fixa+Status); #gains 6.ª col */
+#expenses-table thead th:nth-child(9) .sortable-th__btn,
 #gains-table thead th:nth-child(6) .sortable-th__btn {
     justify-content: flex-end;
     text-align: right;
@@ -66,8 +66,8 @@
     text-align: center;
 }
 
-/* Status (#expenses, 9.ª) */
-#expenses-table thead th:nth-child(9) .sortable-th__btn {
+/* Status (#expenses, 8.ª) */
+#expenses-table thead th:nth-child(8) .sortable-th__btn {
     justify-content: center;
     text-align: center;
 }

@@ -34,7 +34,7 @@
     color: var(--primary-color);
 }
 .card-icon.balance { color: var(--primary-color); }
-.card-icon.income { color: var(--secondary-color); }
+.card-icon.income { color: var(--gains-accent); }
 .card-icon.expense { color: var(--danger-color); }
 .card-icon.savings { color: var(--warning-color); }
 .card-icon.investments { color: var(--primary-color); }
@@ -188,14 +188,100 @@
     font-weight: 700;
 }
 
-/* Resumo nas páginas Despesas / Ganhos */
+/* Resumo nas páginas Despesas / Ganhos - Estilo escuro moderno */
 .movements-summary {
     margin-bottom: 1.75rem;
 }
 
+.movements-summary .card {
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    padding: 1.25rem 1.5rem;
+    box-shadow: none;
+}
+
+.movements-summary .card-icon {
+    width: 3.25rem;
+    height: 3.25rem;
+    min-width: 3.25rem;
+    min-height: 3.25rem;
+    border-radius: 12px;
+    background: var(--bg-color);
+    font-size: 1.35rem;
+    margin-right: 1rem;
+}
+
+.movements-summary .card-icon.expense {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--danger-color);
+}
+
+.movements-summary .card-icon.income {
+    background: rgba(16, 185, 129, 0.12);
+    color: var(--gains-accent);
+}
+
+.movements-summary .card-icon.balance {
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--info-color);
+}
+
+.movements-summary .card-icon.projection {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--warning-color);
+}
+
+.movements-summary .card-icon.investments {
+    background: rgba(51, 65, 85, 0.08);
+    color: var(--primary-color);
+}
+
+[data-theme='dark'] .movements-summary .card-icon.balance {
+    background: rgba(96, 165, 250, 0.14);
+}
+
+[data-theme='dark'] .movements-summary .card-icon.projection {
+    background: rgba(251, 191, 36, 0.12);
+}
+
+[data-theme='dark'] .movements-summary .card-icon.investments {
+    background: rgba(248, 250, 252, 0.08);
+}
+
 .movements-summary .card-content h3 {
-    font-size: 0.92rem;
-    line-height: 1.3;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+}
+
+.movements-summary .card-content p {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-color);
+    line-height: 1.2;
+}
+
+.movements-summary .card-content .dashboard-card-scope {
+    color: var(--text-light);
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.movements-summary .summary-mom-pct {
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.movements-summary .summary-mom-pct.positive {
+    color: #4ade80;
+}
+
+.movements-summary .summary-mom-pct.negative {
+    color: #f87171;
 }
 
 .card-metric-hint {
@@ -261,13 +347,13 @@
     margin-top: 0.1rem;
 }
 
-/* Bloco único: valor + data + descrição na mesma linha (evita grid no <li> quebrando em coluna em alguns layouts) */
+/* Valor | data | título — grid com colunas fixas: alinha títulos e separa visivelmente da data */
 #recent-activity-list li.recent-activity-item .recent-activity-main {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
+    display: grid;
+    grid-template-columns: minmax(8.25rem, 9.75rem) 6.125rem minmax(0, 1fr);
+    column-gap: 0.75rem;
+    row-gap: 0;
     align-items: baseline;
-    gap: 0.65rem;
     min-width: 0;
     flex: 1;
 }
@@ -276,9 +362,12 @@
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
-    flex: 0 0 auto;
     text-align: right;
-    min-width: 5.5rem;
+    justify-self: end;
+    min-width: 0;
+    padding-right: 0.125rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 #recent-activity-list li.recent-activity-item .recent-activity-date {
@@ -286,24 +375,29 @@
     color: var(--text-light);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
-    flex: 0 0 auto;
-    width: 5.25rem;
+    justify-self: start;
+    padding-right: 0.125rem;
 }
 
 #recent-activity-list li.recent-activity-item .recent-activity-desc {
+    grid-column: 3;
     min-width: 0;
-    flex: 1 1 auto;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    padding-left: 0.0625rem;
 }
 
 @media (max-width: 520px) {
     #recent-activity-list li.recent-activity-item .recent-activity-main {
+        display: flex;
         flex-wrap: wrap;
-        row-gap: 0.2rem;
+        align-items: baseline;
+        row-gap: 0.35rem;
+        column-gap: 0.65rem;
     }
     #recent-activity-list li.recent-activity-item .recent-activity-amount {
+        flex: 0 1 auto;
         min-width: 0;
     }
     #recent-activity-list li.recent-activity-item .recent-activity-desc {
@@ -313,15 +407,17 @@
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
+        padding-left: 0;
     }
 }
 
-/* --- Tabelas de despesas / ganhos (e legado transações) --- */
+/* --- Tabelas de despesas / ganhos (e legado transações) - Estilo flat --- */
 .table-container {
-    background-color: var(--bg-light);
-    border-radius: 12px;
-    box-shadow: var(--shadow);
+    background: var(--bg-light);
+    border-radius: 16px;
+    box-shadow: none;
     overflow-x: auto;
+    border: 1px solid var(--border-color);
 }
 
 #transactions-table,
@@ -329,7 +425,8 @@
 #gains-table,
 #debt-updates-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     table-layout: auto;
 }
 
@@ -341,7 +438,7 @@
 #gains-table td,
 #debt-updates-table th,
 #debt-updates-table td {
-    padding: 1rem;
+    padding: 0.875rem 1rem;
     text-align: left;
     border-bottom: 1px solid var(--border-color);
     vertical-align: middle;
@@ -353,34 +450,48 @@
 #gains-table th,
 #transactions-table th,
 #debt-updates-table th {
-    font-size: 0.85rem;
+    font-size: 0.7rem;
     text-transform: uppercase;
+    letter-spacing: 0.08em;
     color: var(--text-light);
     font-weight: 600;
+    background: transparent;
 }
 
-/* Cores para valores de ganho e despesa */
+#expenses-table tbody tr:hover,
+#gains-table tbody tr:hover {
+    background: var(--bg-color);
+}
+
+/* Cores para valores de ganho e despesa - estilo verde/vermelho vibrante */
 #gains-table td.receita {
-    color: var(--secondary-color);
-    font-weight: 600;
+    color: #4ade80;
+    font-weight: 700;
+    font-size: 0.95rem;
 }
 
 #expenses-table td.despesa {
-    color: var(--danger-color);
-    font-weight: 600;
+    color: #f87171;
+    font-weight: 700;
+    font-size: 0.95rem;
 }
 
 #expenses-table td.investimento {
-    color: var(--primary-color);
-    font-weight: 600;
+    color: var(--info-color);
+    font-weight: 700;
+    font-size: 0.95rem;
 }
 
-/* Valor (#expenses 8.ª após checklist+Fixa); #gains mantém na 6.ª */
-#expenses-table th:nth-child(8),
-#expenses-table td:nth-child(8),
+/* Valor (#expenses 9.ª após checklist+Fixa+Status); #gains mantém na 6.ª */
+#expenses-table th:nth-child(9),
+#expenses-table td:nth-child(9),
 #gains-table th:nth-child(6),
 #gains-table td:nth-child(6) {
     text-align: right;
+}
+
+#expenses-table td:nth-child(9) {
+    vertical-align: middle;
 }
 
 /* Fixa (#expenses, 7.ª) — pílulas Sim/Não */
@@ -419,8 +530,8 @@
     text-align: center;
 }
 
-/* Status (#expenses — 9.ª): pílulas alinhadas ao título centrado */
-#expenses-table td:nth-child(9).expenses-td-status {
+/* Status (#expenses — 8.ª): pílulas alinhadas ao título centrado */
+#expenses-table td:nth-child(8).expenses-td-status {
     text-align: center;
 }
 
@@ -452,21 +563,21 @@
 
 #expenses-table .expense-batch-check:hover,
 #expenses-table .expense-batch-check-all:hover {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+    border-color: var(--info-color);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.14);
 }
 
 #expenses-table .expense-batch-check:focus-visible,
 #expenses-table .expense-batch-check-all:focus-visible {
     outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.32);
+    border-color: var(--info-color);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.28);
 }
 
 #expenses-table .expense-batch-check:checked,
 #expenses-table .expense-batch-check-all:checked {
-    background: var(--primary-color);
-    border-color: var(--primary-color);
+    background: var(--info-color);
+    border-color: var(--info-color);
 }
 
 #expenses-table .expense-batch-check:checked::after,
@@ -485,8 +596,8 @@
 }
 
 #expenses-table .expense-batch-check-all:indeterminate {
-    background: rgba(124, 58, 237, 0.2);
-    border-color: var(--primary-color);
+    background: rgba(59, 130, 246, 0.18);
+    border-color: var(--info-color);
 }
 
 #expenses-table .expense-batch-check-all:indeterminate::after {
@@ -499,7 +610,7 @@
     margin-top: -1px;
     border: none;
     transform: none;
-    background: var(--primary-color);
+    background: var(--info-color);
     border-radius: 1px;
 }
 
@@ -511,7 +622,7 @@
 
 [data-theme='dark'] #expenses-table .expense-batch-check:checked,
 [data-theme='dark'] #expenses-table .expense-batch-check-all:checked {
-    border-color: #a78bfa;
+    border-color: #60a5fa;
 }
 
 #expenses-table label.expense-batch-head-hit {
@@ -528,7 +639,7 @@
 }
 
 #expenses-table label.expense-batch-head-hit:hover {
-    background: rgba(124, 58, 237, 0.1);
+    background: rgba(15, 23, 42, 0.06);
 }
 
 #expenses-table label.expense-batch-row-hit {
@@ -545,12 +656,12 @@
 }
 
 #expenses-table label.expense-batch-row-hit:hover {
-    background: rgba(124, 58, 237, 0.07);
+    background: rgba(15, 23, 42, 0.06);
 }
 
 [data-theme='dark'] #expenses-table label.expense-batch-head-hit:hover,
 [data-theme='dark'] #expenses-table label.expense-batch-row-hit:hover {
-    background: rgba(167, 139, 250, 0.12);
+    background: rgba(255, 255, 255, 0.06);
 }
 
 #gains-table th:nth-child(7),
@@ -572,6 +683,7 @@
     width: 1%;
     padding-top: 0.55rem;
     padding-bottom: 0.55rem;
+    text-align: center;
 }
 
 #gains-table tr.gain-tr-expected-split td:first-child {
@@ -592,10 +704,34 @@
     margin-right: 0;
 }
 
+.expense-split-amount-stack {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 0.05rem;
+    line-height: 1.15;
+    vertical-align: middle;
+}
+
+.expense-split-amount-stack .expense-split-net-amount {
+    font-weight: 700;
+    line-height: 1.15;
+}
+
+.expense-split-amount-stack .expense-split-gross-strike {
+    text-decoration: line-through;
+    opacity: 0.58;
+    font-size: 0.68rem;
+    font-weight: 500;
+    line-height: 1;
+    margin: 0;
+    white-space: nowrap;
+}
+
 .expense-split-gross-strike {
     text-decoration: line-through;
     opacity: 0.65;
-    margin-right: 0.35rem;
 }
 
 .expense-split-net-amount {
@@ -607,118 +743,150 @@
     width: 1%;
     padding-top: 0.55rem;
     padding-bottom: 0.55rem;
+    vertical-align: middle;
+    text-align: center;
 }
 
-/* Uma linha por parcela (período ≠ «este mês»): uma faixa roxa à esquerda da linha (não repetir em cada coluna) */
+/* Fixa + Status na tabela: mesma «caixa» (Sim/Não alinhado com Pago/Pendente; «Pagar» fica só na altura) */
+#expenses-table .expense-fixed-pill,
+#expenses-table .expense-status-badge:not(.expense-status-badge--pay) {
+    box-sizing: border-box;
+    font-size: 0.8rem;
+    font-weight: 700;
+    line-height: 1.25;
+    padding: 0.22rem 0.44rem;
+    border-radius: 6px;
+    min-height: 1.42rem;
+    min-width: 2.95rem;
+    text-align: center;
+}
+
+#expenses-table .expense-status-badge--pay {
+    box-sizing: border-box;
+    line-height: 1.25;
+    padding: 0.22rem 0.44rem;
+    min-height: 1.42rem;
+}
+
+#expenses-table button.expense-fixed-pill:disabled[aria-busy='true'],
+#expenses-table button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='true'] {
+    min-width: 2.95rem;
+    min-height: 1.42rem;
+}
+
+/* Uma linha por parcela: faixa à esquerda (azul neutro) */
 #expenses-table tr.expense-tr-installment td:nth-child(2) {
-    border-left: 3px solid rgba(124, 58, 237, 0.4);
+    border-left: 3px solid rgba(59, 130, 246, 0.45);
     padding-left: calc(1rem - 3px);
 }
 
-/* Coluna Status: só Pago (verde), Pendente (amarelo), Pagar! (ação) */
-.expense-status-badge {
-    display: inline-block;
-    font-size: 0.8rem;
-    font-weight: 700;
-    padding: 0.2rem 0.55rem;
-    border-radius: 6px;
-    line-height: 1.2;
+/* Coluna Status e Fixa: estilo moderno escuro com tags coloridas */
+.expense-status-badge,
+.expense-fixed-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.35rem 0.7rem;
+    border-radius: 20px;
+    line-height: 1;
     border: none;
     font-family: inherit;
+    white-space: nowrap;
 }
 
 .expense-status-badge--paid {
-    background: rgba(16, 185, 129, 0.22);
-    color: #047857;
+    background: rgba(74, 222, 128, 0.15);
+    color: #4ade80;
+    border: 1px solid rgba(74, 222, 128, 0.25);
 }
 
 .expense-status-badge--pending {
-    background: rgba(234, 179, 8, 0.35);
-    color: #a16207;
+    background: rgba(251, 146, 60, 0.15);
+    color: #fb923c;
+    border: 1px solid rgba(251, 146, 60, 0.25);
 }
 
 .expense-status-badge--pay {
-    background: rgba(124, 58, 237, 0.18);
-    color: var(--primary-color, #6d28d9);
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--info-color);
+    border: 1px solid rgba(59, 130, 246, 0.28);
     cursor: pointer;
 }
 
 .expense-status-badge--pay:hover {
-    filter: brightness(0.95);
+    background: rgba(59, 130, 246, 0.22);
 }
 
-[data-theme='dark'] .expense-status-badge--paid {
-    background: rgba(16, 185, 129, 0.2);
-    color: #6ee7b7;
-}
-
-[data-theme='dark'] .expense-status-badge--pending {
-    background: rgba(250, 204, 21, 0.2);
-    color: #fcd34d;
-}
-
-[data-theme='dark'] .expense-status-badge--pay {
-    background: rgba(167, 139, 250, 0.22);
-    color: #c4b5fd;
-}
-
-.expense-fixed-pill {
-    display: inline-block;
-    font-size: 0.8rem;
-    font-weight: 700;
-    padding: 0.2rem 0.52rem;
-    border-radius: 6px;
-    line-height: 1.2;
-}
-
-button.expense-fixed-pill {
+button.expense-status-badge:not(.expense-status-badge--pay) {
+    cursor: pointer;
     appearance: none;
     -webkit-appearance: none;
     margin: 0;
-    border: none;
-    font: inherit;
-    cursor: pointer;
     vertical-align: baseline;
 }
 
-button.expense-fixed-pill:disabled {
+button.expense-status-badge:not(.expense-status-badge--pay):disabled {
     opacity: 0.65;
     cursor: not-allowed;
 }
 
-button.expense-fixed-pill:disabled[aria-busy='true'] {
+button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='true'] {
     opacity: 1;
     cursor: wait;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 2.25rem;
-    min-height: 1.35rem;
+    min-width: 2.95rem;
+    min-height: 1.42rem;
 }
 
-button.expense-fixed-pill:focus-visible {
-    outline: 2px solid var(--primary-color);
-    outline-offset: 2px;
-}
-
+/* Fixa/Variável/Cartão - Tags estilo imagem de referência */
 .expense-fixed-pill--yes {
-    background: rgba(59, 130, 246, 0.2);
-    color: #1d4ed8;
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.expense-fixed-pill--yes::before {
+    content: '\f021';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    font-size: 0.7rem;
 }
 
 .expense-fixed-pill--no {
-    background: rgba(100, 116, 139, 0.14);
-    color: var(--text-light);
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.25);
 }
 
-[data-theme='dark'] .expense-fixed-pill--yes {
-    background: rgba(96, 165, 250, 0.2);
-    color: #93c5fd;
+.expense-fixed-pill--no::before {
+    content: '\f0e7';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    font-size: 0.7rem;
 }
 
-[data-theme='dark'] .expense-fixed-pill--no {
-    background: rgba(148, 163, 184, 0.14);
+/* Cartão de crédito tag — neutro (sem roxo) */
+.expense-tag-credit {
+    background: rgba(71, 85, 105, 0.11);
+    color: #475569;
+    border: 1px solid rgba(71, 85, 105, 0.22);
+}
+
+[data-theme='dark'] .expense-tag-credit {
     color: #cbd5e1;
+    background: rgba(148, 163, 184, 0.12);
+    border-color: rgba(148, 163, 184, 0.22);
+}
+
+.expense-tag-credit::before {
+    content: '\f09d';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    font-size: 0.7rem;
 }
 
 #expenses-table .expense-parcelas-tag {
@@ -729,8 +897,8 @@ button.expense-fixed-pill:focus-visible {
     font-weight: 600;
     vertical-align: middle;
     border-radius: 6px;
-    background: rgba(124, 58, 237, 0.12);
-    color: var(--primary-color);
+    background: rgba(71, 85, 105, 0.1);
+    color: var(--text-light);
 }
 
 /* Gráficos do dashboard (filtro de período + colunas / fluxo) */
@@ -756,6 +924,10 @@ button.expense-fixed-pill:focus-visible {
     line-height: 1.3;
 }
 
+.dashboard-reports-charts-grid--single .reports-chart-hint {
+    -webkit-line-clamp: 3;
+}
+
 .dashboard-reports-charts-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -766,6 +938,25 @@ button.expense-fixed-pill:focus-visible {
     /* Evita que filhos com altura % / canvas “vazem” e cubram o bloco seguinte no fluxo */
     position: relative;
     z-index: 0;
+}
+
+.dashboard-reports-charts-grid--single {
+    grid-template-columns: 1fr;
+    max-width: none;
+    width: 100%;
+}
+
+.dashboard-reports-section .reports-chart-container.dashboard-flux-chart-card {
+    border: 1px solid var(--border-color);
+    border-radius: 1rem;
+    box-shadow: var(--shadow);
+    background: color-mix(in srgb, var(--bg-light) 94%, var(--bg-dark) 6%);
+}
+
+[data-theme='dark'] .dashboard-reports-section .reports-chart-container.dashboard-flux-chart-card {
+    background: #171923;
+    border-color: rgba(30, 41, 59, 0.85);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
 }
 
 .dashboard-reports-charts-grid .reports-chart-container {
@@ -792,6 +983,12 @@ button.expense-fixed-pill:focus-visible {
     overflow: hidden;
 }
 
+.dashboard-reports-charts-grid--single .chart-wrapper--flux-full {
+    height: min(440px, 52vh);
+    min-height: 380px;
+    max-height: 520px;
+}
+
 /* Chart.js 4 usa a cor CSS do canvas como fallback da legenda; garante contraste no tema escuro */
 [data-theme='dark'] .dashboard-reports-charts-grid .chart-wrapper canvas {
     color: #e2e8f0;
@@ -805,7 +1002,7 @@ button.expense-fixed-pill:focus-visible {
 }
 
 @media (max-width: 960px) {
-    .dashboard-reports-charts-grid {
+    .dashboard-reports-charts-grid:not(.dashboard-reports-charts-grid--single) {
         grid-template-columns: 1fr;
     }
 }
@@ -820,8 +1017,12 @@ button.expense-fixed-pill:focus-visible {
     margin-bottom: 0.85rem;
     padding: 0.65rem 1rem;
     border-radius: 8px;
-    background: rgba(124, 58, 237, 0.08);
+    background: rgba(15, 23, 42, 0.035);
     border: 1px solid var(--border-color);
+}
+
+[data-theme='dark'] .expenses-batch-toolbar {
+    background: rgba(255, 255, 255, 0.04);
 }
 
 .expenses-batch-toolbar__text {
@@ -849,4 +1050,599 @@ button.expense-fixed-pill:focus-visible {
 .expenses-batch-toolbar__clear {
     font-size: 0.88rem;
     padding: 0.4rem 0.85rem;
+}
+
+/* ============================================================================
+   MAPA DE GASTOS (TREEMAP) - Estilo base.html
+   ============================================================================ */
+
+.treemap-container {
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 1.75rem;
+    box-shadow: none;
+}
+
+.treemap-header {
+    display: flex;
+    justify-content: flex-start;
+    align-items: flex-start;
+    margin-bottom: 1.25rem;
+    gap: 1rem;
+}
+
+.treemap-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--text-color);
+    margin-bottom: 0.35rem;
+}
+
+.treemap-subtitle {
+    font-size: 0.875rem;
+    color: var(--text-light);
+    margin: 0;
+}
+
+.treemap-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.treemap-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    color: var(--text-light);
+    font-weight: 500;
+    letter-spacing: 0.01em;
+}
+
+.treemap-legend-dot {
+    width: 0.625rem;
+    height: 0.625rem;
+    border-radius: 4px;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+[data-theme='dark'] .treemap-legend-dot {
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
+}
+
+/* Área do gráfico: sem painel escuro — o canvas usa fundo transparente. */
+.treemap-squarify-host {
+    position: relative;
+    width: 100%;
+    padding: 0;
+    box-sizing: border-box;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+}
+
+[data-theme='dark'] .treemap-squarify-host {
+    background: transparent;
+    border: none;
+}
+
+.treemap-squarify-host .treemap-chartjs-wrap {
+    position: relative;
+    width: 100%;
+    height: 400px;
+}
+
+/* ─── Painel de hover (subcategorias) ──────────────────────────────── */
+.treemap-chartjs-wrap {
+    position: relative;
+}
+
+.stm-hover-panel {
+    position: absolute;
+    z-index: 30;
+    pointer-events: none;
+    min-width: 230px;
+    max-width: 300px;
+    background: rgba(15, 23, 42, 0.97);
+    border: 1px solid rgba(71, 85, 105, 0.55);
+    border-radius: 12px;
+    padding: 0;
+    box-shadow:
+        0 4px 6px -1px rgba(0, 0, 0, 0.35),
+        0 16px 40px -8px rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(12px);
+    opacity: 0;
+    transform: scale(0.97);
+    transition: opacity 0.14s ease, transform 0.14s ease;
+    overflow: hidden;
+}
+
+.stm-hover-panel--visible {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.stm-header {
+    padding: 12px 14px 10px;
+    border-bottom: 1px solid rgba(71, 85, 105, 0.35);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.stm-cat-name {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #f1f5f9;
+    line-height: 1.3;
+}
+
+.stm-cat-total {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.stm-cat-pct {
+    font-size: 0.72rem;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+.stm-subs {
+    padding: 8px 0 6px;
+}
+
+.stm-row {
+    display: grid;
+    grid-template-columns: 48px 1fr auto auto;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 14px;
+    transition: background 0.1s;
+}
+
+.stm-row:hover {
+    background: rgba(71, 85, 105, 0.18);
+}
+
+.stm-bar-wrap {
+    height: 4px;
+    background: rgba(71, 85, 105, 0.3);
+    border-radius: 99px;
+    overflow: hidden;
+}
+
+.stm-bar {
+    height: 100%;
+    border-radius: 99px;
+    opacity: 0.85;
+}
+
+.stm-sub-name {
+    font-size: 0.78rem;
+    color: #cbd5e1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 110px;
+}
+
+.stm-sub-val {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #e2e8f0;
+    white-space: nowrap;
+    text-align: right;
+}
+
+.stm-sub-pct {
+    font-size: 0.72rem;
+    color: #64748b;
+    white-space: nowrap;
+    text-align: right;
+    min-width: 28px;
+}
+
+.stm-empty {
+    padding: 8px 14px;
+    font-size: 0.78rem;
+    color: #64748b;
+    margin: 0;
+}
+
+/* Tema claro */
+[data-theme]:not([data-theme='dark']) .stm-hover-panel {
+    background: rgba(255, 255, 255, 0.98);
+    border-color: rgba(71, 85, 105, 0.18);
+    box-shadow:
+        0 4px 6px -1px rgba(0, 0, 0, 0.08),
+        0 16px 40px -8px rgba(0, 0, 0, 0.14);
+}
+
+[data-theme]:not([data-theme='dark']) .stm-cat-name { color: #0f172a; }
+[data-theme]:not([data-theme='dark']) .stm-cat-total { color: #0f172a; }
+[data-theme]:not([data-theme='dark']) .stm-cat-pct { color: #64748b; }
+[data-theme]:not([data-theme='dark']) .stm-sub-name { color: #334155; }
+[data-theme]:not([data-theme='dark']) .stm-sub-val { color: #1e293b; }
+[data-theme]:not([data-theme='dark']) .stm-sub-pct { color: #94a3b8; }
+[data-theme]:not([data-theme='dark']) .stm-bar-wrap { background: rgba(71, 85, 105, 0.12); }
+[data-theme]:not([data-theme='dark']) .stm-header { border-color: rgba(71, 85, 105, 0.15); }
+
+.treemap-legend-hint {
+    opacity: 0.85;
+    font-size: 0.85em;
+}
+
+.treemap-squarify-host > .treemap-block {
+    position: absolute;
+    box-sizing: border-box;
+    min-width: 0;
+    min-height: 0;
+}
+
+.treemap-empty {
+    position: relative;
+    width: 100%;
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--text-light);
+    font-size: 0.9rem;
+}
+
+.treemap-block {
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: box-shadow 0.25s ease;
+    border: 1px solid transparent;
+    outline: none;
+}
+
+.treemap-block:hover,
+.treemap-block:focus-within {
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+    z-index: 10;
+}
+
+.treemap-block:focus-visible {
+    box-shadow: 0 0 0 2px var(--bg-color), 0 0 0 4px var(--primary-color, #334155);
+}
+
+/* Cores por categoria; posição = porcentagens (squarify no JS). */
+.treemap-block--casa {
+    background: linear-gradient(155deg, #3b82f6 0%, #2563eb 55%, #1d4ed8 100%);
+    border-color: rgba(37, 99, 235, 0.42);
+}
+
+.treemap-block--alimentacao {
+    background: linear-gradient(155deg, #34d399 0%, #10b981 45%, #059669 100%);
+    border-color: rgba(5, 150, 105, 0.42);
+}
+
+.treemap-block--investimentos {
+    background: linear-gradient(155deg, #fb7185 0%, #f43f5e 40%, #e11d48 100%);
+    border-color: rgba(225, 29, 72, 0.42);
+}
+
+.treemap-block--cuidados {
+    background: linear-gradient(155deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
+    border-color: rgba(217, 119, 6, 0.42);
+}
+
+.treemap-block--transporte {
+    background: linear-gradient(155deg, #22d3ee 0%, #06b6d4 45%, #0891b2 100%);
+    border-color: rgba(8, 145, 178, 0.42);
+}
+
+.treemap-block--outros {
+    background: linear-gradient(155deg, #94a3b8 0%, #64748b 40%, #475569 100%);
+    border-color: rgba(71, 85, 105, 0.42);
+}
+
+/* Camada resumo / expandido (como base.html: troca no hover) */
+.treemap-block-summary {
+    position: absolute;
+    inset: 0;
+    padding: 1rem;
+    z-index: 1;
+    display: block;
+    transition: opacity 0.3s ease;
+    color: #fff;
+}
+
+.treemap-block:hover .treemap-block-summary,
+.treemap-block:focus-within .treemap-block-summary {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.treemap-block-title {
+    display: block;
+    font-weight: 700;
+    font-size: 1.05rem;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+.treemap-block-title--large {
+    font-size: 1.2rem;
+}
+
+.treemap-block-title--small {
+    font-size: 0.88rem;
+}
+
+.treemap-block-title-hint {
+    font-size: 0.72em;
+    font-weight: 700;
+    opacity: 0.88;
+}
+
+.treemap-block-summary-badge {
+    position: absolute;
+    bottom: 1rem;
+    right: 1rem;
+    font-weight: 700;
+    font-size: 0.82rem;
+    background: rgba(0, 0, 0, 0.22);
+    padding: 0.35rem 0.65rem;
+    border-radius: 8px;
+    backdrop-filter: blur(6px);
+    white-space: nowrap;
+}
+
+.treemap-block-expanded {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    opacity: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.45rem 0.5rem;
+    transition: opacity 0.3s ease;
+    color: #fff;
+    /* Garante leitura sobre o gradiente do bloco com overlay mais claro */
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+}
+
+.treemap-block:hover .treemap-block-expanded,
+.treemap-block:focus-within .treemap-block-expanded {
+    opacity: 1;
+    z-index: 2;
+}
+
+.treemap-expanded-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+    padding: 0.15rem 0.35rem 0.4rem;
+    border-bottom: 1px solid var(--treemap-hdr-border, rgba(255, 255, 255, 0.2));
+    margin-bottom: 0.15rem;
+}
+
+.treemap-expanded-header-title {
+    font-weight: 800;
+    font-size: 0.92rem;
+    letter-spacing: 0.01em;
+    color: #ffffff;
+    opacity: 1;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55), 0 0 20px rgba(0, 0, 0, 0.2);
+}
+
+.treemap-expanded-header-total {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #f8fafc;
+    opacity: 1;
+    white-space: nowrap;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.treemap-expanded-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.treemap-block--outros .treemap-expanded-body {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.treemap-expanded-empty {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #ffffff;
+    opacity: 1;
+    padding: 0.5rem;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+/* Subcélulas */
+.treemap-subcell {
+    position: relative;
+    border-radius: 6px;
+    padding: 0.45rem 0.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 0;
+    box-sizing: border-box;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+}
+
+.treemap-subcell-pct {
+    position: absolute;
+    top: 0.35rem;
+    right: 0.4rem;
+    font-size: 0.68rem;
+    font-weight: 800;
+    color: #ffffff;
+    opacity: 1;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+.treemap-subcell-name {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.25;
+    padding-right: 1.5rem;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.treemap-subcell-name--compact {
+    font-size: 0.72rem;
+}
+
+.treemap-subcell-val {
+    font-size: 0.92rem;
+    font-weight: 800;
+    margin-top: 0.25rem;
+    color: #ffffff;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+
+.treemap-subcell-val--compact {
+    font-size: 0.78rem;
+}
+
+.treemap-subcell--wide {
+    min-width: 0;
+}
+
+.treemap-subcell--stack {
+    min-height: 0;
+}
+
+/* Layout tipo “Casa”: maior à esquerda + coluna à direita */
+.treemap-expanded-casa {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    gap: 0.35rem;
+}
+
+.treemap-expanded-casa--single .treemap-subcell {
+    flex: 1;
+}
+
+.treemap-expanded-casa--two .treemap-subcell {
+    flex: 1 1 0%;
+}
+
+.treemap-expanded-casa--nested .treemap-casa-left {
+    flex: 3 1 0%;
+    min-width: 0;
+    display: flex;
+}
+
+.treemap-expanded-casa--nested .treemap-casa-left .treemap-subcell {
+    flex: 1;
+}
+
+.treemap-expanded-casa--nested .treemap-casa-right {
+    flex: 2 1 0%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.treemap-casa-right-top {
+    flex: 1 1 0%;
+    min-height: 0;
+    display: flex;
+}
+
+.treemap-casa-right-top .treemap-subcell {
+    flex: 1;
+}
+
+.treemap-casa-right-bottom {
+    flex: 1 1 0%;
+    min-height: 0;
+    display: flex;
+    gap: 0.35rem;
+}
+
+.treemap-casa-right-bottom--single .treemap-subcell {
+    flex: 1;
+}
+
+.treemap-casa-right-bottom .treemap-subcell {
+    flex: 1 1 0%;
+}
+
+/* Faixas horizontais (Alimentação / Investimentos) */
+.treemap-expanded-wide {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: row;
+    gap: 0.35rem;
+    align-items: stretch;
+}
+
+/* Coluna compacta (Cuidados / Transporte) */
+.treemap-expanded-compact {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+/* Responsividade do Treemap */
+@media (max-width: 768px) {
+    .treemap-squarify-host {
+        min-height: unset;
+        padding-bottom: 0.25rem;
+    }
+
+    .treemap-squarify-host .treemap-chartjs-wrap {
+        height: 300px;
+    }
+
+    .treemap-squarify-host > .treemap-block {
+        position: relative !important;
+        left: auto !important;
+        top: auto !important;
+        width: 100% !important;
+        height: auto !important;
+        min-height: 4.5rem;
+        margin-bottom: 0.35rem;
+    }
+
+    .treemap-header {
+        flex-direction: column;
+    }
+
+    .treemap-legend {
+        width: 100%;
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 480px) {
+    .treemap-container {
+        padding: 1rem;
+    }
+
+    .treemap-squarify-host > .treemap-block {
+        min-height: 3.75rem;
+    }
 }

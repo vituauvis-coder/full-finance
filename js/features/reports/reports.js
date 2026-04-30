@@ -18,7 +18,11 @@ import {
     shouldDeferCashOutForMonthlyFixedSeries
 } from '../../core/credit-installments.js';
 import { getTotalInvestedSum } from '../investments/investments.js';
-import { getPeriodDateBounds, getPeriodTitleParts } from '../../core/period-filters.js';
+import {
+    getDefaultPeriodValue,
+    getPeriodDateBounds,
+    getPeriodTitleParts
+} from '../../core/period-filters.js';
 import {
     enumerateCalendarMonths,
     isProjectionMonth,
@@ -31,46 +35,20 @@ import {
     isAcceptedSettledSplitRequest,
     isSplitReimbursementGain
 } from '../../core/split-net.js';
-let reportsChart = null;
+import { setMovementSummaryMomVariation } from '../../core/movement-summary-variation.js';
 let financialProgressionChart = null;
 let lastReportsLoadArgs = null;
 let reportsListenersBound = false;
 const ALL_CATEGORIES_FILTER_VALUE = '__all__';
+/** Após o utilizador mudar o período do painel, cartões e gráfico partilham o filtro até recarregar a página. */
+let dashboardPeriodLinked = false;
 
-/** Rótulos de total no topo das colunas empilhadas (uma categoria por coluna). */
-function createStackedBarTotalsPlugin(userCurrency) {
-    return {
-        id: 'reportsStackedBarCategoryTotals',
-        afterDatasetsDraw(chart) {
-            if (chart.config.type !== 'bar') return;
-            const xScale = chart.scales.x;
-            const yScale = chart.scales.y;
-            if (!xScale || !yScale) return;
-            const { ctx, data } = chart;
-            const labels = data.labels || [];
-            if (!labels.length) return;
+function isDashboardPeriodLinked() {
+    return dashboardPeriodLinked;
+}
 
-            const { tick } = getChartAxisColors();
-            ctx.save();
-            ctx.font = '600 11px system-ui, -apple-system, Segoe UI, sans-serif';
-            ctx.fillStyle = tick;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'bottom';
-
-            for (let i = 0; i < labels.length; i++) {
-                let sum = 0;
-                for (const ds of data.datasets) {
-                    const v = ds.data[i];
-                    if (v != null && !Number.isNaN(Number(v))) sum += Number(v);
-                }
-                if (sum <= 0) continue;
-                const xPos = xScale.getPixelForTick(i);
-                const yTop = yScale.getPixelForValue(sum);
-                ctx.fillText(formatCurrency(sum, userCurrency), xPos, yTop - 5);
-            }
-            ctx.restore();
-        }
-    };
+function markDashboardPeriodLinked() {
+    dashboardPeriodLinked = true;
 }
 
 /**
@@ -84,6 +62,7 @@ function createFinancialPointValueLabelsPlugin(userCurrency, monthCount) {
             if (chart.config.type !== 'line') return;
             if (monthCount > maxMonths) return;
             const { ctx, data } = chart;
+            const { tick: tickColor } = getChartAxisColors();
 
             ctx.save();
             ctx.font = '500 10px system-ui, -apple-system, Segoe UI, sans-serif';
@@ -99,7 +78,7 @@ function createFinancialPointValueLabelsPlugin(userCurrency, monthCount) {
                         ? ds.borderColor
                         : Array.isArray(ds.borderColor)
                           ? ds.borderColor[0]
-                          : tick;
+                          : tickColor;
                 ctx.fillStyle = color;
 
                 const pts = meta.data || [];
@@ -118,7 +97,6 @@ function createFinancialPointValueLabelsPlugin(userCurrency, monthCount) {
     };
 }
 
-const REPORTS_CHART_PREF_KEY_EXPENSES = 'reports.chartType.expensesByCategory';
 const REPORTS_CHART_PREF_KEY_FIN = 'reports.chartType.financialProgression';
 
 function safeLocalStorageGet(key, fallback = '') {
@@ -139,29 +117,23 @@ function safeLocalStorageSet(key, value) {
 }
 
 function getChartTypePreference(chartKey) {
-    if (chartKey === 'expensesByCategory') {
-        const v = safeLocalStorageGet(REPORTS_CHART_PREF_KEY_EXPENSES, 'bar');
-        return v === 'pie' || v === 'bar' || v === 'treemap' ? v : 'bar';
-    }
     if (chartKey === 'financialProgression') {
-        const v = safeLocalStorageGet(REPORTS_CHART_PREF_KEY_FIN, 'line');
-        // 'area' foi removido; se estiver salvo, volta para 'line'
-        return v === 'line' || v === 'bar' ? v : 'line';
+        const v = safeLocalStorageGet(REPORTS_CHART_PREF_KEY_FIN, 'bar');
+        return v === 'line' || v === 'bar' ? v : 'bar';
     }
-    return '';
+    return 'bar';
 }
 
 function setChartTypePreference(chartKey, type) {
-    if (chartKey === 'expensesByCategory') {
-        safeLocalStorageSet(REPORTS_CHART_PREF_KEY_EXPENSES, type);
-    } else if (chartKey === 'financialProgression') {
+    if (chartKey === 'financialProgression') {
         safeLocalStorageSet(REPORTS_CHART_PREF_KEY_FIN, type);
     }
 }
 
 function syncChartTypeToggleUI(chartKey) {
-    const activeType = getChartTypePreference(chartKey);
-    document.querySelectorAll(`.chart-type-btn[data-chart="${chartKey}"]`).forEach((btn) => {
+    if (chartKey !== 'financialProgression') return;
+    const activeType = getChartTypePreference('financialProgression');
+    document.querySelectorAll('.chart-type-btn[data-chart="financialProgression"]').forEach((btn) => {
         const t = btn?.dataset?.type;
         btn.classList.toggle('is-active', t === activeType);
     });
@@ -182,7 +154,6 @@ function ensureChartTypeTogglesBound() {
         if (lastReportsLoadArgs) void loadReportsData(...lastReportsLoadArgs);
     });
 
-    syncChartTypeToggleUI('expensesByCategory');
     syncChartTypeToggleUI('financialProgression');
 }
 
@@ -191,6 +162,7 @@ function ensureReportsListeners() {
     reportsListenersBound = true;
     ensureChartTypeTogglesBound();
     document.getElementById('period-filter')?.addEventListener('change', () => {
+        markDashboardPeriodLinked();
         if (lastReportsLoadArgs) void loadReportsData(...lastReportsLoadArgs);
     });
     document.getElementById('category-filter')?.addEventListener('change', () => {
@@ -268,10 +240,12 @@ export async function loadReportsData(
     const periodFilter = document.getElementById('period-filter');
     if (!periodFilter) return;
 
-    const selectedPeriod = periodFilter.value;
     const now = new Date();
+    const chartPeriod = periodFilter.value;
+    const cardPeriod = isDashboardPeriodLinked() ? chartPeriod : getDefaultPeriodValue(now);
+
     const allExpensesForCategoryChart = mapExpensesToPeriodContributions(
-        selectedPeriod,
+        chartPeriod,
         userExpenses,
         userAccounts,
         now,
@@ -280,36 +254,20 @@ export async function loadReportsData(
     );
     const selectedCategory = refreshCategoryFilterOptions(allExpensesForCategoryChart);
     const categoryScopedExpenses = filterExpensesByCategory(userExpenses, selectedCategory);
-    // Para «Saídas por categoria», o período deve refletir a contribuição no mês (vencimentos)
-    // — especialmente importante para cartão parcelado (mês passado não usa a data da compra).
-    const expensesForCategoryChart = mapExpensesToPeriodContributions(
-        selectedPeriod,
-        categoryScopedExpenses,
-        userAccounts,
-        now,
-        userProfile,
-        outgoingAcceptedSplits
-    );
-    const expensesByCategory = aggregateExpensesByCategory(expensesForCategoryChart);
 
     await updateDashboardCardsAndTitlesForPeriod(
-        selectedPeriod,
+        cardPeriod,
         userExpenses,
         gainsForTotals,
         userAccounts,
         userCurrency,
         userProfile,
-        outgoingAcceptedSplits
+        outgoingAcceptedSplits,
+        { chartPeriodForTitles: chartPeriod }
     );
 
-    if (Object.keys(expensesByCategory).length === 0) {
-        showEmptyReportsState();
-    } else {
-        renderReportsChart(expensesForCategoryChart, userCurrency, selectedCategory);
-    }
-
     renderUnifiedFinancialChart(
-        selectedPeriod,
+        chartPeriod,
         categoryScopedExpenses,
         gainsForTotals,
         userAccounts,
@@ -318,6 +276,13 @@ export async function loadReportsData(
         userProfile,
         outgoingAcceptedSplits
     );
+
+    const catSel = document.getElementById('category-filter');
+    const dashFiltBtn = document.getElementById('dashboard-filter-open-btn');
+    if (dashFiltBtn && catSel) {
+        const v = catSel.value;
+        dashFiltBtn.classList.toggle('filter-drawer-trigger--active', Boolean(v) && v !== '__all__');
+    }
 }
 
 function monthKeyFromMonthObj(mo) {
@@ -330,6 +295,63 @@ function monthKeyFromDate(d) {
 
 function isCurrentMonthObj(mo, now = new Date()) {
     return mo.start.getFullYear() === now.getFullYear() && mo.start.getMonth() === now.getMonth();
+}
+
+/** Limites do mês civil anterior ao de `selStart` (primeiro dia … último segundo). */
+function dashboardPrevCalendarMonthBounds(selStart) {
+    const prevStart = new Date(selStart.getFullYear(), selStart.getMonth() - 1, 1);
+    const prevEnd = new Date(selStart.getFullYear(), selStart.getMonth(), 0, 23, 59, 59, 999);
+    return { prevStart, prevEnd };
+}
+
+function sumOutflowsClosedRange(startDate, endDate, userExpenses, userAccounts, now, userProfile, splitRequests) {
+    if (startDate > endDate) return 0;
+    return enumerateCalendarMonths(startDate, endDate).reduce((sum, mo) => {
+        const proj = isProjectionMonth(mo, now);
+        return (
+            sum +
+            (proj
+                ? sumOutflowsProjectedForCalendarMonth(
+                      mo,
+                      userExpenses,
+                      userAccounts,
+                      now,
+                      userProfile,
+                      splitRequests
+                  )
+                : sumOutflowsForCalendarMonth(
+                      mo,
+                      userExpenses,
+                      userAccounts,
+                      now,
+                      userProfile,
+                      splitRequests
+                  ))
+        );
+    }, 0);
+}
+
+/** Entradas − saídas no mês civil (`mo`), mesma regra de projeção de saídas do painel. */
+function dashboardLiquidoMesCivil(mo, userGains, userExpenses, userAccounts, now, userProfile, splitRequests) {
+    const g = sumMovementsInRange(userGains || [], mo.start, mo.end);
+    const o = isProjectionMonth(mo, now)
+        ? sumOutflowsProjectedForCalendarMonth(
+              mo,
+              userExpenses,
+              userAccounts,
+              now,
+              userProfile,
+              splitRequests
+          )
+        : sumOutflowsForCalendarMonth(
+              mo,
+              userExpenses,
+              userAccounts,
+              now,
+              userProfile,
+              splitRequests
+          );
+    return g - o;
 }
 
 function endOfDay(d) {
@@ -560,34 +582,37 @@ async function updateDashboardCardsAndTitlesForPeriod(
     userAccounts,
     userCurrency,
     userProfile = null,
-    splitRequests = null
+    splitRequests = null,
+    { chartPeriodForTitles } = {}
 ) {
     const now = new Date();
     const parts = getPeriodTitleParts(period, now);
+    const chartTitleParts = getPeriodTitleParts(chartPeriodForTitles ?? period, now);
+    const isSingleMonth = /^month-\d+$/.test(period || '');
+    const { startDate: dashStart, endDate: dashEnd } = getPeriodDateBounds(period, now);
+    const prevBounds = isSingleMonth ? dashboardPrevCalendarMonthBounds(dashStart) : null;
 
-    // Títulos dos cards e dos gráficos (período alinhado ao filtro)
+    // Títulos dos cards (período dos cartões)
     if (parts.kind === 'year') {
         setTextIfExists('dashboard-balance-title', `Saldo de ${parts.label}`);
         setTextIfExists('monthly-expenses-title', `Saídas de ${parts.label}`);
         setTextIfExists('monthly-income-title', `Entradas de ${parts.label}`);
         setTextIfExists('dashboard-projection-title', `Projeção de ${parts.label}`);
-        setTextIfExists('reports-chart-title', `Distribuição das saídas de ${parts.label}`);
-        setTextIfExists('financial-progression-title', `Fluxo mensal e patrimônio de ${parts.label}`);
     } else if (parts.kind === 'month') {
         setTextIfExists('dashboard-balance-title', `Saldo de ${parts.label}`);
         setTextIfExists('monthly-expenses-title', `Saídas de ${parts.label}`);
         setTextIfExists('monthly-income-title', `Entradas de ${parts.label}`);
         setTextIfExists('dashboard-projection-title', `Projeção de ${parts.label}`);
-        setTextIfExists('reports-chart-title', `Distribuição das saídas de ${parts.label}`);
-        setTextIfExists('financial-progression-title', `Fluxo mensal e patrimônio de ${parts.label}`);
     } else {
         setTextIfExists('dashboard-balance-title', `Saldo · ${parts.label}`);
         setTextIfExists('monthly-expenses-title', `Saídas · ${parts.label}`);
         setTextIfExists('monthly-income-title', `Entradas · ${parts.label}`);
         setTextIfExists('dashboard-projection-title', `Projeção · ${parts.label}`);
-        setTextIfExists('reports-chart-title', `Distribuição das saídas de ${parts.label}`);
-        setTextIfExists('financial-progression-title', `Fluxo mensal e patrimônio de ${parts.label}`);
     }
+    setTextIfExists(
+        'financial-progression-title',
+        `Fluxo mensal (Entradas, Saídas e Saldo) · ${chartTitleParts.label}`
+    );
 
     // Valores dos cards respondendo ao período do filtro
     const income = sumGainsForPeriod(period, userGains);
@@ -595,20 +620,51 @@ async function updateDashboardCardsAndTitlesForPeriod(
     setTextIfExists('monthly-income', formatCurrency(income, userCurrency));
     setTextIfExists('monthly-expenses', formatCurrency(out, userCurrency));
 
+    const incomePrev =
+        prevBounds && prevBounds.prevStart <= prevBounds.prevEnd
+            ? sumMovementsInRange(userGains || [], prevBounds.prevStart, prevBounds.prevEnd)
+            : 0;
+    const outPrev =
+        prevBounds && prevBounds.prevStart <= prevBounds.prevEnd
+            ? sumOutflowsClosedRange(
+                  prevBounds.prevStart,
+                  prevBounds.prevEnd,
+                  userExpenses,
+                  userAccounts,
+                  now,
+                  userProfile,
+                  splitRequests
+              )
+            : 0;
+
+    setMovementSummaryMomVariation(
+        document.getElementById('monthly-income-variation'),
+        income,
+        incomePrev,
+        isSingleMonth,
+        false
+    );
+    setMovementSummaryMomVariation(
+        document.getElementById('monthly-expenses-variation'),
+        out,
+        outPrev,
+        isSingleMonth,
+        true
+    );
+
     // Fluxo líquido (entradas − saídas): meses futuros + mês corrente no filtro; mesma regra do gráfico «Sobra» / dataSobraMes.
-    // Mês atual: entradas no intervalo + saídas do mês civil completo (`sumOutflowsForCalendarMonth`). Meses futuros: saídas projetadas.
+    let dashNetProj = 0;
+    let dashAnyProj = false;
     {
         let { startDate, endDate } = getPeriodDateBounds(period, now);
         if (startDate > endDate) {
             setTextIfExists('dashboard-projection-total', '—');
         } else {
-            let netProj = 0;
-            let anyProj = false;
             for (const mo of enumerateCalendarMonths(startDate, endDate)) {
                 const useProj =
                     isProjectionMonth(mo, now) || isCurrentMonthObj(mo, now);
                 if (!useProj) continue;
-                anyProj = true;
+                dashAnyProj = true;
                 const gains = sumMovementsInRange(userGains || [], mo.start, mo.end);
                 const outflows = isProjectionMonth(mo, now)
                     ? sumOutflowsProjectedForCalendarMonth(
@@ -627,31 +683,64 @@ async function updateDashboardCardsAndTitlesForPeriod(
                           userProfile,
                           splitRequests
                       );
-                netProj += gains - outflows;
+                dashNetProj += gains - outflows;
             }
             setTextIfExists(
                 'dashboard-projection-total',
-                anyProj ? formatCurrency(netProj, userCurrency) : '—'
+                dashAnyProj ? formatCurrency(dashNetProj, userCurrency) : '—'
             );
         }
     }
 
+    const projVarEl = document.getElementById('dashboard-projection-variation');
+    if (projVarEl) {
+        if (!isSingleMonth) {
+            setMovementSummaryMomVariation(projVarEl, 0, 0, false, false);
+        } else if (!dashAnyProj || !prevBounds) {
+            projVarEl.innerHTML =
+                '<span class="card-metric-hint" title="Comparativo quando o card exibe fluxo líquido (mês atual ou futuro).">—</span>';
+        } else {
+            const selMonths = enumerateCalendarMonths(dashStart, dashEnd);
+            const prevMonths = enumerateCalendarMonths(prevBounds.prevStart, prevBounds.prevEnd);
+            const selMo = selMonths[0];
+            const prevMo = prevMonths[0];
+            if (selMo && prevMo) {
+                const netCurr = dashboardLiquidoMesCivil(
+                    selMo,
+                    userGains,
+                    userExpenses,
+                    userAccounts,
+                    now,
+                    userProfile,
+                    splitRequests
+                );
+                const netPrev = dashboardLiquidoMesCivil(
+                    prevMo,
+                    userGains,
+                    userExpenses,
+                    userAccounts,
+                    now,
+                    userProfile,
+                    splitRequests
+                );
+                setMovementSummaryMomVariation(projVarEl, netCurr, netPrev, true, false);
+            }
+        }
+    }
+
     // ── Card Saldo ─────────────────────────────────────────────────────────────
-    // Meses passados / atual: saldo real do ledger (servidor).
-    // Meses futuros: saldo de hoje (servidor) + Σ fluxo líquido projetado
-    //   por mês civil, da mesma forma que os cards de Saídas/Entradas.
+    let balanceCurr = null;
+    let balancePrev = null;
     try {
         const { startDate, endDate } = getPeriodDateBounds(period, now);
         const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 
         if (endDate > endOfToday) {
-            // Período ultrapassa hoje → busca saldo atual e projeta meses seguintes no cliente
             const baseBal = await fetchDashboardPeriodBalance(
-                new Date(now.getFullYear(), now.getMonth(), 1), // 1º do mês atual
+                new Date(now.getFullYear(), now.getMonth(), 1),
                 endOfToday
             );
             if (baseBal != null) {
-                // Projeta apenas meses ESTRITAMENTE após o mês atual
                 const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
                 let projected = baseBal;
                 if (endDate >= nextMonthStart) {
@@ -668,18 +757,40 @@ async function updateDashboardCardsAndTitlesForPeriod(
                         projected += inc - outMo;
                     }
                 }
-                setTextIfExists('dashboard-balance-total', formatCurrency(projected, userCurrency));
-            } else {
-                setTextIfExists('dashboard-balance-total', '—');
+                balanceCurr = projected;
             }
         } else {
-            // Período passado ou mês atual → saldo real do ledger
-            const bal = await fetchDashboardPeriodBalance(startDate, endDate);
-            if (bal != null) setTextIfExists('dashboard-balance-total', formatCurrency(bal, userCurrency));
-            else setTextIfExists('dashboard-balance-total', '—');
+            balanceCurr = await fetchDashboardPeriodBalance(startDate, endDate);
+        }
+        if (isSingleMonth && prevBounds) {
+            balancePrev = await fetchDashboardPeriodBalance(prevBounds.prevStart, prevBounds.prevEnd);
         }
     } catch {
-        setTextIfExists('dashboard-balance-total', '—');
+        balanceCurr = null;
+        balancePrev = null;
+    }
+
+    setTextIfExists(
+        'dashboard-balance-total',
+        balanceCurr != null ? formatCurrency(balanceCurr, userCurrency) : '—'
+    );
+
+    const balVarEl = document.getElementById('dashboard-balance-variation');
+    if (balVarEl) {
+        if (!isSingleMonth) {
+            setMovementSummaryMomVariation(balVarEl, 0, 0, false, false);
+        } else if (balanceCurr == null) {
+            balVarEl.innerHTML =
+                '<span class="card-metric-hint" title="Saldo indisponível para calcular a variação.">—</span>';
+        } else {
+            setMovementSummaryMomVariation(
+                balVarEl,
+                balanceCurr,
+                balancePrev != null ? balancePrev : 0,
+                true,
+                false
+            );
+        }
     }
 }
 
@@ -691,407 +802,6 @@ function filterExpensesByPeriod(period, userExpenses) {
         const transactionDate = movementDateToJsDate(t.date);
         return transactionDate >= startDate && transactionDate <= endDate;
     });
-}
-
-function aggregateExpensesByCategory(transactions) {
-    const categories = {};
-    transactions.forEach((t) => {
-        const category = t.category || 'Sem Categoria';
-        if (!categories[category]) categories[category] = 0;
-        categories[category] += t.amount;
-    });
-    return categories;
-}
-
-function aggregateExpensesBySubcategory(transactions) {
-    const subcategories = {};
-    transactions.forEach((t) => {
-        const subcategory =
-            t.subcategory && String(t.subcategory).trim()
-                ? String(t.subcategory).trim()
-                : 'Sem subcategoria';
-        if (!subcategories[subcategory]) subcategories[subcategory] = 0;
-        subcategories[subcategory] += Number(t.amount) || 0;
-    });
-    return subcategories;
-}
-
-function normalizePieDataFromCategoryTotals(expensesByCategory) {
-    const entries = Object.entries(expensesByCategory || {}).map(([label, amount]) => ({
-        label,
-        amount: Number(amount) || 0
-    }));
-    entries.sort((a, b) => b.amount - a.amount);
-    return {
-        labels: entries.map((e) => e.label),
-        data: entries.map((e) => e.amount)
-    };
-}
-
-function buildTreemapTreeFromExpenses(filteredExpenses) {
-    const rows = [];
-    for (const t of filteredExpenses || []) {
-        const cat = String(t.category || 'Sem Categoria').trim() || 'Sem Categoria';
-        const sub =
-            t.subcategory && String(t.subcategory).trim()
-                ? String(t.subcategory).trim()
-                : 'Sem subcategoria';
-        const value = Number(t.amount) || 0;
-        if (value <= 0) continue;
-        rows.push({ category: cat, subcategory: sub, value });
-    }
-    return rows;
-}
-
-function buildTreemapTreeFromSubcategories(filteredExpenses) {
-    const totals = aggregateExpensesBySubcategory(filteredExpenses);
-    return Object.entries(totals)
-        .map(([subcategory, value]) => ({ subcategory, value: Number(value) || 0 }))
-        .filter((x) => x.value > 0);
-}
-
-/**
- * Paleta de categorias: tons distintos e saturados (bom contraste no card claro/escuro).
- */
-function getReportsStackColors() {
-    if (isDarkTheme()) {
-        return [
-            '#5C9EFF', '#FF7A7A', '#4ADE80', '#FBBF24', '#A78BFA',
-            '#F472B6', '#22D3EE', '#FB923C', '#34D399', '#F87171',
-            '#60A5FA', '#C084FC', '#FACC15', '#2DD4BF'
-        ];
-    }
-    return [
-        '#2563EB', '#DC2626', '#059669', '#D97706', '#7C3AED',
-        '#DB2777', '#0891B2', '#EA580C', '#16A34A', '#B91C1C',
-        '#1D4ED8', '#6D28D9', '#CA8A04', '#0D9488'
-    ];
-}
-
-/**
- * Colunas empilhadas: uma coluna por categoria; cada segmento é uma subcategoria (ou "Sem subcategoria").
- */
-function aggregateExpensesForStackedBarByCategory(transactions) {
-    const byCat = new Map();
-    for (const t of transactions || []) {
-        const cat = t.category || 'Sem Categoria';
-        const sub =
-            t.subcategory && String(t.subcategory).trim()
-                ? String(t.subcategory).trim()
-                : 'Sem subcategoria';
-        if (!byCat.has(cat)) byCat.set(cat, new Map());
-        const m = byCat.get(cat);
-        m.set(sub, (m.get(sub) || 0) + (Number(t.amount) || 0));
-    }
-
-    if (byCat.size === 0) {
-        return { categoryLabels: [], datasets: [] };
-    }
-
-    const catTotals = [...byCat.entries()].map(([c, m]) => ({
-        cat: c,
-        total: [...m.values()].reduce((a, b) => a + b, 0)
-    }));
-    catTotals.sort((a, b) => b.total - a.total);
-    const categoryLabels = catTotals.map((x) => x.cat);
-
-    const palette = getReportsStackColors();
-    const barBorder = isDarkTheme() ? 'rgba(15, 23, 42, 0.45)' : 'rgba(255, 255, 255, 0.92)';
-    const datasets = [];
-    let colorIdx = 0;
-
-    for (const cat of categoryLabels) {
-        const subs = byCat.get(cat);
-        const entries = [...subs.entries()].sort((a, b) => b[1] - a[1]);
-        for (const [sub, amount] of entries) {
-            const data = categoryLabels.map((c) => (c === cat ? amount : 0));
-            const label = sub;
-            datasets.push({
-                label,
-                data,
-                backgroundColor: palette[colorIdx % palette.length],
-                borderColor: barBorder,
-                borderWidth: 1
-            });
-            colorIdx++;
-        }
-    }
-
-    return { categoryLabels, datasets };
-}
-
-function aggregateExpensesForBarBySubcategory(transactions) {
-    const totals = aggregateExpensesBySubcategory(transactions);
-    const entries = Object.entries(totals)
-        .map(([subcategory, amount]) => ({ subcategory, amount: Number(amount) || 0 }))
-        .filter((x) => x.amount > 0)
-        .sort((a, b) => b.amount - a.amount);
-    const labels = entries.map((x) => x.subcategory);
-    const palette = getReportsStackColors();
-    const barBorder = isDarkTheme() ? 'rgba(15, 23, 42, 0.45)' : 'rgba(255, 255, 255, 0.92)';
-    return {
-        labels,
-        datasets: [
-            {
-                label: 'Saídas por subcategoria',
-                data: entries.map((x) => x.amount),
-                backgroundColor: labels.map((_, i) => palette[i % palette.length]),
-                borderColor: barBorder,
-                borderWidth: 1
-            }
-        ]
-    };
-}
-
-function renderReportsChart(filteredExpenses, userCurrency, selectedCategory = ALL_CATEGORIES_FILTER_VALUE) {
-    let reportsChartCanvas = document.getElementById('reports-chart');
-    if (!reportsChartCanvas) {
-        const chartWrapper = document.querySelector('#dashboard-reports-pie .chart-wrapper');
-        if (chartWrapper) {
-            chartWrapper.innerHTML = '<canvas id="reports-chart"></canvas>';
-            reportsChartCanvas = document.getElementById('reports-chart');
-        }
-    }
-    if (!reportsChartCanvas) return;
-
-    const chartType = getChartTypePreference('expensesByCategory');
-    syncChartTypeToggleUI('expensesByCategory');
-
-    const categoryScopedMode =
-        selectedCategory && selectedCategory !== ALL_CATEGORIES_FILTER_VALUE;
-    const groupTotals = categoryScopedMode
-        ? aggregateExpensesBySubcategory(filteredExpenses)
-        : aggregateExpensesByCategory(filteredExpenses);
-    const { labels: pieLabels, data: pieData } = normalizePieDataFromCategoryTotals(groupTotals);
-    const treemapTree = categoryScopedMode
-        ? buildTreemapTreeFromSubcategories(filteredExpenses)
-        : buildTreemapTreeFromExpenses(filteredExpenses);
-    const treemapTotal = treemapTree.reduce((s, r) => s + (Number(r.value) || 0), 0);
-    const barChartData = categoryScopedMode
-        ? aggregateExpensesForBarBySubcategory(filteredExpenses)
-        : aggregateExpensesForStackedBarByCategory(filteredExpenses);
-    const categoryLabels = barChartData.categoryLabels || barChartData.labels || [];
-    const datasets = barChartData.datasets || [];
-    const { tick, grid } = getChartAxisColors();
-    const categoryPalette = getReportsStackColors();
-    const pieSliceBorder = isDarkTheme() ? 'rgba(15, 23, 42, 0.55)' : 'rgba(255, 255, 255, 0.96)';
-    /* chartjs-chart-treemap defaults captions/labels to black — illegible on dark UI and on saturated slices */
-    const treemapTextColor = isDarkTheme() ? '#f1f5f9' : '#0f172a';
-    const treemapTextHover = isDarkTheme() ? '#ffffff' : '#020617';
-
-    if (reportsChart) reportsChart.destroy();
-
-    if (chartType === 'bar' && (categoryLabels.length === 0 || datasets.length === 0)) return;
-    if (chartType === 'pie' && pieData.length === 0) return;
-    if (chartType === 'treemap' && treemapTree.length === 0) return;
-
-    const groupIndex = new Map();
-    pieLabels.forEach((lab, idx) => groupIndex.set(lab, idx));
-
-    /* Barras: `index` faz sentido. Pizza/treemap: `index` faz o hover cair no fatia errada (e pior no toque). */
-    const interactionOpts =
-        chartType === 'bar'
-            ? { mode: 'index', intersect: false }
-            : { mode: 'nearest', intersect: false };
-
-    reportsChart = new Chart(reportsChartCanvas, {
-        type: chartType === 'bar' ? 'bar' : chartType,
-        data:
-            chartType === 'bar'
-                ? { labels: categoryLabels, datasets }
-                : chartType === 'pie'
-                  ? {
-                        labels: pieLabels,
-                        datasets: [
-                            {
-                                label: 'Saídas por categoria',
-                                data: pieData,
-                                backgroundColor: pieLabels.map(
-                                    (_, i) => categoryPalette[i % categoryPalette.length]
-                                ),
-                                borderColor: pieSliceBorder,
-                                borderWidth: 1.5
-                            }
-                        ]
-                    }
-                  : {
-                        datasets: [
-                            {
-                                label: 'Saídas por categoria',
-                                tree: treemapTree,
-                                key: 'value',
-                                groups: categoryScopedMode ? ['subcategory'] : ['category', 'subcategory'],
-                                spacing: 0.8,
-                                borderWidth: 1.5,
-                                borderColor: pieSliceBorder,
-                                backgroundColor: (ctx) => {
-                                    if (ctx.type !== 'data') return 'transparent';
-                                    const raw = ctx.raw || {};
-                                    const groupLabel = categoryScopedMode
-                                        ? (raw?._data?.subcategory || raw?.subcategory)
-                                        : (raw?._data?.category || raw?.category);
-                                    const i = groupIndex.get(groupLabel) ?? 0;
-                                    return categoryPalette[i % categoryPalette.length];
-                                },
-                                captions: {
-                                    color: treemapTextColor,
-                                    hoverColor: treemapTextHover
-                                },
-                                labels: {
-                                    color: treemapTextColor,
-                                    hoverColor: treemapTextHover
-                                }
-                            }
-                        ]
-                    },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: interactionOpts,
-            datasets:
-                chartType === 'bar'
-                    ? {
-                          bar: {
-                              categoryPercentage: 0.65,
-                              barPercentage: 0.92
-                          }
-                      }
-                    : undefined,
-            scales:
-                chartType === 'bar'
-                    ? {
-                          x: {
-                              stacked: !categoryScopedMode,
-                              ticks: {
-                                  color: tick,
-                                  maxRotation: 45,
-                                  minRotation: 0,
-                                  autoSkip: true
-                              },
-                              grid: { color: grid }
-                          },
-                          y: {
-                              stacked: !categoryScopedMode,
-                              beginAtZero: true,
-                              ticks: {
-                                  color: tick,
-                                  callback: (value) => formatCurrency(value, userCurrency)
-                              },
-                              grid: { color: grid }
-                          }
-                      }
-                    : undefined,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    align: 'center',
-                    labels: {
-                        color: tick,
-                        boxWidth: chartType === 'pie' ? 14 : 12,
-                        boxHeight: chartType === 'pie' ? 14 : 12,
-                        font: { size: chartType === 'pie' ? 10 : 11, weight: chartType === 'pie' ? '500' : '400' },
-                        padding: chartType === 'pie' ? 8 : 10,
-                        usePointStyle: chartType !== 'bar',
-                        ...(chartType === 'pie'
-                            ? {
-                                  generateLabels: (chart) => {
-                                      const data = chart.data;
-                                      const ds = data.datasets[0];
-                                      const labels = data.labels || [];
-                                      if (!ds || !labels.length) return [];
-                                      const total = ds.data.reduce((a, b) => Number(a) + Number(b), 0);
-                                      return labels.map((label, i) => ({
-                                          text: `${label}: ${formatCurrency(ds.data[i], userCurrency)} · ${total > 0 ? ((Number(ds.data[i]) / total) * 100).toFixed(1) : '0'}%`,
-                                          fillStyle: Array.isArray(ds.backgroundColor)
-                                              ? ds.backgroundColor[i]
-                                              : ds.backgroundColor,
-                                          strokeStyle: ds.borderColor,
-                                          lineWidth: typeof ds.borderWidth === 'number' ? ds.borderWidth : 1,
-                                          fontColor: tick,
-                                          hidden: !chart.getDataVisibility(i),
-                                          index: i,
-                                          datasetIndex: 0
-                                      }));
-                                  }
-                              }
-                            : {})
-                    }
-                },
-                tooltip: {
-                    position: chartType === 'bar' ? 'average' : 'nearest',
-                    backgroundColor: isDarkTheme() ? 'rgba(15, 23, 42, 0.96)' : 'rgba(255, 255, 255, 0.98)',
-                    titleColor: tick,
-                    bodyColor: tick,
-                    footerColor: isDarkTheme() ? '#cbd5e1' : '#475569',
-                    borderColor: isDarkTheme() ? 'rgba(148, 163, 184, 0.35)' : 'rgba(71, 85, 105, 0.18)',
-                    borderWidth: 1,
-                    padding: 12,
-                    boxPadding: 6,
-                    displayColors: true,
-                    titleFont: { size: 13, weight: '600' },
-                    bodyFont: { size: 12 },
-                    footerFont: { size: 11, weight: '600' },
-                    filter:
-                        chartType === 'bar'
-                            ? (item) => {
-                                  const p = item.parsed;
-                                  const y = typeof p === 'object' && p !== null ? p.y : p;
-                                  return (Number(y) || 0) > 0;
-                              }
-                            : undefined,
-                    callbacks: {
-                        title: (items) => items[0]?.label || '',
-                        label: (ctx) => {
-                            if (chartType === 'pie') {
-                                const v = ctx.dataset.data[ctx.dataIndex];
-                                const total = ctx.dataset.data.reduce((a, b) => Number(a) + Number(b), 0);
-                                const pct = total > 0 ? ((Number(v) / total) * 100).toFixed(1) : '0';
-                                return `${formatCurrency(v, userCurrency)}  (${pct}% do total)`;
-                            }
-                            const p = ctx.parsed;
-                            const v = typeof p === 'object' && p !== null ? p.y : p;
-                            if (chartType === 'treemap') {
-                                const raw = ctx.raw || {};
-                                const sub = raw?._data?.subcategory || raw?.subcategory || '—';
-                                const val = raw?.v ?? raw?.value ?? raw?._data?.value ?? v;
-                                const pct =
-                                    treemapTotal > 0
-                                        ? ((Number(val) / treemapTotal) * 100).toFixed(1)
-                                        : '0';
-                                if (categoryScopedMode) {
-                                    return `${sub}: ${formatCurrency(val, userCurrency)}  (${pct}% do período)`;
-                                }
-                                const cat = raw?._data?.category || raw?.category || '—';
-                                return `${cat} (${sub}): ${formatCurrency(val, userCurrency)}  (${pct}% do período)`;
-                            }
-                            return `${ctx.dataset.label}: ${formatCurrency(v, userCurrency)}`;
-                        },
-                        footer: (tooltipItems) => {
-                            if (chartType !== 'bar' || !tooltipItems.length) return '';
-                            let sum = 0;
-                            for (const it of tooltipItems) {
-                                const p = it.parsed;
-                                const y = typeof p === 'object' && p !== null ? p.y : p;
-                                sum += Number(y) || 0;
-                            }
-                            return categoryScopedMode
-                                ? `Total na subcategoria: ${formatCurrency(sum, userCurrency)}`
-                                : `Total na categoria: ${formatCurrency(sum, userCurrency)}`;
-                        }
-                    }
-                }
-            }
-        },
-        plugins: chartType === 'bar' ? [createStackedBarTotalsPlugin(userCurrency)] : []
-    });
-}
-
-function showEmptyReportsState() {
-    if (reportsChart) reportsChart.destroy();
-    const chartContainer = document.querySelector('#dashboard-reports-pie .chart-wrapper');
-    if (chartContainer) {
-        chartContainer.innerHTML = '<p class="empty-state">Nenhuma saída encontrada para o período.</p>';
-    }
 }
 
 /**
@@ -1150,6 +860,30 @@ function pointColorsForProjection(baseColor, projectionFlags, alphaFill = 0.58) 
 
 function pointBorderColorsForProjection(baseColor, projectionFlags) {
     return projectionFlags.map((pf) => (pf ? colorWithAlpha(baseColor, 0.82) : baseColor));
+}
+
+/** Faixa suave atrás do mês civil atual (modo colunas). */
+function createCurrentMonthBandPlugin(enabled, monthIndex, monthCount) {
+    return {
+        id: 'dashboardCurrentMonthBand',
+        beforeDatasetsDraw(chart) {
+            if (!enabled || monthIndex < 0 || monthIndex >= monthCount) return;
+            const xScale = chart.scales.x;
+            const { chartArea, ctx } = chart;
+            if (!xScale || !chartArea) return;
+            const cx = xScale.getPixelForTick(monthIndex);
+            if (cx == null || Number.isNaN(cx)) return;
+            const n = Math.max(1, monthCount);
+            const x0 = xScale.getPixelForTick(0);
+            const x1 = xScale.getPixelForTick(Math.min(n - 1, 1));
+            const step = n > 1 && Math.abs(x1 - x0) > 1 ? Math.abs(x1 - x0) : chartArea.width / n;
+            const w = step * 0.88;
+            ctx.save();
+            ctx.fillStyle = isDarkTheme() ? 'rgba(59, 130, 246, 0.07)' : 'rgba(59, 130, 246, 0.06)';
+            ctx.fillRect(cx - w / 2, chartArea.top, w, chartArea.bottom - chartArea.top);
+            ctx.restore();
+        }
+    };
 }
 
 function sumMovementsInRange(items, rangeStart, rangeEnd) {
@@ -1240,10 +974,13 @@ function renderUnifiedFinancialChart(
     if (financialProgressionChart) financialProgressionChart.destroy();
 
     const { tick, grid } = getChartAxisColors();
-    const gastosColor = isDarkTheme() ? '#FF7B7B' : '#DC2626';
-    const ganhosColor = isDarkTheme() ? '#4ADE80' : '#059669';
-    const invColor = isDarkTheme() ? '#C4B5FF' : '#7C3AED';
-    const sobraColor = isDarkTheme() ? '#FBBF24' : '#D97706';
+    const ganhosColor = '#3b82f6';
+    const gastosColor = '#fbbf24';
+    const invColor = '#14b8a6';
+    const sobraPosColor = '#10b981';
+    const sobraNegColor = '#f43f5e';
+
+    const currentMonthIdx = months.findIndex((mo) => isCurrentMonthObj(mo, now));
 
     const pointRadiusProj = projectionFlags.map((pf) => (pf ? 3 : 4));
 
@@ -1252,8 +989,19 @@ function renderUnifiedFinancialChart(
     const barMode = finTypePref === 'bar';
     const areaMode = finTypePref === 'area';
 
-    const barFill = (hex) =>
-        projectionFlags.map((pf) => (pf ? colorWithAlpha(hex, 0.5) : colorWithAlpha(hex, 0.9)));
+    const barMonthOpacity = (i) => {
+        if (currentMonthIdx >= 0 && i === currentMonthIdx) return 1;
+        if (projectionFlags[i]) return 0.58;
+        return 0.38;
+    };
+
+    const barPaint = (hex, i) => colorWithAlpha(hex, 0.92 * barMonthOpacity(i));
+    const barPaintSobra = (i) => {
+        const v = Number(dataSobraMes[i]) || 0;
+        const hex = v < 0 ? sobraNegColor : sobraPosColor;
+        return colorWithAlpha(hex, 0.92 * barMonthOpacity(i));
+    };
+
     const lineFill = (hex) =>
         projectionFlags.map((pf) => (pf ? colorWithAlpha(hex, 0.24) : colorWithAlpha(hex, 0.45)));
 
@@ -1261,58 +1009,42 @@ function renderUnifiedFinancialChart(
         ? [
               {
                   type: 'bar',
-                  label: 'Saídas',
-                  data: dataGastos,
-                  yAxisID: 'y',
-                  backgroundColor: barFill(gastosColor),
-                  borderColor: barFill(gastosColor),
-                  borderWidth: 1.5,
-                  borderRadius: 4,
-                  order: 2
-              },
-              {
-                  type: 'bar',
                   label: 'Entradas',
                   data: dataGanhos,
                   yAxisID: 'y',
-                  backgroundColor: barFill(ganhosColor),
-                  borderColor: barFill(ganhosColor),
-                  borderWidth: 1.5,
-                  borderRadius: 4,
+                  backgroundColor: dataGanhos.map((_, i) => barPaint(ganhosColor, i)),
+                  borderColor: dataGanhos.map((_, i) => barPaint(ganhosColor, i)),
+                  borderWidth: 0,
+                  borderRadius: 6,
+                  borderSkipped: false,
                   order: 2
               },
               {
                   type: 'bar',
-                  label: 'Projeção',
-                  data: dataSobraMes,
-                  yAxisID: 'y',
-                  backgroundColor: barFill(sobraColor),
-                  borderColor: barFill(sobraColor),
-                  borderWidth: 1.5,
-                  borderRadius: 4,
-                  order: 2
-              },
-              // (Saldo total removido)
-          ]
-        : [
-              {
                   label: 'Saídas',
                   data: dataGastos,
                   yAxisID: 'y',
-                  borderColor: gastosColor,
-                  segment: {
-                      borderColor: segmentBorderColorFactory(gastosColor, projectionFlags)
-                  },
-                  pointBackgroundColor: pointColorsForProjection(gastosColor, projectionFlags),
-                  pointBorderColor: pointBorderColorsForProjection(gastosColor, projectionFlags),
-                  pointRadius: pointRadiusProj,
-                  backgroundColor: lineFill(gastosColor),
-                  // Área empilhada: preencher a pilha (não o "origin"), senão parece só linha.
-                  fill: areaMode ? 'stack' : false,
-                  tension: 0.35,
-                  spanGaps: true,
-                  stack: areaMode ? 'main' : undefined
+                  backgroundColor: dataGastos.map((_, i) => barPaint(gastosColor, i)),
+                  borderColor: dataGastos.map((_, i) => barPaint(gastosColor, i)),
+                  borderWidth: 0,
+                  borderRadius: 6,
+                  borderSkipped: false,
+                  order: 2
               },
+              {
+                  type: 'bar',
+                  label: 'Saldo do mês',
+                  data: dataSobraMes,
+                  yAxisID: 'y',
+                  backgroundColor: dataSobraMes.map((_, i) => barPaintSobra(i)),
+                  borderColor: dataSobraMes.map((_, i) => barPaintSobra(i)),
+                  borderWidth: 0,
+                  borderRadius: 6,
+                  borderSkipped: false,
+                  order: 2
+              }
+          ]
+        : [
               {
                   label: 'Entradas',
                   data: dataGanhos,
@@ -1331,7 +1063,24 @@ function renderUnifiedFinancialChart(
                   stack: areaMode ? 'main' : undefined
               },
               {
-                  label: 'Investimentos',
+                  label: 'Saídas',
+                  data: dataGastos,
+                  yAxisID: 'y',
+                  borderColor: gastosColor,
+                  segment: {
+                      borderColor: segmentBorderColorFactory(gastosColor, projectionFlags)
+                  },
+                  pointBackgroundColor: pointColorsForProjection(gastosColor, projectionFlags),
+                  pointBorderColor: pointBorderColorsForProjection(gastosColor, projectionFlags),
+                  pointRadius: pointRadiusProj,
+                  backgroundColor: lineFill(gastosColor),
+                  fill: areaMode ? 'stack' : false,
+                  tension: 0.35,
+                  spanGaps: true,
+                  stack: areaMode ? 'main' : undefined
+              },
+              {
+                  label: 'Patrimônio investido',
                   data: dataInvest,
                   yAxisID: 'y',
                   borderColor: invColor,
@@ -1347,20 +1096,18 @@ function renderUnifiedFinancialChart(
                   spanGaps: false,
                   stack: areaMode ? 'main' : undefined
               },
-              // (Saldo total removido)
               {
-                  label: 'Projeção',
+                  label: 'Saldo do mês',
                   data: dataSobraMes,
                   yAxisID: 'y',
-                  borderColor: sobraColor,
+                  borderColor: sobraPosColor,
                   segment: {
-                      borderColor: segmentBorderColorFactory(sobraColor, projectionFlags)
+                      borderColor: segmentBorderColorFactory(sobraPosColor, projectionFlags)
                   },
-                  pointBackgroundColor: pointColorsForProjection(sobraColor, projectionFlags),
-                  pointBorderColor: pointBorderColorsForProjection(sobraColor, projectionFlags),
+                  pointBackgroundColor: pointColorsForProjection(sobraPosColor, projectionFlags),
+                  pointBorderColor: pointBorderColorsForProjection(sobraPosColor, projectionFlags),
                   pointRadius: pointRadiusProj,
-                  backgroundColor: lineFill(sobraColor),
-                  // Mantém a sobra separada no eixo direito; não empilha com as demais.
+                  backgroundColor: lineFill(sobraPosColor),
                   fill: false,
                   tension: 0.35,
                   spanGaps: true
@@ -1385,17 +1132,28 @@ function renderUnifiedFinancialChart(
             responsive: true,
             maintainAspectRatio: false,
             interaction: { mode: 'index', intersect: false },
+            datasets: barMode
+                ? {
+                      bar: {
+                          categoryPercentage: 0.72,
+                          barPercentage: 0.85,
+                          borderSkipped: false
+                      }
+                  }
+                : undefined,
             plugins: {
                 legend: {
                     display: true,
-                    position: 'bottom',
+                    position: 'top',
+                    align: 'end',
                     labels: {
                         color: tick,
-                        boxWidth: 12,
-                        boxHeight: 12,
-                        padding: 14,
+                        boxWidth: 10,
+                        boxHeight: 10,
+                        padding: 16,
                         usePointStyle: true,
-                        font: { size: 12, weight: '500' }
+                        pointStyle: 'rectRounded',
+                        font: { size: 11, weight: '600' }
                     }
                 },
                 tooltip: {
@@ -1435,12 +1193,18 @@ function renderUnifiedFinancialChart(
                             const i = ctx.index;
                             const labelsArr = ctx.chart.data.labels;
                             if (i < 0 || i >= labelsArr.length) return tick;
-                            return projectionFlags[i] ? colorWithAlpha(tick, 0.72) : tick;
+                            if (currentMonthIdx >= 0 && i === currentMonthIdx) {
+                                return isDarkTheme() ? '#f1f5f9' : '#0f172a';
+                            }
+                            if (projectionFlags[i]) return colorWithAlpha(tick, 0.72);
+                            return colorWithAlpha(tick, 0.48);
                         },
-                        maxRotation: 45,
+                        maxRotation: 0,
+                        minRotation: 0,
+                        autoSkip: true,
                         font: { size: 11, weight: '500' }
                     },
-                    grid: { color: grid }
+                    grid: { color: grid, display: true }
                 },
                 y: {
                     position: 'left',
@@ -1463,15 +1227,15 @@ function renderUnifiedFinancialChart(
                         }
                     },
                     title: {
-                        display: true,
-                        text: 'Valor (inclui negativos quando houver)',
-                        color: tick,
-                        font: { size: 11 }
+                        display: false
                     }
                 }
             }
         },
-        plugins: !barMode ? [createFinancialPointValueLabelsPlugin(userCurrency, labels.length)] : []
+        plugins: [
+            createCurrentMonthBandPlugin(barMode, currentMonthIdx, months.length),
+            ...(!barMode ? [createFinancialPointValueLabelsPlugin(userCurrency, labels.length)] : [])
+        ]
     });
 }
 

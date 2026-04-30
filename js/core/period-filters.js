@@ -117,13 +117,23 @@ export function getPeriodTitleParts(period, now = new Date()) {
     }
 }
 
-/** Atribui o mês atual como selecionado nos três &lt;select&gt; de período. */
+/** Valor inicial do filtro de período só do painel (gráfico anual por padrão). */
+export function getDashboardChartDefaultPeriodValue() {
+    return 'current-year';
+}
+
+/** Atribui o mês atual em Saídas/Entradas e «Este ano» no painel (gráfico). */
 export function syncPeriodFilterSelectsToCurrentMonth(now = new Date()) {
     const v = getDefaultPeriodValue(now);
-    for (const id of ['period-filter', 'expenses-period-filter', 'gains-period-filter']) {
+    for (const id of ['expenses-period-filter', 'gains-period-filter']) {
         const el = document.getElementById(id);
         if (el && el.querySelector(`option[value="${v}"]`)) {
             el.value = v;
         }
+    }
+    const dash = document.getElementById('period-filter');
+    const y = getDashboardChartDefaultPeriodValue();
+    if (dash && dash.querySelector(`option[value="${y}"]`)) {
+        dash.value = y;
     }
 }

@@ -149,10 +149,10 @@
     inset: 0;
     z-index: 0;
     background:
-        radial-gradient(ellipse 120% 80% at 50% -30%, rgba(124, 58, 237, 0.45), transparent 55%),
-        radial-gradient(ellipse 90% 60% at 100% 50%, rgba(14, 165, 233, 0.25), transparent 50%),
-        radial-gradient(ellipse 70% 50% at 0% 80%, rgba(16, 185, 129, 0.2), transparent 45%),
-        linear-gradient(165deg, #1e1b4b 0%, #312e81 35%, #5b21b6 65%, #4c1d95 100%);
+        radial-gradient(ellipse 120% 80% at 50% -30%, rgba(248, 250, 252, 0.28), transparent 55%),
+        radial-gradient(ellipse 90% 60% at 100% 50%, rgba(148, 163, 184, 0.22), transparent 50%),
+        radial-gradient(ellipse 70% 50% at 0% 80%, rgba(203, 213, 225, 0.18), transparent 45%),
+        linear-gradient(165deg, #0f172a 0%, #1e293b 38%, #334155 72%, #1e293b 100%);
     animation: heroMeshShift 18s ease-in-out infinite alternate;
 }
 
@@ -187,7 +187,7 @@
     height: min(420px, 90vw);
     top: -10%;
     left: -15%;
-    background: rgba(167, 139, 250, 0.5);
+    background: rgba(248, 250, 252, 0.35);
 }
 
 .hero-orb--2 {
@@ -204,7 +204,7 @@
     height: min(240px, 55vw);
     top: 40%;
     left: 35%;
-    background: rgba(52, 211, 153, 0.25);
+    background: rgba(226, 232, 240, 0.22);
     animation-delay: -7s;
 }
 
@@ -245,12 +245,12 @@
 }
 
 .hero-title-gradient {
-    background: linear-gradient(125deg, #fff 0%, #e9d5ff 42%, #a5f3fc 100%);
+    background: linear-gradient(125deg, #fff 0%, #f1f5f9 40%, #e2e8f0 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
     text-shadow: none;
-    filter: drop-shadow(0 2px 20px rgba(124, 58, 237, 0.35));
+    filter: drop-shadow(0 2px 20px rgba(15, 23, 42, 0.35));
 }
 
 .hero-lead {
@@ -286,7 +286,7 @@
     flex-shrink: 0;
     margin-top: 0.2rem;
     font-size: 0.95rem;
-    color: #6ee7b7;
+    color: #e2e8f0;
     opacity: 0.95;
 }
 
@@ -303,7 +303,7 @@
     border: none;
     border-radius: 14px;
     background: #fff;
-    color: #5b21b6;
+    color: #1e293b;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
@@ -318,7 +318,7 @@
 .btn-hero-primary:hover {
     transform: translateY(-2px);
     box-shadow:
-        0 12px 28px rgba(91, 33, 182, 0.35),
+        0 12px 28px rgba(30, 41, 59, 0.28),
         0 0 0 1px rgba(255, 255, 255, 0.2) inset;
 }
 
@@ -390,7 +390,7 @@
     width: 60px;
     height: 60px;
     margin: 0 auto 1rem;
-    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+    background: linear-gradient(135deg, #64748b, #475569);
     border-radius: 16px;
     display: flex;
     align-items: center;
@@ -469,8 +469,8 @@
 }
 
 .auth-input-wrap:focus-within {
-    border-color: var(--primary-color, #7c3aed);
-    box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.12);
+    border-color: var(--primary-color, #334155);
+    box-shadow: 0 0 0 4px rgba(51, 65, 85, 0.1);
 }
 
 .auth-input-icon {
@@ -506,7 +506,7 @@
     padding: 0.95rem 1.25rem;
     border: none;
     border-radius: 12px;
-    background: linear-gradient(135deg, #7c3aed 0%, #6366f1 50%, #4f46e5 100%);
+    background: linear-gradient(135deg, #475569 0%, #334155 50%, #1e293b 100%);
     color: #fff;
     font-size: 1rem;
     font-weight: 600;
@@ -515,13 +515,13 @@
     align-items: center;
     justify-content: center;
     gap: 0.6rem;
-    box-shadow: 0 10px 28px rgba(79, 70, 229, 0.25);
+    box-shadow: 0 10px 28px rgba(30, 41, 59, 0.22);
     transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .auth-form .auth-submit:hover {
     transform: translateY(-2px);
-    box-shadow: 0 14px 32px rgba(124, 58, 237, 0.4);
+    box-shadow: 0 14px 32px rgba(30, 41, 59, 0.32);
 }
 
 .auth-toggle {
@@ -532,7 +532,7 @@
 }
 
 .auth-toggle a {
-    color: var(--primary-color, #7c3aed);
+    color: var(--primary-color, #334155);
     font-weight: 600;
     text-decoration: none;
 }
@@ -585,8 +585,8 @@
 }
 
 .password-toggle:hover {
-    color: var(--primary-color, #7c3aed);
-    background: rgba(124, 58, 237, 0.08) !important;
+    color: var(--primary-color, #334155);
+    background: rgba(51, 65, 85, 0.08) !important;
 }
 
 .password-toggle i {
@@ -608,7 +608,7 @@
 }
 
 .landing-footer strong {
-    color: #a78bfa;
+    color: #f1f5f9;
 }
 
 .footer-version {
@@ -784,7 +784,7 @@ html {
 
 .feature-card:hover .feature-icon {
     transform: scale(1.1) rotate(5deg);
-    box-shadow: 0 5px 20px rgba(124, 58, 237, 0.4);
+    box-shadow: 0 5px 20px rgba(51, 65, 85, 0.22);
 }
 
 /* Cartão de login no hero */

@@ -325,6 +325,87 @@
                         </div>
                     </div>
                     <div class="header-right">
+                        <div id="expenses-header-actions" class="header-page-actions hidden" aria-label="Ações de saídas">
+                            <select id="expenses-period-filter" class="period-select header-period-select" aria-label="Período da lista de saídas">
+                                <option value="month-0">Janeiro</option>
+                                <option value="month-1">Fevereiro</option>
+                                <option value="month-2">Março</option>
+                                <option value="month-3">Abril</option>
+                                <option value="month-4">Maio</option>
+                                <option value="month-5">Junho</option>
+                                <option value="month-6">Julho</option>
+                                <option value="month-7">Agosto</option>
+                                <option value="month-8">Setembro</option>
+                                <option value="month-9">Outubro</option>
+                                <option value="month-10">Novembro</option>
+                                <option value="month-11">Dezembro</option>
+                                <option value="last-3-months">Últimos 3 meses</option>
+                                <option value="last-6-months">Últimos 6 meses</option>
+                                <option value="last-12-months">Últimos 12 meses</option>
+                                <option value="current-year">Este ano</option>
+                                <option value="last-year">Ano passado</option>
+                            </select>
+                            <button type="button" id="expenses-filter-open-btn" class="btn-secondary filter-drawer-trigger header-action-btn"
+                                aria-expanded="false" aria-controls="expenses-filter-drawer" title="Filtrar lista">
+                                <i class="fas fa-filter" aria-hidden="true"></i> Filtros
+                            </button>
+                            <button type="button" id="add-expense-btn" class="btn-primary header-action-btn">
+                                <i class="fas fa-plus" aria-hidden="true"></i> Nova
+                            </button>
+                        </div>
+                        <div id="gains-header-actions" class="header-page-actions hidden" aria-label="Ações de entradas">
+                            <select id="gains-period-filter" class="period-select header-period-select" aria-label="Período da lista de entradas">
+                                <option value="month-0">Janeiro</option>
+                                <option value="month-1">Fevereiro</option>
+                                <option value="month-2">Março</option>
+                                <option value="month-3">Abril</option>
+                                <option value="month-4">Maio</option>
+                                <option value="month-5">Junho</option>
+                                <option value="month-6">Julho</option>
+                                <option value="month-7">Agosto</option>
+                                <option value="month-8">Setembro</option>
+                                <option value="month-9">Outubro</option>
+                                <option value="month-10">Novembro</option>
+                                <option value="month-11">Dezembro</option>
+                                <option value="last-3-months">Últimos 3 meses</option>
+                                <option value="last-6-months">Últimos 6 meses</option>
+                                <option value="last-12-months">Últimos 12 meses</option>
+                                <option value="current-year">Este ano</option>
+                                <option value="last-year">Ano passado</option>
+                            </select>
+                            <button type="button" id="gains-filter-open-btn" class="btn-secondary filter-drawer-trigger header-action-btn"
+                                aria-expanded="false" aria-controls="gains-filter-drawer" title="Filtrar lista">
+                                <i class="fas fa-filter" aria-hidden="true"></i> Filtros
+                            </button>
+                            <button type="button" id="add-gain-btn" class="btn-primary header-action-btn">
+                                <i class="fas fa-plus" aria-hidden="true"></i> Nova
+                            </button>
+                        </div>
+                        <div id="dashboard-header-actions" class="header-page-actions hidden" aria-label="Filtros do painel">
+                            <select id="period-filter" class="period-select header-period-select" aria-label="Período dos relatórios do painel">
+                                <option value="month-0">Janeiro</option>
+                                <option value="month-1">Fevereiro</option>
+                                <option value="month-2">Março</option>
+                                <option value="month-3">Abril</option>
+                                <option value="month-4">Maio</option>
+                                <option value="month-5">Junho</option>
+                                <option value="month-6">Julho</option>
+                                <option value="month-7">Agosto</option>
+                                <option value="month-8">Setembro</option>
+                                <option value="month-9">Outubro</option>
+                                <option value="month-10">Novembro</option>
+                                <option value="month-11">Dezembro</option>
+                                <option value="last-3-months">Últimos 3 meses</option>
+                                <option value="last-6-months">Últimos 6 meses</option>
+                                <option value="last-12-months">Últimos 12 meses</option>
+                                <option value="current-year">Este ano</option>
+                                <option value="last-year">Ano passado</option>
+                            </select>
+                            <button type="button" id="dashboard-filter-open-btn" class="btn-secondary filter-drawer-trigger header-action-btn"
+                                aria-expanded="false" aria-controls="dashboard-filter-drawer" title="Filtrar saídas no painel por categoria">
+                                <i class="fas fa-filter" aria-hidden="true"></i> Filtros
+                            </button>
+                        </div>
                         <div class="header-notifications">
                             <button type="button" class="header-btn" id="notifications-btn" title="Avisos"
                                 aria-expanded="false" aria-haspopup="true" aria-controls="notifications-panel">
@@ -348,12 +429,13 @@
                 <!-- Seção do Dashboard -->
                 <section id="dashboard-page" class="page active">
                     <!-- Cards de Resumo -->
-                    <div class="summary-cards">
+                    <div class="summary-cards movements-summary" aria-label="Resumo do painel">
                         <div class="card">
                             <div class="card-icon balance"><i class="fas fa-wallet"></i></div>
                             <div class="card-content">
                                 <h3 id="dashboard-balance-title">Saldo</h3>
                                 <p id="dashboard-balance-total">—</p>
+                                <span id="dashboard-balance-variation" class="dashboard-card-scope"></span>
                             </div>
                         </div>
                         <div class="card">
@@ -361,6 +443,7 @@
                             <div class="card-content">
                                 <h3 id="monthly-income-title">Entradas do Mês</h3>
                                 <p id="monthly-income">R$ 0,00</p>
+                                <span id="monthly-income-variation" class="dashboard-card-scope"></span>
                             </div>
                         </div>
                         <div class="card">
@@ -368,6 +451,7 @@
                             <div class="card-content">
                                 <h3 id="monthly-expenses-title">Saídas do Mês</h3>
                                 <p id="monthly-expenses">R$ 0,00</p>
+                                <span id="monthly-expenses-variation" class="dashboard-card-scope"></span>
                             </div>
                         </div>
                         <!-- Card investimentos (oculto)
@@ -384,6 +468,7 @@
                             <div class="card-content">
                                 <h3 id="dashboard-projection-title">Projeção</h3>
                                 <p id="dashboard-projection-total">—</p>
+                                <span id="dashboard-projection-variation" class="dashboard-card-scope"></span>
                             </div>
                         </div>
                     </div>
@@ -395,62 +480,12 @@
                     </div>
 
                     <div class="dashboard-reports-section" id="dashboard-reports-section">
-                        <div class="reports-filters">
-                            <div class="reports-filter-group">
-                                <label for="period-filter">Período:</label>
-                                <select id="period-filter" class="period-select" aria-label="Período dos relatórios do painel">
-                                    <option value="month-0">Janeiro</option>
-                                    <option value="month-1">Fevereiro</option>
-                                    <option value="month-2">Março</option>
-                                    <option value="month-3">Abril</option>
-                                    <option value="month-4">Maio</option>
-                                    <option value="month-5">Junho</option>
-                                    <option value="month-6">Julho</option>
-                                    <option value="month-7">Agosto</option>
-                                    <option value="month-8">Setembro</option>
-                                    <option value="month-9">Outubro</option>
-                                    <option value="month-10">Novembro</option>
-                                    <option value="month-11">Dezembro</option>
-                                    <option value="last-3-months">Últimos 3 meses</option>
-                                    <option value="last-6-months">Últimos 6 meses</option>
-                                    <option value="last-12-months">Últimos 12 meses</option>
-                                    <option value="current-year">Este ano</option>
-                                    <option value="last-year">Ano passado</option>
-                                </select>
-                            </div>
-                            <div class="reports-filter-group">
-                                <label for="category-filter">Categoria:</label>
-                                <select id="category-filter" class="category-select" aria-label="Categoria das saídas no painel">
-                                    <option value="__all__">Todas as categorias</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="dashboard-reports-charts-grid">
-                            <div class="reports-chart-container" id="dashboard-reports-pie">
+                        <div class="dashboard-reports-charts-grid dashboard-reports-charts-grid--single">
+                            <div class="reports-chart-container dashboard-flux-chart-card" id="financial-progression-card">
                                 <div class="reports-chart-header">
-                                    <h3 id="reports-chart-title">Distribuição das saídas</h3>
-                                    <div class="chart-type-toggle" role="group" aria-label="Tipo de gráfico: saídas por categoria">
-                                        <button type="button" class="chart-type-btn" data-chart="expensesByCategory" data-type="pie" aria-label="Exibir como pizza" title="Pizza">
-                                            <span class="chart-type-icon" aria-hidden="true">◔</span>
-                                        </button>
-                                        <button type="button" class="chart-type-btn" data-chart="expensesByCategory" data-type="bar" aria-label="Exibir como colunas" title="Colunas">
-                                            <span class="chart-type-icon" aria-hidden="true">▮</span>
-                                        </button>
-                                        <button type="button" class="chart-type-btn" data-chart="expensesByCategory" data-type="treemap" aria-label="Exibir como treemap" title="Treemap">
-                                            <span class="chart-type-icon" aria-hidden="true">▦</span>
-                                        </button>
-                                    </div>
-                                </div>
-                                <p class="reports-chart-hint">Categoria por coluna; faixas empilhadas = subcategorias.</p>
-                                <div class="chart-wrapper">
-                                    <canvas id="reports-chart"></canvas>
-                                </div>
-                            </div>
-                            <div class="reports-chart-container" id="financial-progression-card">
-                                <div class="reports-chart-header">
-                                    <h3 id="financial-progression-title">Fluxo mensal e patrimônio</h3>
+                                    <h3 id="financial-progression-title">Fluxo mensal (Entradas, Saídas e Saldo)</h3>
                                     <div class="chart-type-toggle" role="group" aria-label="Tipo de gráfico: fluxo e patrimônio">
-                                        <button type="button" class="chart-type-btn" data-chart="financialProgression" data-type="line" aria-label="Exibir como linhas" title="Linhas">
+                                        <button type="button" class="chart-type-btn" data-chart="financialProgression" data-type="line" aria-label="Exibir como linhas (inclui patrimônio)" title="Linhas · patrimônio">
                                             <span class="chart-type-icon" aria-hidden="true">〰</span>
                                         </button>
                                         <button type="button" class="chart-type-btn" data-chart="financialProgression" data-type="bar" aria-label="Exibir como colunas" title="Colunas">
@@ -458,8 +493,7 @@
                                         </button>
                                     </div>
                                 </div>
-                                <p class="reports-chart-hint">Entradas, saídas, investimentos e sobra; meses futuros em projeção.</p>
-                                <div class="chart-wrapper chart-wrapper--tall">
+                                <div class="chart-wrapper chart-wrapper--tall chart-wrapper--flux-full">
                                     <canvas id="financial-progression-chart"></canvas>
                                 </div>
                             </div>
@@ -489,15 +523,19 @@
 
                 <!-- Saídas -->
                 <section id="expenses-page" class="page hidden">
-                    <div class="actions-bar">
-                        <div class="actions-bar__start">
-                            <button type="button" id="add-expense-btn" class="btn-primary"><i class="fas fa-plus"></i>
-                                Nova saída</button>
-                            <button type="button" id="expenses-filter-open-btn" class="btn-secondary filter-drawer-trigger"
-                                aria-expanded="false" aria-controls="expenses-filter-drawer" title="Filtrar lista">
-                                <i class="fas fa-filter" aria-hidden="true"></i> Filtros
-                            </button>
-                        </div>
+                    <div class="quick-filters-bar" aria-label="Filtros rápidos de saídas">
+                        <button type="button" class="quick-filter-btn active" data-filter="all">
+                            Todas as saídas
+                        </button>
+                        <button type="button" class="quick-filter-btn" data-filter="fixed">
+                            <i class="fas fa-sync-alt" aria-hidden="true"></i> Despesas Fixas
+                        </button>
+                        <button type="button" class="quick-filter-btn" data-filter="variable">
+                            <i class="fas fa-bolt" aria-hidden="true"></i> Despesas Variáveis
+                        </button>
+                        <button type="button" class="quick-filter-btn" data-filter="credit">
+                            <i class="fas fa-credit-card" aria-hidden="true"></i> Cartão de Crédito
+                        </button>
                     </div>
                     <div id="expenses-batch-toolbar" class="expenses-batch-toolbar hidden" aria-live="polite">
                         <span id="expenses-batch-toolbar-text" class="expenses-batch-toolbar__text"></span>
@@ -509,28 +547,6 @@
                                 Limpar seleção
                             </button>
                         </div>
-                    </div>
-                    <div class="reports-filters">
-                        <label for="expenses-period-filter">Período:</label>
-                        <select id="expenses-period-filter" class="period-select" aria-label="Período da lista de saídas">
-                            <option value="month-0">Janeiro</option>
-                            <option value="month-1">Fevereiro</option>
-                            <option value="month-2">Março</option>
-                            <option value="month-3">Abril</option>
-                            <option value="month-4">Maio</option>
-                            <option value="month-5">Junho</option>
-                            <option value="month-6">Julho</option>
-                            <option value="month-7">Agosto</option>
-                            <option value="month-8">Setembro</option>
-                            <option value="month-9">Outubro</option>
-                            <option value="month-10">Novembro</option>
-                            <option value="month-11">Dezembro</option>
-                            <option value="last-3-months">Últimos 3 meses</option>
-                            <option value="last-6-months">Últimos 6 meses</option>
-                            <option value="last-12-months">Últimos 12 meses</option>
-                            <option value="current-year">Este ano</option>
-                            <option value="last-year">Ano passado</option>
-                        </select>
                     </div>
                     <div class="summary-cards movements-summary" aria-label="Resumo de saídas">
                         <div class="card">
@@ -557,8 +573,29 @@
                                 <span id="expenses-summary-top-cat-variation" class="dashboard-card-scope"></span>
                             </div>
                         </div>
+                        <div class="card">
+                            <div class="card-icon expense movements-summary-card-icon" id="expenses-summary-other-icon" title="Saídas que não estão marcadas como despesa fixa e não usam cartão de crédito (conta, débito, dinheiro etc.), mesma base de período das outras saídas."><i class="fas fa-wallet" aria-hidden="true"></i></div>
+                            <div class="card-content">
+                                <h3 id="expenses-summary-other-title">Outras despesas</h3>
+                                <p id="expenses-summary-other">—</p>
+                                <span id="expenses-summary-other-variation" class="dashboard-card-scope"></span>
+                            </div>
+                        </div>
                     </div>
                     <div id="expense-splits-outgoing-panel" class="expense-splits-panel expense-splits-panel--outgoing hidden" aria-live="polite"></div>
+
+                    <!-- Mapa de Gastos (Treemap) -->
+                    <div id="expenses-treemap-container" class="treemap-container">
+                        <div class="treemap-header">
+                            <div>
+                                <h2 class="treemap-title">Mapa de Gastos: <span id="treemap-period-label">Período</span></h2>
+                            </div>
+                        </div>
+                        <div id="expenses-treemap" class="treemap-squarify-host">
+                            <!-- Treemap blocks will be dynamically generated -->
+                        </div>
+                    </div>
+
                     <div class="table-container">
                         <table id="expenses-table">
                             <thead>
@@ -576,8 +613,8 @@
                                     <th scope="col" class="sortable-th" data-sort-key="account"><button type="button" class="sortable-th__btn">Conta <i class="fas fa-sort sortable-th__icon" aria-hidden="true"></i></button></th>
                                     <th scope="col" class="sortable-th" data-sort-key="payment"><button type="button" class="sortable-th__btn">Tipo <i class="fas fa-sort sortable-th__icon" aria-hidden="true"></i></button></th>
                                     <th scope="col" class="sortable-th" data-sort-key="isFixed"><button type="button" class="sortable-th__btn">Fixa <i class="fas fa-sort sortable-th__icon" aria-hidden="true"></i></button></th>
-                                    <th scope="col" class="sortable-th" data-sort-key="amount"><button type="button" class="sortable-th__btn">Valor <i class="fas fa-sort sortable-th__icon" aria-hidden="true"></i></button></th>
                                     <th scope="col" class="sortable-th" data-sort-key="status"><button type="button" class="sortable-th__btn">Status <i class="fas fa-sort sortable-th__icon" aria-hidden="true"></i></button></th>
+                                    <th scope="col" class="sortable-th" data-sort-key="amount"><button type="button" class="sortable-th__btn">Valor <i class="fas fa-sort sortable-th__icon" aria-hidden="true"></i></button></th>
                                     <th scope="col">Ações</th>
                                 </tr>
                             </thead>
@@ -589,37 +626,16 @@
 
                 <!-- Entradas -->
                 <section id="gains-page" class="page hidden">
-                    <div class="actions-bar">
-                        <div class="actions-bar__start">
-                            <button type="button" id="add-gain-btn" class="btn-primary"><i class="fas fa-plus"></i> Nova
-                                entrada</button>
-                            <button type="button" id="gains-filter-open-btn" class="btn-secondary filter-drawer-trigger"
-                                aria-expanded="false" aria-controls="gains-filter-drawer" title="Filtrar lista">
-                                <i class="fas fa-filter" aria-hidden="true"></i> Filtros
-                            </button>
-                        </div>
-                    </div>
-                    <div class="reports-filters">
-                        <label for="gains-period-filter">Período:</label>
-                        <select id="gains-period-filter" class="period-select" aria-label="Período da lista de entradas">
-                            <option value="month-0">Janeiro</option>
-                            <option value="month-1">Fevereiro</option>
-                            <option value="month-2">Março</option>
-                            <option value="month-3">Abril</option>
-                            <option value="month-4">Maio</option>
-                            <option value="month-5">Junho</option>
-                            <option value="month-6">Julho</option>
-                            <option value="month-7">Agosto</option>
-                            <option value="month-8">Setembro</option>
-                            <option value="month-9">Outubro</option>
-                            <option value="month-10">Novembro</option>
-                            <option value="month-11">Dezembro</option>
-                            <option value="last-3-months">Últimos 3 meses</option>
-                            <option value="last-6-months">Últimos 6 meses</option>
-                            <option value="last-12-months">Últimos 12 meses</option>
-                            <option value="current-year">Este ano</option>
-                            <option value="last-year">Ano passado</option>
-                        </select>
+                    <div class="quick-filters-bar" aria-label="Filtros rápidos de entradas">
+                        <button type="button" class="quick-filter-btn active" data-filter="all">
+                            Todas as entradas
+                        </button>
+                        <button type="button" class="quick-filter-btn" data-filter="received">
+                            <i class="fas fa-check-circle" aria-hidden="true"></i> Recebidas
+                        </button>
+                        <button type="button" class="quick-filter-btn" data-filter="pending">
+                            <i class="fas fa-clock" aria-hidden="true"></i> Pendentes
+                        </button>
                     </div>
                     <div class="summary-cards movements-summary" aria-label="Resumo de entradas">
                         <div class="card">
@@ -646,6 +662,14 @@
                                 <span id="gains-summary-top-cat-variation" class="dashboard-card-scope"></span>
                             </div>
                         </div>
+                    </div>
+                    <div id="gains-treemap-container" class="treemap-container treemap-container--income">
+                        <div class="treemap-header">
+                            <div>
+                                <h2 class="treemap-title">Mapa de Entradas: <span id="gains-treemap-period-label">Período</span></h2>
+                            </div>
+                        </div>
+                        <div id="gains-treemap" class="treemap-squarify-host"></div>
                     </div>
                     <div class="table-container">
                         <table id="gains-table">
@@ -1377,7 +1401,7 @@
                 </section>
             </main>
 
-            <!-- Painéis de filtro (saídas / entradas) — fora do <main> para sobreposição correta -->
+            <!-- Painéis de filtro (saídas / entradas / painel) — fora do <main> para sobreposição correta -->
             <div id="expenses-filter-drawer" class="filter-drawer" aria-hidden="true" role="dialog" aria-modal="true"
                 aria-labelledby="expenses-filter-drawer-title">
                 <div class="filter-drawer__backdrop" data-filter-drawer-close tabindex="-1"></div>
@@ -1556,6 +1580,30 @@
                     </div>
                     <footer class="filter-drawer__footer">
                         <button type="button" id="gains-filter-clear" class="btn-secondary">Limpar filtros</button>
+                    </footer>
+                </div>
+            </div>
+
+            <div id="dashboard-filter-drawer" class="filter-drawer" aria-hidden="true" role="dialog" aria-modal="true"
+                aria-labelledby="dashboard-filter-drawer-title">
+                <div class="filter-drawer__backdrop" data-filter-drawer-close tabindex="-1"></div>
+                <div class="filter-drawer__panel">
+                    <header class="filter-drawer__header">
+                        <h2 id="dashboard-filter-drawer-title" class="filter-drawer__title">Filtros do painel</h2>
+                        <button type="button" class="filter-drawer__close" data-filter-drawer-close
+                            aria-label="Fechar filtros"><i class="fas fa-times" aria-hidden="true"></i></button>
+                    </header>
+                    <div class="filter-drawer__body">
+                        <p class="card-metric-hint" style="margin: 0 0 1rem;">Afeta cartões, gráfico de fluxo e totais de saídas no período selecionado no topo.</p>
+                        <div class="filter-drawer-field">
+                            <label for="category-filter">Categoria das saídas</label>
+                            <select id="category-filter" class="table-filters__select" aria-label="Categoria das saídas no painel">
+                                <option value="__all__">Todas as categorias</option>
+                            </select>
+                        </div>
+                    </div>
+                    <footer class="filter-drawer__footer">
+                        <button type="button" id="dashboard-filter-clear" class="btn-secondary">Todas as categorias</button>
                     </footer>
                 </div>
             </div>

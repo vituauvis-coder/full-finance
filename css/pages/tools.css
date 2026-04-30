@@ -330,15 +330,15 @@
 }
 
 .kanban-card[data-type="melhoria"] {
-    border-left: 4px solid #8b5cf6;
-    background: linear-gradient(to right, rgba(139, 92, 246, 0.05), transparent);
+    border-left: 4px solid #0284c7;
+    background: linear-gradient(to right, rgba(2, 132, 199, 0.06), transparent);
 }
 
 .kanban-card[data-type="melhoria"] .kanban-card-title::before {
     content: "\f0eb";
     font-family: "Font Awesome 6 Free";
     font-weight: 900;
-    color: #8b5cf6;
+    color: #0284c7;
     margin-right: 0.5rem;
 }
 
@@ -383,13 +383,13 @@
 }
 
 .kanban-tab-btn[data-type="melhoria"] {
-    color: #8b5cf6;
-    border-color: #8b5cf6;
+    color: #0284c7;
+    border-color: #0284c7;
 }
 
 .kanban-tab-btn[data-type="melhoria"].active,
 .kanban-tab-btn[data-type="melhoria"]:hover {
-    background: #8b5cf6;
+    background: #0284c7;
     color: white;
 }
 
@@ -408,7 +408,7 @@
 }
 
 #kanban-image-label[data-type="melhoria"] {
-    color: #8b5cf6;
+    color: #0284c7;
 }
 
 /* --- Tela no card --- */
@@ -551,7 +551,7 @@
 
 .kanban-view-tag[data-type="melhoria"],
 .kanban-view-header-row span:first-child[data-type="melhoria"] {
-    background-color: #8b5cf6;
+    background-color: #0284c7;
     color: white;
 }
 
@@ -566,7 +566,7 @@
 }
 
 .kanban-view-tag[data-column="teste"] {
-    background-color: var(--purple-color, #8b5cf6);
+    background-color: #0891b2;
     color: white;
 }
 

@@ -4,6 +4,7 @@ import {
     getDueDatesForExpenseListPeriod,
     getParcelNumberInFullSchedule,
     formatExpenseTableStatusBadgeHtml,
+    expenseTableBatchPaidToggleButton,
     formatInstallmentPillsHtml,
     formatInstallmentPopoverHtml,
     formatInstallmentRemainingSummaryHtml,
@@ -42,6 +43,7 @@ import {
     sumAcceptedSettledInstallmentSplitForExpenseMonth,
     sumAcceptedSettledInstallmentSplitTotalForExpense
 } from '../../core/split-net.js';
+import { setMovementSummaryMomVariation } from '../../core/movement-summary-variation.js';
 import {
     getDefaultPeriodValue,
     getMonthKeysInPeriod,
@@ -50,6 +52,11 @@ import {
     isDefaultPeriodValue,
     syncPeriodFilterSelectsToCurrentMonth
 } from '../../core/period-filters.js';
+import {
+    buildTreemapBlocksForDisplay,
+    INCOME_TREEMAP_PALETTE,
+    renderSpendingTreemapHost
+} from '../../components/spending-treemap.js';
 import { populateExpenseCategorySelect, populateExpenseSubcategorySelect, setupExpenseCategoryUi, getSubcategoriesForCategory } from './expense-categories.js';
 import { populateGainCategorySelect, setupGainCategoryUi } from './gain-categories.js';
 import { setupFilterDrawer, closeFilterDrawer } from '../../shared/filter-drawer.js';
@@ -127,7 +134,8 @@ function formatMonthlyFixedCashListStatusHtml(t, account, userProfile, now) {
     const d = movementDateToJsDate(t.date);
     const confirmed = parseCashOutConfirmedPeriods(t);
     if (isPeriodConfirmedForDebit(confirmed, d)) {
-        return '<span class="expense-status-badge expense-status-badge--paid">Pago</span>';
+        const idE = htmlAttrEscape(String(t.id));
+        return `<button type="button" class="expense-status-badge expense-status-badge--paid expense-paid-toggle" data-expense-id="${idE}" data-paid-toggle-mode="monthly-fixed-unconfirm" title="Clique para desfazer confirmação no caixa" aria-label="${htmlAttrEscape('Desfazer pagamento registado no caixa')}">Pago</button>`;
     }
     if (
         canConfirmInstallmentPeriodForCashOut(t, account, d, userProfile, now)
@@ -484,6 +492,9 @@ let pendingInstallmentCashOut = null;
 
 /** Evita vários PATCH ao clicar depressa nas pílulas Fixa (mesmo id em várias linhas parcela). */
 const expenseFixedTogglePendingIds = new Set();
+
+/** Evita cliques repetidos nas pílulas Pago/Pendente (PATCH/PUT até concluir). */
+const expensePaidTogglePendingKeys = new Set();
 
 /** Ordenação atual das tabelas (cabeçalhos clicáveis). */
 let expensesSort = { key: 'date', dir: 'desc' };
@@ -1250,6 +1261,18 @@ export function initFinance(
             syncRangeLabels('gains-filter', gainsRenderCache.currency);
         }
     });
+    setupFilterDrawer({
+        drawerId: 'dashboard-filter-drawer',
+        openBtnId: 'dashboard-filter-open-btn',
+        onOpen: () => {}
+    });
+    document.getElementById('dashboard-filter-clear')?.addEventListener('click', () => {
+        const sel = document.getElementById('category-filter');
+        if (!sel) return;
+        sel.value = '__all__';
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+        closeFilterDrawer('dashboard-filter-drawer');
+    });
     setupInstallmentCashOutConfirmModal();
     setupExpenseSplitUi();
     setupExpenseBatchEditUi();
@@ -1837,6 +1860,76 @@ function expenseFixedCellHtmlForTable(t) {
         : `<button type="button" class="expense-fixed-pill expense-fixed-pill--no expense-fixed-toggle" data-expense-id="${idEsc}" title="Clique para marcar como despesa fixa" aria-label="Marcar como despesa fixa">Não</button>`;
 }
 
+function periodRemovalKeysFromDayAndMonth(dayKey, monthKey) {
+    return new Set([String(dayKey ?? '').trim(), String(monthKey ?? '').trim()].filter(Boolean));
+}
+
+function periodRemovalKeysFromInstPeriodKey(primaryKey) {
+    const pk = String(primaryKey ?? '').trim();
+    const set = new Set([pk]);
+    const m = pk.match(/^(\d{4}-\d{2})-\d{2}$/);
+    if (m) set.add(m[1]);
+    return set;
+}
+
+function filterCashOutConfirmedJsonAfterRemoval(expense, removalKeys) {
+    const kept = [...parseCashOutConfirmedPeriods(expense)].filter((k) => !removalKeys.has(k));
+    return kept.length ? JSON.stringify(kept) : null;
+}
+
+function expensePutPayloadFromRow(exp, overrides = {}) {
+    const rawCop =
+        'cashOutConfirmedPeriods' in overrides ? overrides.cashOutConfirmedPeriods : expense.cashOutConfirmedPeriods;
+    let installmentCount = null;
+    const icRaw = expense.installmentCount;
+    if (icRaw != null && icRaw !== '') {
+        const n = parseInt(String(icRaw), 10);
+        if (Number.isFinite(n) && n >= 1) installmentCount = Math.min(99, n);
+    }
+    return {
+        userId: currentUser.uid,
+        description: String(expense.description ?? '').trim(),
+        amount: Number(expense.amount),
+        date: movementDateToJsDate(expense.date),
+        accountId: expense.accountId,
+        category: String(expense.category ?? '').trim(),
+        subcategory:
+            expense.subcategory != null && String(expense.subcategory).trim() !== ''
+                ? String(expense.subcategory).trim()
+                : null,
+        isPaid:
+            'isPaid' in overrides ? Boolean(overrides.isPaid) : expense.isPaid !== false,
+        isInvestment: Boolean(expense.isInvestment),
+        installmentCount,
+        recurringMonthly: Boolean(expense.recurringMonthly),
+        isFixed: expenseIsMarkedFixed(expense),
+        cashOutConfirmedPeriods: rawCop ?? null
+    };
+}
+
+function expensePaidToggleSnapshotsFromButton(btn) {
+    const id = String(btn.dataset.expenseId ?? '').trim();
+    const mode = String(btn.dataset.paidToggleMode ?? '');
+    const day = String(btn.dataset.periodDay ?? '');
+    const month = String(btn.dataset.periodMonth ?? '');
+    const ik = String(btn.dataset.instPeriodKey ?? '');
+    const toggles = [...document.querySelectorAll('#expenses-table tbody button.expense-paid-toggle')].filter(
+        (b) => {
+            if (String(b.dataset.expenseId ?? '').trim() !== id || String(b.dataset.paidToggleMode ?? '') !== mode)
+                return false;
+            if (mode === 'period-keys-unconfirm') {
+                return String(b.dataset.periodDay ?? '') === day && String(b.dataset.periodMonth ?? '') === month;
+            }
+            if (mode === 'inst-row-period-unconfirm') {
+                return String(b.dataset.instPeriodKey ?? '') === ik;
+            }
+            return true;
+        }
+    );
+    const pendingKey = `${id}|${mode}|${day}|${month}|${ik}`;
+    return { pendingKey, snapshots: toggles.map((b) => ({ btn: b, html: b.innerHTML })) };
+}
+
 function gainTopLevelCategory(t) {
     const c = String(t.category ?? '').trim();
     return c || '—';
@@ -1955,41 +2048,6 @@ function expenseContributionPaidThroughMonthKey(
     return applySplitNetToContribution(t, monthKey, amt, splitRequests, forSplit);
 }
 
-/**
- * Comparativo % do valor principal do card (saídas/entradas) vs mês calendário anterior ao primeiro mês do filtro.
- * Só mostra a % com sentido quando o filtro é um único mês (month-0 … month-11).
- * @param {boolean} invertExpenseSemantics - true = saídas (aumento pior = vermelho)
- */
-function setMovementSummaryMomVariation(el, totalPeriod, totalPrevMonth, isSingleMonth, invertExpenseSemantics) {
-    if (!el) return;
-    if (!isSingleMonth) {
-        el.innerHTML =
-            '<span class="card-metric-hint" title="Selecione um único mês no período para ver a variação em relação ao mês anterior.">—</span>';
-        return;
-    }
-    if (totalPrevMonth > 0) {
-        const diff = ((totalPeriod - totalPrevMonth) / totalPrevMonth) * 100;
-        const isIncrease = diff > 0;
-        const icon = isIncrease ? '↑' : '↓';
-        const color = invertExpenseSemantics
-            ? isIncrease
-                ? 'var(--danger-color)'
-                : 'var(--secondary-color)'
-            : isIncrease
-              ? 'var(--secondary-color)'
-              : 'var(--danger-color)';
-        el.innerHTML = `<span class="summary-mom-pct" style="color: ${color}; font-weight: 600;">${icon} ${Math.abs(diff).toFixed(1)}%</span> <span class="card-metric-hint" style="display:inline;">vs mês anterior</span>`;
-        return;
-    }
-    if (totalPeriod > 0) {
-        el.innerHTML =
-            '<span class="card-metric-hint" title="No mês anterior não havia valor para calcular a variação percentual.">Sem base no mês anterior</span>';
-        return;
-    }
-    el.innerHTML =
-        '<span class="card-metric-hint" title="Sem valores no mês selecionado e no mês anterior.">—</span>';
-}
-
 function updateExpensesSummaryCards() {
     const cache = expensesRenderCache;
     if (!cache?.sorted) return;
@@ -2008,6 +2066,7 @@ function updateExpensesSummaryCards() {
     let totalPending = 0;
     let fixedTotalPeriod = 0;
     let creditCardPeriod = 0;
+    let otherExpensesPeriod = 0;
     for (const mk of months) {
         if (period === 'current-year' && mk > currentMonthKey) continue;
         const cutoff = endOfMonthFromMonthKey(mk);
@@ -2026,6 +2085,7 @@ function updateExpensesSummaryCards() {
             totalPeriod += contrib;
             if (expenseIsMarkedFixed(t)) fixedTotalPeriod += contrib;
             if (acc && isCreditCardType(acc.type)) creditCardPeriod += contrib;
+            if (!expenseIsMarkedFixed(t) && !(acc && isCreditCardType(acc.type))) otherExpensesPeriod += contrib;
 
             // Cálculo do pendente: se a contribuição projetada para o mês for maior que a paga
             const projected = expenseContributionProjectedToMonthKey(
@@ -2047,6 +2107,7 @@ function updateExpensesSummaryCards() {
     let totalPrevMonth = 0;
     let fixedPrevMonth = 0;
     let creditCardPrevMonth = 0;
+    let otherExpensesPrevMonth = 0;
     const firstMonthParts = months[0].split('-');
     const prevMonthDate = new Date(Number(firstMonthParts[0]), Number(firstMonthParts[1]) - 1 - 1, 1);
     const prevMonthKey = monthKeyFromDateObj(prevMonthDate);
@@ -2067,6 +2128,7 @@ function updateExpensesSummaryCards() {
             totalPrevMonth += contrib;
             if (expenseIsMarkedFixed(t)) fixedPrevMonth += contrib;
             if (acc && isCreditCardType(acc.type)) creditCardPrevMonth += contrib;
+            if (!expenseIsMarkedFixed(t) && !(acc && isCreditCardType(acc.type))) otherExpensesPrevMonth += contrib;
         });
     }
 
@@ -2081,6 +2143,14 @@ function updateExpensesSummaryCards() {
             creditCardPeriod > 0
                 ? 'Total das compras lançadas no cartão de crédito neste período (parcelas contabilizadas no mês de vencimento, mesma base da lista).'
                 : 'Nenhuma saída com cartão de crédito no período.';
+    }
+
+    const elOtherIcon = document.getElementById('expenses-summary-other-icon');
+    if (elOtherIcon) {
+        elOtherIcon.title =
+            otherExpensesPeriod > 0
+                ? 'Saídas sem marca «despesa fixa» e sem conta de cartão de crédito (PIX, débito, dinheiro, conta corrente etc.), mesma regra de período e parcelas que os demais cards.'
+                : 'Nenhuma saída deste tipo no período (ou só fixas / só cartão de crédito).';
     }
 
     const elMonth = document.getElementById('expenses-summary-month');
@@ -2107,10 +2177,20 @@ function updateExpensesSummaryCards() {
         isSingleMonth,
         true
     );
+    setMovementSummaryMomVariation(
+        document.getElementById('expenses-summary-other-variation'),
+        otherExpensesPeriod,
+        otherExpensesPrevMonth,
+        isSingleMonth,
+        true
+    );
 
     // Cards
     const elProjection = document.getElementById('expenses-summary-projection');
     if (elProjection) elProjection.textContent = formatCurrency(fixedTotalPeriod, currency);
+
+    const elOther = document.getElementById('expenses-summary-other');
+    if (elOther) elOther.textContent = formatCurrency(otherExpensesPeriod, currency);
 
     const elMonthIcon = document.getElementById('expenses-summary-month-icon');
     if (elMonthIcon) {
@@ -2129,13 +2209,179 @@ function updateExpensesSummaryCards() {
     const elMonthTitle = document.getElementById('expenses-summary-month-title');
     const elTopTitle = document.getElementById('expenses-summary-top-cat-title');
     const elProjTitle = document.getElementById('expenses-summary-projection-title');
+    const elOtherTitle = document.getElementById('expenses-summary-other-title');
 
     const label = tParts.label;
     if (elMonthTitle) elMonthTitle.textContent = `Saídas de ${label}`;
     if (elTopTitle) elTopTitle.textContent = `Cartão de Crédito (${label})`;
     if (elProjTitle) elProjTitle.textContent = `Despesas fixas (${label})`;
+    if (elOtherTitle) elOtherTitle.textContent = `Outras despesas (${label})`;
+
+    // Atualiza o Mapa de Gastos (Treemap)
+    renderExpensesTreemap(sorted, currency, label);
 
     syncExpensesFilterButtonHighlight();
+}
+
+/**
+ * Agrega despesas por categoria/subcategoria na mesma base dos cards de resumo de saídas
+ * (parcelas de cartão/empréstimo pelo vencimento no mês, demais pela data do lançamento).
+ */
+function buildSortedExpenseCategoriesForTreemapPeriod(sorted, period, now, userProfile, acceptedSplits) {
+    const currentMonthKey = monthKeyFromDateObj(now);
+    const months = getMonthKeysInPeriod(period, now);
+    const categoryTotals = {};
+    const categorySubcategories = {};
+
+    for (const mk of months) {
+        if (period === 'current-year' && mk > currentMonthKey) continue;
+        const cutoff = endOfMonthFromMonthKey(mk);
+        for (const t of sorted) {
+            const acc = userAccounts?.find((a) => a.id === t.accountId);
+            const contrib = expenseContributionPaidThroughMonthKey(
+                t,
+                acc,
+                mk,
+                cutoff,
+                userProfile,
+                acceptedSplits,
+                sorted
+            );
+            if (contrib <= 0) continue;
+            const catName = t.category || 'Sem categoria';
+            const subcatName = t.subcategory || 'Geral';
+            if (!categoryTotals[catName]) {
+                categoryTotals[catName] = 0;
+                categorySubcategories[catName] = {};
+            }
+            categoryTotals[catName] += contrib;
+            categorySubcategories[catName][subcatName] =
+                (categorySubcategories[catName][subcatName] || 0) + contrib;
+        }
+    }
+
+    return Object.entries(categoryTotals)
+        .map(([name, total]) => ({
+            name,
+            total,
+            subcategories: Object.entries(categorySubcategories[name])
+                .map(([subName, subTotal]) => ({ name: subName, total: subTotal }))
+                .sort((a, b) => b.total - a.total)
+        }))
+        .sort((a, b) => b.total - a.total);
+}
+
+/**
+ * Agrega entradas por categoria/subcategoria no período do filtro (mesma base do card «Principal categoria»).
+ */
+function buildSortedGainCategoriesForTreemapPeriod(sorted, period) {
+    const categoryTotals = {};
+    const categorySubcategories = {};
+    for (const t of sorted || []) {
+        if (!movementDateInListPeriod(t.date, period)) continue;
+        if (!gainCountsInTotals(t)) continue;
+        const top = gainTopLevelCategory(t);
+        const catName = top === '—' ? 'Sem categoria' : top;
+        const subcatName =
+            t.subcategory && String(t.subcategory).trim() ? String(t.subcategory).trim() : 'Geral';
+        const amt = Number(t.amount) || 0;
+        if (amt <= 0) continue;
+        if (!categoryTotals[catName]) {
+            categoryTotals[catName] = 0;
+            categorySubcategories[catName] = {};
+        }
+        categoryTotals[catName] += amt;
+        categorySubcategories[catName][subcatName] =
+            (categorySubcategories[catName][subcatName] || 0) + amt;
+    }
+    return Object.entries(categoryTotals)
+        .map(([name, total]) => ({
+            name,
+            total,
+            subcategories: Object.entries(categorySubcategories[name])
+                .map(([subName, subTotal]) => ({ name: subName, total: subTotal }))
+                .sort((a, b) => b.total - a.total)
+        }))
+        .sort((a, b) => b.total - a.total);
+}
+
+/**
+ * Renderiza o Mapa de Gastos na página de Saídas (Chart.js treemap, mesmo estilo do painel).
+ * @param {Array} sorted - Cache completo de despesas (período aplicado na agregação).
+ * @param {string} currency - Moeda
+ * @param {string} periodLabel - Label do período (título)
+ */
+function renderExpensesTreemap(sorted, currency, periodLabel) {
+    const container = document.getElementById('expenses-treemap');
+    const periodLabelEl = document.getElementById('treemap-period-label');
+
+    if (!container) return;
+
+    if (periodLabelEl) {
+        periodLabelEl.textContent = periodLabel;
+    }
+
+    const period = expensesFilterState?.period || getDefaultPeriodValue();
+    const now = new Date();
+    const userProfile = expensesRenderCache?.userProfile ?? null;
+    const acceptedSplits = getOutgoingAcceptedSettledSplits();
+    const sortedCategories = buildSortedExpenseCategoriesForTreemapPeriod(
+        sorted,
+        period,
+        now,
+        userProfile,
+        acceptedSplits
+    );
+
+    const { blocks: displayCategories, mergedCount } = buildTreemapBlocksForDisplay(sortedCategories);
+
+    renderSpendingTreemapHost({
+        container,
+        displayCategories,
+        mergedCount,
+        currency,
+        formatCurrency,
+        escapeHtml,
+        ui: {
+            canvasId: 'expenses-spending-treemap-canvas',
+            ariaLabel: 'Mapa de gastos por categoria',
+            emptyMessage: 'Nenhuma despesa no período selecionado.',
+            chartErrorMessage: 'Gráfico indisponível (Chart.js não carregado).',
+            datasetLabel: 'Saídas por categoria'
+        }
+    });
+}
+
+/**
+ * Mapa de Entradas (treemap verde), alinhado ao período do filtro de entradas.
+ */
+function renderGainsTreemap(sorted, currency, periodLabel) {
+    const container = document.getElementById('gains-treemap');
+    const periodLabelEl = document.getElementById('gains-treemap-period-label');
+    if (!container) return;
+
+    if (periodLabelEl) periodLabelEl.textContent = periodLabel;
+
+    const period = gainsFilterState?.period || getDefaultPeriodValue();
+    const sortedCategories = buildSortedGainCategoriesForTreemapPeriod(sorted, period);
+    const { blocks: displayCategories, mergedCount } = buildTreemapBlocksForDisplay(sortedCategories);
+
+    renderSpendingTreemapHost({
+        container,
+        displayCategories,
+        mergedCount,
+        currency,
+        formatCurrency,
+        escapeHtml,
+        ui: {
+            palette: INCOME_TREEMAP_PALETTE,
+            canvasId: 'gains-income-treemap-canvas',
+            ariaLabel: 'Mapa de entradas por categoria',
+            emptyMessage: 'Nenhuma entrada no período selecionado.',
+            chartErrorMessage: 'Gráfico indisponível (Chart.js não carregado).',
+            datasetLabel: 'Entradas por categoria'
+        }
+    });
 }
 
 // Exposto para depuração rápida no console quando um total mensal parece errado.
@@ -2480,6 +2726,8 @@ function updateGainsSummaryCards() {
     if (elProjTitle) elProjTitle.textContent = `Valor previsto de ${label}`;
     if (elTopTitle) elTopTitle.textContent = `Principal categoria de ${label}`;
 
+    renderGainsTreemap(sorted, currency, label);
+
     const projIcon = document.getElementById('gains-summary-projection-icon');
     if (projIcon) {
         projIcon.title =
@@ -2666,6 +2914,7 @@ function applyExpensesFilters() {
     expensesPagination.setTotal(getSortedFilteredExpensesList().length, { resetPage: true });
     renderExpensesBodySlice();
     updateExpensesSummaryCards();
+    resetQuickFilters('expenses-page');
 }
 
 function getSortedFilteredExpensesList() {
@@ -2676,10 +2925,14 @@ function getSortedFilteredExpensesList() {
 }
 
 function renderExpensesBodySlice() {
+    const list = getSortedFilteredExpensesList();
+    renderExpensesBodySliceWithList(list);
+}
+
+function renderExpensesBodySliceWithList(list) {
     const tbody = document.querySelector('#expenses-table tbody');
     if (!tbody || !expensesPagination) return;
     const { accounts, currency, userProfile, sorted: allExpensesForSplit } = expensesRenderCache;
-    const list = getSortedFilteredExpensesList();
     const { start, end } = expensesPagination.getSliceRange();
     const monthRing = isExpensesInstallmentMonthRingMode();
     const listPeriodMonth = monthRing ? getExpensesFilterListPeriod() : null;
@@ -2723,7 +2976,9 @@ function renderExpensesBodySlice() {
             if (t.__instEmptyPeriod) {
                 statusCell = '<span class="expense-status-badge expense-status-badge--pending">Pendente</span>';
             } else if (t.__instParcelPaid) {
-                statusCell = '<span class="expense-status-badge expense-status-badge--paid">Pago</span>';
+                const eidP = htmlAttrEscape(String(t.id));
+                const ik = htmlAttrEscape(String(t.__instPeriodKey ?? ''));
+                statusCell = `<button type="button" class="expense-status-badge expense-status-badge--paid expense-paid-toggle" data-expense-id="${eidP}" data-paid-toggle-mode="inst-row-period-unconfirm" data-inst-period-key="${ik}" title="${htmlAttrEscape('Clique para desfazer confirmação no caixa para esta parcela')}" aria-label="${htmlAttrEscape('Desfazer pagamento registado no caixa desta parcela')}">Pago</button>`;
             } else if (
                 t.__instDueDate &&
                 canConfirmInstallmentPeriodForCashOut(t, account, t.__instDueDate, userProfile, now)
@@ -2753,7 +3008,7 @@ function renderExpensesBodySlice() {
                     : Number(t.__instParcelAmount) || 0;
             const showSplitStrike = displayAmt < instGross - 0.0001;
             const amountHtmlInst = showSplitStrike
-                ? `<span class="expense-split-gross-strike">${formatCurrency(instGross, currency)}</span> <span class="expense-split-net-amount">${amountHtmlInstBase}</span>`
+                ? `<span class="expense-split-amount-stack"><span class="expense-split-net-amount">${amountHtmlInstBase}</span><span class="expense-split-gross-strike" title="Valor original antes do rateio">${formatCurrency(instGross, currency)}</span></span>`
                 : amountHtmlInstBase;
             const eidAttr = htmlAttrEscape(String(t.id));
             tr.innerHTML = `
@@ -2764,8 +3019,8 @@ function renderExpensesBodySlice() {
             <td>${escapeHtml(account?.name || 'N/A')}</td>
             <td>${paymentKindText}</td>
             <td class="expenses-td-fixed">${expenseFixedCellHtmlForTable(t)}</td>
-            <td class="${rowCls}"${amountTitle}>${amountHtmlInst}</td>
             <td class="expenses-td-status">${statusCell}</td>
+            <td class="${rowCls}"${amountTitle}>${amountHtmlInst}</td>
             <td class="transaction-actions">
                 <div class="transaction-actions__inner">
                     <button type="button" class="btn-action btn-split" data-id="${t.id}" data-split-scope="INSTALLMENT" data-target-installment-index="${t.__instParcelIndex}" data-target-period-key="${escapeHtml(String(t.__instPeriodKey || ''))}" title="Dividir esta parcela"><i class="fas fa-users"></i></button>
@@ -2796,9 +3051,7 @@ function renderExpensesBodySlice() {
         ) {
             statusCell = formatExpenseTableStatusBadgeHtml(t, account, userProfile, now, listPeriodMonth);
         } else {
-            statusCell = t.isPaid
-                ? '<span class="expense-status-badge expense-status-badge--paid">Pago</span>'
-                : '<span class="expense-status-badge expense-status-badge--pending">Pendente</span>';
+            statusCell = expenseTableBatchPaidToggleButton(t);
         }
         const categoryDisplay = t.subcategory ? `${t.category} > ${t.subcategory}` : t.category;
         const paymentKindText = escapeHtml(movementAccountPaymentKindLabel(account));
@@ -2831,7 +3084,7 @@ function renderExpensesBodySlice() {
                 ? Number(grossForRelatedSplit)
                 : totalAmt;
         const amountHtml = showSplitNet
-            ? `<span class="expense-split-gross-strike">${formatCurrency(grossShown, currency)}</span> <span class="expense-split-net-amount">${amountHtmlBase}</span>`
+            ? `<span class="expense-split-amount-stack"><span class="expense-split-net-amount">${amountHtmlBase}</span><span class="expense-split-gross-strike" title="Valor bruto / original">${formatCurrency(grossShown, currency)}</span></span>`
             : amountHtmlBase;
         const eidAttrNorm = htmlAttrEscape(String(t.id));
         tr.innerHTML = `
@@ -2842,8 +3095,8 @@ function renderExpensesBodySlice() {
             <td>${escapeHtml(account?.name || 'N/A')}</td>
             <td>${paymentKindText}</td>
             <td class="expenses-td-fixed">${expenseFixedCellHtmlForTable(t)}</td>
-            <td class="${rowCls}"${amountTitle}>${amountHtml}</td>
             <td class="expenses-td-status">${statusCell}</td>
+            <td class="${rowCls}"${amountTitle}>${amountHtml}</td>
             <td class="transaction-actions">
                 <div class="transaction-actions__inner">
                     ${splitBtn}
@@ -3250,6 +3503,7 @@ function applyGainsFilters() {
     gainsPagination.setTotal(getSortedFilteredGainsList().length, { resetPage: true });
     renderGainsBodySlice();
     updateGainsSummaryCards();
+    resetQuickFilters('gains-page');
 }
 
 function initMovementFilterDrawerEvents() {
@@ -3363,10 +3617,14 @@ function getSortedFilteredGainsList() {
 }
 
 function renderGainsBodySlice() {
+    const list = getSortedFilteredGainsList();
+    renderGainsBodySliceWithList(list);
+}
+
+function renderGainsBodySliceWithList(list) {
     const tbody = document.querySelector('#gains-table tbody');
     if (!tbody || !gainsPagination) return;
     const { accounts, currency } = gainsRenderCache;
-    const list = getSortedFilteredGainsList();
     const { start, end } = gainsPagination.getSliceRange();
     tbody.innerHTML = '';
     list.slice(start, end).forEach((t) => {
@@ -3387,8 +3645,8 @@ function renderGainsBodySlice() {
         const paymentKindText = escapeHtml(movementAccountPaymentKindLabel(account));
         const receivedCell =
             t.isPaid === false
-                ? `<span class="expense-status-badge expense-status-badge--pending">Não</span>`
-                : `<span class="expense-status-badge expense-status-badge--paid">Sim</span>`;
+                ? `<span class="expense-status-badge expense-status-badge--pending">Pendente</span>`
+                : `<span class="expense-status-badge expense-status-badge--paid">Recebido</span>`;
         const isSynthSplit = Boolean(t.__syntheticExpectedSplit);
         const actionBtns = isSynthSplit
             ? ''
@@ -3488,6 +3746,94 @@ function setupTransactionTableFilters() {
     });
 
     setupTableSortClicks();
+    setupQuickFilters();
+}
+
+function setupQuickFilters() {
+    const expensesQuickFilters = document.querySelectorAll('#expenses-page .quick-filter-btn');
+    const gainsQuickFilters = document.querySelectorAll('#gains-page .quick-filter-btn');
+
+    expensesQuickFilters.forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const filter = btn.dataset.filter;
+            applyExpensesQuickFilter(filter, expensesQuickFilters);
+        });
+    });
+
+    gainsQuickFilters.forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const filter = btn.dataset.filter;
+            applyGainsQuickFilter(filter, gainsQuickFilters);
+        });
+    });
+}
+
+function resetQuickFilters(pageId) {
+    const buttons = document.querySelectorAll(`#${pageId} .quick-filter-btn`);
+    buttons.forEach((btn) => btn.classList.toggle('active', btn.dataset.filter === 'all'));
+}
+
+function applyExpensesQuickFilter(filter, buttons) {
+    buttons.forEach((btn) => btn.classList.toggle('active', btn.dataset.filter === filter));
+
+    const cache = expensesRenderCache;
+    if (!cache?.sorted) return;
+
+    const { sorted, accounts } = cache;
+    let list = [...sorted];
+
+    switch (filter) {
+        case 'all':
+            break;
+        case 'fixed':
+            list = list.filter((t) => expenseIsMarkedFixed(t));
+            break;
+        case 'variable':
+            list = list.filter((t) => !expenseIsMarkedFixed(t));
+            break;
+        case 'credit':
+            list = list.filter((t) => {
+                const acc = accounts?.find((a) => a.id === t.accountId);
+                return acc && isCreditCardType(acc.type);
+            });
+            break;
+        case 'other':
+            list = list.filter((t) => {
+                const acc = accounts?.find((a) => a.id === t.accountId);
+                return !expenseIsMarkedFixed(t) && !(acc && isCreditCardType(acc.type));
+            });
+            break;
+    }
+
+    if (expensesPagination) {
+        expensesPagination.setTotal(list.length, { resetPage: true });
+    }
+    renderExpensesBodySliceWithList(list);
+}
+
+function applyGainsQuickFilter(filter, buttons) {
+    buttons.forEach((btn) => btn.classList.toggle('active', btn.dataset.filter === filter));
+
+    const cache = gainsRenderCache;
+    if (!cache?.sorted) return;
+
+    let list = [...cache.sorted];
+
+    switch (filter) {
+        case 'all':
+            break;
+        case 'received':
+            list = list.filter((t) => t.isPaid !== false);
+            break;
+        case 'pending':
+            list = list.filter((t) => t.isPaid === false);
+            break;
+    }
+
+    if (gainsPagination) {
+        gainsPagination.setTotal(list.length, { resetPage: true });
+    }
+    renderGainsBodySliceWithList(list);
 }
 
 function setupTableSortClicks() {
@@ -4777,6 +5123,85 @@ async function handleExpenseRowActions(e) {
             );
         } finally {
             expenseFixedTogglePendingIds.delete(expenseId);
+            if (!succeeded) {
+                snapshots.forEach(({ btn, html }) => {
+                    if (!btn.isConnected) return;
+                    btn.innerHTML = html;
+                    btn.removeAttribute('aria-busy');
+                    btn.disabled = false;
+                });
+            }
+        }
+        return;
+    }
+    const paidToggleBtn = e.target.closest('button.expense-paid-toggle');
+    if (paidToggleBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const { pendingKey, snapshots } = expensePaidToggleSnapshotsFromButton(paidToggleBtn);
+        if (!pendingKey || expensePaidTogglePendingKeys.has(pendingKey)) return;
+        const expenseId = String(paidToggleBtn.dataset.expenseId ?? '').trim();
+        const exp = userExpenses?.find((x) => x.id === expenseId);
+        if (!exp) {
+            showToast('Saída', 'Registo não encontrado na lista atual.', 'warning');
+            return;
+        }
+        expensePaidTogglePendingKeys.add(pendingKey);
+        snapshots.forEach(({ btn }) => {
+            btn.disabled = true;
+            btn.setAttribute('aria-busy', 'true');
+            btn.innerHTML =
+                '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i><span class="sr-only">A atualizar…</span>';
+        });
+        let succeeded = false;
+        try {
+            const mode = paidToggleBtn.dataset.paidToggleMode;
+            if (mode === 'batch-is-paid') {
+                const showsPaidNow = exp.isPaid !== false;
+                await patchExpensesBatch([expenseId], { isPaid: !showsPaidNow });
+            } else if (mode === 'monthly-fixed-unconfirm') {
+                const anchor = movementDateToJsDate(exp.date);
+                const rm = periodRemovalKeysFromDayAndMonth(
+                    calendarDayKeyFromDate(anchor),
+                    monthKeyFromDate(anchor)
+                );
+                await saveExpense(
+                    expensePutPayloadFromRow(exp, {
+                        cashOutConfirmedPeriods: filterCashOutConfirmedJsonAfterRemoval(exp, rm)
+                    }),
+                    expenseId
+                );
+            } else if (mode === 'period-keys-unconfirm') {
+                const rm = periodRemovalKeysFromDayAndMonth(
+                    paidToggleBtn.dataset.periodDay,
+                    paidToggleBtn.dataset.periodMonth
+                );
+                await saveExpense(
+                    expensePutPayloadFromRow(exp, {
+                        cashOutConfirmedPeriods: filterCashOutConfirmedJsonAfterRemoval(exp, rm)
+                    }),
+                    expenseId
+                );
+            } else if (mode === 'inst-row-period-unconfirm') {
+                const rm = periodRemovalKeysFromInstPeriodKey(paidToggleBtn.dataset.instPeriodKey);
+                await saveExpense(
+                    expensePutPayloadFromRow(exp, {
+                        cashOutConfirmedPeriods: filterCashOutConfirmedJsonAfterRemoval(exp, rm)
+                    }),
+                    expenseId
+                );
+            }
+            succeeded = true;
+            onUpdateCallback?.();
+        } catch (error) {
+            console.error('Erro ao atualizar estado de pagamento:', error);
+            showToast(
+                'Não foi possível atualizar',
+                error?.message || 'Tente novamente.',
+                error?.status === 409 ? 'warning' : 'error'
+            );
+        } finally {
+            expensePaidTogglePendingKeys.delete(pendingKey);
             if (!succeeded) {
                 snapshots.forEach(({ btn, html }) => {
                     if (!btn.isConnected) return;

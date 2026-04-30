@@ -1135,10 +1135,22 @@ export function formatInstallmentStatusPlain(expense, account, now = new Date(),
     return `${st0.paidCount}/${st0.total} parcelas pagas`;
 }
 
-const EXPENSE_TABLE_BADGE_PAID =
-    '<span class="expense-status-badge expense-status-badge--paid">Pago</span>';
 const EXPENSE_TABLE_BADGE_PENDING =
     '<span class="expense-status-badge expense-status-badge--pending">Pendente</span>';
+
+/**
+ * Botões Pago / Pendente para alternar apenas `isPaid` (lista simples ou parcela tratada como registo único).
+ */
+export function expenseTableBatchPaidToggleButton(expense) {
+    if (!expense) return EXPENSE_TABLE_BADGE_PENDING;
+    const paid = expense.isPaid !== false;
+    const label = paid ? 'Pago' : 'Pendente';
+    const id = esc(String(expense.id));
+    const cls = paid ? 'expense-status-badge--paid' : 'expense-status-badge--pending';
+    const title = paid ? 'Clique para marcar como pendente' : 'Clique para marcar como paga';
+    const aria = paid ? 'Marcar saída como pendente (não paga)' : 'Marcar saída como paga';
+    return `<button type="button" class="expense-status-badge ${cls} expense-paid-toggle" data-expense-id="${id}" data-paid-toggle-mode="batch-is-paid" title="${title}" aria-label="${esc(aria)}">${label}</button>`;
+}
 
 /**
  * Coluna Status da tabela de despesas (filtro «este mês»): só Pago, Pendente ou botão Pagar! — sem anel.
@@ -1152,8 +1164,7 @@ export function formatExpenseTableStatusBadgeHtml(expense, account, userProfile,
         account && isCreditCardType(account.type) && nInst >= 2;
     if (!st.applies || st.total < 2) {
         if (creditParcelado) return EXPENSE_TABLE_BADGE_PENDING;
-        if (expense.isPaid) return EXPENSE_TABLE_BADGE_PAID;
-        return EXPENSE_TABLE_BADGE_PENDING;
+        return expenseTableBatchPaidToggleButton(expense);
     }
     const t0Start = startOfDay(listPeriodMonth.startDate).getTime();
     const t0End = listPeriodMonth.endDate.getTime();
@@ -1167,7 +1178,14 @@ export function formatExpenseTableStatusBadgeHtml(expense, account, userProfile,
     }
     if (!dueInMonth) return EXPENSE_TABLE_BADGE_PENDING;
     if (isInstallmentDuePaidForCashOut(expense, account, dueInMonth, userProfile, now)) {
-        return EXPENSE_TABLE_BADGE_PAID;
+        const eidPaid = esc(String(expense.id));
+        const pkDay = calendarDayKeyFromDate(dueInMonth);
+        const pkMon = monthKeyFromDate(dueInMonth);
+        return `<button type="button" class="expense-status-badge expense-status-badge--paid expense-paid-toggle" data-expense-id="${eidPaid}" data-paid-toggle-mode="period-keys-unconfirm" data-period-day="${esc(
+            pkDay
+        )}" data-period-month="${esc(pkMon)}" title="Clique para desfazer confirmação no caixa" aria-label="${esc(
+            'Desfazer pagamento registado no caixa'
+        )}">Pago</button>`;
     }
     if (canConfirmInstallmentPeriodForCashOut(expense, account, dueInMonth, userProfile, now)) {
         const pk = calendarDayKeyFromDate(dueInMonth);

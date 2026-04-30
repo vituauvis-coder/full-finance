@@ -56,7 +56,7 @@
     display: block;
     height: 4px;
     width: 100%;
-    background: linear-gradient(90deg, var(--primary-color) 0%, #6366f1 45%, var(--secondary-color) 100%);
+    background: linear-gradient(90deg, #f1f5f9 0%, #e2e8f0 55%, #cbd5e1 100%);
 }
 
 .modal-content.delete-account-modal::before {
@@ -73,7 +73,7 @@
     line-height: 1.35;
     color: var(--text-color);
     border-bottom: 1px solid var(--border-color);
-    background: linear-gradient(180deg, rgba(124, 58, 237, 0.06) 0%, transparent 100%);
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.04) 0%, transparent 100%);
 }
 
 .modal-content > h3 i {
@@ -532,7 +532,7 @@
     border-radius: 8px;
     opacity: 0.92;
     background-color: transparent;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237c3aed' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cpath d='M16 2v4M8 2v4M3 10h18'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23334155' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cpath d='M16 2v4M8 2v4M3 10h18'/%3E%3C/svg%3E");
     background-size: 1.05rem 1.05rem;
     background-repeat: no-repeat;
     background-position: center;
@@ -558,7 +558,7 @@
 }
 
 [data-theme='dark'] .modal-content .form-group input[type='date']::-webkit-calendar-picker-indicator {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23c4b5fd' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cpath d='M16 2v4M8 2v4M3 10h18'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e2e8f0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cpath d='M16 2v4M8 2v4M3 10h18'/%3E%3C/svg%3E");
 }
 
 [data-theme='dark'] .modal-content .form-group input[type='date']:hover::-webkit-calendar-picker-indicator {
@@ -911,8 +911,12 @@
         0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 
+[data-theme='dark'] .modal-content::before {
+    background: linear-gradient(90deg, rgba(248, 250, 252, 0.35) 0%, rgba(148, 163, 184, 0.45) 50%, rgba(71, 85, 105, 0.5) 100%);
+}
+
 [data-theme='dark'] .modal-content > h3 {
-    background: linear-gradient(180deg, rgba(124, 58, 237, 0.12) 0%, transparent 100%);
+    background: linear-gradient(180deg, rgba(248, 250, 252, 0.06) 0%, transparent 100%);
 }
 
 [data-theme='dark'] .modal-content .form-group input:not([type='checkbox']),
@@ -1055,8 +1059,8 @@
         #eab308,
         #22c55e,
         #06b6d4,
-        #6366f1,
-        #a855f7,
+        #0ea5e9,
+        #0284c7,
         #ef4444
     );
 }
@@ -1136,7 +1140,7 @@
 .card-tone-item:has(input:checked)::after {
     box-shadow:
         0 0 0 3px var(--bg-light, #fff),
-        0 0 0 6px var(--primary-color, #7c3aed),
+        0 0 0 6px var(--primary-color, #334155),
         0 10px 28px rgba(15, 23, 42, 0.38);
     transform: scale(1.44);
 }
@@ -1196,7 +1200,7 @@
 [data-theme='dark'] .card-tone-item:has(input:checked)::after {
     box-shadow:
         0 0 0 3px var(--bg-light, #1e293b),
-        0 0 0 6px var(--primary-color, #a78bfa),
+        0 0 0 6px var(--primary-color, #f1f5f9),
         0 10px 32px rgba(0, 0, 0, 0.55);
 }
 
@@ -1482,8 +1486,8 @@
 }
 
 [data-theme='dark'] .installment-remaining-summary {
-    background: linear-gradient(135deg, rgba(124, 58, 237, 0.14), rgba(16, 185, 129, 0.08));
-    border-color: rgba(167, 139, 250, 0.22);
+    background: linear-gradient(135deg, rgba(248, 250, 252, 0.1), rgba(148, 163, 184, 0.08));
+    border-color: rgba(148, 163, 184, 0.22);
 }
 
 [data-theme='dark'] .installment-remaining-ring__track {
@@ -1491,7 +1495,7 @@
 }
 
 [data-theme='dark'] .installment-remaining-ring__num {
-    color: #c4b5fd;
+    color: #e2e8f0;
 }
 
 /* Pílulas do cartão ficam dentro de .installment-remaining-append; só margem se estiverem soltas no preview */
@@ -1593,7 +1597,7 @@ button.expense-loan-month-tag:focus-visible {
     font-size: 0.7rem;
     padding: 0.1rem 0.35rem;
     border-radius: 4px;
-    background: rgba(124, 58, 237, 0.15);
-    color: var(--primary-color-dark, #6d28d9);
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--gains-accent, #059669);
     vertical-align: middle;
 }

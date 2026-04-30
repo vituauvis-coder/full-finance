@@ -413,9 +413,9 @@
 }
 
 .account-card--tipo-inv {
-    --acc-fin-a: #ede9fe;
-    --acc-fin-b: #8b5cf6;
-    --acc-fin-c: #5b21b6;
+    --acc-fin-a: #f8fafc;
+    --acc-fin-b: #94a3b8;
+    --acc-fin-c: #475569;
     --acc-bar: rgba(255, 255, 255, 0.55);
     --acc-trend: rgba(255, 255, 255, 0.45);
 }
@@ -713,7 +713,7 @@
     transform: translateY(-3px);
     box-shadow:
         0 8px 12px rgba(15, 23, 42, 0.15),
-        0 22px 48px rgba(76, 29, 149, 0.28);
+        0 22px 48px rgba(51, 65, 85, 0.15);
 }
 
 .credit-card-plastic--violet {
@@ -778,7 +778,7 @@
 
 /* Cor livre: base só se não houver estilo inline (gradiente vem do JS) */
 .credit-card-plastic--custom {
-    background: linear-gradient(135deg, #312e81 0%, #7c3aed 50%, #a78bfa 100%);
+    background: linear-gradient(135deg, #0f172a 0%, #334155 45%, #64748b 100%);
 }
 
 .credit-card-plastic__shine {
@@ -1153,7 +1153,7 @@
 }
 
 .card-purchases-modal__badge--credit {
-    background: linear-gradient(145deg, #7c3aed, #5b21b6);
+    background: linear-gradient(145deg, #475569, #334155);
 }
 
 .card-purchases-modal__badge--debit {
@@ -1514,7 +1514,7 @@ button.installment-tooltip-pill.installment-tooltip-pill-btn:focus-visible {
 }
 
 .card-purchases-status-ring--paid .installment-ring-compact__progress {
-    stroke: var(--secondary-color);
+    stroke: var(--gains-accent, #10b981);
 }
 
 /* Parcela do mês corrente: verde = paga (regra de caixa), amarelo = em aberto */

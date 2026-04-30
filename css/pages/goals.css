@@ -366,14 +366,14 @@
 
 /* --- Cards de objetivo — composição “paisagem” (inspirado em Recursos/colors/card-paiseagem) + identidade do portal --- */
 .goal-card {
-    --goal-sky-a: #ede9fe;
-    --goal-sky-b: #a78bfa;
+    --goal-sky-a: #ffffff;
+    --goal-sky-b: #e2e8f0;
     --goal-sun: #ffffff;
-    --goal-sun-glow: rgba(255, 255, 255, 0.45);
-    --goal-hill-back: #c4b5fd;
-    --goal-hill-front: #7c3aed;
-    --goal-water-a: #ddd6fe;
-    --goal-water-b: #8b5cf6;
+    --goal-sun-glow: rgba(255, 255, 255, 0.55);
+    --goal-hill-back: #cbd5e1;
+    --goal-hill-front: #94a3b8;
+    --goal-water-a: #f1f5f9;
+    --goal-water-b: #64748b;
     --goal-badge-bg: rgba(255, 255, 255, 0.92);
     --goal-badge-fg: #334155;
     --goal-action-fg: rgba(15, 23, 42, 0.55);
@@ -930,16 +930,16 @@
 }
 
 .goal-card--outro {
-    --goal-sky-a: #ede9fe;
-    --goal-sky-b: #7c3aed;
+    --goal-sky-a: #e2e8f0;
+    --goal-sky-b: #64748b;
     --goal-sun: #ffffff;
-    --goal-sun-glow: rgba(255, 255, 255, 0.45);
-    --goal-hill-back: #c4b5fd;
-    --goal-hill-front: #5b21b6;
-    --goal-water-a: #ddd6fe;
-    --goal-water-b: #6d28d9;
+    --goal-sun-glow: rgba(255, 255, 255, 0.4);
+    --goal-hill-back: #94a3b8;
+    --goal-hill-front: #475569;
+    --goal-water-a: #cbd5e1;
+    --goal-water-b: #334155;
 }
 
 .goal-card--outro .goal-card__progress-fill {
-    background: linear-gradient(90deg, #5b21b6, #a78bfa);
+    background: linear-gradient(90deg, #334155, #64748b);
 }

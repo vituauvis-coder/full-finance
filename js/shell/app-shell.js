@@ -441,6 +441,21 @@ export function navigateTo(pageId) {
         void headerHeading.offsetWidth;
         headerHeading.classList.add('header-page-heading--emoji-swap');
     }
+    
+    // Atualiza a cor de fundo do header baseado na página
+    const appHeader = document.querySelector('.app-header');
+    if (appHeader) {
+        appHeader.classList.remove('app-header--expenses', 'app-header--gains');
+        if (pageId === 'expenses') {
+            appHeader.classList.add('app-header--expenses');
+        } else if (pageId === 'gains') {
+            appHeader.classList.add('app-header--gains');
+        }
+    }
+
+    document.getElementById('expenses-header-actions')?.classList.toggle('hidden', pageId !== 'expenses');
+    document.getElementById('gains-header-actions')?.classList.toggle('hidden', pageId !== 'gains');
+    document.getElementById('dashboard-header-actions')?.classList.toggle('hidden', pageId !== 'dashboard');
 
     // Salva a última página visitada
     localStorage.setItem('lastVisitedPage', pageId);

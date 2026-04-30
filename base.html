@@ -1,0 +1,518 @@
+```react
+import React, { useState } from 'react';
+import {
+ArrowUp,
+ArrowDown,
+Filter,
+Plus,
+Bell,
+ChevronDown,
+Calendar,
+FastForward,
+Tag,
+Edit3,
+Trash2,
+LayoutDashboard,
+PieChart,
+Flag,
+AlertTriangle,
+Settings,
+Moon,
+Bot,
+CreditCard,
+RefreshCw,
+Zap,
+TrendingUp,
+Wallet
+} from 'lucide-react';
+
+export default function App() {
+const [telaAtiva, setTelaAtiva] = useState('dashboard');
+
+return (
+<div className="flex h-screen bg-[#0f111a] text-slate-200 font-sans overflow-hidden">
+
+{/* Sidebar Lateral */}
+<aside className="w-20 bg-[#171923] border-r border-slate-800 flex flex-col items-center py-6 justify-between z-20 shadow-xl hidden sm:flex">
+<div className="flex flex-col items-center gap-8 w-full">
+<div className="bg-slate-800 p-2 rounded-xl mb-4">
+<Bot className="w-8 h-8 text-indigo-400" />
+</div>
+<nav className="flex flex-col gap-4 w-full px-4">
+<SidebarIcon icon={<PieChart />} active={telaAtiva === 'dashboard'} onClick={() => setTelaAtiva('dashboard')} tooltip="Dashboard Anual"/>
+<SidebarIcon icon={<ArrowUp />} active={false} tooltip="Entradas"/>
+<SidebarIcon icon={<ArrowDown />} active={telaAtiva === 'saidas'} onClick={() => setTelaAtiva('saidas')} tooltip="Saídas"/>
+<SidebarIcon icon={<LayoutDashboard />} />
+<SidebarIcon icon={<Flag />} />
+<SidebarIcon icon={<AlertTriangle />} />
+<SidebarIcon icon={<Settings />} />
+</nav>
+</div>
+<div className="pb-4">
+<SidebarIcon icon={<Moon />} />
+</div>
+</aside>
+
+{/* Conteúdo Principal */}
+<main className="flex-1 overflow-y-auto p-4 sm:p-8">
+<div className="max-w-7xl mx-auto">
+{telaAtiva === 'dashboard' ? <TelaDashboard /> : <TelaSaidas />}
+</div>
+</main>
+</div>
+);
+}
+
+// ============================================================================
+// TELA 1: DASHBOARD PRINCIPAL (Com Linha do Tempo e Opacidade)
+// ============================================================================
+function TelaDashboard() {
+const dadosAnuais = [
+{ mes: 'Jan', entradas: 7200, saidas: 5100, saldo: 2100 },
+{ mes: 'Fev', entradas: 7200, saidas: 6800, saldo: 400 },
+{ mes: 'Mar', entradas: 7500, saidas: 5200, saldo: 2300 },
+{ mes: 'Abr', entradas: 7333, saidas: 7411, saldo: -78 },
+{ mes: 'Mai', entradas: 8500, saidas: 5000, saldo: 3500 },
+{ mes: 'Jun', entradas: 7200, saidas: 5500, saldo: 1700 },
+{ mes: 'Jul', entradas: 7200, saidas: 4800, saldo: 2400 },
+{ mes: 'Ago', entradas: 7200, saidas: 5100, saldo: 2100 },
+{ mes: 'Set', entradas: 7200, saidas: 5000, saldo: 2200 },
+{ mes: 'Out', entradas: 7200, saidas: 5800, saldo: 1400 },
+{ mes: 'Nov', entradas: 10500, saidas: 6000, saldo: 4500 },
+{ mes: 'Dez', entradas: 10500, saidas: 8000, saldo: 2500 },
+];
+
+const maxValor = 12000;
+
+// LÓGICA DE TEMPO: Definindo Abril (índice 3) como o mês atual
+const mesAtualIndex = 3;
+
+return (
+<div className="space-y-6 animate-fade-in">
+<header className="bg-gradient-to-r from-slate-800 to-slate-900 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between shadow-lg gap-4 border border-slate-700">
+<div>
+<h1 className="text-2xl font-bold text-white tracking-wide">Visão Geral 2026</h1>
+<p className="text-slate-400 text-sm mt-1">Acompanhamento anual de fluxo de caixa e projeções</p>
+</div>
+<div className="flex gap-4">
+<button className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-indigo-500/20 transition-all flex items-center gap-2">
+<TrendingUp className="w-4 h-4" /> Relatório Completo
+</button>
+</div>
+</header>
+
+<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+<SummaryCard icon={<ArrowUp className="w-6 h-6 text-blue-400" />} title="Entradas Anuais" value="R$ 94.733,00" trend="↑ 12% vs 2025" trendColor="text-blue-400" iconBg="bg-blue-400/10" />
+<SummaryCard icon={<ArrowDown className="w-6 h-6 text-amber-400" />} title="Saídas Anuais" value="R$ 69.711,00" trend="↓ 3% vs 2025" trendColor="text-emerald-400" iconBg="bg-amber-400/10" />
+<SummaryCard icon={<Wallet className="w-6 h-6 text-emerald-400" />} title="Saldo Final" value="R$ 25.022,00" trend="No azul" trendColor="text-emerald-400" iconBg="bg-emerald-400/10" />
+</div>
+
+<div className="bg-[#171923] border border-slate-800 p-6 rounded-2xl shadow-xl">
+<div className="flex justify-between items-center mb-8">
+<h2 className="text-lg font-bold text-white">Fluxo Mensal (Entradas, Saídas e Saldo)</h2>
+
+<div className="flex items-center gap-4 text-xs font-medium text-slate-400">
+<div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-blue-500"></span> Entradas</div>
+<div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-amber-400"></span> Saídas</div>
+<div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-emerald-500"></span> Saldo</div>
+</div>
+</div>
+
+<div className="relative h-[400px] w-full border-b border-slate-700 flex items-end justify-between px-2">
+
+<div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-12">
+{[100, 75, 50, 25, 0].map((perc) => (
+<div key={perc} className="w-full border-t border-slate-800/50 relative">
+<span className="absolute -top-3 -left-2 text-[10px] text-slate-500 bg-[#171923] pr-2">
+{perc === 0 ? '0' : `R$ ${((perc/100) * maxValor).toLocaleString('pt-BR')}`}
+</span>
+</div>
+))}
+</div>
+
+{/* Renderização das 3 Barras por Mês */}
+{dadosAnuais.map((dado, index) => {
+const percEntrada = (dado.entradas / maxValor) * 100;
+const percSaida = (dado.saidas / maxValor) * 100;
+const percSaldo = Math.abs(dado.saldo / maxValor) * 100;
+const isSaldoNegativo = dado.saldo < 0;
+
+// Determina em que parte do tempo este mês está
+const isPast = index < mesAtualIndex;
+const isCurrent = index === mesAtualIndex;
+const isFuture = index > mesAtualIndex;
+
+// Define a opacidade baseada no tempo
+let opacityClass = '';
+let hoverClass = '';
+
+if (isPast) {
+opacityClass = 'opacity-30 grayscale-[30%]';
+hoverClass = 'hover:opacity-60 hover:grayscale-0';
+} else if (isFuture) {
+opacityClass = 'opacity-60';
+hoverClass = 'hover:opacity-90';
+} else {
+// Mês Atual (100% visível, leve brilho)
+opacityClass = 'opacity-100 drop-shadow-[0_0_15px_rgba(255,255,255,0.05)]';
+hoverClass = 'hover:brightness-110';
+}
+
+return (
+<div key={index} className="relative w-full h-full flex justify-center items-end group z-10 pb-12">
+
+{/* Tooltip Hover Exato */}
+<div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 border border-slate-600 p-3 rounded-lg shadow-2xl z-50 w-48 pointer-events-none transform -translate-x-1/2 left-1/2">
+<p className="font-bold text-white text-sm mb-1 text-center">
+{dado.mes} de 2026
+{isCurrent && <span className="ml-2 text-[10px] bg-indigo-500 text-white px-1.5 py-0.5 rounded-full">Atual</span>}
+{isFuture && <span className="ml-2 text-[10px] bg-slate-600 text-white px-1.5 py-0.5 rounded-full">Proj.</span>}
+</p>
+<div className="pb-2 mb-2 border-b border-slate-700"></div>
+<p className="text-xs text-blue-400 flex justify-between"><span>Entradas:</span> <span className="font-medium">R$ {dado.entradas}</span></p>
+<p className="text-xs text-amber-400 flex justify-between my-1"><span>Saídas:</span> <span className="font-medium">R$ {dado.saidas}</span></p>
+<p className={`text-xs flex justify-between pt-1 border-t border-slate-700 ${isSaldoNegativo ? 'text-rose-400' : 'text-emerald-400'}`}>
+<span>Saldo:</span> <span className="font-bold">R$ {dado.saldo}</span>
+</p>
+</div>
+
+{/* Container das 3 Barras Lado a Lado COM A LÓGICA DE OPACIDADE */}
+<div className={`flex items-end h-full gap-[2px] w-[70%] mx-auto relative cursor-pointer transition-all duration-300 ${opacityClass} ${hoverClass}`}>
+
+{/* Destaque sutil de fundo para o mês atual */}
+{isCurrent && <div className="absolute -inset-x-2 -inset-y-4 bg-indigo-500/5 rounded-t-lg -z-10 border-t border-indigo-500/20"></div>}
+
+<div style={{ height: `${percEntrada}%` }} className="w-1/3 bg-blue-500 rounded-t-sm"></div>
+<div style={{ height: `${percSaida}%` }} className="w-1/3 bg-amber-400 rounded-t-sm"></div>
+<div style={{ height: `${percSaldo}%` }} className={`w-1/3 rounded-t-sm ${isSaldoNegativo ? 'bg-rose-500' : 'bg-emerald-500'}`}></div>
+
+</div>
+
+{/* Rótulo do Mês na base */}
+<div className="absolute bottom-2 flex flex-col items-center">
+<span className={`text-xs font-bold ${isCurrent ? 'text-white' : isSaldoNegativo ? 'text-rose-400/70' : 'text-slate-400/70'}`}>
+{dado.mes}
+</span>
+{/* Bolinha indicadora para o mês atual */}
+{isCurrent && <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full mt-1 animate-pulse"></span>}
+</div>
+</div>
+);
+})}
+</div>
+</div>
+</div>
+);
+}
+
+// ============================================================================
+// TELA 2: SAÍDAS (Treemap Interativo) - Mantido exatamente como você aprovou
+// ============================================================================
+function TelaSaidas() {
+const [periodo, setPeriodo] = useState('Abril 2026');
+const [categoriaAtiva, setCategoriaAtiva] = useState('Todas');
+const [hoveredCategory, setHoveredCategory] = useState(null);
+
+const categoriasMenu = [
+{ id: 'Todas', label: 'Todas as saídas' },
+{ id: 'Fixas', label: 'Despesas Fixas', icon: <RefreshCw className="w-4 h-4" /> },
+{ id: 'Variáveis', label: 'Despesas Variáveis', icon: <Zap className="w-4 h-4" /> },
+{ id: 'Cartão', label: 'Cartão de Crédito', icon: <CreditCard className="w-4 h-4" /> },
+];
+
+const transacoes = [
+{ id: 1, data: '10/04/2026', descricao: 'Aluguel', categoria: 'Casa', conta: 'Itaú', classificacao: 'Fixas', valor: 2500.00, pago: true },
+{ id: 2, data: '12/04/2026', descricao: 'Mercado', categoria: 'Alimentação', conta: 'Cartão Nubank', classificacao: 'Cartão', valor: 850.00, pago: true },
+{ id: 3, data: '15/04/2026', descricao: 'CDB Liquidez', categoria: 'Investimentos', conta: 'Inter', classificacao: 'Fixas', valor: 1000.00, pago: true },
+{ id: 4, data: '20/04/2026', descricao: 'Ifood', categoria: 'Alimentação', conta: 'Nubank', classificacao: 'Variáveis', valor: 120.50, pago: true },
+{ id: 5, data: '28/04/2026', descricao: 'Academia', categoria: 'Cuidados Pessoais', conta: 'Cartão Itaú', classificacao: 'Cartão', valor: 119.90, pago: false },
+];
+
+const transacoesFiltradas = categoriaAtiva === 'Todas' ? transacoes : transacoes.filter(t => t.classificacao === categoriaAtiva);
+
+const renderBadgeClassificacao = (tipo) => {
+switch(tipo) {
+case 'Fixas': return <span className="flex items-center gap-1 text-xs font-medium text-blue-400 bg-blue-400/10 px-2 py-1 rounded-md border border-blue-400/20 w-fit"><RefreshCw className="w-3 h-3"/> Fixa</span>;
+case 'Variáveis': return <span className="flex items-center gap-1 text-xs font-medium text-amber-400 bg-amber-400/10 px-2 py-1 rounded-md border border-amber-400/20 w-fit"><Zap className="w-3 h-3"/> Variável</span>;
+case 'Cartão': return <span className="flex items-center gap-1 text-xs font-medium text-slate-500 bg-slate-500/10 px-2 py-1 rounded-md border border-slate-500/20 w-fit"><CreditCard className="w-3 h-3"/> Cartão</span>;
+default: return null;
+}
+};
+
+return (
+<div className="space-y-6 animate-fade-in">
+<header className="bg-gradient-to-r from-rose-600 to-rose-800 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between shadow-lg gap-4">
+<div className="flex items-center gap-3 w-full md:w-auto">
+<div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
+<ArrowDown className="w-5 h-5 text-white" />
+</div>
+<h1 className="text-xl font-bold text-white tracking-wide">Saídas</h1>
+</div>
+<div className="flex items-center gap-3 flex-wrap justify-center w-full md:w-auto">
+<div className="relative">
+<button className="flex items-center gap-2 bg-rose-900/50 hover:bg-rose-900/80 text-white px-4 py-2 rounded-lg border border-rose-400/30 transition-colors text-sm font-medium">
+{periodo} <ChevronDown className="w-4 h-4 text-rose-200" />
+</button>
+</div>
+<button className="flex items-center gap-2 bg-rose-900/50 hover:bg-rose-900/80 text-white px-4 py-2 rounded-lg border border-rose-400/30 transition-colors text-sm font-medium">
+<Filter className="w-4 h-4" /> Filtros
+</button>
+<button className="flex items-center gap-2 bg-white text-rose-700 hover:bg-rose-50 px-4 py-2 rounded-lg font-bold shadow-sm transition-colors text-sm">
+<Plus className="w-4 h-4" /> Nova saída
+</button>
+</div>
+</header>
+
+<div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+{categoriasMenu.map((cat) => (
+<button
+key={cat.id}
+onClick={() => setCategoriaAtiva(cat.id)}
+className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
+categoriaAtiva === cat.id
+? 'bg-rose-500/20 text-rose-400 border border-rose-500/30 shadow-sm'
+: 'bg-[#171923] text-slate-400 border border-slate-800 hover:bg-slate-800 hover:text-slate-200'
+}`}
+>
+{cat.icon && cat.icon}
+{cat.label}
+</button>
+))}
+</div>
+
+{categoriaAtiva === 'Todas' && (
+<div className="bg-[#171923] border border-slate-800 p-6 rounded-2xl shadow-xl animate-fade-in">
+<div className="flex justify-between items-start mb-6">
+<div>
+<h2 className="text-lg font-bold text-white mb-1">Mapa de Gastos: {periodo}</h2>
+<p className="text-sm text-slate-400">Passe o mouse sobre uma categoria para ver os detalhes (subcategorias).</p>
+</div>
+<div className="hidden lg:flex gap-4">
+<div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-blue-500 rounded-sm"></div><span className="text-xs text-slate-300">Casa</span></div>
+<div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-emerald-500 rounded-sm"></div><span className="text-xs text-slate-300">Alimentação</span></div>
+<div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-rose-500 rounded-sm"></div><span className="text-xs text-slate-300">Investimentos</span></div>
+</div>
+</div>
+
+<div className="w-full h-80 grid grid-cols-4 grid-rows-3 gap-2 p-2 bg-slate-800/30 rounded-xl border border-slate-700/50">
+{/* Bloco 1: CASA */}
+<div onMouseEnter={() => setHoveredCategory('casa')} onMouseLeave={() => setHoveredCategory(null)} className="col-span-2 row-span-2 relative rounded-lg overflow-hidden cursor-pointer shadow-sm border border-blue-600/30 group">
+<div className={`absolute inset-0 bg-blue-500/90 p-4 transition-opacity duration-300 ${hoveredCategory === 'casa' ? 'opacity-0' : 'opacity-100'}`}>
+<span className="text-white font-bold text-lg drop-shadow-md">Casa</span>
+<span className="absolute bottom-4 right-4 text-white text-sm font-bold bg-black/20 px-3 py-1.5 rounded-lg backdrop-blur-sm">R$ 2.450 (33%)</span>
+</div>
+<div className={`absolute inset-0 bg-blue-900/90 transition-opacity duration-300 flex flex-col p-2 gap-1.5 ${hoveredCategory === 'casa' ? 'opacity-100 z-10' : 'opacity-0 -z-10'}`}>
+<div className="flex justify-between items-center px-2 pb-1 border-b border-blue-500/30 mb-1">
+<span className="text-blue-200 font-bold text-sm">Casa</span>
+<span className="text-blue-100 text-xs font-semibold">Total: R$ 2.450</span>
+</div>
+<div className="flex-1 flex gap-1.5">
+<div className="w-3/5 bg-blue-500 rounded p-2 flex flex-col justify-between">
+<span className="text-blue-50 text-xs font-semibold">Aluguel/Financ.</span>
+<span className="text-white font-bold text-sm">R$ 1.800</span>
+</div>
+<div className="w-2/5 flex flex-col gap-1.5">
+<div className="h-1/2 bg-blue-600 rounded p-2 flex flex-col justify-between">
+<span className="text-blue-100 text-[10px] font-medium leading-tight">Condomínio</span>
+<span className="text-white font-bold text-xs">R$ 400</span>
+</div>
+<div className="h-1/2 flex gap-1.5">
+<div className="w-1/2 bg-blue-400 rounded p-1.5 flex flex-col justify-between">
+<span className="text-blue-50 text-[9px] font-medium leading-tight">Luz</span>
+<span className="text-white font-bold text-[10px]">R$ 150</span>
+</div>
+<div className="w-1/2 bg-blue-700 rounded p-1.5 flex flex-col justify-between">
+<span className="text-blue-50 text-[9px] font-medium leading-tight">Net</span>
+<span className="text-white font-bold text-[10px]">R$ 100</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+{/* Bloco 2: ALIMENTAÇÃO */}
+<div onMouseEnter={() => setHoveredCategory('alimentacao')} onMouseLeave={() => setHoveredCategory(null)} className="col-span-2 row-span-1 relative rounded-lg overflow-hidden cursor-pointer shadow-sm border border-emerald-600/30">
+<div className={`absolute inset-0 bg-emerald-500/90 p-4 transition-opacity duration-300 ${hoveredCategory === 'alimentacao' ? 'opacity-0' : 'opacity-100'}`}>
+<span className="text-white font-bold text-lg drop-shadow-md">Alimentação</span>
+<span className="absolute bottom-4 right-4 text-white text-sm font-bold bg-black/20 px-3 py-1.5 rounded-lg backdrop-blur-sm">R$ 1.850 (25%)</span>
+</div>
+<div className={`absolute inset-0 bg-emerald-900/90 transition-opacity duration-300 flex p-2 gap-1.5 ${hoveredCategory === 'alimentacao' ? 'opacity-100 z-10' : 'opacity-0 -z-10'}`}>
+<div className="w-2/3 bg-emerald-500 rounded p-2 flex flex-col justify-between relative">
+<span className="text-emerald-50 text-xs font-semibold">Mercado</span>
+<span className="text-white font-bold text-sm">R$ 1.200</span>
+<span className="absolute top-2 right-2 text-emerald-200 text-[10px]">65%</span>
+</div>
+<div className="w-1/3 bg-emerald-600 rounded p-2 flex flex-col justify-between relative">
+<span className="text-emerald-100 text-xs font-semibold">Delivery / Ifood</span>
+<span className="text-white font-bold text-sm">R$ 650</span>
+<span className="absolute top-2 right-2 text-emerald-200 text-[10px]">35%</span>
+</div>
+</div>
+</div>
+
+{/* Bloco 3: INVESTIMENTOS */}
+<div onMouseEnter={() => setHoveredCategory('investimentos')} onMouseLeave={() => setHoveredCategory(null)} className="col-span-2 row-span-1 relative rounded-lg overflow-hidden cursor-pointer shadow-sm border border-rose-600/30">
+<div className={`absolute inset-0 bg-rose-500/90 p-4 transition-opacity duration-300 ${hoveredCategory === 'investimentos' ? 'opacity-0' : 'opacity-100'}`}>
+<span className="text-white font-bold text-lg drop-shadow-md">Investimentos</span>
+<span className="absolute bottom-4 right-4 text-white text-sm font-bold bg-black/20 px-3 py-1.5 rounded-lg backdrop-blur-sm">R$ 1.480 (20%)</span>
+</div>
+<div className={`absolute inset-0 bg-rose-900/90 transition-opacity duration-300 flex p-2 gap-1.5 ${hoveredCategory === 'investimentos' ? 'opacity-100 z-10' : 'opacity-0 -z-10'}`}>
+<div className="w-[45%] bg-rose-500 rounded p-2 flex flex-col justify-between">
+<span className="text-rose-50 text-xs font-semibold">CDB Liquidez</span>
+<span className="text-white font-bold text-sm">R$ 800</span>
+</div>
+<div className="w-[35%] bg-rose-600 rounded p-2 flex flex-col justify-between">
+<span className="text-rose-100 text-xs font-semibold">Tesouro Direto</span>
+<span className="text-white font-bold text-sm">R$ 480</span>
+</div>
+<div className="w-[20%] bg-rose-400 rounded p-2 flex flex-col justify-between">
+<span className="text-rose-50 text-[10px] font-semibold leading-tight">Ações</span>
+<span className="text-white font-bold text-xs">R$ 200</span>
+</div>
+</div>
+</div>
+
+{/* Bloco 4: CUIDADOS PESSOAIS */}
+<div onMouseEnter={() => setHoveredCategory('cuidados')} onMouseLeave={() => setHoveredCategory(null)} className="col-span-1 row-span-1 relative rounded-lg overflow-hidden cursor-pointer shadow-sm border border-amber-600/30">
+<div className={`absolute inset-0 bg-amber-500/90 p-3 transition-opacity duration-300 ${hoveredCategory === 'cuidados' ? 'opacity-0' : 'opacity-100'}`}>
+<span className="text-white font-semibold text-sm drop-shadow-md">Cuidados</span>
+</div>
+<div className={`absolute inset-0 bg-amber-900/90 transition-opacity duration-300 flex flex-col p-1.5 gap-1.5 ${hoveredCategory === 'cuidados' ? 'opacity-100 z-10' : 'opacity-0 -z-10'}`}>
+<div className="h-1/2 bg-amber-500 rounded p-1.5 flex justify-between items-center">
+<span className="text-amber-50 text-[10px]">Academia</span>
+<span className="text-white font-bold text-[10px]">R$ 120</span>
+</div>
+<div className="h-1/2 bg-amber-600 rounded p-1.5 flex justify-between items-center">
+<span className="text-amber-100 text-[10px]">Farmácia</span>
+<span className="text-white font-bold text-[10px]">R$ 80</span>
+</div>
+</div>
+</div>
+
+{/* Bloco 5: TRANSPORTE */}
+<div onMouseEnter={() => setHoveredCategory('transporte')} onMouseLeave={() => setHoveredCategory(null)} className="col-span-1 row-span-1 relative rounded-lg overflow-hidden cursor-pointer shadow-sm border border-cyan-600/30">
+<div className={`absolute inset-0 bg-cyan-500/90 p-3 transition-opacity duration-300 ${hoveredCategory === 'transporte' ? 'opacity-0' : 'opacity-100'}`}>
+<span className="text-white font-semibold text-sm drop-shadow-md">Transporte</span>
+</div>
+<div className={`absolute inset-0 bg-cyan-900/90 transition-opacity duration-300 flex flex-col p-1.5 gap-1.5 ${hoveredCategory === 'transporte' ? 'opacity-100 z-10' : 'opacity-0 -z-10'}`}>
+<div className="h-[60%] bg-cyan-500 rounded p-1.5 flex flex-col justify-between">
+<span className="text-cyan-50 text-[10px]">Uber/99</span>
+<span className="text-white font-bold text-xs">R$ 180</span>
+</div>
+<div className="h-[40%] bg-cyan-600 rounded p-1.5 flex justify-between items-center">
+<span className="text-cyan-100 text-[9px]">Passe</span>
+<span className="text-white font-bold text-[10px]">R$ 60</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+)}
+
+<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+<SummaryCard icon={<Calendar className="w-6 h-6 text-rose-400" />} title={`${categoriaAtiva === 'Todas' ? 'Saídas' : categoriaAtiva} em ${periodo}`} value="R$ 7.411,48" trend="↑ 2.1% vs mês anterior" trendColor="text-rose-400" iconBg="bg-rose-400/10" />
+<SummaryCard icon={<FastForward className="w-6 h-6 text-orange-400" />} title="Previsão de Saídas" value="R$ 7.850,00" trend="Dentro do orçamento" trendColor="text-emerald-400" iconBg="bg-orange-400/10" />
+<SummaryCard icon={<Tag className="w-6 h-6 text-blue-400" />} title="Principal Gasto" value="Casa" trend="R$ 2.450,00 (33%)" trendColor="text-slate-400" iconBg="bg-blue-400/10" />
+</div>
+
+<div className="bg-[#171923] border border-slate-800 rounded-2xl overflow-hidden shadow-xl mt-4">
+<div className="overflow-x-auto">
+<table className="w-full text-left border-collapse">
+<thead>
+<tr className="bg-[#1c1f2b] text-slate-300 text-xs uppercase tracking-wider font-semibold border-b border-slate-800">
+<th className="p-4 whitespace-nowrap">Data</th>
+<th className="p-4 whitespace-nowrap">Descrição</th>
+<th className="p-4 whitespace-nowrap">Classificação</th>
+<th className="p-4 whitespace-nowrap">Categoria</th>
+<th className="p-4 whitespace-nowrap">Conta/Tipo</th>
+<th className="p-4 whitespace-nowrap">Valor</th>
+<th className="p-4 whitespace-nowrap">Status</th>
+<th className="p-4 text-center">Ações</th>
+</tr>
+</thead>
+<tbody className="divide-y divide-slate-800/50">
+{transacoesFiltradas.length > 0 ? transacoesFiltradas.map((tx) => (
+<tr key={tx.id} className="hover:bg-slate-800/30 transition-colors group">
+<td className="p-4 text-slate-300 text-sm whitespace-nowrap">{tx.data}</td>
+<td className="p-4 text-slate-200 text-sm font-medium whitespace-nowrap">{tx.descricao}</td>
+<td className="p-4">{renderBadgeClassificacao(tx.classificacao)}</td>
+<td className="p-4 text-slate-400 text-sm">
+<span className="flex items-center gap-2">
+{tx.categoria === 'Casa' && <span className="w-2 h-2 rounded-full bg-blue-500"></span>}
+{tx.categoria === 'Alimentação' && <span className="w-2 h-2 rounded-full bg-emerald-500"></span>}
+{tx.categoria === 'Investimentos' && <span className="w-2 h-2 rounded-full bg-rose-500"></span>}
+{tx.categoria === 'Cuidados Pessoais' && <span className="w-2 h-2 rounded-full bg-amber-500"></span>}
+{tx.categoria}
+</span>
+</td>
+<td className="p-4 text-slate-400 text-sm">{tx.conta}</td>
+<td className="p-4 text-rose-400 font-medium text-sm whitespace-nowrap">
+<span className="text-rose-500/50 text-xs mr-1">R$</span>
+{tx.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+</td>
+<td className="p-4">
+{tx.pago ? (
+<span className="bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full text-xs font-medium border border-emerald-500/20">Pago</span>
+) : (
+<span className="bg-rose-500/10 text-rose-400 px-3 py-1 rounded-full text-xs font-medium border border-rose-500/20">Pendente</span>
+)}
+</td>
+<td className="p-4">
+<div className="flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+<button className="text-slate-400 hover:text-rose-400 transition-colors"><Edit3 className="w-4 h-4" /></button>
+<button className="text-slate-400 hover:text-red-400 transition-colors"><Trash2 className="w-4 h-4" /></button>
+</div>
+</td>
+</tr>
+)) : (
+<tr><td colSpan="8" className="p-8 text-center text-slate-500 text-sm">Nenhuma saída encontrada.</td></tr>
+)}
+</tbody>
+</table>
+</div>
+</div>
+</div>
+);
+}
+
+// ============================================================================
+// COMPONENTES AUXILIARES
+// ============================================================================
+
+function SidebarIcon({ icon, active, tooltip, onClick }) {
+return (
+<div
+onClick={onClick}
+className={`relative group w-12 h-12 rounded-xl flex items-center justify-center cursor-pointer transition-all duration-200 ${
+active
+? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 shadow-[0_0_15px_rgba(79,70,229,0.15)]'
+: 'text-slate-500 hover:bg-slate-800 hover:text-slate-300'
+}`}
+>
+{React.cloneElement(icon, { className: 'w-5 h-5' })}
+{tooltip && (
+<div className="absolute left-14 bg-slate-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 whitespace-nowrap">
+{tooltip}
+</div>
+)}
+</div>
+);
+}
+
+function SummaryCard({ icon, title, value, trend, trendColor, iconBg }) {
+return (
+<div className="bg-[#171923] border border-slate-800 p-6 rounded-2xl flex flex-col justify-between shadow-sm">
+<div className="flex items-start gap-4 mb-4">
+<div className={`p-3 rounded-xl ${iconBg}`}>{icon}</div>
+<div>
+<h3 className="text-slate-400 text-xs font-medium uppercase tracking-wider mb-1">{title}</h3>
+<p className="text-2xl font-bold text-white tracking-tight">{value}</p>
+</div>
+</div>
+<div className="mt-auto pt-4 border-t border-slate-800/50">
+<p className={`text-xs font-medium ${trendColor}`}>{trend}</p>
+</div>
+</div>
+);
+}
