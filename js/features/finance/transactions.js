@@ -1884,7 +1884,7 @@ function updateExpensesSummaryCards() {
 
     const label = tParts.label;
     if (elMonthTitle) elMonthTitle.textContent = `Saídas de ${label}`;
-    if (elTopTitle) elTopTitle.textContent = `Compras no cartão (${label})`;
+    if (elTopTitle) elTopTitle.textContent = `Cartão de Crédito (${label})`;
     if (elProjTitle) elProjTitle.textContent = `Despesas fixas (${label})`;
 
     syncExpensesFilterButtonHighlight();
