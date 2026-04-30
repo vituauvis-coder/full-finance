@@ -342,6 +342,29 @@
     margin-bottom: 0;
 }
 
+/* Despesa fixa + Paga lado a lado (quando Paga está visível) */
+.expense-fixed-paid-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    align-items: start;
+    margin-bottom: 1.125rem;
+}
+
+.expense-fixed-paid-grid--single {
+    grid-template-columns: 1fr;
+}
+
+.expense-fixed-paid-grid .form-group {
+    margin-bottom: 0;
+}
+
+@media (max-width: 520px) {
+    .expense-fixed-paid-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 #gain-form #gain-is-received-row.form-group--checkbox {
     margin-bottom: 0.75rem;
 }

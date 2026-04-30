@@ -34,6 +34,7 @@ function normalizeMovement(t) {
     const out = { ...t, date: toFirestoreLikeDate(t.date) };
     if (t.createdAt != null) out.createdAt = toFirestoreLikeDate(t.createdAt);
     if (t.referenceOnly != null) out.referenceOnly = Boolean(t.referenceOnly);
+    if (t.isFixed != null) out.isFixed = Boolean(t.isFixed);
     return out;
 }
 
@@ -125,6 +126,7 @@ function baseSplitSelectSql(extraWhereSql = '') {
                 'installmentCount', se.installment_count,
                 'cashOutConfirmedPeriods', se.cash_out_confirmed_periods,
                 'recurringMonthly', se.recurring_monthly,
+                'isFixed', COALESCE(se.is_fixed, false),
                 'recurrenceGroupId', se.recurrence_group_id,
                 'recurrenceSeriesLength', (
                     CASE
@@ -171,6 +173,7 @@ export function normalizeSplitRow(row) {
                   category: sourceExpense.category,
                   subcategory: sourceExpense.subcategory ?? null,
                   isInvestment: Boolean(sourceExpense.isInvestment),
+                  isFixed: Boolean(sourceExpense.isFixed),
                   installmentCount:
                       sourceExpense.installmentCount ??
                       sourceExpense.installment_count ??

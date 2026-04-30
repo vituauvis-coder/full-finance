@@ -2,7 +2,11 @@
  * Ordenação de linhas de tabelas (usa o mesmo estado { key, dir } que os cabeçalhos clicáveis).
  */
 import { getExpensePerInstallmentDisplayAmount } from '../core/credit-installments.js';
-import { movementDateToJsDate, movementDateToUnixSeconds } from '../core/utils.js';
+import {
+    movementAccountPaymentKindLabel,
+    movementDateToJsDate,
+    movementDateToUnixSeconds
+} from '../core/utils.js';
 
 /**
  * Alterna coluna/direção ao clicar no cabeçalho.
@@ -78,6 +82,15 @@ export function sortExpenseRows(list, sort, accounts) {
                 }
                 break;
             }
+            case 'payment': {
+                const pa = movementAccountPaymentKindLabel(accounts.find((x) => x.id === a.accountId));
+                const pb = movementAccountPaymentKindLabel(accounts.find((x) => x.id === b.accountId));
+                cmp = pa.localeCompare(pb, 'pt-BR');
+                if (cmp === 0 && a.__instParcelIndex != null && b.__instParcelIndex != null) {
+                    cmp = a.__instParcelIndex - b.__instParcelIndex;
+                }
+                break;
+            }
             case 'amount': {
                 const accA = accounts.find((x) => x.id === a.accountId);
                 const accB = accounts.find((x) => x.id === b.accountId);
@@ -130,6 +143,12 @@ export function sortGainRows(list, sort, accounts) {
                 const na = accounts.find((x) => x.id === a.accountId)?.name || '';
                 const nb = accounts.find((x) => x.id === b.accountId)?.name || '';
                 cmp = na.localeCompare(nb, 'pt-BR');
+                break;
+            }
+            case 'payment': {
+                const pa = movementAccountPaymentKindLabel(accounts.find((x) => x.id === a.accountId));
+                const pb = movementAccountPaymentKindLabel(accounts.find((x) => x.id === b.accountId));
+                cmp = pa.localeCompare(pb, 'pt-BR');
                 break;
             }
             case 'amount':

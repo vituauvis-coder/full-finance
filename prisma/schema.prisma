@@ -85,6 +85,8 @@ model Expense {
   cashOutConfirmedPeriods String? @db.NVarChar(Max)
   /** Legado: despesa única «mensal fixa»; séries usam `recurrenceGroupId` + um lançamento por mês. */
   recurringMonthly Boolean @default(false)
+  /** Classificação do usuário: despesa fixa (aluguel, assinatura) vs variável. */
+  isFixed            Boolean @default(false)
   /** Mesmo UUID em todos os meses criados de uma vez (saída recorrente no ano). */
   recurrenceGroupId String? @db.NVarChar(36)
   /** ID da solicitação de rateio quando esta saída é a parte do destinatário. */

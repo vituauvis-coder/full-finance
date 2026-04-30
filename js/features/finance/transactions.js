@@ -28,6 +28,7 @@ import {
     getBillingCycle,
     isCardAccountType,
     isCreditCardType,
+    movementAccountPaymentKindLabel,
     movementDateToJsDate,
     movementDateToUnixSeconds
 } from '../../core/utils.js';
@@ -1577,10 +1578,15 @@ function expenseDisplayCategory(t) {
     return String(t.category ?? '—');
 }
 
-/** Categoria de primeiro nível (para agregações como «principal categoria do mês»). */
-function expenseTopLevelCategory(t) {
-    const c = String(t.category ?? '').trim();
-    return c || '—';
+/** Saída marcada pelo usuário como despesa fixa (`isFixed` na API). */
+function expenseIsMarkedFixed(t) {
+    if (!t) return false;
+    return Boolean(
+        t.isFixed === true ||
+            t.isFixed === 'true' ||
+            t.isFixed === 1 ||
+            t.isFixed === '1'
+    );
 }
 
 function gainTopLevelCategory(t) {
@@ -1752,6 +1758,8 @@ function updateExpensesSummaryCards() {
     // Total do período (soma de contribuições por mês)
     let totalPeriod = 0;
     let totalPending = 0;
+    let fixedTotalPeriod = 0;
+    let creditCardPeriod = 0;
     for (const mk of months) {
         if (period === 'current-year' && mk > currentMonthKey) continue;
         const cutoff = endOfMonthFromMonthKey(mk);
@@ -1768,6 +1776,8 @@ function updateExpensesSummaryCards() {
                 sorted
             );
             totalPeriod += contrib;
+            if (expenseIsMarkedFixed(t)) fixedTotalPeriod += contrib;
+            if (acc && isCreditCardType(acc.type)) creditCardPeriod += contrib;
 
             // Cálculo do pendente: se a contribuição projetada para o mês for maior que a paga
             const projected = expenseContributionProjectedToMonthKey(
@@ -1787,15 +1797,14 @@ function updateExpensesSummaryCards() {
 
     // Cálculo do mês anterior para variação %
     let totalPrevMonth = 0;
-    let projectionPrevMonth = 0;
-    let topCatPrevMonthAmt = 0;
+    let fixedPrevMonth = 0;
+    let creditCardPrevMonth = 0;
     const firstMonthParts = months[0].split('-');
     const prevMonthDate = new Date(Number(firstMonthParts[0]), Number(firstMonthParts[1]) - 1 - 1, 1);
     const prevMonthKey = monthKeyFromDateObj(prevMonthDate);
     const prevMonthCutoff = new Date(prevMonthDate.getFullYear(), prevMonthDate.getMonth() + 1, 0, 23, 59, 59, 999);
     
     {
-        const byCatPrev = new Map();
         sorted.forEach((t) => {
             const acc = userAccounts?.find((a) => a.id === t.accountId);
             const contrib = expenseContributionPaidThroughMonthKey(
@@ -1808,78 +1817,22 @@ function updateExpensesSummaryCards() {
                 sorted
             );
             totalPrevMonth += contrib;
-            if (contrib > 0) {
-                const k = expenseTopLevelCategory(t);
-                byCatPrev.set(k, (byCatPrev.get(k) || 0) + contrib);
-            }
-
-            // Card de "pendente" removido da UI (mantemos apenas a variação do total/projeção/categoria).
+            if (expenseIsMarkedFixed(t)) fixedPrevMonth += contrib;
+            if (acc && isCreditCardType(acc.type)) creditCardPrevMonth += contrib;
         });
-        byCatPrev.forEach((amt) => {
-            if (amt > topCatPrevMonthAmt) topCatPrevMonthAmt = amt;
-        });
-    }
-
-    if (isSingleMonth) {
-        // No mês anterior completo, projeção ≈ total do mês (média diária * dias do mês = total)
-        projectionPrevMonth = totalPrevMonth;
-    }
-
-    const byCat = new Map();
-    // Principal categoria no período (usa a soma das contribuições do(s) mês(es) do filtro)
-    for (const mk of months) {
-        if (period === 'current-year' && mk > currentMonthKey) continue;
-        const cutoff = endOfMonthFromMonthKey(mk);
-        sorted.forEach((t) => {
-            const acc = userAccounts?.find((a) => a.id === t.accountId);
-            const contrib = expenseContributionPaidThroughMonthKey(
-                t,
-                acc,
-                mk,
-                cutoff,
-                userProfile,
-                acceptedSplits,
-                sorted
-            );
-            if (contrib <= 0) return;
-            const key = expenseTopLevelCategory(t);
-            byCat.set(key, (byCat.get(key) || 0) + contrib);
-        });
-    }
-    let topCat = '';
-    let topCatAmt = 0;
-    byCat.forEach((amt, label) => {
-        if (amt > topCatAmt) {
-            topCatAmt = amt;
-            topCat = label;
-        }
-    });
-
-    // Projeção (usa média diária apenas internamente)
-    let dailyAvg = 0;
-    let projection = 0;
-    if (isSingleMonth) {
-        const { startDate, endDate } = getPeriodDateBounds(period, now);
-        const isCurrentMonth = monthKeyFromDateObj(startDate) === currentMonthKey;
-        
-        const daysInMonth = endDate.getDate();
-        const daysPassed = isCurrentMonth ? now.getDate() : daysInMonth;
-        
-        dailyAvg = totalPeriod / daysPassed;
-        projection = dailyAvg * daysInMonth;
     }
 
     // Atualiza a UI
     const elTop = document.getElementById('expenses-summary-top-cat');
     const elTopIcon = document.getElementById('expenses-summary-top-cat-icon');
     if (elTop) {
-        elTop.textContent = topCatAmt > 0 && topCat ? topCat : '—';
+        elTop.textContent = formatCurrency(creditCardPeriod, currency);
     }
     if (elTopIcon) {
         elTopIcon.title =
-            topCatAmt > 0 && topCat
-                ? `${topCat}: ${formatCurrency(topCatAmt, currency)}`
-                : 'Nenhuma saída neste mês calendário';
+            creditCardPeriod > 0
+                ? 'Total das compras lançadas no cartão de crédito neste período (parcelas contabilizadas no mês de vencimento, mesma base da lista).'
+                : 'Nenhuma saída com cartão de crédito no período.';
     }
 
     const elMonth = document.getElementById('expenses-summary-month');
@@ -1894,22 +1847,22 @@ function updateExpensesSummaryCards() {
     );
     setMovementSummaryMomVariation(
         document.getElementById('expenses-summary-projection-variation'),
-        projection,
-        projectionPrevMonth,
+        fixedTotalPeriod,
+        fixedPrevMonth,
         isSingleMonth,
         true
     );
     setMovementSummaryMomVariation(
         document.getElementById('expenses-summary-top-cat-variation'),
-        topCatAmt,
-        topCatPrevMonthAmt,
+        creditCardPeriod,
+        creditCardPrevMonth,
         isSingleMonth,
         true
     );
 
     // Cards
     const elProjection = document.getElementById('expenses-summary-projection');
-    if (elProjection) elProjection.textContent = isSingleMonth ? formatCurrency(projection, currency) : '—';
+    if (elProjection) elProjection.textContent = formatCurrency(fixedTotalPeriod, currency);
 
     const elMonthIcon = document.getElementById('expenses-summary-month-icon');
     if (elMonthIcon) {
@@ -1931,8 +1884,8 @@ function updateExpensesSummaryCards() {
 
     const label = tParts.label;
     if (elMonthTitle) elMonthTitle.textContent = `Saídas de ${label}`;
-    if (elTopTitle) elTopTitle.textContent = `Principal categoria de ${label}`;
-    if (elProjTitle) elProjTitle.textContent = `Projeção de ${label}`;
+    if (elTopTitle) elTopTitle.textContent = `Compras no cartão (${label})`;
+    if (elProjTitle) elProjTitle.textContent = `Despesas fixas (${label})`;
 
     syncExpensesFilterButtonHighlight();
 }
@@ -2372,7 +2325,8 @@ function getFilteredExpensesList() {
                 t.isInvestment ? 'investimento' : '',
                 t.isPaid ? 'pago' : 'parcelado',
                 parcelasLbl,
-                statusTxt
+                statusTxt,
+                movementAccountPaymentKindLabel(acc)
             ]
                 .join(' ')
                 .toLowerCase();
@@ -2532,6 +2486,7 @@ function renderExpensesBodySlice() {
                 statusCell = '<span class="expense-status-badge expense-status-badge--pending">Pendente</span>';
             }
             const categoryDisplay = t.subcategory ? `${t.category} > ${t.subcategory}` : t.category;
+            const paymentKindText = escapeHtml(movementAccountPaymentKindLabel(account));
             const displayAmt = applySplitNetToContribution(
                 t,
                 t.__instPeriodKey,
@@ -2556,6 +2511,7 @@ function renderExpensesBodySlice() {
             <td>${escapeHtml(t.description)}${escapeHtml(descSuffix)}</td>
             <td>${escapeHtml(categoryDisplay)}</td>
             <td>${escapeHtml(account?.name || 'N/A')}</td>
+            <td>${paymentKindText}</td>
             <td class="${rowCls}"${amountTitle}>${amountHtmlInst}</td>
             <td class="expenses-td-status">${statusCell}</td>
             <td class="transaction-actions">
@@ -2593,6 +2549,7 @@ function renderExpensesBodySlice() {
                 : '<span class="expense-status-badge expense-status-badge--pending">Pendente</span>';
         }
         const categoryDisplay = t.subcategory ? `${t.category} > ${t.subcategory}` : t.category;
+        const paymentKindText = escapeHtml(movementAccountPaymentKindLabel(account));
         const displayAmt = applySplitNetToContribution(
             t,
             movementMonthKey(t.date),
@@ -2629,6 +2586,7 @@ function renderExpensesBodySlice() {
             <td>${escapeHtml(t.description)}</td>
             <td>${escapeHtml(categoryDisplay)}</td>
             <td>${escapeHtml(account?.name || 'N/A')}</td>
+            <td>${paymentKindText}</td>
             <td class="${rowCls}"${amountTitle}>${amountHtml}</td>
             <td class="expenses-td-status">${statusCell}</td>
             <td class="transaction-actions">
@@ -2665,6 +2623,7 @@ export function loadExpensesData(expenses, accounts, currency, userProfile = nul
     syncSortableTableHeaders(document.getElementById('expenses-table'), expensesSort, [
         'date',
         'amount',
+        'payment',
         'status'
     ]);
     renderExpensesBodySlice();
@@ -2842,7 +2801,8 @@ function getFilteredGainsList() {
                 String(acc?.name ?? ''),
                 formatCurrency(t.amount, currency),
                 t.isPaid === false ? 'a receber' : 'recebido',
-                t.recurrenceGroupId ? 'recorrente série' : ''
+                t.recurrenceGroupId ? 'recorrente série' : '',
+                movementAccountPaymentKindLabel(acc)
             ]
                 .join(' ')
                 .toLowerCase();
@@ -3167,6 +3127,7 @@ function renderGainsBodySlice() {
         const amountHtml = t.recurrenceGroupId
             ? `<span class="movement-amount-with-rec-inner">${recBadge}${formatCurrency(t.amount, currency)}</span>`
             : formatCurrency(t.amount, currency);
+        const paymentKindText = escapeHtml(movementAccountPaymentKindLabel(account));
         const receivedText = t.isPaid === false ? 'Não' : 'Sim';
         const isSynthSplit = Boolean(t.__syntheticExpectedSplit);
         const actionBtns = isSynthSplit
@@ -3178,8 +3139,9 @@ function renderGainsBodySlice() {
         tr.innerHTML = `
             <td>${movementDateToJsDate(t.date).toLocaleDateString('pt-BR')}</td>
             <td>${escapeHtml(String(t.description ?? ''))}</td>
-            <td>${categoryDisplay}</td>
+            <td>${escapeHtml(categoryDisplay)}</td>
             <td>${escapeHtml(account?.name || 'N/A')}</td>
+            <td>${paymentKindText}</td>
             <td class="receita">${amountHtml}</td>
             <td class="gains-td-received"><span class="gain-received-badge${t.isPaid === false ? ' gain-received-badge--no' : ''}">${receivedText}</span></td>
             <td class="transaction-actions">
@@ -3211,7 +3173,7 @@ export function loadGainsData(gains, accounts, currency) {
     if (gainsPagination) {
         gainsPagination.setTotal(getSortedFilteredGainsList().length);
     }
-    syncSortableTableHeaders(document.getElementById('gains-table'), gainsSort, ['date', 'amount', 'received']);
+    syncSortableTableHeaders(document.getElementById('gains-table'), gainsSort, ['date', 'amount', 'payment', 'received']);
     renderGainsBodySlice();
     updateGainsSummaryCards();
 }
@@ -3286,6 +3248,7 @@ function setupTableSortClicks() {
         syncSortableTableHeaders(document.getElementById('expenses-table'), expensesSort, [
             'date',
             'amount',
+            'payment',
             'status'
         ]);
         renderExpensesBodySlice();
@@ -3299,10 +3262,10 @@ function setupTableSortClicks() {
         e.preventDefault();
         const key = th.dataset.sortKey;
         if (!key) return;
-        gainsSort = nextSortState(gainsSort, key, ['date', 'amount']);
+        gainsSort = nextSortState(gainsSort, key, ['date', 'amount', 'received']);
         if (!gainsPagination) return;
         gainsPagination.setTotal(getSortedFilteredGainsList().length, { resetPage: true });
-        syncSortableTableHeaders(document.getElementById('gains-table'), gainsSort, ['date', 'amount', 'received']);
+        syncSortableTableHeaders(document.getElementById('gains-table'), gainsSort, ['date', 'amount', 'payment', 'received']);
         renderGainsBodySlice();
     });
 
@@ -3684,6 +3647,16 @@ function syncExpenseRecurringModeVisibility() {
     }
 }
 
+function syncExpenseFixedPaidGridLayout() {
+    const grid = document.getElementById('expense-fixed-paid-grid');
+    const paidRow = document.getElementById('expense-paid-row');
+    if (!grid || !paidRow) return;
+    grid.classList.toggle(
+        'expense-fixed-paid-grid--single',
+        paidRow.classList.contains('hidden')
+    );
+}
+
 function updateExpenseInstallmentPreview() {
     const prev = document.getElementById('expense-installment-preview');
     const sel = document.getElementById('expense-payment-method');
@@ -3899,6 +3872,7 @@ function openExpenseModal(forEdit, options = null) {
                 form['expense-date'].value = getTodayDateInputValue();
             }
         }
+        syncExpenseFixedPaidGridLayout();
         openModal('expense-modal');
     };
 
@@ -3912,6 +3886,8 @@ function openExpenseModal(forEdit, options = null) {
         if (inst) inst.value = '1';
         const recMode = document.getElementById('expense-recurring-mode');
         if (recMode) recMode.value = '0';
+        const isFixedSel = document.getElementById('expense-is-fixed');
+        if (isFixedSel) isFixedSel.value = '0';
         delete form.dataset.splitRequestId;
         delete form.dataset.splitFromRateio;
         delete form.dataset.splitSourceIsInvestment;
@@ -3929,7 +3905,7 @@ function openExpenseModal(forEdit, options = null) {
         if (recRow) recRow.classList.remove('hidden');
         if (instRow) instRow.classList.remove('hidden');
         if (paidRow) paidRow.classList.add('hidden');
-        if (paidInput) paidInput.checked = false;
+        if (paidInput) paidInput.value = '0';
 
         if (splitOpts) {
             form.dataset.splitRequestId = String(splitOpts.splitRequestId);
@@ -3966,6 +3942,8 @@ function openExpenseModal(forEdit, options = null) {
 
         if (splitOpts && src) {
             form['expense-description'].value = String(src.description ?? '').trim();
+            const fx = document.getElementById('expense-is-fixed');
+            if (fx) fx.value = Boolean(src.isFixed) ? '1' : '0';
         }
 
         const catToLoad = splitOpts && src ? String(src.category ?? '').trim() : '';
@@ -4220,6 +4198,8 @@ async function handleExpenseFormSubmit(e) {
           ? false
           : document.getElementById('expense-recurring-mode')?.value === '1';
 
+    const isFixedExpense = document.getElementById('expense-is-fixed')?.value === '1';
+
     if (!id && recurringMonthly && accForInstallments && !isCreditCardType(accForInstallments.type) && !loanCat && !isSplitRateio) {
         isPaidFinal = false;
     }
@@ -4230,7 +4210,7 @@ async function handleExpenseFormSubmit(e) {
         const credit = Boolean(acc && isCreditCardType(acc.type));
         const paidInput = document.getElementById('expense-is-paid');
         if (!credit && orig && paidInput) {
-            isPaidFinal = Boolean(paidInput.checked);
+            isPaidFinal = paidInput.value === '1';
         }
     }
 
@@ -4245,7 +4225,8 @@ async function handleExpenseFormSubmit(e) {
         isPaid: isPaidFinal,
         isInvestment: isSplitRateio && form.dataset.splitSourceIsInvestment === '1',
         installmentCount: installmentCount ?? null,
-        recurringMonthly
+        recurringMonthly,
+        isFixed: isFixedExpense
     };
     if (isSplitRateio && form.dataset.splitRequestId) {
         data.splitRequestId = form.dataset.splitRequestId;
@@ -4311,6 +4292,7 @@ async function handleExpenseFormSubmit(e) {
                         isInvestment: e.isInvestment ?? false,
                         installmentCount: e.installmentCount ?? null,
                         recurringMonthly: false,
+                        isFixed: Boolean(e.isFixed),
                         cashOutConfirmedPeriods: paid ? JSON.stringify([mk]) : null
                     },
                     e.id
@@ -4560,7 +4542,10 @@ async function handleExpenseRowActions(e) {
                         recMode.value = row.recurringMonthly ? '1' : '0';
                     }
                 }
+                const fxMode = document.getElementById('expense-is-fixed');
+                if (fxMode && !fxMode.disabled) fxMode.value = Boolean(row.isFixed) ? '1' : '0';
                 syncExpenseRecurringModeVisibility();
+                syncExpenseFixedPaidGridLayout();
             });
             const inst = document.getElementById('expense-installments');
             if (inst) {
@@ -4581,7 +4566,8 @@ async function handleExpenseRowActions(e) {
                 );
                 const showPaidToggle = Boolean(!needsInstallments && !loanCat && !isSeriesRow);
                 if (paidRow) paidRow.classList.toggle('hidden', !showPaidToggle);
-                if (paidInput) paidInput.checked = Boolean(row.isPaid);
+                if (paidInput) paidInput.value = row.isPaid ? '1' : '0';
+                syncExpenseFixedPaidGridLayout();
             }
             let loanPaidKeys = [];
             if (row.recurrenceGroupId != null && String(row.recurrenceGroupId).trim() !== '') {

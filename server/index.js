@@ -189,6 +189,7 @@ function normalizeMovement(t) {
         out.createdAt = toFirestoreLikeDate(t.createdAt);
     }
     if (t.referenceOnly != null) out.referenceOnly = Boolean(t.referenceOnly);
+    if (t.isFixed != null) out.isFixed = Boolean(t.isFixed);
     return out;
 }
 
@@ -202,6 +203,11 @@ function normalizeUserDoc(u) {
 ensureDirs();
 
 query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS balance_offset double precision NOT NULL DEFAULT 0`).catch(e => console.error('Migration error:', e.message));
+
+query(`ALTER TABLE expenses ADD COLUMN IF NOT EXISTS is_fixed boolean NOT NULL DEFAULT false`).catch((e) => {
+    const msg = e?.message || String(e);
+    if (!/already exists|duplicate column/i.test(msg)) console.error('Migration is_fixed:', msg);
+});
 
 /** Data URLs em Base64 excedem VARCHAR curtos; sem TEXT a foto não persiste após F5. */
 query(
@@ -443,7 +449,8 @@ app.get('/api/data', requireAuth, async (req, res) => {
                     recurring_monthly AS "recurringMonthly",
                     recurrence_group_id AS "recurrenceGroupId",
                     split_request_id AS "splitRequestId",
-                    reference_only AS "referenceOnly"
+                    reference_only AS "referenceOnly",
+                    is_fixed AS "isFixed"
                  FROM expenses
                  WHERE user_id = $1`,
                 [uid]
@@ -638,6 +645,14 @@ function expensePayloadFromBody(body, uid) {
             ? body.recurringMonthly === true || body.recurringMonthly === 'true'
             : false;
 
+    const isFixed =
+        body && 'isFixed' in body
+            ? body.isFixed === true ||
+              body.isFixed === 'true' ||
+              body.isFixed === 1 ||
+              body.isFixed === '1'
+            : false;
+
     const out = {
         userId: uid,
         accountId,
@@ -649,7 +664,8 @@ function expensePayloadFromBody(body, uid) {
         isPaid: Boolean(body.isPaid),
         isInvestment: Boolean(body.isInvestment),
         installmentCount,
-        recurringMonthly
+        recurringMonthly,
+        isFixed
     };
     if (body && 'cashOutConfirmedPeriods' in body) {
         if (body.cashOutConfirmedPeriods == null || body.cashOutConfirmedPeriods === '') {
@@ -1048,7 +1064,8 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                 installmentCount: null,
                 recurringMonthly: false,
                 cashOutConfirmedPeriods: null,
-                recurrenceGroupId: groupId
+                recurrenceGroupId: groupId,
+                isFixed: base.isFixed
             }));
             await withTransaction(async (client) => {
                 for (const r of rows) {
@@ -1057,11 +1074,11 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                         `INSERT INTO expenses (
                             id, user_id, account_id, category, subcategory, amount, description,
                             date, is_paid, is_investment, installment_count, recurring_monthly,
-                            cash_out_confirmed_periods, recurrence_group_id, reference_only
+                            cash_out_confirmed_periods, recurrence_group_id, is_fixed, reference_only
                          ) VALUES (
                             $1,$2,$3,$4,$5,$6,$7,
                             $8,$9,$10,$11,$12,
-                            $13,$14,$15
+                            $13,$14,$15,$16
                          )`,
                         [
                             crypto.randomUUID(),
@@ -1078,6 +1095,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                             r.recurringMonthly,
                             r.cashOutConfirmedPeriods,
                             r.recurrenceGroupId,
+                            r.isFixed ?? false,
                             refOnly
                         ]
                     );
@@ -1123,12 +1141,12 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                                 id, user_id, account_id, category, subcategory, amount, description,
                                 date, created_at, is_paid, is_investment, installment_count,
                                 cash_out_confirmed_periods, recurring_monthly, recurrence_group_id,
-                                split_request_id, reference_only
+                                is_fixed, split_request_id, reference_only
                              ) VALUES (
                                 $1,$2,$3,$4,$5,$6,$7,
                                 $8, now(), $9,$10,$11,
                                 $12,$13,$14,
-                                $15,$16
+                                $15,$16,$17
                              )
                              RETURNING
                                 id,
@@ -1147,7 +1165,8 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                                 recurring_monthly AS "recurringMonthly",
                                 recurrence_group_id AS "recurrenceGroupId",
                                 split_request_id AS "splitRequestId",
-                                reference_only AS "referenceOnly"`,
+                                reference_only AS "referenceOnly",
+                                is_fixed AS "isFixed"`,
                             [
                                 eid,
                                 createData.userId,
@@ -1163,6 +1182,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                                 createData.cashOutConfirmedPeriods ?? null,
                                 false,
                                 newGroupId,
+                                createData.isFixed ?? false,
                                 splitIdThis,
                                 refExpM
                             ]
@@ -1270,12 +1290,12 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                         id, user_id, account_id, category, subcategory, amount, description,
                         date, created_at, is_paid, is_investment, installment_count,
                         cash_out_confirmed_periods, recurring_monthly, recurrence_group_id,
-                        split_request_id, reference_only
+                        is_fixed, split_request_id, reference_only
                      ) VALUES (
                         $1,$2,$3,$4,$5,$6,$7,
                         $8, now(), $9,$10,$11,
                         $12,$13,$14,
-                        $15,$16
+                        $15,$16,$17
                      )
                      RETURNING
                         id,
@@ -1294,7 +1314,8 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                         recurring_monthly AS "recurringMonthly",
                         recurrence_group_id AS "recurrenceGroupId",
                         split_request_id AS "splitRequestId",
-                        reference_only AS "referenceOnly"`,
+                        reference_only AS "referenceOnly",
+                        is_fixed AS "isFixed"`,
                     [
                         expenseId,
                         createData.userId,
@@ -1310,6 +1331,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                         createData.cashOutConfirmedPeriods ?? null,
                         createData.recurringMonthly ?? false,
                         null,
+                        createData.isFixed ?? false,
                         splitRequestBind,
                         refExpSplit
                     ]
@@ -1412,12 +1434,12 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                     id, user_id, account_id, category, subcategory, amount, description,
                     date, created_at, is_paid, is_investment, installment_count,
                     cash_out_confirmed_periods, recurring_monthly, recurrence_group_id,
-                    split_request_id, reference_only
+                    is_fixed, split_request_id, reference_only
                  ) VALUES (
                     $1,$2,$3,$4,$5,$6,$7,
                     $8, now(), $9,$10,$11,
                     $12,$13,$14,
-                    $15,$16
+                    $15,$16,$17
                  )
                  RETURNING
                     id,
@@ -1436,7 +1458,8 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                     recurring_monthly AS "recurringMonthly",
                     recurrence_group_id AS "recurrenceGroupId",
                     split_request_id AS "splitRequestId",
-                    reference_only AS "referenceOnly"`,
+                    reference_only AS "referenceOnly",
+                    is_fixed AS "isFixed"`,
                 [
                     expenseId,
                     createData.userId,
@@ -1452,6 +1475,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                     createData.cashOutConfirmedPeriods ?? null,
                     createData.recurringMonthly ?? false,
                     null,
+                    createData.isFixed ?? false,
                     splitRequestBind,
                     refExpAccepted
                 ]
@@ -1468,12 +1492,12 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                 id, user_id, account_id, category, subcategory, amount, description,
                 date, created_at, is_paid, is_investment, installment_count,
                 cash_out_confirmed_periods, recurring_monthly, recurrence_group_id,
-                reference_only
+                is_fixed, reference_only
              ) VALUES (
                 $1,$2,$3,$4,$5,$6,$7,
                 $8, now(), $9,$10,$11,
                 $12,$13,$14,
-                $15
+                $15,$16
              )
              RETURNING
                 id,
@@ -1492,7 +1516,8 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                 recurring_monthly AS "recurringMonthly",
                 recurrence_group_id AS "recurrenceGroupId",
                 split_request_id AS "splitRequestId",
-                reference_only AS "referenceOnly"`,
+                reference_only AS "referenceOnly",
+                is_fixed AS "isFixed"`,
             [
                 expenseId,
                 createData.userId,
@@ -1508,6 +1533,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                 createData.cashOutConfirmedPeriods ?? null,
                 createData.recurringMonthly ?? false,
                 null,
+                createData.isFixed ?? false,
                 refOnlyMain
             ]
         );
@@ -1538,6 +1564,9 @@ app.put('/api/expenses/:id', requireAuth, async (req, res) => {
         if (!('recurringMonthly' in (req.body || {}))) {
             delete data.recurringMonthly;
         }
+        if (!('isFixed' in (req.body || {}))) {
+            delete data.isFixed;
+        }
         await assertAccountBelongsToUser(data.accountId, uid);
         const refOnlyPut = await referenceOnlyForUserMovement(uid, data.date);
         const sets = [];
@@ -1558,6 +1587,7 @@ app.put('/api/expenses/:id', requireAuth, async (req, res) => {
         addSet('installment_count', data.installmentCount);
         addSet('reference_only', refOnlyPut);
         if ('recurringMonthly' in data) addSet('recurring_monthly', data.recurringMonthly);
+        if ('isFixed' in data) addSet('is_fixed', data.isFixed);
         if ('cashOutConfirmedPeriods' in data)
             addSet('cash_out_confirmed_periods', data.cashOutConfirmedPeriods);
 
@@ -1583,7 +1613,8 @@ app.put('/api/expenses/:id', requireAuth, async (req, res) => {
                 recurring_monthly AS "recurringMonthly",
                 recurrence_group_id AS "recurrenceGroupId",
                 split_request_id AS "splitRequestId",
-                reference_only AS "referenceOnly"`,
+                reference_only AS "referenceOnly",
+                is_fixed AS "isFixed"`,
             params
         );
         const updated = updatedRows[0] || null;
@@ -1667,7 +1698,8 @@ app.post('/api/expenses/:id/confirm-cash-out', requireAuth, async (req, res) => 
                 recurring_monthly AS "recurringMonthly",
                 recurrence_group_id AS "recurrenceGroupId",
                 split_request_id AS "splitRequestId",
-                reference_only AS "referenceOnly"`,
+                reference_only AS "referenceOnly",
+                is_fixed AS "isFixed"`,
             [req.params.id, uid, JSON.stringify(arr)]
         );
         const updated = updatedRows[0] || null;

@@ -68,6 +68,22 @@ export function isCardAccountType(type) {
 }
 
 /**
+ * Rótulo compacto na coluna «Tipo» das listas: PIX (corrente/poupança), Débito (cartão débito, dinheiro, outros caixa),
+ * Crédito (cartão crédito). Sem conta ou tipo incomum → «—».
+ */
+export function movementAccountPaymentKindLabel(acc) {
+    if (!acc) return '—';
+    const t = String(acc.type ?? '');
+    if (t === 'cartao_credito') return 'Crédito';
+    if (t === 'cartao_debito') return 'Débito';
+    if (t === 'conta_corrente' || t === 'poupanca') return 'PIX';
+    if (t === 'dinheiro' || t === 'outros') return 'Débito';
+    if (t === 'investimento') return '—';
+    if (isCardAccountType(t)) return 'Débito';
+    return '—';
+}
+
+/**
  * Contas que entram no «Saldo total» do dashboard e gráficos: caixa (corrente, poupança, dinheiro, outros).
  * Exclui cartões e conta tipo investimento — posições em ativos usam o módulo Investimentos.
  */
