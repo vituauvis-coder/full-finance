@@ -14,6 +14,7 @@ import {
     getLoanInstallmentDueDates,
     getLoanInstallmentMonthAllocationsIncludingFuture,
     isExpenseInstallmentDueCountedInCashFlow,
+    isInstallmentDuePaidForCashOut,
     isLoanExpense,
     shouldDeferCashOutForMonthlyFixedSeries
 } from '../../core/credit-installments.js';
@@ -667,13 +668,10 @@ function coerceDayOfMonth(value) {
 }
 
 /**
- * Contribuição "paga até a data" por vencimento (cartão/empréstimo):
- * - cartão: parcela conta se o vencimento <= cutoff
- * - empréstimo: parcela conta se o vencimento <= cutoff
- * - demais: conta se a data do lançamento <= cutoff
- *
- * Para totais do mês na UI, `cutoff` é o fim do mês civil (mês completo, inclusive pendente).
- * Não depende de confirmação manual de caixa.
+ * Contribuição por vencimento/competência no mês (cartões, empréstimos, demais):
+ * só entra no total dos cards / gráfico (mês não projetado) se a saída estiver efetivamente paga —
+ * cartão/empréstimo: parcela com {@link isInstallmentDuePaidForCashOut}; demais: `isPaid !== false`;
+ * séries fixas com confirmação no saldo continuam a depender de `cashOutConfirmedPeriods`.
  */
 function expenseContributionPaidThroughToMonthKey(
     t,
@@ -682,7 +680,8 @@ function expenseContributionPaidThroughToMonthKey(
     cutoffEndInclusive,
     userProfile = null,
     splitRequests = null,
-    allUserExpenses = null
+    allUserExpenses = null,
+    refNow = new Date()
 ) {
     const forSplit = allUserExpenses;
     const cutoffT = endOfDay(cutoffEndInclusive).getTime();
@@ -700,7 +699,9 @@ function expenseContributionPaidThroughToMonthKey(
         if (!dd) {
             if (monthKeyFromDate(purchase) !== monthKey) return 0;
             if (purchase.getTime() > cutoffT) return 0;
+            if (!isExpenseInstallmentDueCountedInCashFlow(t, purchase)) return 0;
             if (!expenseCountsAsCashOut(t, acc)) return 0;
+            if (!isInstallmentDuePaidForCashOut(t, acc, purchase, userProfile, refNow)) return 0;
             return applySplitNetToContribution(t, monthKey, amt, splitRequests, forSplit);
         }
 
@@ -710,6 +711,9 @@ function expenseContributionPaidThroughToMonthKey(
             const due = dues[0] || purchase;
             if (monthKeyFromDate(due) !== monthKey) return 0;
             if (due.getTime() > cutoffT) return 0;
+            if (!isExpenseInstallmentDueCountedInCashFlow(t, due)) return 0;
+            if (!expenseCountsAsCashOut(t, acc)) return 0;
+            if (!isInstallmentDuePaidForCashOut(t, acc, due, userProfile, refNow)) return 0;
             return applySplitNetToContribution(t, monthKey, amt, splitRequests, forSplit);
         }
 
@@ -720,6 +724,8 @@ function expenseContributionPaidThroughToMonthKey(
         for (const d of dues) {
             if (monthKeyFromDate(d) !== monthKey) continue;
             if (d.getTime() > cutoffT) continue;
+            if (!isExpenseInstallmentDueCountedInCashFlow(t, d)) continue;
+            if (!isInstallmentDuePaidForCashOut(t, acc, d, userProfile, refNow)) continue;
             sum += per;
         }
         return applySplitNetToContribution(t, monthKey, sum, splitRequests, forSplit);
@@ -727,6 +733,7 @@ function expenseContributionPaidThroughToMonthKey(
 
     // Empréstimo: vencimentos mensais
     if (isLoanExpense(t) && (!acc || !isCreditCardType(acc.type)) && nInst >= 2) {
+        if (t.isPaid === true) return 0;
         const purchase = movementDateToJsDate(t.date);
         if (Number.isNaN(purchase.getTime())) return 0;
         const dues = getLoanInstallmentDueDates(purchase, nInst);
@@ -735,6 +742,8 @@ function expenseContributionPaidThroughToMonthKey(
         for (const d of dues) {
             if (monthKeyFromDate(d) !== monthKey) continue;
             if (d.getTime() > cutoffT) continue;
+            if (!isExpenseInstallmentDueCountedInCashFlow(t, d)) continue;
+            if (!isInstallmentDuePaidForCashOut(t, acc || null, d, userProfile, refNow)) continue;
             sum += per;
         }
         return applySplitNetToContribution(t, monthKey, sum, splitRequests, forSplit);
@@ -745,6 +754,7 @@ function expenseContributionPaidThroughToMonthKey(
         if (monthKeyFromDate(purchasePlain) !== monthKey) return 0;
         if (purchasePlain.getTime() > cutoffT) return 0;
         if (!expenseCountsAsCashOut(t, acc)) return 0;
+        if (!isInstallmentDuePaidForCashOut(t, acc, purchasePlain, userProfile, refNow)) return 0;
         return applySplitNetToContribution(t, monthKey, amt, splitRequests, forSplit);
     }
 
@@ -754,6 +764,7 @@ function expenseContributionPaidThroughToMonthKey(
     if (monthKeyFromDate(d) !== monthKey) return 0;
     if (d.getTime() > cutoffT) return 0;
     if (!expenseCountsAsCashOut(t, acc)) return 0;
+    if (t.isPaid === false) return 0;
     return applySplitNetToContribution(t, monthKey, amt, splitRequests, forSplit);
 }
 
@@ -803,7 +814,8 @@ function mapExpensesToPeriodContributions(
                     cutoff,
                     userProfile,
                     splitRequests,
-                    userExpenses
+                    userExpenses,
+                    now
                 );
             }
             if (!v || v <= 0) continue;
@@ -1184,8 +1196,8 @@ function sumMovementsInRange(items, rangeStart, rangeEnd) {
 }
 
 /**
- * Total de saídas no mês-calendário — mesma regra do card «Saídas do mês» e da lista:
- * parcelas/vencimentos com competência no mês, até o fim do mês civil (inclui ainda a vencer no mês).
+ * Total de saídas no mês-calendário — cards «Saídas» / «Balanço» e eixo de saídas do gráfico (mês atual/passado):
+ * só saídas pagas ou parcelas confirmadas no saldo; vencimento no mês sem pagamento não entra.
  * {@link expenseContributionPaidThroughToMonthKey}
  */
 function sumOutflowsForCalendarMonth(
@@ -1209,7 +1221,8 @@ function sumOutflowsForCalendarMonth(
             cutoff,
             userProfile,
             splitRequests,
-            userExpenses
+            userExpenses,
+            now
         );
     }
     return sum;

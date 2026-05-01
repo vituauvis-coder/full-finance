@@ -326,7 +326,8 @@ const expensesFilterState = {
     category: '',
     subcategory: '',
     paymentType: '',
-    status: '',
+    paymentStatus: /** @type {Set<'paid'|'unpaid'>} */ (new Set()),
+    quickExpenseTypes: /** @type {Set<string>} */ (new Set()),
     description: '',
     amountMin: null,
     amountMax: null,
@@ -340,7 +341,7 @@ const gainsFilterState = {
     category: '',
     subcategory: '',
     paymentType: '',
-    status: '',
+    paymentStatus: /** @type {Set<'paid'|'unpaid'>} */ (new Set()),
     description: '',
     amountMin: null,
     amountMax: null,
@@ -1950,7 +1951,9 @@ function readExpensesFilterFromDom() {
     expensesFilterState.category = document.getElementById('expenses-filter-category')?.value || '';
     expensesFilterState.subcategory = document.getElementById('expenses-filter-subcategory')?.value || '';
     expensesFilterState.paymentType = document.getElementById('expenses-filter-payment-type')?.value || '';
-    expensesFilterState.status = document.getElementById('expenses-filter-status')?.value || '';
+    expensesFilterState.paymentStatus = new Set();
+    if (document.getElementById('expenses-filter-status-paid')?.checked) expensesFilterState.paymentStatus.add('paid');
+    if (document.getElementById('expenses-filter-status-pending')?.checked) expensesFilterState.paymentStatus.add('unpaid');
     expensesFilterState.description = document.getElementById('expenses-filter-description')?.value || '';
     const amin = document.getElementById('expenses-filter-amount-min')?.value;
     const amax = document.getElementById('expenses-filter-amount-max')?.value;
@@ -1964,6 +1967,13 @@ function readExpensesFilterFromDom() {
     expensesFilterState.accountId = document.getElementById('expenses-filter-account')?.value || '';
     expensesFilterState.period =
         document.getElementById('expenses-period-filter')?.value || getDefaultPeriodValue();
+    expensesFilterState.quickExpenseTypes = new Set();
+    document
+        .querySelectorAll('#expenses-page .quick-filter-btn[data-quick-kind="type"][aria-pressed="true"]')
+        .forEach((btn) => {
+            const f = btn.dataset.filter;
+            if (f) expensesFilterState.quickExpenseTypes.add(f);
+        });
 }
 
 /** Zera filtros do drawer (exceto período) — usado no botão «limpar»; não chamar em todo reload dos dados para não perder filtros ao editar/excluir. */
@@ -1972,7 +1982,8 @@ function resetExpensesDrawerFiltersKeepPeriod() {
     const c = document.getElementById('expenses-filter-category');
     const sc = document.getElementById('expenses-filter-subcategory');
     const pt = document.getElementById('expenses-filter-payment-type');
-    const st = document.getElementById('expenses-filter-status');
+    const paidSt = document.getElementById('expenses-filter-status-paid');
+    const pendSt = document.getElementById('expenses-filter-status-pending');
     const desc = document.getElementById('expenses-filter-description');
     const amin = document.getElementById('expenses-filter-amount-min');
     const amax = document.getElementById('expenses-filter-amount-max');
@@ -1983,7 +1994,8 @@ function resetExpensesDrawerFiltersKeepPeriod() {
     if (c) c.value = '';
     if (sc) sc.value = '';
     if (pt) pt.value = '';
-    if (st) st.value = '';
+    if (paidSt) paidSt.checked = false;
+    if (pendSt) pendSt.checked = false;
     if (desc) desc.value = '';
     // Não copiar min/max antigos do DOM — após trocar o dataset, os atributos ainda refletem o recorte anterior.
     if (amin) amin.value = '';
@@ -1993,6 +2005,53 @@ function resetExpensesDrawerFiltersKeepPeriod() {
     if (df) df.dataset.manual = '0';
     if (dt) dt.dataset.manual = '0';
     if (a) a.value = '';
+    clearExpensesQuickTypeButtons();
+    syncExpensesQuickStatusButtonsFromCheckboxes();
+}
+
+function clearExpensesQuickTypeButtons() {
+    document.querySelectorAll('#expenses-page .quick-filter-btn[data-quick-kind="type"]').forEach((btn) => {
+        btn.setAttribute('aria-pressed', 'false');
+        btn.classList.remove('active');
+    });
+}
+
+function syncExpensesQuickStatusButtonsFromCheckboxes() {
+    const paid = !!document.getElementById('expenses-filter-status-paid')?.checked;
+    const pend = !!document.getElementById('expenses-filter-status-pending')?.checked;
+    document.querySelectorAll('#expenses-page .quick-filter-btn[data-quick-kind="status"]').forEach((btn) => {
+        const on = btn.dataset.filter === 'paid' ? paid : btn.dataset.filter === 'unpaid' ? pend : false;
+        btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        btn.classList.toggle('active', on);
+    });
+}
+
+function syncGainsQuickStatusButtonsFromCheckboxes() {
+    const recv = !!document.getElementById('gains-filter-status-received')?.checked;
+    const pend = !!document.getElementById('gains-filter-status-pending')?.checked;
+    document.querySelectorAll('#gains-page .quick-filter-btn[data-quick-kind="status"]').forEach((btn) => {
+        const on = btn.dataset.filter === 'paid' ? recv : btn.dataset.filter === 'unpaid' ? pend : false;
+        btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        btn.classList.toggle('active', on);
+    });
+}
+
+/** Filtros rápidos de tipo (fixa / variável / cartão): OR entre opções ativas; nenhuma = sem restrição. */
+function expenseMatchesQuickTypeFilters(t, accounts) {
+    const typeSet = expensesFilterState.quickExpenseTypes;
+    if (!typeSet || typeSet.size === 0) return true;
+    const acc = accounts?.find((a) => a.id === t.accountId);
+    if (typeSet.has('fixed') && expenseIsMarkedFixed(t)) return true;
+    if (typeSet.has('variable') && !expenseIsMarkedFixed(t)) return true;
+    if (typeSet.has('credit') && acc && isCreditCardType(acc.type)) return true;
+    return false;
+}
+
+/** Conjunto `paid`/`unpaid`: OR; vazio = sem filtro de status. */
+function movementMatchesPaymentStatus(t, statusSet) {
+    if (!statusSet || statusSet.size === 0) return true;
+    const paid = t.isPaid !== false;
+    return (statusSet.has('paid') && paid) || (statusSet.has('unpaid') && t.isPaid === false);
 }
 
 function sumMovementAmounts(list) {
@@ -2751,15 +2810,25 @@ function computeExpectedSplitGainsRows(period, now = new Date()) {
 
 function filterSyntheticGainsForCurrentFilters(synthetics) {
     if (!synthetics?.length) return [];
-    const { category, subcategory, accountId, status, description, q, amountMin, amountMax, dateFrom, dateTo, paymentType } =
-        gainsFilterState;
+    const {
+        category,
+        subcategory,
+        accountId,
+        paymentStatus,
+        description,
+        q,
+        amountMin,
+        amountMax,
+        dateFrom,
+        dateTo,
+        paymentType
+    } = gainsFilterState;
     const { accounts, currency } = gainsRenderCache;
     return synthetics.filter((t) => {
         if (category && t.category !== category) return false;
         if (category && subcategory && String(t.subcategory ?? '') !== String(subcategory)) return false;
         if (accountId && t.accountId !== accountId) return false;
-        if (status === 'paid' && t.isPaid === false) return false;
-        if (status === 'unpaid' && t.isPaid !== false) return false;
+        if (paymentStatus && paymentStatus.size > 0 && !movementMatchesPaymentStatus(t, paymentStatus)) return false;
         if (description && description.trim()) {
             const nd = description.trim().toLowerCase();
             if (!String(t.description ?? '').toLowerCase().includes(nd)) return false;
@@ -2944,27 +3013,51 @@ function updateGainsSummaryCards() {
 
 function syncExpensesFilterButtonHighlight() {
     readExpensesFilterFromDom();
+    const ps = expensesFilterState.paymentStatus;
     const active =
         Boolean(expensesFilterState.q?.trim()) ||
         Boolean(expensesFilterState.category) ||
+        Boolean(expensesFilterState.subcategory) ||
+        Boolean(expensesFilterState.paymentType) ||
+        Boolean(expensesFilterState.description?.trim()) ||
         Boolean(expensesFilterState.accountId) ||
+        (ps && ps.size > 0) ||
+        (expensesFilterState.quickExpenseTypes && expensesFilterState.quickExpenseTypes.size > 0) ||
         (expensesFilterState.period && !isDefaultPeriodValue(expensesFilterState.period));
     document.getElementById('expenses-filter-open-btn')?.classList.toggle('filter-drawer-trigger--active', active);
 }
 
 function syncGainsFilterButtonHighlight() {
     readGainsFilterFromDom();
+    const ps = gainsFilterState.paymentStatus;
     const active =
         Boolean(gainsFilterState.q?.trim()) ||
         Boolean(gainsFilterState.category) ||
+        Boolean(gainsFilterState.subcategory) ||
+        Boolean(gainsFilterState.paymentType) ||
+        Boolean(gainsFilterState.description?.trim()) ||
         Boolean(gainsFilterState.accountId) ||
+        (ps && ps.size > 0) ||
         (gainsFilterState.period && !isDefaultPeriodValue(gainsFilterState.period));
     document.getElementById('gains-filter-open-btn')?.classList.toggle('filter-drawer-trigger--active', active);
 }
 
 function getFilteredExpensesList() {
     const { sorted, accounts, currency, userProfile } = expensesRenderCache;
-    const { q, category, subcategory, paymentType, status, description, amountMin, amountMax, dateFrom, dateTo, accountId, period } = expensesFilterState;
+    const {
+        q,
+        category,
+        subcategory,
+        paymentType,
+        paymentStatus,
+        description,
+        amountMin,
+        amountMax,
+        dateFrom,
+        dateTo,
+        accountId,
+        period
+    } = expensesFilterState;
     // Período é o filtro principal; só é ignorado quando o usuário seleciona Data (de/até).
     let list = (dateFrom || dateTo)
         ? [...sorted]
@@ -2981,8 +3074,10 @@ function getFilteredExpensesList() {
     if (paymentType) {
         list = list.filter((t) => accountPaymentType(accounts.find((a) => a.id === t.accountId)) === paymentType);
     }
-    if (status === 'paid') list = list.filter((t) => t.isPaid !== false);
-    if (status === 'unpaid') list = list.filter((t) => t.isPaid === false);
+    if (paymentStatus && paymentStatus.size > 0) {
+        list = list.filter((t) => movementMatchesPaymentStatus(t, paymentStatus));
+    }
+    list = list.filter((t) => expenseMatchesQuickTypeFilters(t, accounts));
     if (description && description.trim()) {
         const needleDesc = description.trim().toLowerCase();
         list = list.filter((t) => String(t.description ?? '').toLowerCase().includes(needleDesc));
@@ -3119,7 +3214,8 @@ function applyExpensesFilters() {
     expensesPagination.setTotal(getSortedFilteredExpensesList().length, { resetPage: true });
     renderExpensesBodySlice();
     updateExpensesSummaryCards();
-    resetQuickFilters('expenses-page');
+    syncExpensesQuickStatusButtonsFromCheckboxes();
+    syncExpensesFilterButtonHighlight();
 }
 
 function getSortedFilteredExpensesList() {
@@ -3344,6 +3440,8 @@ export function loadExpensesData(expenses, accounts, currency, userProfile = nul
     renderExpensesBodySlice();
     updateExpensesSummaryCards();
     renderOutgoingSplitsPanel(currency);
+    syncExpensesQuickStatusButtonsFromCheckboxes();
+    syncExpensesFilterButtonHighlight();
 }
 
 function readGainsFilterFromDom() {
@@ -3351,7 +3449,9 @@ function readGainsFilterFromDom() {
     gainsFilterState.category = document.getElementById('gains-filter-category')?.value || '';
     gainsFilterState.subcategory = document.getElementById('gains-filter-subcategory')?.value || '';
     gainsFilterState.paymentType = document.getElementById('gains-filter-payment-type')?.value || '';
-    gainsFilterState.status = document.getElementById('gains-filter-status')?.value || '';
+    gainsFilterState.paymentStatus = new Set();
+    if (document.getElementById('gains-filter-status-received')?.checked) gainsFilterState.paymentStatus.add('paid');
+    if (document.getElementById('gains-filter-status-pending')?.checked) gainsFilterState.paymentStatus.add('unpaid');
     gainsFilterState.description = document.getElementById('gains-filter-description')?.value || '';
     const amin = document.getElementById('gains-filter-amount-min')?.value;
     const amax = document.getElementById('gains-filter-amount-max')?.value;
@@ -3372,7 +3472,8 @@ function resetGainsDrawerFiltersKeepPeriod() {
     const c = document.getElementById('gains-filter-category');
     const sc = document.getElementById('gains-filter-subcategory');
     const pt = document.getElementById('gains-filter-payment-type');
-    const st = document.getElementById('gains-filter-status');
+    const recvSt = document.getElementById('gains-filter-status-received');
+    const pendSt = document.getElementById('gains-filter-status-pending');
     const desc = document.getElementById('gains-filter-description');
     const amin = document.getElementById('gains-filter-amount-min');
     const amax = document.getElementById('gains-filter-amount-max');
@@ -3383,7 +3484,8 @@ function resetGainsDrawerFiltersKeepPeriod() {
     if (c) c.value = '';
     if (sc) sc.value = '';
     if (pt) pt.value = '';
-    if (st) st.value = '';
+    if (recvSt) recvSt.checked = false;
+    if (pendSt) pendSt.checked = false;
     if (desc) desc.value = '';
     if (amin) amin.value = '';
     if (amax) amax.value = '';
@@ -3392,6 +3494,7 @@ function resetGainsDrawerFiltersKeepPeriod() {
     if (df) df.dataset.manual = '0';
     if (dt) dt.dataset.manual = '0';
     if (a) a.value = '';
+    syncGainsQuickStatusButtonsFromCheckboxes();
 }
 
 function toLocalDateInputValue(d) {
@@ -3463,7 +3566,20 @@ function syncRangeLabels(prefix, currency) {
 
 function getFilteredGainsList() {
     const { sorted, accounts, currency } = gainsRenderCache;
-    const { q, category, subcategory, paymentType, status, description, amountMin, amountMax, dateFrom, dateTo, accountId, period } = gainsFilterState;
+    const {
+        q,
+        category,
+        subcategory,
+        paymentType,
+        paymentStatus,
+        description,
+        amountMin,
+        amountMax,
+        dateFrom,
+        dateTo,
+        accountId,
+        period
+    } = gainsFilterState;
     // Período é o filtro principal; só é ignorado quando o usuário seleciona Data (de/até).
     let list = (dateFrom || dateTo)
         ? [...sorted]
@@ -3480,8 +3596,9 @@ function getFilteredGainsList() {
     if (paymentType) {
         list = list.filter((t) => accountPaymentType(accounts.find((a) => a.id === t.accountId)) === paymentType);
     }
-    if (status === 'paid') list = list.filter((t) => t.isPaid !== false);
-    if (status === 'unpaid') list = list.filter((t) => t.isPaid === false);
+    if (paymentStatus && paymentStatus.size > 0) {
+        list = list.filter((t) => movementMatchesPaymentStatus(t, paymentStatus));
+    }
     if (description && description.trim()) {
         const needleDesc = description.trim().toLowerCase();
         list = list.filter((t) => String(t.description ?? '').toLowerCase().includes(needleDesc));
@@ -3708,7 +3825,8 @@ function applyGainsFilters() {
     gainsPagination.setTotal(getSortedFilteredGainsList().length, { resetPage: true });
     renderGainsBodySlice();
     updateGainsSummaryCards();
-    resetQuickFilters('gains-page');
+    syncGainsQuickStatusButtonsFromCheckboxes();
+    syncGainsFilterButtonHighlight();
 }
 
 function initMovementFilterDrawerEvents() {
@@ -3717,7 +3835,8 @@ function initMovementFilterDrawerEvents() {
         'expenses-filter-category',
         'expenses-filter-subcategory',
         'expenses-filter-payment-type',
-        'expenses-filter-status',
+        'expenses-filter-status-paid',
+        'expenses-filter-status-pending',
         'expenses-filter-description',
         'expenses-filter-amount-min',
         'expenses-filter-amount-max',
@@ -3768,7 +3887,8 @@ function initMovementFilterDrawerEvents() {
         'gains-filter-category',
         'gains-filter-subcategory',
         'gains-filter-payment-type',
-        'gains-filter-status',
+        'gains-filter-status-received',
+        'gains-filter-status-pending',
         'gains-filter-description',
         'gains-filter-amount-min',
         'gains-filter-amount-max',
@@ -3905,6 +4025,7 @@ export function loadGainsData(gains, accounts, currency) {
     syncSortableTableHeaders(document.getElementById('gains-table'), gainsSort, ['date', 'amount', 'payment', 'received']);
     renderGainsBodySlice();
     updateGainsSummaryCards();
+    syncGainsQuickStatusButtonsFromCheckboxes();
 }
 
 function setupTransactionTableFilters() {
@@ -3961,90 +4082,53 @@ function setupTransactionTableFilters() {
 }
 
 function setupQuickFilters() {
-    const expensesQuickFilters = document.querySelectorAll('#expenses-page .quick-filter-btn');
-    const gainsQuickFilters = document.querySelectorAll('#gains-page .quick-filter-btn');
-
-    expensesQuickFilters.forEach((btn) => {
+    document.querySelectorAll('#expenses-page .quick-filter-btn[data-quick-kind="type"]').forEach((btn) => {
+        btn.setAttribute('aria-pressed', 'false');
+        btn.addEventListener('click', () => {
+            const on = btn.getAttribute('aria-pressed') !== 'true';
+            btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+            btn.classList.toggle('active', on);
+            applyExpensesFilters();
+        });
+    });
+    document.querySelectorAll('#expenses-page .quick-filter-btn[data-quick-kind="status"]').forEach((btn) => {
         btn.addEventListener('click', () => {
             const filter = btn.dataset.filter;
-            applyExpensesQuickFilter(filter, expensesQuickFilters);
+            if (filter === 'paid') {
+                const el = document.getElementById('expenses-filter-status-paid');
+                if (el) {
+                    el.checked = !el.checked;
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            } else if (filter === 'unpaid') {
+                const el = document.getElementById('expenses-filter-status-pending');
+                if (el) {
+                    el.checked = !el.checked;
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            }
         });
     });
 
-    gainsQuickFilters.forEach((btn) => {
+    document.querySelectorAll('#gains-page .quick-filter-btn[data-quick-kind="status"]').forEach((btn) => {
+        btn.setAttribute('aria-pressed', 'false');
         btn.addEventListener('click', () => {
             const filter = btn.dataset.filter;
-            applyGainsQuickFilter(filter, gainsQuickFilters);
+            if (filter === 'paid') {
+                const el = document.getElementById('gains-filter-status-received');
+                if (el) {
+                    el.checked = !el.checked;
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            } else if (filter === 'unpaid') {
+                const el = document.getElementById('gains-filter-status-pending');
+                if (el) {
+                    el.checked = !el.checked;
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            }
         });
     });
-}
-
-function resetQuickFilters(pageId) {
-    const buttons = document.querySelectorAll(`#${pageId} .quick-filter-btn`);
-    buttons.forEach((btn) => btn.classList.toggle('active', btn.dataset.filter === 'all'));
-}
-
-function applyExpensesQuickFilter(filter, buttons) {
-    buttons.forEach((btn) => btn.classList.toggle('active', btn.dataset.filter === filter));
-
-    const cache = expensesRenderCache;
-    if (!cache?.sorted) return;
-
-    const { sorted, accounts } = cache;
-    let list = [...sorted];
-
-    switch (filter) {
-        case 'all':
-            break;
-        case 'fixed':
-            list = list.filter((t) => expenseIsMarkedFixed(t));
-            break;
-        case 'variable':
-            list = list.filter((t) => !expenseIsMarkedFixed(t));
-            break;
-        case 'credit':
-            list = list.filter((t) => {
-                const acc = accounts?.find((a) => a.id === t.accountId);
-                return acc && isCreditCardType(acc.type);
-            });
-            break;
-        case 'other':
-            list = list.filter((t) => {
-                const acc = accounts?.find((a) => a.id === t.accountId);
-                return !expenseIsMarkedFixed(t) && !(acc && isCreditCardType(acc.type));
-            });
-            break;
-    }
-
-    if (expensesPagination) {
-        expensesPagination.setTotal(list.length, { resetPage: true });
-    }
-    renderExpensesBodySliceWithList(list);
-}
-
-function applyGainsQuickFilter(filter, buttons) {
-    buttons.forEach((btn) => btn.classList.toggle('active', btn.dataset.filter === filter));
-
-    const cache = gainsRenderCache;
-    if (!cache?.sorted) return;
-
-    let list = [...cache.sorted];
-
-    switch (filter) {
-        case 'all':
-            break;
-        case 'received':
-            list = list.filter((t) => t.isPaid !== false);
-            break;
-        case 'pending':
-            list = list.filter((t) => t.isPaid === false);
-            break;
-    }
-
-    if (gainsPagination) {
-        gainsPagination.setTotal(list.length, { resetPage: true });
-    }
-    renderGainsBodySliceWithList(list);
 }
 
 function setupTableSortClicks() {

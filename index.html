@@ -587,17 +587,28 @@
                 <!-- Saídas -->
                 <section id="expenses-page" class="page hidden">
                     <div class="quick-filters-bar" aria-label="Filtros rápidos de saídas">
-                        <button type="button" class="quick-filter-btn active" data-filter="all">
-                            Todas as saídas
+                        <span class="quick-filters-bar__hint">Tipo</span>
+                        <button type="button" class="quick-filter-btn" data-quick-kind="type" data-filter="fixed" aria-pressed="false"
+                            title="Despesas fixas — pode combinar com variáveis e cartão">
+                            <i class="fas fa-sync-alt" aria-hidden="true"></i> Despesas fixas
                         </button>
-                        <button type="button" class="quick-filter-btn" data-filter="fixed">
-                            <i class="fas fa-sync-alt" aria-hidden="true"></i> Despesas Fixas
+                        <button type="button" class="quick-filter-btn" data-quick-kind="type" data-filter="variable" aria-pressed="false"
+                            title="Despesas variáveis — pode combinar com outras opções de tipo">
+                            <i class="fas fa-bolt" aria-hidden="true"></i> Variáveis
                         </button>
-                        <button type="button" class="quick-filter-btn" data-filter="variable">
-                            <i class="fas fa-bolt" aria-hidden="true"></i> Despesas Variáveis
+                        <button type="button" class="quick-filter-btn" data-quick-kind="type" data-filter="credit" aria-pressed="false"
+                            title="Lançamentos em cartão de crédito">
+                            <i class="fas fa-credit-card" aria-hidden="true"></i> Cartão de crédito
                         </button>
-                        <button type="button" class="quick-filter-btn" data-filter="credit">
-                            <i class="fas fa-credit-card" aria-hidden="true"></i> Cartão de Crédito
+                        <span class="quick-filters-bar__sep" aria-hidden="true"></span>
+                        <span class="quick-filters-bar__hint">Status</span>
+                        <button type="button" class="quick-filter-btn" data-quick-kind="status" data-filter="paid" aria-pressed="false"
+                            title="Somente pagas — marque também Pendente para ver os dois">
+                            <i class="fas fa-check" aria-hidden="true"></i> Pago
+                        </button>
+                        <button type="button" class="quick-filter-btn" data-quick-kind="status" data-filter="unpaid" aria-pressed="false"
+                            title="Somente pendentes — pode combinar com Pago">
+                            <i class="fas fa-clock" aria-hidden="true"></i> Pendente
                         </button>
                     </div>
                     <div id="expenses-batch-toolbar" class="expenses-batch-toolbar hidden" aria-live="polite">
@@ -690,14 +701,14 @@
                 <!-- Entradas -->
                 <section id="gains-page" class="page hidden">
                     <div class="quick-filters-bar" aria-label="Filtros rápidos de entradas">
-                        <button type="button" class="quick-filter-btn active" data-filter="all">
-                            Todas as entradas
+                        <span class="quick-filters-bar__hint">Status</span>
+                        <button type="button" class="quick-filter-btn" data-quick-kind="status" data-filter="paid" aria-pressed="false"
+                            title="Somente recebidas — marque também Pendente para ver as duas">
+                            <i class="fas fa-check-circle" aria-hidden="true"></i> Recebido
                         </button>
-                        <button type="button" class="quick-filter-btn" data-filter="received">
-                            <i class="fas fa-check-circle" aria-hidden="true"></i> Recebidas
-                        </button>
-                        <button type="button" class="quick-filter-btn" data-filter="pending">
-                            <i class="fas fa-clock" aria-hidden="true"></i> Pendentes
+                        <button type="button" class="quick-filter-btn" data-quick-kind="status" data-filter="unpaid" aria-pressed="false"
+                            title="Somente pendentes — pode combinar com Recebido">
+                            <i class="fas fa-clock" aria-hidden="true"></i> Pendente
                         </button>
                     </div>
                     <div id="gains-batch-toolbar" class="gains-batch-toolbar expenses-batch-toolbar hidden"
@@ -1527,13 +1538,13 @@
                                 <option value="other">Outros</option>
                             </select>
                         </div>
-                        <div class="filter-drawer-field">
-                            <label for="expenses-filter-status">Status do pagamento</label>
-                            <select id="expenses-filter-status" class="table-filters__select" aria-label="Status do pagamento">
-                                <option value="">Todos</option>
-                                <option value="paid">Pago</option>
-                                <option value="unpaid">Pendente</option>
-                            </select>
+                        <div class="filter-drawer-field filter-drawer-field--checkboxes">
+                            <span id="expenses-filter-status-legend" class="filter-drawer-field__legend">Status do pagamento</span>
+                            <div class="filter-drawer-checkboxes" role="group" aria-labelledby="expenses-filter-status-legend">
+                                <label class="filter-drawer-checkbox"><input type="checkbox" id="expenses-filter-status-paid"> Pago</label>
+                                <label class="filter-drawer-checkbox"><input type="checkbox" id="expenses-filter-status-pending"> Pendente</label>
+                            </div>
+                            <p class="filter-drawer-hint">Nenhuma opção = todos. Uma ou duas marcas = combina (mostra pagas e/ou pendentes).</p>
                         </div>
                         <div class="filter-drawer-field">
                             <label for="expenses-filter-description">Descrição</label>
@@ -1618,13 +1629,13 @@
                                 <option value="other">Outros</option>
                             </select>
                         </div>
-                        <div class="filter-drawer-field">
-                            <label for="gains-filter-status">Status do pagamento</label>
-                            <select id="gains-filter-status" class="table-filters__select" aria-label="Status do pagamento">
-                                <option value="">Todos</option>
-                                <option value="paid">Recebido</option>
-                                <option value="unpaid">A receber</option>
-                            </select>
+                        <div class="filter-drawer-field filter-drawer-field--checkboxes">
+                            <span id="gains-filter-status-legend" class="filter-drawer-field__legend">Status da entrada</span>
+                            <div class="filter-drawer-checkboxes" role="group" aria-labelledby="gains-filter-status-legend">
+                                <label class="filter-drawer-checkbox"><input type="checkbox" id="gains-filter-status-received"> Recebido</label>
+                                <label class="filter-drawer-checkbox"><input type="checkbox" id="gains-filter-status-pending"> Pendente</label>
+                            </div>
+                            <p class="filter-drawer-hint">Nenhuma opção = todas. Marque Recebido e/ou Pendente para filtrar (combinação inclusiva).</p>
                         </div>
                         <div class="filter-drawer-field">
                             <label for="gains-filter-description">Descrição</label>
