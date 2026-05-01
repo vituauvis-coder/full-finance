@@ -5,6 +5,33 @@ import { openModal, closeModal } from '../../shell/app-shell.js';
 // Estado do kanban
 let kanbanCards = [];
 
+/** API pode devolver `type`/`Type`; normaliza para bug | melhoria | melhoria_rapida */
+function normalizeKanbanTypeString(raw) {
+    const s = String(raw ?? '')
+        .trim()
+        .toLowerCase()
+        .replace(/-/g, '_');
+    if (s === 'bug') return 'bug';
+    if (s === 'melhoria_rapida' || s === 'melhoriarapida') return 'melhoria_rapida';
+    return 'melhoria';
+}
+
+function normalizeKanbanCard(card) {
+    return { ...card, type: normalizeKanbanTypeString(card?.type ?? card?.Type) };
+}
+
+function kanbanCardModifierClass(type) {
+    if (type === 'bug') return 'kanban-card--bug';
+    if (type === 'melhoria_rapida') return 'kanban-card--melhoria-rapida';
+    return 'kanban-card--melhoria';
+}
+
+const KANBAN_KIND_LABEL = {
+    bug: 'Bug',
+    melhoria: 'Melhoria',
+    melhoria_rapida: 'Melhoria rápida'
+};
+
 /**
  * Inicializa os listeners da página de ferramentas (calculadora e kanban).
  */
@@ -60,16 +87,25 @@ function initKanban() {
 
     // Tabs de tipo (Bug/Melhoria)
     document.querySelectorAll('.kanban-tab-btn')?.forEach(btn => {
-        btn.addEventListener('click', () => switchKanbanTypeTab(btn.dataset.type));
+        btn.addEventListener('click', () =>
+            switchKanbanTypeTab(normalizeKanbanTypeString(btn.dataset.type))
+        );
     });
 
     // Upload de imagem - Bug
     document.getElementById('kanban-card-image-bug')?.addEventListener('change', (e) => handleKanbanImageUpload(e, 'bug'));
     document.getElementById('kanban-remove-image-bug')?.addEventListener('click', () => clearKanbanImage('bug'));
 
-    // Upload de imagem - Melhoria
+    // Upload de imagem - Melhoria / Melhoria rápida
     document.getElementById('kanban-card-image-melhoria')?.addEventListener('change', (e) => handleKanbanImageUpload(e, 'melhoria'));
     document.getElementById('kanban-remove-image-melhoria')?.addEventListener('click', () => clearKanbanImage('melhoria'));
+
+    document.getElementById('kanban-card-image-melhoria-rapida')?.addEventListener('change', (e) =>
+        handleKanbanImageUpload(e, 'melhoria-rapida')
+    );
+    document.getElementById('kanban-remove-image-melhoria-rapida')?.addEventListener('click', () =>
+        clearKanbanImage('melhoria-rapida')
+    );
 
     // Drag and Drop - configurar colunas
     setupKanbanDragAndDrop();
@@ -79,27 +115,27 @@ function initKanban() {
 }
 
 function switchKanbanTypeTab(type) {
-    const validTypes = ['bug', 'melhoria'];
-    if (!validTypes.includes(type)) return;
+    const t = normalizeKanbanTypeString(type);
+    const validTypes = ['bug', 'melhoria', 'melhoria_rapida'];
+    if (!validTypes.includes(t)) return;
 
-    // Atualizar tabs visuais
     document.querySelectorAll('.kanban-tab-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.type === type);
+        btn.classList.toggle('active', normalizeKanbanTypeString(btn.dataset.type) === t);
     });
 
-    // Atualizar campo hidden
-    document.getElementById('kanban-card-type').value = type;
+    document.getElementById('kanban-card-type').value = t;
 
-    // Mostrar/esconder campos específicos
-    document.getElementById('kanban-bug-fields').classList.toggle('hidden', type !== 'bug');
-    document.getElementById('kanban-melhoria-fields').classList.toggle('hidden', type !== 'melhoria');
+    document.getElementById('kanban-bug-fields').classList.toggle('hidden', t !== 'bug');
+    document.getElementById('kanban-melhoria-fields').classList.toggle('hidden', t !== 'melhoria');
+    document.getElementById('kanban-melhoria-rapida-fields').classList.toggle('hidden', t !== 'melhoria_rapida');
 
-    // Atualizar placeholder do título
     const titleInput = document.getElementById('kanban-card-title');
-    if (type === 'bug') {
+    if (t === 'bug') {
         titleInput.placeholder = 'Resumo do bug (ex: Erro ao salvar formulário)';
-    } else {
+    } else if (t === 'melhoria') {
         titleInput.placeholder = 'Resumo da melhoria (ex: Adicionar filtro por data)';
+    } else {
+        titleInput.placeholder = 'Título curto (ex: Ideia para relatório mensal)';
     }
 }
 
@@ -139,7 +175,7 @@ function setupKanbanDragAndDrop() {
 async function loadKanbanCards() {
     try {
         const cards = await api('/api/kanban-cards');
-        kanbanCards = cards || [];
+        kanbanCards = Array.isArray(cards) ? cards.map(normalizeKanbanCard) : [];
         renderKanbanCards();
     } catch (error) {
         console.error('Erro ao carregar kanban cards:', error);
@@ -177,9 +213,10 @@ function renderKanbanCards() {
 
 function createKanbanCardElement(card) {
     const div = document.createElement('div');
-    div.className = 'kanban-card';
+    const ctype = normalizeKanbanTypeString(card.type);
+    div.className = `kanban-card ${kanbanCardModifierClass(ctype)}`;
     div.dataset.id = card.id;
-    div.dataset.type = card.type || 'melhoria';
+    div.dataset.type = ctype;
     div.draggable = true;
 
     // Eventos de drag
@@ -195,8 +232,10 @@ function createKanbanCardElement(card) {
 
     const authorName = card.creator?.name || card.creator?.email || 'Usuário';
     const dateStr = new Date(card.createdAt).toLocaleDateString('pt-BR');
+    const kindLabel = KANBAN_KIND_LABEL[ctype] || KANBAN_KIND_LABEL.melhoria;
 
     div.innerHTML = `
+        <span class="kanban-card-kind">${escapeHtml(kindLabel)}</span>
         ${card.image ? `<div class="kanban-card-image"><img src="${escapeHtml(card.image)}" alt="Imagem" class="kanban-card-thumbnail"></div>` : ''}
         <div class="kanban-card-title">${escapeHtml(card.title)}</div>
         ${card.screen ? `<div class="kanban-card-screen"><i class="fas fa-desktop"></i> ${escapeHtml(card.screen)}</div>` : ''}
@@ -266,43 +305,51 @@ function openKanbanModal(card = null) {
     const titleEl = document.getElementById('kanban-modal-title');
     const form = document.getElementById('kanban-form');
 
-    // Limpar imagem sempre que abrir o modal
-    clearKanbanImage();
+    clearKanbanImage('bug');
+    clearKanbanImage('melhoria');
+    clearKanbanImage('melhoria-rapida');
 
     if (card) {
-        const isBug = card.type === 'bug';
-        titleEl.innerHTML = isBug ? '<i class="fas fa-bug"></i> Editar Bug' : '<i class="fas fa-lightbulb"></i> Editar Melhoria';
+        const ctype = normalizeKanbanTypeString(card.type ?? card.Type);
+        const isBug = ctype === 'bug';
+        const isRapida = ctype === 'melhoria_rapida';
+        if (isBug) {
+            titleEl.innerHTML = '<i class="fas fa-bug"></i> Editar Bug';
+        } else if (isRapida) {
+            titleEl.innerHTML = '<i class="fas fa-bolt"></i> Editar melhoria rápida';
+        } else {
+            titleEl.innerHTML = '<i class="fas fa-lightbulb"></i> Editar Melhoria';
+        }
         document.getElementById('kanban-card-id').value = card.id;
         document.getElementById('kanban-card-title').value = card.title;
 
-        // Switch para o tipo correto
-        switchKanbanTypeTab(card.type || 'melhoria');
+        switchKanbanTypeTab(ctype);
 
-        // Preencher campos específicos
+        document.getElementById('kanban-melhoria-desc').value = '';
+        document.getElementById('kanban-melhoria-benefit').value = '';
+        document.getElementById('kanban-melhoria-rapida-desc').value = '';
+        document.getElementById('kanban-bug-screen').value = '';
+        document.getElementById('kanban-bug-steps').value = '';
+        document.getElementById('kanban-bug-expected').value = '';
+        document.getElementById('kanban-bug-actual').value = '';
+
         if (isBug) {
             document.getElementById('kanban-bug-screen').value = card.screen || '';
             document.getElementById('kanban-bug-steps').value = card.steps || '';
             document.getElementById('kanban-bug-expected').value = card.expected || '';
             document.getElementById('kanban-bug-actual').value = card.actual || '';
-            document.getElementById('kanban-melhoria-desc').value = '';
-            document.getElementById('kanban-melhoria-benefit').value = '';
+        } else if (isRapida) {
+            document.getElementById('kanban-melhoria-rapida-desc').value = card.description || '';
         } else {
             document.getElementById('kanban-melhoria-desc').value = card.description || '';
             document.getElementById('kanban-melhoria-benefit').value = card.benefit || '';
-            document.getElementById('kanban-bug-screen').value = '';
-            document.getElementById('kanban-bug-steps').value = '';
-            document.getElementById('kanban-bug-expected').value = '';
-            document.getElementById('kanban-bug-actual').value = '';
         }
 
-        // Carregar imagem existente
         if (card.image) {
             document.getElementById('kanban-card-image-data').value = card.image;
-            if (isBug) {
-                showKanbanImagePreview(card.image, 'bug');
-            } else {
-                showKanbanImagePreview(card.image, 'melhoria');
-            }
+            if (isBug) showKanbanImagePreview(card.image, 'bug');
+            else if (isRapida) showKanbanImagePreview(card.image, 'melhoria-rapida');
+            else showKanbanImagePreview(card.image, 'melhoria');
         }
     } else {
         titleEl.innerHTML = '<i class="fas fa-plus-circle"></i> Novo Item';
@@ -321,8 +368,8 @@ async function saveKanbanCard(e) {
     const type = document.getElementById('kanban-card-type').value;
     const title = document.getElementById('kanban-card-title').value.trim();
     const image = document.getElementById('kanban-card-image-data').value;
-    // Novos itens sempre começam em backlog
-    const column = 'backlog';
+    const existing = id ? kanbanCards.find(c => c.id === id) : null;
+    const column = existing?.column ?? 'backlog';
 
     if (!title) {
         alert('Título é obrigatório');
@@ -352,6 +399,13 @@ async function saveKanbanCard(e) {
         }
 
         payload = { ...payload, screen, steps, expected, actual };
+    } else if (type === 'melhoria_rapida') {
+        const description = document.getElementById('kanban-melhoria-rapida-desc').value.trim();
+        if (!description) {
+            alert('Descrição é obrigatória');
+            return;
+        }
+        payload = { ...payload, description, benefit: null };
     } else {
         const description = document.getElementById('kanban-melhoria-desc').value.trim();
         const benefit = document.getElementById('kanban-melhoria-benefit').value.trim();
@@ -480,13 +534,16 @@ function openKanbanImageModal(imageUrl) {
 }
 
 function openKanbanViewModal(card) {
-    const isBug = card.type === 'bug';
+    const ctype = normalizeKanbanTypeString(card.type ?? card.Type);
+    const isBug = ctype === 'bug';
+    const isRapida = ctype === 'melhoria_rapida';
     const columnNames = { backlog: 'Backlog', ativo: 'Ativo', teste: 'Teste', finalizado: 'Finalizado' };
 
-    // Header: Tipo, Status, Data
     const typeEl = document.getElementById('kanban-view-card-type');
-    typeEl.textContent = isBug ? '🐛 Bug' : '💡 Melhoria';
-    typeEl.dataset.type = card.type || 'melhoria';
+    if (isBug) typeEl.textContent = '🐛 Bug';
+    else if (isRapida) typeEl.textContent = '⚡ Melhoria rápida';
+    else typeEl.textContent = '💡 Melhoria';
+    typeEl.dataset.type = ctype;
 
     const columnEl = document.getElementById('kanban-view-card-column');
     columnEl.textContent = columnNames[card.column] || card.column;
@@ -512,6 +569,7 @@ function openKanbanViewModal(card) {
     // Mostrar/esconder campos específicos
     document.getElementById('kanban-view-bug-fields').classList.toggle('hidden', !isBug);
     document.getElementById('kanban-view-melhoria-fields').classList.toggle('hidden', isBug);
+    document.getElementById('kanban-view-benefit-row').classList.toggle('hidden', isRapida);
 
     if (isBug) {
         document.getElementById('kanban-view-screen').textContent = card.screen || '-';

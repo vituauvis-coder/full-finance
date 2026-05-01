@@ -283,7 +283,7 @@ model BalanceSnapshot {
 model KanbanCard {
   id          String   @id @default(uuid())
   title       String   @db.NVarChar(200)
-  /** bug | melhoria */
+  /** bug | melhoria | melhoria_rapida */
   type        String   @default("melhoria") @db.NVarChar(20)
   /** backlog | ativo | teste | finalizado */
   column      String   @default("backlog") @db.NVarChar(20)

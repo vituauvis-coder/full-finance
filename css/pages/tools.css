@@ -235,6 +235,34 @@
     transform: translateY(-2px);
 }
 
+/* Selo de tipo (Bug / Melhoria / Melhoria rápida) no quadro */
+.kanban-card-kind {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+}
+
+.kanban-card--bug .kanban-card-kind {
+    background-color: #fee2e2;
+    color: #b91c1c;
+}
+
+.kanban-card--melhoria .kanban-card-kind {
+    background-color: #e0f2fe;
+    color: #0369a1;
+}
+
+.kanban-card--melhoria-rapida .kanban-card-kind {
+    background-color: #ffedd5;
+    color: #c2410c;
+    border: 1px solid rgba(194, 65, 12, 0.35);
+}
+
 .kanban-card-title {
     font-weight: 500;
     font-size: 0.9rem;
@@ -315,12 +343,14 @@
     border-color: var(--primary-color);
 }
 
-/* --- Cards com cores por tipo (Bug/Melhoria) --- */
+/* --- Cards com cores por tipo (classe JS + fallback data-type) --- */
+.kanban-card.kanban-card--bug,
 .kanban-card[data-type="bug"] {
     border-left: 4px solid #ef4444;
     background: linear-gradient(to right, rgba(239, 68, 68, 0.05), transparent);
 }
 
+.kanban-card.kanban-card--bug .kanban-card-title::before,
 .kanban-card[data-type="bug"] .kanban-card-title::before {
     content: "\f188";
     font-family: "Font Awesome 6 Free";
@@ -329,16 +359,33 @@
     margin-right: 0.5rem;
 }
 
+.kanban-card.kanban-card--melhoria,
 .kanban-card[data-type="melhoria"] {
     border-left: 4px solid #0284c7;
     background: linear-gradient(to right, rgba(2, 132, 199, 0.06), transparent);
 }
 
+.kanban-card.kanban-card--melhoria .kanban-card-title::before,
 .kanban-card[data-type="melhoria"] .kanban-card-title::before {
     content: "\f0eb";
     font-family: "Font Awesome 6 Free";
     font-weight: 900;
     color: #0284c7;
+    margin-right: 0.5rem;
+}
+
+.kanban-card.kanban-card--melhoria-rapida,
+.kanban-card[data-type="melhoria_rapida"] {
+    border-left: 4px solid #ea580c;
+    background: linear-gradient(to right, rgba(234, 88, 12, 0.1), transparent);
+}
+
+.kanban-card.kanban-card--melhoria-rapida .kanban-card-title::before,
+.kanban-card[data-type="melhoria_rapida"] .kanban-card-title::before {
+    content: "\f0e7";
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    color: #ea580c;
     margin-right: 0.5rem;
 }
 
@@ -391,6 +438,22 @@
 .kanban-tab-btn[data-type="melhoria"]:hover {
     background: #0284c7;
     color: white;
+}
+
+.kanban-tab-btn[data-type="melhoria_rapida"] {
+    color: #d97706;
+    border-color: #d97706;
+}
+
+.kanban-tab-btn[data-type="melhoria_rapida"].active,
+.kanban-tab-btn[data-type="melhoria_rapida"]:hover {
+    background: #d97706;
+    color: white;
+}
+
+.kanban-rapida-hint {
+    margin-top: 0;
+    margin-bottom: 0.75rem;
 }
 
 .kanban-fields-section {
@@ -552,6 +615,12 @@
 .kanban-view-tag[data-type="melhoria"],
 .kanban-view-header-row span:first-child[data-type="melhoria"] {
     background-color: #0284c7;
+    color: white;
+}
+
+.kanban-view-tag[data-type="melhoria_rapida"],
+.kanban-view-header-row span:first-child[data-type="melhoria_rapida"] {
+    background-color: #d97706;
     color: white;
 }
 

@@ -4013,7 +4013,7 @@ app.post('/api/kanban-cards', requireAuth, async (req, res) => {
         }
 
         // Validar tipo
-        const validTypes = ['bug', 'melhoria'];
+        const validTypes = ['bug', 'melhoria', 'melhoria_rapida'];
         const cardType = validTypes.includes(type) ? type : 'melhoria';
 
         // Validar tamanho da imagem (max ~1.5MB em Base64)
@@ -4090,7 +4090,7 @@ app.put('/api/kanban-cards/:id', requireAuth, async (req, res) => {
         }
 
         const validColumns = ['backlog', 'ativo', 'teste', 'finalizado'];
-        const validTypes = ['bug', 'melhoria'];
+        const validTypes = ['bug', 'melhoria', 'melhoria_rapida'];
 
         const sets = [];
         const params = [];

@@ -974,6 +974,9 @@
                                 <button type="button" class="kanban-tab-btn" data-type="melhoria">
                                     <i class="fas fa-lightbulb"></i> Melhoria
                                 </button>
+                                <button type="button" class="kanban-tab-btn" data-type="melhoria_rapida">
+                                    <i class="fas fa-bolt"></i> Rápida
+                                </button>
                             </div>
 
                             <form id="kanban-form" style="display: flex; flex-direction: column; gap: 1rem;">
@@ -1051,6 +1054,29 @@
                                     </div>
                                 </div>
 
+                                <!-- Melhoria rápida: só título + descrição + imagem opcional -->
+                                <div id="kanban-melhoria-rapida-fields" class="kanban-fields-section hidden">
+                                    <p class="form-hint kanban-rapida-hint">Ideia rápida — sem benefício esperado; use quando quiser só registrar um lembrete.</p>
+                                    <div class="form-group">
+                                        <label for="kanban-melhoria-rapida-desc">DESCRIÇÃO *</label>
+                                        <textarea id="kanban-melhoria-rapida-desc" rows="4"
+                                            placeholder="Explique brevemente a ideia ou o que você quer..."></textarea>
+                                    </div>
+                                    <div class="form-group kanban-image-upload">
+                                        <label for="kanban-card-image-melhoria-rapida" class="kanban-upload-label">
+                                            <span class="upload-icon"><i class="fas fa-camera"></i></span>
+                                            <span>Imagem (opcional)</span>
+                                        </label>
+                                        <input type="file" id="kanban-card-image-melhoria-rapida" class="kanban-file-input" accept="image/*">
+                                        <div id="kanban-image-preview-melhoria-rapida" class="kanban-image-preview hidden">
+                                            <img id="kanban-preview-img-melhoria-rapida" src="" alt="Preview">
+                                            <button type="button" id="kanban-remove-image-melhoria-rapida" class="btn-icon">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <input type="hidden" id="kanban-card-image-data">
 
                                 <div class="form-actions">
@@ -1120,7 +1146,7 @@
                                             <span class="kanban-view-label">Descrição:</span>
                                             <p id="kanban-view-melhoria-desc" class="kanban-view-text-pre"></p>
                                         </div>
-                                        <div class="kanban-view-item">
+                                        <div id="kanban-view-benefit-row" class="kanban-view-item">
                                             <span class="kanban-view-label">Benefício:</span>
                                             <span id="kanban-view-benefit" class="kanban-view-text"></span>
                                         </div>
