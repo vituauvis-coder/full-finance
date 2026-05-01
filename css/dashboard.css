@@ -1701,6 +1701,12 @@ button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='
     gap: 0.5rem 0.65rem;
 }
 
+#dashboard-page .dashboard-expense-facets-bar__group-label {
+    align-self: center;
+    margin-right: 0.15rem;
+}
+
+
 #dashboard-page .dashboard-expense-facet-btn {
     display: inline-flex;
     align-items: center;

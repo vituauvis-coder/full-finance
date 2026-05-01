@@ -429,23 +429,18 @@
                 <!-- Seção do Dashboard -->
                 <section id="dashboard-page" class="page active">
                     <div class="dashboard-expense-facets-bar" role="group"
-                        aria-label="Filtrar totais de saídas por tipo — pode seleccionar vários">
+                        aria-label="Filtrar totais de saídas por estado de pagamento — pode seleccionar vários">
                         <div class="dashboard-expense-facets-bar__chips">
-                            <button type="button" class="dashboard-expense-facet-btn" data-facet="fixed"
-                                aria-pressed="false" title="Incluir saídas marcadas como fixas">
-                                <i class="fas fa-sync-alt" aria-hidden="true"></i> Despesas fixas
+                            <span class="quick-filters-bar__hint dashboard-expense-facets-bar__group-label">Saída</span>
+                            <button type="button" class="dashboard-expense-facet-btn" data-facet="paid"
+                                aria-pressed="false"
+                                title="Somente lançamentos pagos — pode combinar com Pendente para ver ambos">
+                                <i class="fas fa-check" aria-hidden="true"></i> Pago
                             </button>
-                            <button type="button" class="dashboard-expense-facet-btn" data-facet="variable"
-                                aria-pressed="false" title="Incluir saídas não marcadas como fixas">
-                                <i class="fas fa-bolt" aria-hidden="true"></i> Despesas variáveis
-                            </button>
-                            <button type="button" class="dashboard-expense-facet-btn" data-facet="credit"
-                                aria-pressed="false" title="Saídas em cartão de crédito">
-                                <i class="fas fa-credit-card" aria-hidden="true"></i> Cartão de crédito
-                            </button>
-                            <button type="button" class="dashboard-expense-facet-btn" data-facet="other"
-                                aria-pressed="false" title="Saídas em conta corrente, débito ou dinheiro (sem cartão de crédito)">
-                                <i class="fas fa-wallet" aria-hidden="true"></i> Outras despesas
+                            <button type="button" class="dashboard-expense-facet-btn" data-facet="unpaid"
+                                aria-pressed="false"
+                                title="Somente pendentes (não pagos no saldo conforme marcado na saída) — pode combinar com Pago">
+                                <i class="fas fa-clock" aria-hidden="true"></i> Pendente
                             </button>
                         </div>
                     </div>
@@ -587,20 +582,6 @@
                 <!-- Saídas -->
                 <section id="expenses-page" class="page hidden">
                     <div class="quick-filters-bar" aria-label="Filtros rápidos de saídas">
-                        <span class="quick-filters-bar__hint">Tipo</span>
-                        <button type="button" class="quick-filter-btn" data-quick-kind="type" data-filter="fixed" aria-pressed="false"
-                            title="Despesas fixas — pode combinar com variáveis e cartão">
-                            <i class="fas fa-sync-alt" aria-hidden="true"></i> Despesas fixas
-                        </button>
-                        <button type="button" class="quick-filter-btn" data-quick-kind="type" data-filter="variable" aria-pressed="false"
-                            title="Despesas variáveis — pode combinar com outras opções de tipo">
-                            <i class="fas fa-bolt" aria-hidden="true"></i> Variáveis
-                        </button>
-                        <button type="button" class="quick-filter-btn" data-quick-kind="type" data-filter="credit" aria-pressed="false"
-                            title="Lançamentos em cartão de crédito">
-                            <i class="fas fa-credit-card" aria-hidden="true"></i> Cartão de crédito
-                        </button>
-                        <span class="quick-filters-bar__sep" aria-hidden="true"></span>
                         <span class="quick-filters-bar__hint">Status</span>
                         <button type="button" class="quick-filter-btn" data-quick-kind="status" data-filter="paid" aria-pressed="false"
                             title="Somente pagas — marque também Pendente para ver os dois">
@@ -2000,7 +1981,7 @@
             <button type="button" class="modal-close-btn" data-close-modal="gain-batch-modal">&times;</button>
             <h3>Editar várias entradas</h3>
             <p class="card-metric-hint expense-batch-modal__intro" id="gain-batch-modal-summary">
-                Altere só os campos que quiser aplicar a todas as entradas selecionadas. Campos em «Manter» não são modificados.
+                Marque entradas na tabela e use os campos abaixo; categoria e subcategoria aplicam-se em lote como nas saídas.
             </p>
             <form id="gain-batch-form" class="expense-batch-form">
                 <div class="form-group">

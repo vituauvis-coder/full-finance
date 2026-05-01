@@ -58,7 +58,13 @@ import {
     renderSpendingTreemapHost
 } from '../../components/spending-treemap.js';
 import { populateExpenseCategorySelect, populateExpenseSubcategorySelect, setupExpenseCategoryUi, getSubcategoriesForCategory } from './expense-categories.js';
-import { populateGainCategorySelect, populateGainSubcategorySelect, setupGainCategoryUi, getGainSubcategoriesForCategory } from './gain-categories.js';
+import {
+    populateGainCategorySelect,
+    populateGainSubcategorySelect,
+    setupGainCategoryUi,
+    getGainSubcategoriesForCategory,
+    listGainCategoryNamesSorted
+} from './gain-categories.js';
 import { setupFilterDrawer, closeFilterDrawer } from '../../shared/filter-drawer.js';
 import { openModal, closeModal, showMessage, showToast, navigateTo } from '../../shell/app-shell.js';
 import {
@@ -1629,8 +1635,6 @@ function populateBatchGainAccountSelect() {
 }
 
 async function fillGainBatchCategorySelect() {
-    await populateGainCategorySelect('', false);
-    const src = document.getElementById('gain-category-select');
     const dst = document.getElementById('gain-batch-category');
     if (!dst) return;
 
@@ -1640,12 +1644,11 @@ async function fillGainBatchCategorySelect() {
     ph.textContent = 'Manter categoria atual';
     dst.appendChild(ph);
 
-    if (!src) return;
-    const skipVals = new Set(['', '__manage_categories__', '__add_new__']);
-    for (const opt of [...src.options]) {
-        const v = String(opt.value || '');
-        if (skipVals.has(v) || opt.disabled) continue;
-        dst.appendChild(new Option(opt.textContent, v));
+    try {
+        const names = await listGainCategoryNamesSorted(false);
+        names.forEach((name) => dst.appendChild(new Option(name, name)));
+    } catch (err) {
+        console.error(err);
     }
 }
 
@@ -1703,7 +1706,7 @@ async function openGainBatchModal() {
 
     const sum = document.getElementById('gain-batch-modal-summary');
     if (sum) {
-        sum.textContent = `Serão atualizadas ${ids.length} entrada(s). Só os campos que não estiverem em «Manter» serão gravados.`;
+        sum.textContent = `Serão atualizadas ${ids.length} entrada(s). Conta, categoria, subcategoria e recebido: só gravamos o que não estiver em «Manter». «Limpar subcategoria» remove a subcategoria; para definir uma subcategoria nova, escolha também a categoria correspondente.`;
     }
 
     openModal('gain-batch-modal');

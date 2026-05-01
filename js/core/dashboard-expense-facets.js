@@ -11,19 +11,65 @@ export function expenseIsMarkedFixed(expense) {
     );
 }
 
+const TYPE_KEYS = /** @type {const} */ (['fixed', 'variable', 'credit', 'other']);
+const STATUS_KEYS = /** @type {const} */ (['paid', 'unpaid']);
+
+/** Valores válidos para `data-facet` nos chips do painel (persistência e validação). */
+export const DASHBOARD_EXPENSE_FACET_IDS = /** @type {const} */ ([
+    ...TYPE_KEYS,
+    ...STATUS_KEYS
+]);
+
 /**
- * Critérios do painel: combinação com OR — se vários ligados, a saída entra ao bater certo em pelo menos um.
- * Conjunto vazio = não restringir.
+ * Critério de agregação no painel perante as facetas «Saída» (estado):
+ * — **Saídas**: parcelas/lançamentos conforme pago/pendente/tudo (ver `reports.js`).
+ * — **Entradas**: lista filtrada por recebido/pendente; competência continua pela data no mês.
+ * — Só «Pendente»: em aberto; só «Pago» ou sem faceta de estado: efetivos; ambos: todos.
+ */
+export function dashOutflowCardSummationMode(facets) {
+    if (!facets?.size) return 'paid_through';
+    const touchesStatus = STATUS_KEYS.some((k) => facets.has(k));
+    if (!touchesStatus) return 'paid_through';
+    const paid = facets.has('paid');
+    const unpaid = facets.has('unpaid');
+    if (paid && unpaid) return 'all_slices';
+    if (unpaid && !paid) return 'pending_due';
+    return 'paid_through';
+}
+
+function facetsHasSome(facets, keys) {
+    return keys.some((k) => facets.has(k));
+}
+
+/**
+ * Filtros do painel sobre saídas:
+ * — **Tipo**: OR entre facetas seleccionadas; se nenhuma de tipo está activa, não restringe por tipo.
+ * — **Saída** (estado): pago ⇒ `isPaid !== false`; pendente ⇒ `isPaid === false`. Com «Pago» e «Pendente» aos dois ligados (= OR), passam todas.
+ * — Tipo × pagamento com **AND** (alinhado aos filtros rápidos da lista de saídas).
  */
 export function expenseMatchesAnyDashboardFacet(expense, account, facets) {
     if (!facets || facets.size === 0) return true;
+
     const hasCreditAccount = Boolean(account && isCreditCardType(account.type));
     const fixed = expenseIsMarkedFixed(expense);
-    if (facets.has('fixed') && fixed) return true;
-    if (facets.has('variable') && !fixed) return true;
-    if (facets.has('credit') && hasCreditAccount) return true;
-    if (facets.has('other') && !fixed && !hasCreditAccount) return true;
-    return false;
+
+    let typeMatches = true;
+    if (facetsHasSome(facets, TYPE_KEYS)) {
+        typeMatches =
+            (facets.has('fixed') && fixed) ||
+            (facets.has('variable') && !fixed) ||
+            (facets.has('credit') && hasCreditAccount) ||
+            (facets.has('other') && !fixed && !hasCreditAccount);
+    }
+
+    let statusMatches = true;
+    if (facetsHasSome(facets, STATUS_KEYS)) {
+        const isPaidExpense = expense.isPaid !== false;
+        statusMatches =
+            (facets.has('paid') && isPaidExpense) || (facets.has('unpaid') && expense.isPaid === false);
+    }
+
+    return typeMatches && statusMatches;
 }
 
 export function filterExpensesForDashboardFacets(expenses, accounts, facets) {
@@ -32,4 +78,24 @@ export function filterExpensesForDashboardFacets(expenses, accounts, facets) {
     return (expenses || []).filter((e) =>
         expenseMatchesAnyDashboardFacet(e, byId.get(e.accountId), facets)
     );
+}
+
+/**
+ * Estado «Saída» aplicado às **entradas**: recebido ⇒ `isPaid !== false`; pendente ⇒ `isPaid === false`.
+ * Facetas **Tipo** (fixo/variável/…) ignoram‑se aqui — só filtram despesas.
+ */
+export function filterGainsForDashboardFacets(gains, facets) {
+    if (!facets?.size) return gains || [];
+
+    let statusMatchesAll = () => true;
+    if (facetsHasSome(facets, STATUS_KEYS)) {
+        statusMatchesAll = (g) => {
+            const received = g.isPaid !== false;
+            return (
+                (facets.has('paid') && received) || (facets.has('unpaid') && g.isPaid === false)
+            );
+        };
+    }
+
+    return (gains || []).filter((g) => statusMatchesAll(g));
 }

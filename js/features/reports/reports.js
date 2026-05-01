@@ -9,10 +9,8 @@ import {
     movementDateToJsDate
 } from '../../core/utils.js';
 import {
-    getCreditInstallmentMonthAllocationsIncludingFuture,
     getInstallmentDueDates,
     getLoanInstallmentDueDates,
-    getLoanInstallmentMonthAllocationsIncludingFuture,
     isExpenseInstallmentDueCountedInCashFlow,
     isInstallmentDuePaidForCashOut,
     isLoanExpense,
@@ -29,7 +27,12 @@ import {
     sumOutflowsProjectedForCalendarMonth,
     sumProjectedGainsForCalendarMonth
 } from '../../core/projected-period-net.js';
-import { filterExpensesForDashboardFacets } from '../../core/dashboard-expense-facets.js';
+import {
+    DASHBOARD_EXPENSE_FACET_IDS,
+    dashOutflowCardSummationMode,
+    filterExpensesForDashboardFacets,
+    filterGainsForDashboardFacets
+} from '../../core/dashboard-expense-facets.js';
 import { fetchDashboardPeriodBalance } from '../../services/firestore.js';
 import {
     applySplitNetToContribution,
@@ -104,6 +107,12 @@ function createFinancialPointValueLabelsPlugin(userCurrency, monthCount) {
 const REPORTS_CHART_PREF_KEY_FIN = 'reports.chartType.financialProgression';
 const REPORTS_CHART_COLORS_KEY = 'reports.financialChart.colors';
 const REPORTS_CHART_SHOW_SALDO_TOTAL_KEY = 'reports.financialChart.showSaldoTotal';
+/** Chips «Tipo» / «Saída» do painel (`data-facet` activos — array guardado como JSON). */
+const REPORTS_DASHBOARD_EXPENSE_FACETS_KEY = 'reports.dashboard.expenseFacetKeys';
+
+const DASHBOARD_FACETS_ALLOWED = new Set(DASHBOARD_EXPENSE_FACET_IDS);
+
+let dashboardExpenseFacetsHydratedFromStorage = false;
 
 /** Cor fixa da série «Patrimônio investido» (não personalizável no painel). */
 const FINANCIAL_CHART_INVEST_COLOR = '#14b8a6';
@@ -312,6 +321,49 @@ function readDashboardExpenseFacetSetFromDom() {
     return facets;
 }
 
+function persistDashboardExpenseFacetsFromDom() {
+    const keys = [...readDashboardExpenseFacetSetFromDom()];
+    keys.sort();
+    try {
+        localStorage.setItem(REPORTS_DASHBOARD_EXPENSE_FACETS_KEY, JSON.stringify(keys));
+    } catch {
+        /* ignore quota / modo privado */
+    }
+}
+
+/**
+ * Um por carregamento de página: aplica estado guardado aos botões antes da primeira soma dos cards.
+ */
+function hydrateDashboardExpenseFacetsFromStorageOnce() {
+    if (dashboardExpenseFacetsHydratedFromStorage) return;
+    dashboardExpenseFacetsHydratedFromStorage = true;
+
+    /** @type {string[]} */
+    let stored = [];
+    try {
+        const raw = localStorage.getItem(REPORTS_DASHBOARD_EXPENSE_FACETS_KEY);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                stored = parsed.filter((k) => typeof k === 'string' && DASHBOARD_FACETS_ALLOWED.has(k));
+            }
+        }
+    } catch {
+        stored = [];
+    }
+
+    const root = document.getElementById('dashboard-page');
+    if (!root) return;
+    const active = new Set(stored);
+
+    root.querySelectorAll('.dashboard-expense-facet-btn[data-facet]').forEach((btn) => {
+        const f = String(btn.dataset.facet || '').trim();
+        const on = active.has(f);
+        btn.setAttribute('aria-pressed', String(on));
+        btn.classList.toggle('is-active', on);
+    });
+}
+
 function onDashboardExpenseFacetBarClick(ev) {
     const btn = ev.target?.closest?.('.dashboard-expense-facet-btn');
     if (!btn || !document.getElementById('dashboard-page')?.contains(btn)) return;
@@ -320,10 +372,12 @@ function onDashboardExpenseFacetBarClick(ev) {
     const next = !pressed;
     btn.setAttribute('aria-pressed', String(next));
     btn.classList.toggle('is-active', next);
+    persistDashboardExpenseFacetsFromDom();
     if (lastReportsLoadArgs) void loadReportsData(...lastReportsLoadArgs);
 }
 
 function ensureReportsListeners() {
+    hydrateDashboardExpenseFacetsFromStorageOnce();
     if (reportsListenersBound) return;
     reportsListenersBound = true;
     ensureFinancialChartColorSettingsBound();
@@ -490,11 +544,13 @@ export async function loadReportsData(
     const now = new Date();
     const cardPeriod = isDashboardPeriodLinked() ? periodFilter.value : getDefaultPeriodValue(now);
     const expenseFacetSet = readDashboardExpenseFacetSetFromDom();
+    const dashSummationMode = dashOutflowCardSummationMode(expenseFacetSet);
     const expensesForDashboard = filterExpensesForDashboardFacets(
         userExpenses,
         userAccounts,
         expenseFacetSet
     );
+    const gainsForDashboard = filterGainsForDashboardFacets(gainsForTotals, expenseFacetSet);
 
     const allExpensesForCategoryChart = mapExpensesToPeriodContributions(
         DASHBOARD_CHART_AXIS_PERIOD,
@@ -502,7 +558,8 @@ export async function loadReportsData(
         userAccounts,
         now,
         userProfile,
-        outgoingAcceptedSplits
+        outgoingAcceptedSplits,
+        dashSummationMode
     );
     const selectedCategory = refreshCategoryFilterOptions(allExpensesForCategoryChart);
     const categoryScopedExpenses = filterExpensesByCategory(expensesForDashboard, selectedCategory);
@@ -510,12 +567,16 @@ export async function loadReportsData(
     await updateDashboardCardsAndTitlesForPeriod(
         cardPeriod,
         expensesForDashboard,
-        gainsForTotals,
+        gainsForDashboard,
         userAccounts,
         userCurrency,
         userProfile,
         outgoingAcceptedSplits,
-        { expenseListForBalanceProjection: userExpenses }
+        {
+            expenseListForBalanceProjection: userExpenses,
+            gainListForBalanceProjection: gainsForTotals,
+            dashSummationMode
+        }
     );
 
     let saldoEmContaSeries = null;
@@ -545,14 +606,15 @@ export async function loadReportsData(
     renderUnifiedFinancialChart(
         DASHBOARD_CHART_AXIS_PERIOD,
         categoryScopedExpenses,
-        gainsForTotals,
+        gainsForDashboard,
         userAccounts,
         userInvestments,
         userCurrency,
         userProfile,
         outgoingAcceptedSplits,
         cardPeriod,
-        saldoEmContaSeries
+        saldoEmContaSeries,
+        dashSummationMode
     );
 
     const catSel = document.getElementById('category-filter');
@@ -596,52 +658,90 @@ function dashboardPrevCalendarMonthBounds(selStart) {
     return { prevStart, prevEnd };
 }
 
-function sumOutflowsClosedRange(startDate, endDate, userExpenses, userAccounts, now, userProfile, splitRequests) {
+function sumOutflowsClosedRange(
+    startDate,
+    endDate,
+    userExpenses,
+    userAccounts,
+    now,
+    userProfile,
+    splitRequests,
+    dashSummationMode = 'paid_through'
+) {
     if (startDate > endDate) return 0;
     return enumerateCalendarMonths(startDate, endDate).reduce((sum, mo) => {
         const proj = isProjectionMonth(mo, now);
         return (
             sum +
             (proj
-                ? sumOutflowsProjectedForCalendarMonth(
-                      mo,
-                      userExpenses,
-                      userAccounts,
-                      now,
-                      userProfile,
-                      splitRequests
-                  )
+                ? dashSummationMode === 'pending_due'
+                    ? sumPendingOutflowsProjectedForCalendarMonth(
+                          mo,
+                          userExpenses,
+                          userAccounts,
+                          now,
+                          userProfile,
+                          splitRequests
+                      )
+                    : sumOutflowsProjectedForCalendarMonth(
+                          mo,
+                          userExpenses,
+                          userAccounts,
+                          now,
+                          userProfile,
+                          splitRequests
+                      )
                 : sumOutflowsForCalendarMonth(
                       mo,
                       userExpenses,
                       userAccounts,
                       now,
                       userProfile,
-                      splitRequests
+                      splitRequests,
+                      dashSummationMode
                   ))
         );
     }, 0);
 }
 
 /** Entradas − saídas no mês civil (`mo`), mesma regra de projeção de saídas do painel. */
-function dashboardLiquidoMesCivil(mo, userGains, userExpenses, userAccounts, now, userProfile, splitRequests) {
-    const g = sumMovementsInRange(userGains || [], mo.start, mo.end);
+function dashboardLiquidoMesCivil(
+    mo,
+    gainsForDashboard,
+    userExpenses,
+    userAccounts,
+    now,
+    userProfile,
+    splitRequests,
+    dashSummationMode = 'paid_through'
+) {
+    const g = sumMovementsInRange(gainsForDashboard || [], mo.start, mo.end);
     const o = isProjectionMonth(mo, now)
-        ? sumOutflowsProjectedForCalendarMonth(
-              mo,
-              userExpenses,
-              userAccounts,
-              now,
-              userProfile,
-              splitRequests
-          )
+        ? dashSummationMode === 'pending_due'
+            ? sumPendingOutflowsProjectedForCalendarMonth(
+                  mo,
+                  userExpenses,
+                  userAccounts,
+                  now,
+                  userProfile,
+                  splitRequests
+              )
+            : sumOutflowsProjectedForCalendarMonth(
+                  mo,
+                  userExpenses,
+                  userAccounts,
+                  now,
+                  userProfile,
+                  splitRequests
+              )
         : sumOutflowsForCalendarMonth(
               mo,
               userExpenses,
               userAccounts,
               now,
               userProfile,
-              splitRequests
+              splitRequests,
+              dashSummationMode
           );
     return g - o;
 }
@@ -769,10 +869,317 @@ function expenseContributionPaidThroughToMonthKey(
 }
 
 /**
+ * Todas as parcelas / competências com vencimento no mês até `cutoff`, pagas ou pendentes;
+ * mesmo critério espacial/temporal que «pago até», sem filtro de pagamento — uma só `applySplitNetToContribution`.
+ */
+function expenseContributionAllPaidOrPendingDueInMonthKey(
+    t,
+    acc,
+    monthKey,
+    cutoffEndInclusive,
+    userProfile = null,
+    splitRequests = null,
+    allUserExpenses = null
+) {
+    const forSplit = allUserExpenses;
+    const cutoffT = endOfDay(cutoffEndInclusive).getTime();
+    const amt = Number(t.amount) || 0;
+    const nInst = Math.max(1, parseInt(String(t.installmentCount ?? '1'), 10) || 1);
+
+    if (acc && isCreditCardType(acc.type)) {
+        const cd = coerceDayOfMonth(acc.closeDay ?? acc.closingDay);
+        const dd = coerceDayOfMonth(acc.dueDay ?? acc.dueDate);
+        const purchase = movementDateToJsDate(t.date);
+        if (Number.isNaN(purchase.getTime())) return 0;
+
+        if (!dd) {
+            if (monthKeyFromDate(purchase) !== monthKey) return 0;
+            if (purchase.getTime() > cutoffT) return 0;
+            if (!isExpenseInstallmentDueCountedInCashFlow(t, purchase)) return 0;
+            if (!expenseCountsAsCashOut(t, acc)) return 0;
+            return applySplitNetToContribution(t, monthKey, amt, splitRequests, forSplit);
+        }
+
+        if (nInst < 2) {
+            const dues = getInstallmentDueDates(purchase, 1, cd, dd);
+            const due = dues[0] || purchase;
+            if (monthKeyFromDate(due) !== monthKey) return 0;
+            if (due.getTime() > cutoffT) return 0;
+            if (!isExpenseInstallmentDueCountedInCashFlow(t, due)) return 0;
+            if (!expenseCountsAsCashOut(t, acc)) return 0;
+            return applySplitNetToContribution(t, monthKey, amt, splitRequests, forSplit);
+        }
+
+        const dues = getInstallmentDueDates(purchase, nInst, cd, dd);
+        if (!dues.length) return 0;
+        const per = amt / nInst;
+        let sum = 0;
+        for (const d of dues) {
+            if (monthKeyFromDate(d) !== monthKey) continue;
+            if (d.getTime() > cutoffT) continue;
+            if (!isExpenseInstallmentDueCountedInCashFlow(t, d)) continue;
+            sum += per;
+        }
+        return applySplitNetToContribution(t, monthKey, sum, splitRequests, forSplit);
+    }
+
+    if (isLoanExpense(t) && (!acc || !isCreditCardType(acc.type)) && nInst >= 2) {
+        if (t.isPaid === true) return 0;
+        const purchase = movementDateToJsDate(t.date);
+        if (Number.isNaN(purchase.getTime())) return 0;
+        const dues = getLoanInstallmentDueDates(purchase, nInst);
+        const per = amt / nInst;
+        let sum = 0;
+        for (const d of dues) {
+            if (monthKeyFromDate(d) !== monthKey) continue;
+            if (d.getTime() > cutoffT) continue;
+            if (!isExpenseInstallmentDueCountedInCashFlow(t, d)) continue;
+            sum += per;
+        }
+        return applySplitNetToContribution(t, monthKey, sum, splitRequests, forSplit);
+    }
+
+    const purchasePlain = movementDateToJsDate(t.date);
+    if (
+        !Number.isNaN(purchasePlain.getTime()) &&
+        acc &&
+        shouldDeferCashOutForMonthlyFixedSeries(t, acc, userProfile)
+    ) {
+        if (monthKeyFromDate(purchasePlain) !== monthKey) return 0;
+        if (purchasePlain.getTime() > cutoffT) return 0;
+        if (!expenseCountsAsCashOut(t, acc)) return 0;
+        return applySplitNetToContribution(t, monthKey, amt, splitRequests, forSplit);
+    }
+
+    const d = movementDateToJsDate(t.date);
+    if (Number.isNaN(d.getTime())) return 0;
+    if (monthKeyFromDate(d) !== monthKey) return 0;
+    if (d.getTime() > cutoffT) return 0;
+    if (!expenseCountsAsCashOut(t, acc)) return 0;
+    return applySplitNetToContribution(t, monthKey, amt, splitRequests, forSplit);
+}
+
+/**
+ * Contribuição «pendente até ao fim do mês»: espelho de {@link expenseContributionPaidThroughToMonthKey}
+ * com inclusão quando a parcela / lançamento ainda não está confirmado como pago.
+ */
+function expenseContributionPendingDueInMonthKey(
+    t,
+    acc,
+    monthKey,
+    cutoffEndInclusive,
+    userProfile = null,
+    splitRequests = null,
+    allUserExpenses = null,
+    refNow = new Date()
+) {
+    const forSplit = allUserExpenses;
+    const cutoffT = endOfDay(cutoffEndInclusive).getTime();
+    const amt = Number(t.amount) || 0;
+    const nInst = Math.max(1, parseInt(String(t.installmentCount ?? '1'), 10) || 1);
+
+    if (acc && isCreditCardType(acc.type)) {
+        const cd = coerceDayOfMonth(acc.closeDay ?? acc.closingDay);
+        const dd = coerceDayOfMonth(acc.dueDay ?? acc.dueDate);
+        const purchase = movementDateToJsDate(t.date);
+        if (Number.isNaN(purchase.getTime())) return 0;
+
+        if (!dd) {
+            if (monthKeyFromDate(purchase) !== monthKey) return 0;
+            if (purchase.getTime() > cutoffT) return 0;
+            if (!isExpenseInstallmentDueCountedInCashFlow(t, purchase)) return 0;
+            if (!expenseCountsAsCashOut(t, acc)) return 0;
+            if (isInstallmentDuePaidForCashOut(t, acc, purchase, userProfile, refNow)) return 0;
+            return applySplitNetToContribution(t, monthKey, amt, splitRequests, forSplit);
+        }
+
+        if (nInst < 2) {
+            const dues = getInstallmentDueDates(purchase, 1, cd, dd);
+            const due = dues[0] || purchase;
+            if (monthKeyFromDate(due) !== monthKey) return 0;
+            if (due.getTime() > cutoffT) return 0;
+            if (!isExpenseInstallmentDueCountedInCashFlow(t, due)) return 0;
+            if (!expenseCountsAsCashOut(t, acc)) return 0;
+            if (isInstallmentDuePaidForCashOut(t, acc, due, userProfile, refNow)) return 0;
+            return applySplitNetToContribution(t, monthKey, amt, splitRequests, forSplit);
+        }
+
+        const dues = getInstallmentDueDates(purchase, nInst, cd, dd);
+        if (!dues.length) return 0;
+        const per = amt / nInst;
+        let sum = 0;
+        for (const d of dues) {
+            if (monthKeyFromDate(d) !== monthKey) continue;
+            if (d.getTime() > cutoffT) continue;
+            if (!isExpenseInstallmentDueCountedInCashFlow(t, d)) continue;
+            if (isInstallmentDuePaidForCashOut(t, acc, d, userProfile, refNow)) continue;
+            sum += per;
+        }
+        return applySplitNetToContribution(t, monthKey, sum, splitRequests, forSplit);
+    }
+
+    if (isLoanExpense(t) && (!acc || !isCreditCardType(acc.type)) && nInst >= 2) {
+        if (t.isPaid === true) return 0;
+        const purchase = movementDateToJsDate(t.date);
+        if (Number.isNaN(purchase.getTime())) return 0;
+        const dues = getLoanInstallmentDueDates(purchase, nInst);
+        const per = amt / nInst;
+        let sum = 0;
+        for (const d of dues) {
+            if (monthKeyFromDate(d) !== monthKey) continue;
+            if (d.getTime() > cutoffT) continue;
+            if (!isExpenseInstallmentDueCountedInCashFlow(t, d)) continue;
+            if (isInstallmentDuePaidForCashOut(t, acc || null, d, userProfile, refNow)) continue;
+            sum += per;
+        }
+        return applySplitNetToContribution(t, monthKey, sum, splitRequests, forSplit);
+    }
+
+    const purchasePlain = movementDateToJsDate(t.date);
+    if (
+        !Number.isNaN(purchasePlain.getTime()) &&
+        acc &&
+        shouldDeferCashOutForMonthlyFixedSeries(t, acc, userProfile)
+    ) {
+        if (monthKeyFromDate(purchasePlain) !== monthKey) return 0;
+        if (purchasePlain.getTime() > cutoffT) return 0;
+        if (!expenseCountsAsCashOut(t, acc)) return 0;
+        if (isInstallmentDuePaidForCashOut(t, acc, purchasePlain, userProfile, refNow)) return 0;
+        return applySplitNetToContribution(t, monthKey, amt, splitRequests, forSplit);
+    }
+
+    const d = movementDateToJsDate(t.date);
+    if (Number.isNaN(d.getTime())) return 0;
+    if (monthKeyFromDate(d) !== monthKey) return 0;
+    if (d.getTime() > cutoffT) return 0;
+    if (!expenseCountsAsCashOut(t, acc)) return 0;
+    if (t.isPaid !== false) return 0;
+    return applySplitNetToContribution(t, monthKey, amt, splitRequests, forSplit);
+}
+
+/**
+ * Saídas pendentes em mês futuro (projeção): parcelas com vencimento naquele mês ainda não pagas;
+ * alinhado a `sumOutflowsProjectedForCalendarMonth` para despesas recorrentes / data no mês.
+ */
+function expenseContributionPendingProjectedForMonthKey(
+    t,
+    acc,
+    monthKey,
+    mo,
+    now,
+    userProfile = null,
+    splitRequests = null,
+    allUserExpenses = null,
+    refNow = new Date()
+) {
+    const mk = monthKey;
+    const targetMonthOrdinal = mo.start.getFullYear() * 12 + mo.start.getMonth();
+    const amt = Number(t.amount) || 0;
+    const nInst = Math.max(1, parseInt(String(t.installmentCount ?? '1'), 10) || 1);
+
+    if (acc && isCreditCardType(acc.type)) {
+        const cd = coerceDayOfMonth(acc.closeDay ?? acc.closingDay);
+        const dd = coerceDayOfMonth(acc.dueDay ?? acc.dueDate);
+        const purchase = movementDateToJsDate(t.date);
+        if (Number.isNaN(purchase.getTime())) return 0;
+        if (!expenseCountsAsCashOut(t, acc)) return 0;
+
+        if (!dd) {
+            if (monthKeyFromDate(purchase) !== mk) return 0;
+            if (!isExpenseInstallmentDueCountedInCashFlow(t, purchase)) return 0;
+            if (isInstallmentDuePaidForCashOut(t, acc, purchase, userProfile, refNow)) return 0;
+            return applySplitNetToContribution(t, mk, amt, splitRequests, allUserExpenses);
+        }
+
+        if (nInst < 2) {
+            const dues = getInstallmentDueDates(purchase, 1, cd, dd);
+            const due = dues[0] || purchase;
+            if (monthKeyFromDate(due) !== mk) return 0;
+            if (!isExpenseInstallmentDueCountedInCashFlow(t, due)) return 0;
+            if (isInstallmentDuePaidForCashOut(t, acc, due, userProfile, refNow)) return 0;
+            return applySplitNetToContribution(t, mk, amt, splitRequests, allUserExpenses);
+        }
+
+        const dues = getInstallmentDueDates(purchase, nInst, cd, dd);
+        if (!dues.length) return 0;
+        const per = amt / nInst;
+        let sum = 0;
+        for (const d of dues) {
+            if (monthKeyFromDate(d) !== mk) continue;
+            if (!isExpenseInstallmentDueCountedInCashFlow(t, d)) continue;
+            if (isInstallmentDuePaidForCashOut(t, acc, d, userProfile, refNow)) continue;
+            sum += per;
+        }
+        return applySplitNetToContribution(t, mk, sum, splitRequests, allUserExpenses);
+    }
+
+    if (isLoanExpense(t) && (!acc || !isCreditCardType(acc.type)) && nInst >= 2) {
+        if (t.isPaid === true) return 0;
+        const purchase = movementDateToJsDate(t.date);
+        if (Number.isNaN(purchase.getTime())) return 0;
+        if (!expenseCountsAsCashOut(t, acc)) return 0;
+        const dues = getLoanInstallmentDueDates(purchase, nInst);
+        const per = amt / nInst;
+        let sum = 0;
+        for (const d of dues) {
+            if (monthKeyFromDate(d) !== mk) continue;
+            if (!isExpenseInstallmentDueCountedInCashFlow(t, d)) continue;
+            if (isInstallmentDuePaidForCashOut(t, acc || null, d, userProfile, refNow)) continue;
+            sum += per;
+        }
+        return applySplitNetToContribution(t, mk, sum, splitRequests, allUserExpenses);
+    }
+
+    const d = movementDateToJsDate(t.date);
+    if (Number.isNaN(d.getTime())) return 0;
+
+    if (t.recurringMonthly === true) {
+        const baseMonthOrdinal = d.getFullYear() * 12 + d.getMonth();
+        if (targetMonthOrdinal < baseMonthOrdinal) return 0;
+        if (!expenseCountsAsCashOut(t, acc)) return 0;
+        if (t.isPaid !== false) return 0;
+        return applySplitNetToContribution(t, mk, amt, splitRequests, allUserExpenses);
+    }
+
+    if (d >= mo.start && d <= mo.end && expenseCountsAsCashOut(t, acc)) {
+        if (t.isPaid !== false) return 0;
+        return applySplitNetToContribution(t, mk, amt, splitRequests, allUserExpenses);
+    }
+    return 0;
+}
+
+function sumPendingOutflowsProjectedForCalendarMonth(
+    mo,
+    userExpenses,
+    userAccounts,
+    now,
+    userProfile = null,
+    splitRequests = null
+) {
+    const accountsById = new Map((userAccounts || []).map((a) => [a.id, a]));
+    const mk = `${mo.start.getFullYear()}-${String(mo.start.getMonth() + 1).padStart(2, '0')}`;
+    let sum = 0;
+    for (const t of userExpenses || []) {
+        const acc = accountsById.get(t.accountId);
+        sum += expenseContributionPendingProjectedForMonthKey(
+            t,
+            acc,
+            mk,
+            mo,
+            now,
+            userProfile,
+            splitRequests,
+            userExpenses,
+            now
+        );
+    }
+    return sum;
+}
+
+/**
  * Converte despesas em "contribuições do período" para usar em agregações por categoria.
- * Meses passados / mês atual: mesma regra dos cards de saída (vencimentos/parcela «pago até» a data de corte).
- * Meses futuros no período: projeção por vencimento/parcelas (`expenseContributionProjectedToMonthKey`)
- * para o gráfico «Distribuição das saídas» mostrar saídas previstas (ex.: parcelas, recorrências).
+ * Meses passados / mês atual: conforme modo do painel (pago até ao corte ou pendente até ao fim do mês).
+ * Meses futuros: projeção alinhada a `expenseContributionProjectedToMonthKey` ou à variante pendente.
  */
 function mapExpensesToPeriodContributions(
     period,
@@ -780,7 +1187,8 @@ function mapExpensesToPeriodContributions(
     userAccounts,
     now,
     userProfile = null,
-    splitRequests = null
+    splitRequests = null,
+    dashSummationMode = 'paid_through'
 ) {
     const { startDate, endDate } = getPeriodDateBounds(period, now);
     const months = enumerateCalendarMonths(startDate, endDate);
@@ -797,26 +1205,63 @@ function mapExpensesToPeriodContributions(
 
             let v;
             if (projection) {
-                v = expenseContributionProjectedToMonthKey(
-                    t,
-                    acc,
-                    mk,
-                    now,
-                    userProfile,
-                    splitRequests,
-                    userExpenses
-                );
+                if (dashSummationMode === 'pending_due') {
+                    v = expenseContributionPendingProjectedForMonthKey(
+                        t,
+                        acc,
+                        mk,
+                        mo,
+                        now,
+                        userProfile,
+                        splitRequests,
+                        userExpenses,
+                        now
+                    );
+                } else {
+                    v = expenseContributionProjectedToMonthKey(
+                        t,
+                        acc,
+                        mk,
+                        now,
+                        userProfile,
+                        splitRequests,
+                        userExpenses
+                    );
+                }
             } else {
-                v = expenseContributionPaidThroughToMonthKey(
-                    t,
-                    acc,
-                    mk,
-                    cutoff,
-                    userProfile,
-                    splitRequests,
-                    userExpenses,
-                    now
-                );
+                if (dashSummationMode === 'pending_due') {
+                    v = expenseContributionPendingDueInMonthKey(
+                        t,
+                        acc,
+                        mk,
+                        cutoff,
+                        userProfile,
+                        splitRequests,
+                        userExpenses,
+                        now
+                    );
+                } else if (dashSummationMode === 'all_slices') {
+                    v = expenseContributionAllPaidOrPendingDueInMonthKey(
+                        t,
+                        acc,
+                        mk,
+                        cutoff,
+                        userProfile,
+                        splitRequests,
+                        userExpenses
+                    );
+                } else {
+                    v = expenseContributionPaidThroughToMonthKey(
+                        t,
+                        acc,
+                        mk,
+                        cutoff,
+                        userProfile,
+                        splitRequests,
+                        userExpenses,
+                        now
+                    );
+                }
             }
             if (!v || v <= 0) continue;
             out.push({
@@ -840,7 +1285,8 @@ function sumOutflowsForPeriod(
     userAccounts,
     now,
     userProfile = null,
-    splitRequests = null
+    splitRequests = null,
+    dashSummationMode = 'paid_through'
 ) {
     let { startDate, endDate } = getPeriodDateBounds(period, now);
     if (startDate > endDate) return 0;
@@ -850,21 +1296,31 @@ function sumOutflowsForPeriod(
         return (
             sum +
             (proj
-                ? sumOutflowsProjectedForCalendarMonth(
-                      mo,
-                      userExpenses,
-                      userAccounts,
-                      now,
-                      userProfile,
-                      splitRequests
-                  )
+                ? dashSummationMode === 'pending_due'
+                    ? sumPendingOutflowsProjectedForCalendarMonth(
+                          mo,
+                          userExpenses,
+                          userAccounts,
+                          now,
+                          userProfile,
+                          splitRequests
+                      )
+                    : sumOutflowsProjectedForCalendarMonth(
+                          mo,
+                          userExpenses,
+                          userAccounts,
+                          now,
+                          userProfile,
+                          splitRequests
+                      )
                 : sumOutflowsForCalendarMonth(
                       mo,
                       userExpenses,
                       userAccounts,
                       now,
                       userProfile,
-                      splitRequests
+                      splitRequests,
+                      dashSummationMode
                   ))
         );
     }, 0);
@@ -881,14 +1337,19 @@ function sumGainsForPeriod(period, userGains) {
 async function updateDashboardCardsAndTitlesForPeriod(
     period,
     userExpenses,
-    userGains,
+    gainsForDashboard,
     userAccounts,
     userCurrency,
     userProfile = null,
     splitRequests = null,
-    { expenseListForBalanceProjection } = {}
+    {
+        expenseListForBalanceProjection,
+        gainListForBalanceProjection,
+        dashSummationMode = 'paid_through'
+    } = {}
 ) {
     const expenseListForBalanceProj = expenseListForBalanceProjection ?? userExpenses;
+    const gainsForBalanceProj = gainListForBalanceProjection ?? gainsForDashboard;
     const now = new Date();
     const isSingleMonth = /^month-\d+$/.test(period || '');
     const { startDate: dashStart, endDate: dashEnd } = getPeriodDateBounds(period, now);
@@ -904,14 +1365,22 @@ async function updateDashboardCardsAndTitlesForPeriod(
     );
 
     // Valores dos cards respondendo ao período do filtro
-    const income = sumGainsForPeriod(period, userGains);
-    const out = sumOutflowsForPeriod(period, userExpenses, userAccounts, now, userProfile, splitRequests);
+    const income = sumGainsForPeriod(period, gainsForDashboard);
+    const out = sumOutflowsForPeriod(
+        period,
+        userExpenses,
+        userAccounts,
+        now,
+        userProfile,
+        splitRequests,
+        dashSummationMode
+    );
     setTextIfExists('monthly-income', formatCurrency(income, userCurrency));
     setTextIfExists('monthly-expenses', formatCurrency(out, userCurrency));
 
     const incomePrev =
         prevBounds && prevBounds.prevStart <= prevBounds.prevEnd
-            ? sumMovementsInRange(userGains || [], prevBounds.prevStart, prevBounds.prevEnd)
+            ? sumMovementsInRange(gainsForDashboard || [], prevBounds.prevStart, prevBounds.prevEnd)
             : 0;
     const outPrev =
         prevBounds && prevBounds.prevStart <= prevBounds.prevEnd
@@ -922,7 +1391,8 @@ async function updateDashboardCardsAndTitlesForPeriod(
                   userAccounts,
                   now,
                   userProfile,
-                  splitRequests
+                  splitRequests,
+                  dashSummationMode
               )
             : 0;
 
@@ -954,23 +1424,33 @@ async function updateDashboardCardsAndTitlesForPeriod(
                     isProjectionMonth(mo, now) || isCurrentMonthObj(mo, now);
                 if (!useProj) continue;
                 dashAnyProj = true;
-                const gains = sumMovementsInRange(userGains || [], mo.start, mo.end);
+                const gains = sumMovementsInRange(gainsForDashboard || [], mo.start, mo.end);
                 const outflows = isProjectionMonth(mo, now)
-                    ? sumOutflowsProjectedForCalendarMonth(
-                          mo,
-                          userExpenses,
-                          userAccounts,
-                          now,
-                          userProfile,
-                          splitRequests
-                      )
+                    ? dashSummationMode === 'pending_due'
+                        ? sumPendingOutflowsProjectedForCalendarMonth(
+                              mo,
+                              userExpenses,
+                              userAccounts,
+                              now,
+                              userProfile,
+                              splitRequests
+                          )
+                        : sumOutflowsProjectedForCalendarMonth(
+                              mo,
+                              userExpenses,
+                              userAccounts,
+                              now,
+                              userProfile,
+                              splitRequests
+                          )
                     : sumOutflowsForCalendarMonth(
                           mo,
                           userExpenses,
                           userAccounts,
                           now,
                           userProfile,
-                          splitRequests
+                          splitRequests,
+                          dashSummationMode
                       );
                 dashNetProj += gains - outflows;
             }
@@ -996,21 +1476,23 @@ async function updateDashboardCardsAndTitlesForPeriod(
             if (selMo && prevMo) {
                 const netCurr = dashboardLiquidoMesCivil(
                     selMo,
-                    userGains,
+                    gainsForDashboard,
                     userExpenses,
                     userAccounts,
                     now,
                     userProfile,
-                    splitRequests
+                    splitRequests,
+                    dashSummationMode
                 );
                 const netPrev = dashboardLiquidoMesCivil(
                     prevMo,
-                    userGains,
+                    gainsForDashboard,
                     userExpenses,
                     userAccounts,
                     now,
                     userProfile,
-                    splitRequests
+                    splitRequests,
+                    dashSummationMode
                 );
                 setMovementSummaryMomVariation(projVarEl, netCurr, netPrev, true, false);
             }
@@ -1034,7 +1516,7 @@ async function updateDashboardCardsAndTitlesForPeriod(
                 let projected = baseBal;
                 if (endDate >= nextMonthStart) {
                     for (const mo of enumerateCalendarMonths(nextMonthStart, endDate)) {
-                        const inc = sumProjectedGainsForCalendarMonth(mo, userGains);
+                        const inc = sumProjectedGainsForCalendarMonth(mo, gainsForBalanceProj);
                         const outMo = sumOutflowsProjectedForCalendarMonth(
                             mo,
                             expenseListForBalanceProj,
@@ -1197,8 +1679,7 @@ function sumMovementsInRange(items, rangeStart, rangeEnd) {
 
 /**
  * Total de saídas no mês-calendário — cards «Saídas» / «Balanço» e eixo de saídas do gráfico (mês atual/passado):
- * só saídas pagas ou parcelas confirmadas no saldo; vencimento no mês sem pagamento não entra.
- * {@link expenseContributionPaidThroughToMonthKey}
+ * `paid_through`: só confirmadas pagas ao corte; `pending_due`: só em aberto; `all_slices`: pago + pendente no mês (sem duplicar splits).
  */
 function sumOutflowsForCalendarMonth(
     mo,
@@ -1206,7 +1687,8 @@ function sumOutflowsForCalendarMonth(
     userAccounts,
     now,
     userProfile = null,
-    splitRequests = null
+    splitRequests = null,
+    dashSummationMode = 'paid_through'
 ) {
     const accountsById = new Map((userAccounts || []).map((a) => [a.id, a]));
     const mk = `${mo.start.getFullYear()}-${String(mo.start.getMonth() + 1).padStart(2, '0')}`;
@@ -1214,16 +1696,41 @@ function sumOutflowsForCalendarMonth(
     for (const t of userExpenses || []) {
         const acc = accountsById.get(t.accountId);
         const cutoff = mo.end;
-        sum += expenseContributionPaidThroughToMonthKey(
-            t,
-            acc,
-            mk,
-            cutoff,
-            userProfile,
-            splitRequests,
-            userExpenses,
-            now
-        );
+        let row;
+        if (dashSummationMode === 'pending_due') {
+            row = expenseContributionPendingDueInMonthKey(
+                t,
+                acc,
+                mk,
+                cutoff,
+                userProfile,
+                splitRequests,
+                userExpenses,
+                now
+            );
+        } else if (dashSummationMode === 'all_slices') {
+            row = expenseContributionAllPaidOrPendingDueInMonthKey(
+                t,
+                acc,
+                mk,
+                cutoff,
+                userProfile,
+                splitRequests,
+                userExpenses
+            );
+        } else {
+            row = expenseContributionPaidThroughToMonthKey(
+                t,
+                acc,
+                mk,
+                cutoff,
+                userProfile,
+                splitRequests,
+                userExpenses,
+                now
+            );
+        }
+        sum += row;
     }
     return sum;
 }
@@ -1235,14 +1742,15 @@ function sumOutflowsForCalendarMonth(
 function renderUnifiedFinancialChart(
     period,
     userExpenses,
-    userGains,
+    gainsForDashboard,
     userAccounts,
     userInvestments,
     userCurrency,
     userProfile = null,
     splitRequests = null,
     dashboardHighlightPeriod = '',
-    saldoEmContaSeries = null
+    saldoEmContaSeries = null,
+    dashSummationMode = 'paid_through'
 ) {
     const canvas = document.getElementById('financial-progression-chart');
     if (!canvas) return;
@@ -1256,22 +1764,39 @@ function renderUnifiedFinancialChart(
     if (months.length === 0) return;
 
     const expenses = userExpenses || [];
-    const gains = userGains || [];
+    const gains = gainsForDashboard || [];
     const investedTotal = getTotalInvestedSum(userInvestments);
 
     const labels = months.map((mo) => mo.label);
     const projectionFlags = months.map((mo) => isProjectionMonth(mo, now));
     const dataGastos = months.map((mo) =>
         isProjectionMonth(mo, now)
-            ? sumOutflowsProjectedForCalendarMonth(
+            ? dashSummationMode === 'pending_due'
+                ? sumPendingOutflowsProjectedForCalendarMonth(
+                      mo,
+                      expenses,
+                      userAccounts,
+                      now,
+                      userProfile,
+                      splitRequests
+                  )
+                : sumOutflowsProjectedForCalendarMonth(
+                      mo,
+                      expenses,
+                      userAccounts,
+                      now,
+                      userProfile,
+                      splitRequests
+                  )
+            : sumOutflowsForCalendarMonth(
                   mo,
                   expenses,
                   userAccounts,
                   now,
                   userProfile,
-                  splitRequests
+                  splitRequests,
+                  dashSummationMode
               )
-            : sumOutflowsForCalendarMonth(mo, expenses, userAccounts, now, userProfile, splitRequests)
     );
     const dataGanhos = months.map((mo) => sumMovementsInRange(gains, mo.start, mo.end));
     const dataInvest = investmentSeriesNoProjection(months, investedTotal);

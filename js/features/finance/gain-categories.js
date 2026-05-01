@@ -70,6 +70,17 @@ export function syncGainDescriptionPlaceholder() {
 }
 
 /**
+/**
+ * Nomes das categorias de entrada (`GAIN`), ordenados — p.ex. edição em lote sem depender do select do formulário.
+ */
+export async function listGainCategoryNamesSorted(forceRefresh = false) {
+    const categories = await loadCategoriesFromDatabase(forceRefresh);
+    return (categories?.filter((c) => c.type === 'GAIN') || [])
+        .map((c) => c.name)
+        .sort((a, b) => a.localeCompare(b, 'pt-BR'));
+}
+
+/**
  * Subcategorias da categoria de entrada (tipo GAIN no banco).
  */
 export async function getGainSubcategoriesForCategory(category) {
