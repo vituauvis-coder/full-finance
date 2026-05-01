@@ -358,6 +358,76 @@ const gainsFilterState = {
     period: getDefaultPeriodValue()
 };
 
+/** Persistência das tags de status (Saídas / Entradas), alinhada ao painel. */
+const PORTAL_QUICK_PAYMENT_STATUS_STORAGE = {
+    expenses: 'portal.quickFilters.expenses.paymentStatus',
+    gains: 'portal.quickFilters.gains.paymentStatus'
+};
+
+function hydratePortalExpensePaymentStatusFromStorage() {
+    const paidEl = document.getElementById('expenses-filter-status-paid');
+    const pendEl = document.getElementById('expenses-filter-status-pending');
+    if (!paidEl || !pendEl) return;
+    try {
+        const raw = localStorage.getItem(PORTAL_QUICK_PAYMENT_STATUS_STORAGE.expenses);
+        if (raw == null) {
+            paidEl.checked = false;
+            pendEl.checked = false;
+            return;
+        }
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return;
+        paidEl.checked = parsed.includes('paid');
+        pendEl.checked = parsed.includes('unpaid');
+    } catch {
+        /* ignore */
+    }
+}
+
+function persistPortalExpensePaymentStatusToStorage() {
+    try {
+        const keys = [];
+        if (document.getElementById('expenses-filter-status-paid')?.checked) keys.push('paid');
+        if (document.getElementById('expenses-filter-status-pending')?.checked) keys.push('unpaid');
+        keys.sort();
+        localStorage.setItem(PORTAL_QUICK_PAYMENT_STATUS_STORAGE.expenses, JSON.stringify(keys));
+    } catch {
+        /* ignore */
+    }
+}
+
+function hydratePortalGainPaymentStatusFromStorage() {
+    const recvEl = document.getElementById('gains-filter-status-received');
+    const pendEl = document.getElementById('gains-filter-status-pending');
+    if (!recvEl || !pendEl) return;
+    try {
+        const raw = localStorage.getItem(PORTAL_QUICK_PAYMENT_STATUS_STORAGE.gains);
+        if (raw == null) {
+            recvEl.checked = false;
+            pendEl.checked = false;
+            return;
+        }
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return;
+        recvEl.checked = parsed.includes('paid');
+        pendEl.checked = parsed.includes('unpaid');
+    } catch {
+        /* ignore */
+    }
+}
+
+function persistPortalGainPaymentStatusToStorage() {
+    try {
+        const keys = [];
+        if (document.getElementById('gains-filter-status-received')?.checked) keys.push('paid');
+        if (document.getElementById('gains-filter-status-pending')?.checked) keys.push('unpaid');
+        keys.sort();
+        localStorage.setItem(PORTAL_QUICK_PAYMENT_STATUS_STORAGE.gains, JSON.stringify(keys));
+    } catch {
+        /* ignore */
+    }
+}
+
 /** Mesmos intervalos do relatório por período — lista de saídas/entradas. */
 function getMovementListPeriodBounds(period) {
     return getPeriodDateBounds(period || getDefaultPeriodValue(), new Date());
@@ -2100,9 +2170,9 @@ function expenseMatchesQuickTypeFilters(t, accounts) {
     return false;
 }
 
-/** Conjunto `paid`/`unpaid`: OR; vazio = sem filtro de status. */
+/** Conjunto `paid`/`unpaid`: OR entre estados; vazio = não exibe linhas (mesma regra das tags do painel). */
 function movementMatchesPaymentStatus(t, statusSet) {
-    if (!statusSet || statusSet.size === 0) return true;
+    if (!statusSet || statusSet.size === 0) return false;
     const paid = t.isPaid !== false;
     return (statusSet.has('paid') && paid) || (statusSet.has('unpaid') && t.isPaid === false);
 }
@@ -2368,6 +2438,28 @@ function expenseContributionPaidThroughMonthKey(
 function updateExpensesSummaryCards() {
     const cache = expensesRenderCache;
     if (!cache?.sorted) return;
+    readExpensesFilterFromDom();
+    const ps = expensesFilterState.paymentStatus;
+    const dashHint =
+        '<span class="card-metric-hint" title="Marque Pago ou Pendente nas tags ou no filtro para ver totais.">—</span>';
+    if (!ps || ps.size === 0) {
+        ['expenses-summary-month', 'expenses-summary-projection', 'expenses-summary-top-cat', 'expenses-summary-other'].forEach(
+            (id) => {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = dashHint;
+            }
+        );
+        [
+            'expenses-summary-variation',
+            'expenses-summary-projection-variation',
+            'expenses-summary-top-cat-variation',
+            'expenses-summary-other-variation'
+        ].forEach((id) => {
+            const el = document.getElementById(id);
+            if (el) el.innerHTML = dashHint;
+        });
+        return;
+    }
     const { sorted, currency, userProfile } = cache;
     const now = new Date();
     const period = expensesFilterState?.period || getDefaultPeriodValue();
@@ -2803,7 +2895,7 @@ function filterSyntheticGainsForCurrentFilters(synthetics) {
         if (category && t.category !== category) return false;
         if (category && subcategory && String(t.subcategory ?? '') !== String(subcategory)) return false;
         if (accountId && t.accountId !== accountId) return false;
-        if (paymentStatus && paymentStatus.size > 0 && !movementMatchesPaymentStatus(t, paymentStatus)) return false;
+        if (!movementMatchesPaymentStatus(t, paymentStatus)) return false;
         if (description && description.trim()) {
             const nd = description.trim().toLowerCase();
             if (!String(t.description ?? '').toLowerCase().includes(nd)) return false;
@@ -2860,24 +2952,53 @@ function updateGainsSummaryCards() {
     const cache = gainsRenderCache;
     if (!cache?.sorted) return;
     readGainsFilterFromDom();
+    const ps = gainsFilterState.paymentStatus;
     const { sorted, currency } = cache;
     const now = new Date();
     const period = gainsFilterState.period || getDefaultPeriodValue();
     const isSingleMonth = /^month-\d+$/.test(period);
+    const label = getPeriodTitleParts(period, now).label;
+
+    const dashHint =
+        '<span class="card-metric-hint" title="Marque Recebido ou Pendente nas tags ou no filtro para ver totais.">—</span>';
+
+    const elTotalTitle = document.getElementById('gains-summary-total-title');
+    const elProjTitle = document.getElementById('gains-summary-projection-title');
+    const elTopTitle = document.getElementById('gains-summary-top-cat-title');
+    if (elTotalTitle) elTotalTitle.textContent = `Entradas de ${label}`;
+    if (elProjTitle) elProjTitle.textContent = `Valor previsto de ${label}`;
+    if (elTopTitle) elTopTitle.textContent = `Principal categoria de ${label}`;
+
+    if (!ps || ps.size === 0) {
+        ['gains-summary-total', 'gains-summary-projection'].forEach((id) => {
+            const el = document.getElementById(id);
+            if (el) el.innerHTML = dashHint;
+        });
+        const elTopEmpty = document.getElementById('gains-summary-top-cat');
+        if (elTopEmpty) elTopEmpty.textContent = '—';
+        ['gains-summary-variation', 'gains-summary-projection-variation', 'gains-summary-top-cat-variation'].forEach(
+            (id) => {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = dashHint;
+            }
+        );
+        renderGainsTreemap([], currency, label);
+        syncGainsFilterButtonHighlight();
+        return;
+    }
 
     const months = getMonthKeysInPeriod(period, now);
-    const syntheticInPeriod = sumExpectedSplitGainsForPeriod(period, now);
+    const rowsForSummary = getSortedFilteredGainsList();
 
-    const inPeriod = sorted.filter((t) => movementDateInListPeriod(t.date, period));
     let receivedTotal = 0;
     let pendingInPeriod = 0;
-    inPeriod.forEach((t) => {
+    rowsForSummary.forEach((t) => {
         if (!gainCountsInTotals(t)) return;
         const amt = Number(t.amount) || 0;
         if (t.isPaid !== false) receivedTotal += amt;
         else pendingInPeriod += amt;
     });
-    const forecastTotal = receivedTotal + pendingInPeriod + syntheticInPeriod;
+    const forecastTotal = receivedTotal + pendingInPeriod;
 
     const firstMonthParts = months[0].split('-');
     const prevMonthDate = new Date(Number(firstMonthParts[0]), Number(firstMonthParts[1]) - 1 - 1, 1);
@@ -2894,6 +3015,7 @@ function updateGainsSummaryCards() {
             const d = movementDateToJsDate(t.date);
             if (monthKeyFromDateObj(d) !== prevMonthKey) return;
             if (!gainCountsInTotals(t)) return;
+            if (!movementMatchesPaymentStatus(t, ps)) return;
             const amt = Number(t.amount) || 0;
             if (t.isPaid !== false) totalPrevMonthReceived += amt;
             totalPrevMonthForecast += amt;
@@ -2907,17 +3029,17 @@ function updateGainsSummaryCards() {
     totalPrevMonthForecast += prevSynthetic;
 
     const byCat = new Map();
-    inPeriod.forEach((t) => {
+    rowsForSummary.forEach((t) => {
         if (!gainCountsInTotals(t)) return;
         const key = gainTopLevelCategory(t);
         byCat.set(key, (byCat.get(key) || 0) + (Number(t.amount) || 0));
     });
     let topCat = '';
     let topCatAmt = 0;
-    byCat.forEach((amt, label) => {
+    byCat.forEach((amt, lbl) => {
         if (amt > topCatAmt) {
             topCatAmt = amt;
-            topCat = label;
+            topCat = lbl;
         }
     });
 
@@ -2927,11 +3049,7 @@ function updateGainsSummaryCards() {
     const elTopIcon = document.getElementById('gains-summary-top-cat-icon');
 
     if (elTotal) elTotal.textContent = formatCurrency(receivedTotal, currency);
-    if (elProjection) {
-        elProjection.textContent = isSingleMonth
-            ? formatCurrency(forecastTotal, currency)
-            : formatCurrency(receivedTotal + pendingInPeriod + syntheticInPeriod, currency);
-    }
+    if (elProjection) elProjection.textContent = formatCurrency(forecastTotal, currency);
 
     if (elTop) {
         elTop.textContent = topCatAmt > 0 && topCat ? topCat : '—';
@@ -2965,17 +3083,7 @@ function updateGainsSummaryCards() {
         false
     );
 
-    const tParts = getPeriodTitleParts(period, now);
-    const label = tParts.label;
-    const elTotalTitle = document.getElementById('gains-summary-total-title');
-    const elProjTitle = document.getElementById('gains-summary-projection-title');
-    const elTopTitle = document.getElementById('gains-summary-top-cat-title');
-
-    if (elTotalTitle) elTotalTitle.textContent = `Entradas de ${label}`;
-    if (elProjTitle) elProjTitle.textContent = `Valor previsto de ${label}`;
-    if (elTopTitle) elTopTitle.textContent = `Principal categoria de ${label}`;
-
-    renderGainsTreemap(sorted, currency, label);
+    renderGainsTreemap(rowsForSummary, currency, label);
 
     const projIcon = document.getElementById('gains-summary-projection-icon');
     if (projIcon) {
@@ -3049,9 +3157,7 @@ function getFilteredExpensesList() {
     if (paymentType) {
         list = list.filter((t) => accountPaymentType(accounts.find((a) => a.id === t.accountId)) === paymentType);
     }
-    if (paymentStatus && paymentStatus.size > 0) {
-        list = list.filter((t) => movementMatchesPaymentStatus(t, paymentStatus));
-    }
+    list = list.filter((t) => movementMatchesPaymentStatus(t, paymentStatus));
     list = list.filter((t) => expenseMatchesQuickTypeFilters(t, accounts));
     if (description && description.trim()) {
         const needleDesc = description.trim().toLowerCase();
@@ -3185,6 +3291,7 @@ function applyExpensesFilters() {
     populateExpenseFilterSelects();
     readExpensesFilterFromDom();
     syncRangeLabels('expenses-filter', expensesRenderCache.currency);
+    persistPortalExpensePaymentStatusToStorage();
     if (!expensesPagination) return;
     expensesPagination.setTotal(getSortedFilteredExpensesList().length, { resetPage: true });
     renderExpensesBodySlice();
@@ -3390,6 +3497,7 @@ export function loadExpensesData(expenses, accounts, currency, userProfile = nul
         (a, b) => movementDateToUnixSeconds(b.date) - movementDateToUnixSeconds(a.date)
     );
     expensesRenderCache = { sorted, accounts, currency, userProfile: userProfile ?? null };
+    hydratePortalExpensePaymentStatusFromStorage();
     syncDrawerDateInputsToPeriod('expenses-filter', document.getElementById('expenses-period-filter')?.value);
     readExpensesFilterFromDom();
     populateExpenseFilterSelects();
@@ -3571,9 +3679,7 @@ function getFilteredGainsList() {
     if (paymentType) {
         list = list.filter((t) => accountPaymentType(accounts.find((a) => a.id === t.accountId)) === paymentType);
     }
-    if (paymentStatus && paymentStatus.size > 0) {
-        list = list.filter((t) => movementMatchesPaymentStatus(t, paymentStatus));
-    }
+    list = list.filter((t) => movementMatchesPaymentStatus(t, paymentStatus));
     if (description && description.trim()) {
         const needleDesc = description.trim().toLowerCase();
         list = list.filter((t) => String(t.description ?? '').toLowerCase().includes(needleDesc));
@@ -3796,6 +3902,7 @@ function applyGainsFilters() {
     populateGainFilterSelects();
     readGainsFilterFromDom();
     syncRangeLabels('gains-filter', gainsRenderCache.currency);
+    persistPortalGainPaymentStatusToStorage();
     if (!gainsPagination) return;
     gainsPagination.setTotal(getSortedFilteredGainsList().length, { resetPage: true });
     renderGainsBodySlice();
@@ -3982,6 +4089,7 @@ export function loadGainsData(gains, accounts, currency) {
         (a, b) => movementDateToUnixSeconds(b.date) - movementDateToUnixSeconds(a.date)
     );
     gainsRenderCache = { sorted, accounts, currency };
+    hydratePortalGainPaymentStatusFromStorage();
     syncDrawerDateInputsToPeriod('gains-filter', document.getElementById('gains-period-filter')?.value);
     readGainsFilterFromDom();
     populateGainFilterSelects();
