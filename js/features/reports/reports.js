@@ -742,10 +742,6 @@ function monthKeyFromDate(d) {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
-function isCurrentMonthObj(mo, now = new Date()) {
-    return mo.start.getFullYear() === now.getFullYear() && mo.start.getMonth() === now.getMonth();
-}
-
 /** Limites do mês civil anterior ao de `selStart` (primeiro dia … último segundo). */
 function dashboardPrevCalendarMonthBounds(selStart) {
     const prevStart = new Date(selStart.getFullYear(), selStart.getMonth() - 1, 1);
@@ -1530,7 +1526,8 @@ async function updateDashboardCardsAndTitlesForPeriod(
         );
     }
 
-    // Fluxo líquido (entradas − saídas): meses futuros + mês corrente no filtro; mesma regra do gráfico «Sobra» / dataSobraMes.
+    // Fluxo líquido (entradas − saídas): todos os meses do período — passados com totais realizados;
+    // futuros com projeção; alinhado ao eixo «Sobra» do gráfico e a {@link dashboardLiquidoMesCivil}.
     let dashNetProj = 0;
     let dashAnyProj = false;
     {
@@ -1540,41 +1537,23 @@ async function updateDashboardCardsAndTitlesForPeriod(
         } else if (!facetDashReady) {
             setTextIfExists('dashboard-projection-total', '—');
         } else {
-            for (const mo of enumerateCalendarMonths(startDate, endDate)) {
-                const useProj =
-                    isProjectionMonth(mo, now) || isCurrentMonthObj(mo, now);
-                if (!useProj) continue;
-                dashAnyProj = true;
-                const gains = sumMovementsInRange(gainsForDashboard || [], mo.start, mo.end);
-                const outflows = isProjectionMonth(mo, now)
-                    ? dashSummationMode === 'pending_due'
-                        ? sumPendingOutflowsProjectedForCalendarMonth(
-                              mo,
-                              userExpenses,
-                              userAccounts,
-                              now,
-                              userProfile,
-                              splitRequests
-                          )
-                        : sumOutflowsProjectedForCalendarMonth(
-                              mo,
-                              userExpenses,
-                              userAccounts,
-                              now,
-                              userProfile,
-                              splitRequests
-                          )
-                    : sumOutflowsForCalendarMonth(
-                          mo,
-                          userExpenses,
-                          userAccounts,
-                          now,
-                          userProfile,
-                          splitRequests,
-                          dashSummationMode
-                      );
-                dashNetProj += gains - outflows;
-            }
+            const months = enumerateCalendarMonths(startDate, endDate);
+            dashAnyProj = months.length > 0;
+            dashNetProj = months.reduce(
+                (sum, mo) =>
+                    sum +
+                    dashboardLiquidoMesCivil(
+                        mo,
+                        gainsForDashboard,
+                        userExpenses,
+                        userAccounts,
+                        now,
+                        userProfile,
+                        splitRequests,
+                        dashSummationMode
+                    ),
+                0
+            );
             setTextIfExists(
                 'dashboard-projection-total',
                 dashAnyProj ? formatCurrency(dashNetProj, userCurrency) : '—'
@@ -1591,7 +1570,7 @@ async function updateDashboardCardsAndTitlesForPeriod(
             setMovementSummaryMomVariation(projVarEl, 0, 0, false, false);
         } else if (!dashAnyProj || !prevBounds) {
             projVarEl.innerHTML =
-                '<span class="card-metric-hint" title="Comparativo quando o card exibe fluxo líquido (mês atual ou futuro).">—</span>';
+                '<span class="card-metric-hint" title="Comparativo mês a mês quando só um mês está seleccionado no filtro.">—</span>';
         } else {
             const selMonths = enumerateCalendarMonths(dashStart, dashEnd);
             const prevMonths = enumerateCalendarMonths(prevBounds.prevStart, prevBounds.prevEnd);
