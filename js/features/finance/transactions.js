@@ -70,6 +70,7 @@ import {
     deleteGain,
     confirmExpenseCashOut,
     patchExpensesBatch,
+    patchGainsBatch,
     createExpenseSplitRequest,
     acceptExpenseSplitRequest,
     rejectExpenseSplitRequest,
@@ -492,6 +493,8 @@ let pendingInstallmentCashOut = null;
 
 /** Evita vários PATCH ao clicar depressa nas pílulas Fixa (mesmo id em várias linhas parcela). */
 const expenseFixedTogglePendingIds = new Set();
+/** Evita duplo clique no toggle Recebido/Pendente na tabela de entradas. */
+const gainReceivedTogglePendingIds = new Set();
 
 /** Evita cliques repetidos nas pílulas Pago/Pendente (PATCH/PUT até concluir). */
 const expensePaidTogglePendingKeys = new Set();
@@ -1276,6 +1279,7 @@ export function initFinance(
     setupInstallmentCashOutConfirmModal();
     setupExpenseSplitUi();
     setupExpenseBatchEditUi();
+    setupGainBatchSelectionUi();
 }
 
 function setupExpenseBatchEditUi() {
@@ -1313,6 +1317,95 @@ function setupExpenseBatchEditUi() {
     });
 
     document.getElementById('expense-batch-form')?.addEventListener('submit', handleExpenseBatchFormSubmit);
+}
+
+function setupGainBatchSelectionUi() {
+    const tbody = document.querySelector('#gains-table tbody');
+    tbody?.addEventListener('change', (e) => {
+        const t = e.target;
+        if (!(t instanceof HTMLInputElement)) return;
+        if (!t.classList.contains('gain-batch-check')) return;
+        syncGainsBatchToolbar();
+    });
+
+    document.getElementById('gains-table-select-all')?.addEventListener('change', (e) => {
+        const master = e.target;
+        const on = master instanceof HTMLInputElement && master.checked;
+        document.querySelectorAll('#gains-table tbody .gain-batch-check').forEach((node) => {
+            if (node instanceof HTMLInputElement) node.checked = on;
+        });
+        syncGainsBatchToolbar();
+    });
+
+    document.getElementById('gains-batch-clear-btn')?.addEventListener('click', () => {
+        clearGainBatchSelection();
+    });
+
+    document.getElementById('gains-batch-open-modal-btn')?.addEventListener('click', () => {
+        void openGainBatchModal();
+    });
+
+    document.getElementById('gain-batch-cancel-btn')?.addEventListener('click', () => {
+        closeModal('gain-batch-modal');
+    });
+
+    document.getElementById('gain-batch-form')?.addEventListener('submit', handleGainBatchFormSubmit);
+}
+
+function getGainBatchSelectedIds() {
+    const seen = new Set();
+    document.querySelectorAll('#gains-table tbody .gain-batch-check:checked').forEach((c) => {
+        if (!(c instanceof HTMLInputElement)) return;
+        const id = (c.dataset.gainId || '').trim();
+        if (id) seen.add(id);
+    });
+    return [...seen];
+}
+
+/** Ids seleccionados que correspondem a entradas reais guardadas (exclui linhas sintéticas de expectativa). */
+function getGainBatchEditableSelectedIds() {
+    const selected = getGainBatchSelectedIds();
+    const realIds = new Set(
+        (userGains || []).filter((g) => g && !g.__syntheticExpectedSplit).map((g) => String(g.id))
+    );
+    return selected.filter((id) => realIds.has(String(id)));
+}
+
+function syncGainsBatchToolbar() {
+    const n = getGainBatchSelectedIds().length;
+    const bar = document.getElementById('gains-batch-toolbar');
+    const txt = document.getElementById('gains-batch-toolbar-text');
+    if (!bar) return;
+
+    if (n <= 0) {
+        bar.classList.add('hidden');
+        const m = document.getElementById('gains-table-select-all');
+        if (m instanceof HTMLInputElement) {
+            m.checked = false;
+            m.indeterminate = false;
+        }
+        return;
+    }
+
+    bar.classList.remove('hidden');
+    if (txt) {
+        txt.textContent = n === 1 ? '1 entrada selecionada' : `${n} entradas selecionadas`;
+    }
+
+    const vis = document.querySelectorAll('#gains-table tbody .gain-batch-check').length;
+    const chk = document.querySelectorAll('#gains-table tbody .gain-batch-check:checked').length;
+    const master = document.getElementById('gains-table-select-all');
+    if (master instanceof HTMLInputElement) {
+        master.checked = vis > 0 && chk === vis;
+        master.indeterminate = chk > 0 && chk < vis;
+    }
+}
+
+function clearGainBatchSelection() {
+    document.querySelectorAll('#gains-table tbody .gain-batch-check').forEach((c) => {
+        if (c instanceof HTMLInputElement) c.checked = false;
+    });
+    syncGainsBatchToolbar();
 }
 
 function getExpenseBatchSelectedIds() {
@@ -1504,6 +1597,118 @@ async function handleExpenseBatchFormSubmit(e) {
             m === 0 ? 'warning' : 'success'
         );
         clearExpenseBatchSelection();
+        onUpdateCallback?.();
+    } catch (err) {
+        console.error(err);
+        showToast('Erro', err?.message || 'Não foi possível aplicar as alterações.', 'error');
+    } finally {
+        setFormSubmittingState(form, false);
+    }
+}
+
+function populateBatchGainAccountSelect() {
+    const sel = document.getElementById('gain-batch-account');
+    if (!sel) return;
+    sel.innerHTML = '';
+    const ph = document.createElement('option');
+    ph.value = '';
+    ph.textContent = 'Manter conta atual';
+    sel.appendChild(ph);
+    sortedBankAccounts().forEach((b) => {
+        const o = document.createElement('option');
+        o.value = b.id;
+        o.textContent = b.name;
+        sel.appendChild(o);
+    });
+    sel.value = '';
+}
+
+async function fillGainBatchCategorySelect() {
+    await populateGainCategorySelect('', false);
+    const src = document.getElementById('gain-category-select');
+    const dst = document.getElementById('gain-batch-category');
+    if (!dst) return;
+
+    dst.innerHTML = '';
+    const ph = document.createElement('option');
+    ph.value = '';
+    ph.textContent = 'Manter categoria atual';
+    dst.appendChild(ph);
+
+    if (!src) return;
+    const skipVals = new Set(['', '__manage_categories__', '__add_new__']);
+    for (const opt of [...src.options]) {
+        const v = String(opt.value || '');
+        if (skipVals.has(v) || opt.disabled) continue;
+        dst.appendChild(new Option(opt.textContent, v));
+    }
+}
+
+async function openGainBatchModal() {
+    const ids = getGainBatchEditableSelectedIds();
+    if (ids.length === 0) {
+        if (getGainBatchSelectedIds().length > 0) {
+            showToast(
+                'Seleção',
+                'Linhas de expectativa de estorno não entram na edição em lote. Selecione apenas entradas guardadas.',
+                'warning'
+            );
+        } else {
+            showToast('Seleção', 'Marque pelo menos uma entrada na tabela.', 'warning');
+        }
+        return;
+    }
+
+    populateBatchGainAccountSelect();
+    await fillGainBatchCategorySelect();
+
+    const recv = document.getElementById('gain-batch-received');
+    if (recv) recv.value = '';
+
+    const sum = document.getElementById('gain-batch-modal-summary');
+    if (sum) {
+        sum.textContent = `Serão atualizadas ${ids.length} entrada(s). Só os campos que não estiverem em «Manter» serão gravados.`;
+    }
+
+    openModal('gain-batch-modal');
+}
+
+async function handleGainBatchFormSubmit(e) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    if (!(form instanceof HTMLFormElement)) return;
+    const ids = getGainBatchEditableSelectedIds();
+    if (ids.length === 0) {
+        showToast('Seleção', 'Nenhuma entrada elegível selecionada.', 'warning');
+        return;
+    }
+
+    const patch = {};
+    const acc = document.getElementById('gain-batch-account')?.value?.trim() || '';
+    if (acc) patch.accountId = acc;
+
+    const cat = document.getElementById('gain-batch-category')?.value?.trim() || '';
+    if (cat) patch.category = cat;
+
+    const recv = document.getElementById('gain-batch-received')?.value;
+    if (recv === '1' || recv === '0') patch.isPaid = recv === '1';
+
+    if (Object.keys(patch).length === 0) {
+        showToast('Campos', 'Altere pelo menos um campo ou cancele.', 'warning');
+        return;
+    }
+
+    setFormSubmittingState(form, true, 'Aplicando…');
+    try {
+        const r = await patchGainsBatch(ids, patch);
+        closeModal('gain-batch-modal');
+        const m = Number(r?.modified) || 0;
+        showToast(
+            'Edição em lote',
+            m === 0 ? 'Nenhuma entrada foi atualizada (verifique permissões ou ids).' : `${m} entrada(s) atualizadas.`,
+            m === 0 ? 'warning' : 'success'
+        );
+        clearGainBatchSelection();
         onUpdateCallback?.();
     } catch (err) {
         console.error(err);
@@ -3643,11 +3848,15 @@ function renderGainsBodySliceWithList(list) {
             ? `<span class="movement-amount-with-rec-inner">${recBadge}${formatCurrency(t.amount, currency)}</span>`
             : formatCurrency(t.amount, currency);
         const paymentKindText = escapeHtml(movementAccountPaymentKindLabel(account));
-        const receivedCell =
-            t.isPaid === false
-                ? `<span class="expense-status-badge expense-status-badge--pending">Pendente</span>`
-                : `<span class="expense-status-badge expense-status-badge--paid">Recebido</span>`;
+        const gidForAttr = htmlAttrEscape(String(t.id));
         const isSynthSplit = Boolean(t.__syntheticExpectedSplit);
+        const receivedCell = isSynthSplit
+            ? t.isPaid === false
+                ? `<span class="expense-status-badge expense-status-badge--pending">Pendente</span>`
+                : `<span class="expense-status-badge expense-status-badge--paid">Recebido</span>`
+            : t.isPaid === false
+              ? `<button type="button" class="expense-status-badge expense-status-badge--pending gain-received-toggle" data-gain-id="${gidForAttr}" title="Marcar como recebido" aria-label="Marcar entrada como recebida">Pendente</button>`
+              : `<button type="button" class="expense-status-badge expense-status-badge--paid gain-received-toggle" data-gain-id="${gidForAttr}" title="Marcar como pendente" aria-label="Marcar entrada como pendente (a receber)">Recebido</button>`;
         const actionBtns = isSynthSplit
             ? ''
             : `<button class="btn-action btn-edit" data-id="${String(t.id)}" title="Editar"><i class="fas fa-pencil-alt"></i></button>
@@ -3655,6 +3864,7 @@ function renderGainsBodySliceWithList(list) {
         if (isSynthSplit) tr.classList.add('gain-tr-expected-split');
         // Não exibe subtítulo/“hint” abaixo da descrição do ganho.
         tr.innerHTML = `
+            <td class="gains-td-batch"><label class="gain-batch-row-hit"><span class="sr-only">Selecionar para seleção em lote</span><input type="checkbox" class="gain-batch-check" data-gain-id="${gidForAttr}"></label></td>
             <td>${movementDateToJsDate(t.date).toLocaleDateString('pt-BR')}</td>
             <td>${escapeHtml(String(t.description ?? ''))}</td>
             <td>${escapeHtml(categoryDisplay)}</td>
@@ -3669,6 +3879,7 @@ function renderGainsBodySliceWithList(list) {
             </td>`;
         tbody.appendChild(tr);
     });
+    syncGainsBatchToolbar();
 }
 
 export function loadGainsData(gains, accounts, currency) {
@@ -5328,7 +5539,63 @@ async function handleExpenseRowActions(e) {
     }
 }
 
+function buildGainPutPayloadFromRow(row, isPaidExplicit) {
+    let subcategory = row.subcategory;
+    if (subcategory != null && String(subcategory).trim() !== '') subcategory = String(subcategory).trim();
+    else subcategory = null;
+    const isPaid =
+        typeof isPaidExplicit === 'boolean' ? isPaidExplicit : row.isPaid !== false;
+    return {
+        userId: currentUser?.uid,
+        description: row.description,
+        amount: Number(row.amount) || 0,
+        date: row.date,
+        accountId: row.accountId,
+        category: row.category,
+        subcategory,
+        isPaid
+    };
+}
+
 async function handleGainRowActions(e) {
+    const recvBtn = e.target.closest('button.gain-received-toggle');
+    if (recvBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const gid = String(recvBtn.dataset.gainId ?? '').trim();
+        if (!gid || gainReceivedTogglePendingIds.has(gid)) return;
+        const row = userGains?.find((t) => String(t.id) === gid);
+        if (!row) {
+            showToast('Entrada', 'Registo não encontrado na lista atual.', 'warning');
+            return;
+        }
+        const showsReceivedNow = row.isPaid !== false;
+        const nextIsPaid = !showsReceivedNow;
+        gainReceivedTogglePendingIds.add(gid);
+        const prevHtml = recvBtn.innerHTML;
+        recvBtn.disabled = true;
+        recvBtn.setAttribute('aria-busy', 'true');
+        recvBtn.innerHTML =
+            '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i><span class="sr-only">A atualizar…</span>';
+        try {
+            await saveGain(buildGainPutPayloadFromRow(row, nextIsPaid), gid);
+            onUpdateCallback?.();
+        } catch (error) {
+            console.error('Erro ao atualizar estado recebido da entrada:', error);
+            showToast(
+                'Não foi possível atualizar',
+                error?.message || 'Tente novamente.',
+                error?.status === 409 ? 'warning' : 'error'
+            );
+            recvBtn.innerHTML = prevHtml;
+            recvBtn.disabled = false;
+            recvBtn.removeAttribute('aria-busy');
+        } finally {
+            gainReceivedTogglePendingIds.delete(gid);
+        }
+        return;
+    }
+
     const target = e.target.closest('button');
     if (!target) return;
     const rowId = target.dataset.id;

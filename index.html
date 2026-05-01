@@ -428,6 +428,27 @@
 
                 <!-- Seção do Dashboard -->
                 <section id="dashboard-page" class="page active">
+                    <div class="dashboard-expense-facets-bar" role="group"
+                        aria-label="Filtrar totais de saídas por tipo — pode seleccionar vários">
+                        <div class="dashboard-expense-facets-bar__chips">
+                            <button type="button" class="dashboard-expense-facet-btn" data-facet="fixed"
+                                aria-pressed="false" title="Incluir saídas marcadas como fixas">
+                                <i class="fas fa-sync-alt" aria-hidden="true"></i> Despesas fixas
+                            </button>
+                            <button type="button" class="dashboard-expense-facet-btn" data-facet="variable"
+                                aria-pressed="false" title="Incluir saídas não marcadas como fixas">
+                                <i class="fas fa-bolt" aria-hidden="true"></i> Despesas variáveis
+                            </button>
+                            <button type="button" class="dashboard-expense-facet-btn" data-facet="credit"
+                                aria-pressed="false" title="Saídas em cartão de crédito">
+                                <i class="fas fa-credit-card" aria-hidden="true"></i> Cartão de crédito
+                            </button>
+                            <button type="button" class="dashboard-expense-facet-btn" data-facet="other"
+                                aria-pressed="false" title="Saídas em conta corrente, débito ou dinheiro (sem cartão de crédito)">
+                                <i class="fas fa-wallet" aria-hidden="true"></i> Outras despesas
+                            </button>
+                        </div>
+                    </div>
                     <!-- Cards de Resumo -->
                     <div class="summary-cards movements-summary" aria-label="Resumo do painel">
                         <div class="card">
@@ -639,6 +660,19 @@
                             <i class="fas fa-clock" aria-hidden="true"></i> Pendentes
                         </button>
                     </div>
+                    <div id="gains-batch-toolbar" class="gains-batch-toolbar expenses-batch-toolbar hidden"
+                        aria-live="polite">
+                        <span id="gains-batch-toolbar-text" class="expenses-batch-toolbar__text"></span>
+                        <div class="expenses-batch-toolbar__actions">
+                            <button type="button" id="gains-batch-open-modal-btn" class="btn-secondary">
+                                Alterar seleção…
+                            </button>
+                            <button type="button" id="gains-batch-clear-btn"
+                                class="btn-secondary expenses-batch-toolbar__clear">
+                                Limpar seleção
+                            </button>
+                        </div>
+                    </div>
                     <div class="summary-cards movements-summary" aria-label="Resumo de entradas">
                         <div class="card">
                             <div class="card-icon income movements-summary-card-icon" id="gains-summary-total-icon"><i class="fas fa-calendar-check" aria-hidden="true"></i></div>
@@ -677,6 +711,14 @@
                         <table id="gains-table">
                             <thead>
                                 <tr>
+                                    <th scope="col" class="gains-th-batch">
+                                        <label class="gain-batch-head-hit"
+                                            title="Seleciona só as linhas desta página">
+                                            <span class="sr-only">Selecionar todas as entradas visíveis nesta página</span>
+                                            <input type="checkbox" id="gains-table-select-all"
+                                                class="gain-batch-check gain-batch-check-all">
+                                        </label>
+                                    </th>
                                     <th scope="col" class="sortable-th" data-sort-key="date"><button type="button" class="sortable-th__btn">Data <i class="fas fa-sort sortable-th__icon" aria-hidden="true"></i></button></th>
                                     <th scope="col" class="sortable-th" data-sort-key="description"><button type="button" class="sortable-th__btn">Descrição <i class="fas fa-sort sortable-th__icon" aria-hidden="true"></i></button></th>
                                     <th scope="col" class="sortable-th" data-sort-key="category"><button type="button" class="sortable-th__btn">Categoria <i class="fas fa-sort sortable-th__icon" aria-hidden="true"></i></button></th>
@@ -1869,6 +1911,39 @@
                 </div>
                 <div class="form-actions">
                     <button type="button" class="btn-secondary" id="expense-batch-cancel-btn">Cancelar</button>
+                    <button type="submit" class="btn-primary"><span>Aplicar a seleção</span></button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edição em lote — entradas -->
+    <div id="gain-batch-modal" class="modal-container hidden">
+        <div class="modal-content expense-batch-modal__content">
+            <button type="button" class="modal-close-btn" data-close-modal="gain-batch-modal">&times;</button>
+            <h3>Editar várias entradas</h3>
+            <p class="card-metric-hint expense-batch-modal__intro" id="gain-batch-modal-summary">
+                Altere só os campos que quiser aplicar a todas as entradas selecionadas. Campos em «Manter» não são modificados.
+            </p>
+            <form id="gain-batch-form" class="expense-batch-form">
+                <div class="form-group">
+                    <label for="gain-batch-account">Conta</label>
+                    <select id="gain-batch-account"></select>
+                </div>
+                <div class="form-group">
+                    <label for="gain-batch-category">Categoria</label>
+                    <select id="gain-batch-category"></select>
+                </div>
+                <div class="form-group">
+                    <label for="gain-batch-received">Recebido</label>
+                    <select id="gain-batch-received">
+                        <option value="">Manter</option>
+                        <option value="1">Marcar como recebido</option>
+                        <option value="0">Marcar como pendente</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" id="gain-batch-cancel-btn">Cancelar</button>
                     <button type="submit" class="btn-primary"><span>Aplicar a seleção</span></button>
                 </div>
             </form>

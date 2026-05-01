@@ -29,6 +29,7 @@ import {
     sumOutflowsProjectedForCalendarMonth,
     sumProjectedGainsForCalendarMonth
 } from '../../core/projected-period-net.js';
+import { filterExpensesForDashboardFacets } from '../../core/dashboard-expense-facets.js';
 import { fetchDashboardPeriodBalance } from '../../services/firestore.js';
 import {
     applySplitNetToContribution,
@@ -159,10 +160,33 @@ function ensureChartTypeTogglesBound() {
     syncChartTypeToggleUI('financialProgression');
 }
 
+function readDashboardExpenseFacetSetFromDom() {
+    const root = document.getElementById('dashboard-page');
+    if (!root) return new Set();
+    const facets = new Set();
+    root.querySelectorAll('.dashboard-expense-facet-btn[aria-pressed="true"]').forEach((btn) => {
+        const f = String(btn.dataset.facet || '').trim();
+        if (f) facets.add(f);
+    });
+    return facets;
+}
+
+function onDashboardExpenseFacetBarClick(ev) {
+    const btn = ev.target?.closest?.('.dashboard-expense-facet-btn');
+    if (!btn || !document.getElementById('dashboard-page')?.contains(btn)) return;
+    ev.preventDefault();
+    const pressed = btn.getAttribute('aria-pressed') === 'true';
+    const next = !pressed;
+    btn.setAttribute('aria-pressed', String(next));
+    btn.classList.toggle('is-active', next);
+    if (lastReportsLoadArgs) void loadReportsData(...lastReportsLoadArgs);
+}
+
 function ensureReportsListeners() {
     if (reportsListenersBound) return;
     reportsListenersBound = true;
     ensureChartTypeTogglesBound();
+    document.getElementById('dashboard-page')?.addEventListener('click', onDashboardExpenseFacetBarClick);
     document.getElementById('period-filter')?.addEventListener('change', () => {
         markDashboardPeriodLinked();
         if (lastReportsLoadArgs) void loadReportsData(...lastReportsLoadArgs);
@@ -244,27 +268,33 @@ export async function loadReportsData(
 
     const now = new Date();
     const cardPeriod = isDashboardPeriodLinked() ? periodFilter.value : getDefaultPeriodValue(now);
+    const expenseFacetSet = readDashboardExpenseFacetSetFromDom();
+    const expensesForDashboard = filterExpensesForDashboardFacets(
+        userExpenses,
+        userAccounts,
+        expenseFacetSet
+    );
 
     const allExpensesForCategoryChart = mapExpensesToPeriodContributions(
         DASHBOARD_CHART_AXIS_PERIOD,
-        userExpenses,
+        expensesForDashboard,
         userAccounts,
         now,
         userProfile,
         outgoingAcceptedSplits
     );
     const selectedCategory = refreshCategoryFilterOptions(allExpensesForCategoryChart);
-    const categoryScopedExpenses = filterExpensesByCategory(userExpenses, selectedCategory);
+    const categoryScopedExpenses = filterExpensesByCategory(expensesForDashboard, selectedCategory);
 
     await updateDashboardCardsAndTitlesForPeriod(
         cardPeriod,
-        userExpenses,
+        expensesForDashboard,
         gainsForTotals,
         userAccounts,
         userCurrency,
         userProfile,
         outgoingAcceptedSplits,
-        { chartPeriodForTitles: DASHBOARD_CHART_AXIS_PERIOD }
+        { chartPeriodForTitles: DASHBOARD_CHART_AXIS_PERIOD, expenseListForBalanceProjection: userExpenses }
     );
 
     renderUnifiedFinancialChart(
@@ -599,8 +629,9 @@ async function updateDashboardCardsAndTitlesForPeriod(
     userCurrency,
     userProfile = null,
     splitRequests = null,
-    { chartPeriodForTitles } = {}
+    { chartPeriodForTitles, expenseListForBalanceProjection } = {}
 ) {
+    const expenseListForBalanceProj = expenseListForBalanceProjection ?? userExpenses;
     const now = new Date();
     const parts = getPeriodTitleParts(period, now);
     const chartTitleParts = getPeriodTitleParts(chartPeriodForTitles ?? period, now);
@@ -764,7 +795,7 @@ async function updateDashboardCardsAndTitlesForPeriod(
                         const inc = sumProjectedGainsForCalendarMonth(mo, userGains);
                         const outMo = sumOutflowsProjectedForCalendarMonth(
                             mo,
-                            userExpenses,
+                            expenseListForBalanceProj,
                             userAccounts,
                             now,
                             userProfile,

@@ -482,11 +482,11 @@
     font-size: 0.95rem;
 }
 
-/* Valor (#expenses 9.ª após checklist+Fixa+Status); #gains mantém na 6.ª */
+/* Valor (#expenses 9.ª após checklist+Fixa+Status); #gains 7.ª após checklist */
 #expenses-table th:nth-child(9),
 #expenses-table td:nth-child(9),
-#gains-table th:nth-child(6),
-#gains-table td:nth-child(6) {
+#gains-table th:nth-child(7),
+#gains-table td:nth-child(7) {
     text-align: right;
 }
 
@@ -504,9 +504,11 @@
     padding-bottom: 0.55rem;
 }
 
-/* Coluna seleção (#expenses): mesma linha-base que os outros <th> ordenáveis */
+/* Coluna seleção (#expenses / #gains): mesma linha-base que os outros <th> ordenáveis */
 #expenses-table .expenses-th-batch,
-#expenses-table td.expenses-td-batch {
+#expenses-table td.expenses-td-batch,
+#gains-table .gains-th-batch,
+#gains-table td.gains-td-batch {
     width: 3.25rem;
     min-width: 3rem;
     max-width: 3.5rem;
@@ -516,12 +518,14 @@
     padding: 1rem 0.55rem;
 }
 
-#expenses-table thead .expenses-th-batch {
+#expenses-table thead .expenses-th-batch,
+#gains-table thead .gains-th-batch {
     line-height: 1;
     vertical-align: middle;
 }
 
-#expenses-table tbody td.expenses-td-batch {
+#expenses-table tbody td.expenses-td-batch,
+#gains-table tbody td.gains-td-batch {
     vertical-align: middle;
 }
 
@@ -542,7 +546,9 @@
 
 /* Checkboxes edição em lote — mesmo estilo no cabeçalho e nas linhas */
 #expenses-table .expense-batch-check,
-#expenses-table .expense-batch-check-all {
+#expenses-table .expense-batch-check-all,
+#gains-table .gain-batch-check,
+#gains-table .gain-batch-check-all {
     appearance: none;
     -webkit-appearance: none;
     box-sizing: border-box;
@@ -562,26 +568,34 @@
 }
 
 #expenses-table .expense-batch-check:hover,
-#expenses-table .expense-batch-check-all:hover {
+#expenses-table .expense-batch-check-all:hover,
+#gains-table .gain-batch-check:hover,
+#gains-table .gain-batch-check-all:hover {
     border-color: var(--info-color);
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.14);
 }
 
 #expenses-table .expense-batch-check:focus-visible,
-#expenses-table .expense-batch-check-all:focus-visible {
+#expenses-table .expense-batch-check-all:focus-visible,
+#gains-table .gain-batch-check:focus-visible,
+#gains-table .gain-batch-check-all:focus-visible {
     outline: none;
     border-color: var(--info-color);
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.28);
 }
 
 #expenses-table .expense-batch-check:checked,
-#expenses-table .expense-batch-check-all:checked {
+#expenses-table .expense-batch-check-all:checked,
+#gains-table .gain-batch-check:checked,
+#gains-table .gain-batch-check-all:checked {
     background: var(--info-color);
     border-color: var(--info-color);
 }
 
 #expenses-table .expense-batch-check:checked::after,
-#expenses-table .expense-batch-check-all:checked::after {
+#expenses-table .expense-batch-check-all:checked::after,
+#gains-table .gain-batch-check:checked::after,
+#gains-table .gain-batch-check-all:checked::after {
     content: '';
     position: absolute;
     left: 50%;
@@ -595,12 +609,14 @@
     transform: rotate(45deg);
 }
 
-#expenses-table .expense-batch-check-all:indeterminate {
+#expenses-table .expense-batch-check-all:indeterminate,
+#gains-table .gain-batch-check-all:indeterminate {
     background: rgba(59, 130, 246, 0.18);
     border-color: var(--info-color);
 }
 
-#expenses-table .expense-batch-check-all:indeterminate::after {
+#expenses-table .expense-batch-check-all:indeterminate::after,
+#gains-table .gain-batch-check-all:indeterminate::after {
     content: '';
     position: absolute;
     left: 4px;
@@ -615,17 +631,22 @@
 }
 
 [data-theme='dark'] #expenses-table .expense-batch-check,
-[data-theme='dark'] #expenses-table .expense-batch-check-all {
+[data-theme='dark'] #expenses-table .expense-batch-check-all,
+[data-theme='dark'] #gains-table .gain-batch-check,
+[data-theme='dark'] #gains-table .gain-batch-check-all {
     border-color: rgba(148, 163, 184, 0.45);
     background: var(--bg-light);
 }
 
 [data-theme='dark'] #expenses-table .expense-batch-check:checked,
-[data-theme='dark'] #expenses-table .expense-batch-check-all:checked {
+[data-theme='dark'] #expenses-table .expense-batch-check-all:checked,
+[data-theme='dark'] #gains-table .gain-batch-check:checked,
+[data-theme='dark'] #gains-table .gain-batch-check-all:checked {
     border-color: #60a5fa;
 }
 
-#expenses-table label.expense-batch-head-hit {
+#expenses-table label.expense-batch-head-hit,
+#gains-table label.gain-batch-head-hit {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -638,11 +659,13 @@
     transition: background 0.15s ease;
 }
 
-#expenses-table label.expense-batch-head-hit:hover {
+#expenses-table label.expense-batch-head-hit:hover,
+#gains-table label.gain-batch-head-hit:hover {
     background: rgba(15, 23, 42, 0.06);
 }
 
-#expenses-table label.expense-batch-row-hit {
+#expenses-table label.expense-batch-row-hit,
+#gains-table label.gain-batch-row-hit {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -655,22 +678,26 @@
     transition: background 0.15s ease;
 }
 
-#expenses-table label.expense-batch-row-hit:hover {
+#expenses-table label.expense-batch-row-hit:hover,
+#gains-table label.gain-batch-row-hit:hover {
     background: rgba(15, 23, 42, 0.06);
 }
 
 [data-theme='dark'] #expenses-table label.expense-batch-head-hit:hover,
-[data-theme='dark'] #expenses-table label.expense-batch-row-hit:hover {
+[data-theme='dark'] #expenses-table label.expense-batch-row-hit:hover,
+[data-theme='dark'] #gains-table label.gain-batch-head-hit:hover,
+[data-theme='dark'] #gains-table label.gain-batch-row-hit:hover {
     background: rgba(255, 255, 255, 0.06);
 }
 
-#gains-table th:nth-child(7),
-#gains-table td:nth-child(7) {
+/* Recebido: 8.ª coluna (#gains) */
+#gains-table th:nth-child(8),
+#gains-table td:nth-child(8) {
     text-align: center;
 }
 
-/* Tipo nas entradas (5.ª coluna) */
-#gains-table td:nth-child(5) {
+/* Tipo nas entradas (6.ª coluna após seleção) */
+#gains-table td:nth-child(6) {
     text-align: center;
 }
 
@@ -686,7 +713,7 @@
     text-align: center;
 }
 
-#gains-table tr.gain-tr-expected-split td:first-child {
+#gains-table tr.gain-tr-expected-split td:nth-child(2) {
     border-left: 3px solid rgba(59, 130, 246, 0.45);
     padding-left: calc(1rem - 3px);
 }
@@ -1007,8 +1034,9 @@ button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='
     }
 }
 
-/* Edição em lote — página Saídas */
-.expenses-batch-toolbar {
+/* Edição em lote — página Saídas / Entradas */
+.expenses-batch-toolbar,
+.gains-batch-toolbar {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -1021,7 +1049,8 @@ button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='
     border: 1px solid var(--border-color);
 }
 
-[data-theme='dark'] .expenses-batch-toolbar {
+[data-theme='dark'] .expenses-batch-toolbar,
+[data-theme='dark'] .gains-batch-toolbar {
     background: rgba(255, 255, 255, 0.04);
 }
 
@@ -1644,5 +1673,87 @@ button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='
 
     .treemap-squarify-host > .treemap-block {
         min-height: 3.75rem;
+    }
+}
+
+/* —— Painel: facetas de tipo de saída (multi-selecção) —— */
+#dashboard-page .dashboard-expense-facets-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.65rem 1rem;
+    margin: 0 0 1rem;
+    padding: 0 0.15rem;
+    box-sizing: border-box;
+}
+
+#dashboard-page .dashboard-expense-facets-bar__hint {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-light, #64748b);
+    white-space: nowrap;
+}
+
+#dashboard-page .dashboard-expense-facets-bar__chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.65rem;
+}
+
+#dashboard-page .dashboard-expense-facet-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.5rem 0.85rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: transparent;
+    color: var(--text-light);
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    white-space: nowrap;
+}
+
+#dashboard-page .dashboard-expense-facet-btn:hover {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+
+#dashboard-page .dashboard-expense-facet-btn.is-active {
+    background-color: rgba(225, 29, 72, 0.12);
+    border-color: rgba(225, 29, 72, 0.35);
+    color: #e11d48;
+}
+
+#dashboard-page .dashboard-expense-facet-btn.is-active:hover {
+    background-color: rgba(225, 29, 72, 0.18);
+    border-color: rgba(225, 29, 72, 0.5);
+}
+
+#dashboard-page .dashboard-expense-facet-btn i {
+    font-size: 0.82rem;
+    opacity: 0.9;
+}
+
+#dashboard-page .dashboard-expense-facet-btn:hover i,
+#dashboard-page .dashboard-expense-facet-btn.is-active i {
+    color: inherit;
+    opacity: 1;
+}
+
+@media (max-width: 640px) {
+    #dashboard-page .dashboard-expense-facets-bar__chips {
+        width: 100%;
+    }
+
+    #dashboard-page .dashboard-expense-facet-btn {
+        flex: 1 1 calc(50% - 0.35rem);
+        justify-content: center;
+        padding: 0.45rem 0.6rem;
+        font-size: 0.78rem;
     }
 }

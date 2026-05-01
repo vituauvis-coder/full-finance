@@ -47,9 +47,9 @@
     background: rgba(255, 255, 255, 0.06);
 }
 
-/* Cabeçalho «Valor»: #expenses 9.ª col (após Fixa+Status); #gains 6.ª col */
+/* Cabeçalho «Valor»: #expenses 9.ª col (após Fixa+Status); #gains 7.ª (após checklist) */
 #expenses-table thead th:nth-child(9) .sortable-th__btn,
-#gains-table thead th:nth-child(6) .sortable-th__btn {
+#gains-table thead th:nth-child(7) .sortable-th__btn {
     justify-content: flex-end;
     text-align: right;
 }
@@ -72,9 +72,9 @@
     text-align: center;
 }
 
-/* Entradas: Tipo (5.ª), Recebido (7.ª) */
-#gains-table thead th:nth-child(5) .sortable-th__btn,
-#gains-table thead th:nth-child(7) .sortable-th__btn {
+/* Entradas: Tipo (6.ª), Recebido (8.ª) */
+#gains-table thead th:nth-child(6) .sortable-th__btn,
+#gains-table thead th:nth-child(8) .sortable-th__btn {
     justify-content: center;
     text-align: center;
 }

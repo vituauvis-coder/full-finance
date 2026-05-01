@@ -100,6 +100,12 @@ export async function patchExpensesBatch(ids, patch) {
         body: JSON.stringify({ ids, patch })
     });
 }
+export async function patchGainsBatch(ids, patch) {
+    return api('/api/gains/batch', {
+        method: 'PATCH',
+        body: JSON.stringify({ ids, patch })
+    });
+}
 export const saveGain = (data, docId) => saveDocument('gains', data, docId);
 export const saveAccount = (data, docId) => saveDocument('accounts', data, docId);
 export const saveGoal = (data, docId) => saveDocument('goals', data, docId);
