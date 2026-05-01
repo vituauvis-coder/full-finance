@@ -12,7 +12,7 @@ import {
     updateSubcategory,
     deleteSubcategory
 } from '../../services/category-service.js';
-import { populateGainCategorySelect } from './gain-categories.js';
+import { populateGainCategorySelect, invalidateGainCategoriesCache, populateGainSubcategorySelect } from './gain-categories.js';
 
 // Cache local das categorias
 let categoriesCache = null;
@@ -654,6 +654,8 @@ window.deleteSubcategoryItem = async (id, name) => {
         await deleteSubcategory(id);
         await renderCategoriesList();
         await populateExpenseSubcategorySelect('', true);
+        invalidateGainCategoriesCache();
+        await populateGainSubcategorySelect('', true);
     } catch (err) {
         alert('Erro ao excluir subcategoria: ' + err.message);
     }
@@ -709,6 +711,8 @@ function openSubcategoryFormModal(categoryId = null, categoryName = '', subcateg
                 formModal.classList.add('hidden');
                 await renderCategoriesList();
                 await populateExpenseSubcategorySelect(name, true);
+                invalidateGainCategoriesCache();
+                await populateGainSubcategorySelect(name, true);
             } catch (err) {
                 alert(err?.message || 'Erro ao atualizar subcategoria');
             }
@@ -718,6 +722,8 @@ function openSubcategoryFormModal(categoryId = null, categoryName = '', subcateg
                 formModal.classList.add('hidden');
                 await renderCategoriesList();
                 await populateExpenseSubcategorySelect(name, true);
+                invalidateGainCategoriesCache();
+                await populateGainSubcategorySelect(name, true);
             } else if (result.error?.includes('já existe')) {
                 alert('Esta subcategoria já existe');
             } else {

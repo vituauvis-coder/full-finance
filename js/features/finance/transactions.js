@@ -58,7 +58,7 @@ import {
     renderSpendingTreemapHost
 } from '../../components/spending-treemap.js';
 import { populateExpenseCategorySelect, populateExpenseSubcategorySelect, setupExpenseCategoryUi, getSubcategoriesForCategory } from './expense-categories.js';
-import { populateGainCategorySelect, setupGainCategoryUi } from './gain-categories.js';
+import { populateGainCategorySelect, populateGainSubcategorySelect, setupGainCategoryUi, getGainSubcategoriesForCategory } from './gain-categories.js';
 import { setupFilterDrawer, closeFilterDrawer } from '../../shared/filter-drawer.js';
 import { openModal, closeModal, showMessage, showToast, navigateTo } from '../../shell/app-shell.js';
 import {
@@ -1351,6 +1351,10 @@ function setupGainBatchSelectionUi() {
     });
 
     document.getElementById('gain-batch-form')?.addEventListener('submit', handleGainBatchFormSubmit);
+
+    document.getElementById('gain-batch-category')?.addEventListener('change', () => {
+        void fillGainBatchSubcategorySelect();
+    });
 }
 
 function getGainBatchSelectedIds() {
@@ -1645,6 +1649,36 @@ async function fillGainBatchCategorySelect() {
     }
 }
 
+async function fillGainBatchSubcategorySelect() {
+    const catSel = document.getElementById('gain-batch-category');
+    const subSel = document.getElementById('gain-batch-subcategory');
+    if (!subSel) return;
+
+    const cat = (catSel?.value || '').trim();
+    subSel.innerHTML = '';
+
+    const ph = document.createElement('option');
+    ph.value = '';
+    ph.textContent = cat ? 'Manter subcategoria atual' : 'Escolha uma categoria para listar subcategorias';
+    subSel.appendChild(ph);
+
+    const clearOpt = document.createElement('option');
+    clearOpt.value = '__clear__';
+    clearOpt.textContent = 'Limpar subcategoria';
+    subSel.appendChild(clearOpt);
+
+    if (!cat) {
+        subSel.disabled = true;
+        subSel.value = '';
+        return;
+    }
+
+    subSel.disabled = false;
+    const subs = await getGainSubcategoriesForCategory(cat);
+    subs.forEach((s) => subSel.appendChild(new Option(s, s)));
+    subSel.value = '';
+}
+
 async function openGainBatchModal() {
     const ids = getGainBatchEditableSelectedIds();
     if (ids.length === 0) {
@@ -1662,6 +1696,7 @@ async function openGainBatchModal() {
 
     populateBatchGainAccountSelect();
     await fillGainBatchCategorySelect();
+    await fillGainBatchSubcategorySelect();
 
     const recv = document.getElementById('gain-batch-received');
     if (recv) recv.value = '';
@@ -1690,6 +1725,20 @@ async function handleGainBatchFormSubmit(e) {
 
     const cat = document.getElementById('gain-batch-category')?.value?.trim() || '';
     if (cat) patch.category = cat;
+
+    const sub = document.getElementById('gain-batch-subcategory')?.value || '';
+    if (sub === '__clear__') patch.subcategory = null;
+    else if (sub) {
+        if (!cat) {
+            showToast(
+                'Categoria',
+                'Para escolher uma subcategoria de entrada, selecione também a categoria. Para só remover subcategorias, use «Limpar subcategoria».',
+                'warning'
+            );
+            return;
+        }
+        patch.subcategory = sub;
+    }
 
     const recv = document.getElementById('gain-batch-received')?.value;
     if (recv === '1' || recv === '0') patch.isPaid = recv === '1';
@@ -5267,6 +5316,15 @@ async function handleGainFormSubmit(e) {
         hasErrors = true;
     }
 
+    const gainSubSel = document.getElementById('gain-subcategory-select');
+    let subcategory = '';
+    if (gainSubSel && !gainSubSel.disabled) {
+        subcategory = String(gainSubSel.value || '').trim();
+    }
+    if (subcategory === '__manage_subcategories__' || subcategory === '__add_new__') {
+        subcategory = '';
+    }
+
     const accForGain = accountId ? userAccounts?.find((a) => a.id === accountId) : null;
     if (accountId && (!accForGain || isCardAccountType(accForGain.type))) {
         markFieldError(form['gain-account'], 'Escolha uma conta cadastrada (o valor será creditado nela)');
@@ -5317,6 +5375,7 @@ async function handleGainFormSubmit(e) {
         date: dateWithTime.toISOString(),
         accountId,
         category,
+        subcategory: subcategory || null,
         isPaid
     };
 
@@ -5335,9 +5394,11 @@ async function handleGainFormSubmit(e) {
                 'success'
             );
         } else {
+        const catLine =
+            subcategory && String(subcategory).trim() !== '' ? `${category} › ${subcategory}` : category;
             showToast(
                 isEdit ? 'Entrada atualizada!' : 'Entrada adicionada!',
-                `+ ${formatCurrency(amount, 'BRL')} · ${category}`,
+                `+ ${formatCurrency(amount, 'BRL')} · ${catLine}`,
                 'success'
             );
         }
@@ -5705,6 +5766,7 @@ async function handleGainRowActions(e) {
             form['gain-amount'].value = row.amount;
             form['gain-date'].value = movementDateToJsDate(row.date).toISOString().split('T')[0];
             await populateGainCategorySelect(row.category);
+            await populateGainSubcategorySelect(row.subcategory || '', false);
             populateGainAccountSelect(row.accountId);
             const isReceived = document.getElementById('gain-is-received');
             if (isReceived) isReceived.checked = row.isPaid !== false;

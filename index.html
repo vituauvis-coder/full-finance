@@ -2007,9 +2007,15 @@
                     <label for="gain-batch-account">Conta</label>
                     <select id="gain-batch-account"></select>
                 </div>
-                <div class="form-group">
-                    <label for="gain-batch-category">Categoria</label>
-                    <select id="gain-batch-category"></select>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label for="gain-batch-category">Categoria</label>
+                        <select id="gain-batch-category"></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="gain-batch-subcategory">Subcategoria</label>
+                        <select id="gain-batch-subcategory"></select>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label for="gain-batch-received">Recebido</label>
@@ -2049,11 +2055,25 @@
             <h3 id="gain-modal-title">Nova entrada</h3>
             <form id="gain-form" style="display: flex; flex-direction: column; gap: 1rem;">
                 <input type="hidden" id="gain-id">
-                <div class="form-group gain-category-group">
-                    <label for="gain-category-select">Categoria</label>
-                    <select id="gain-category-select" required>
-                        <option value="">Selecione uma categoria</option>
-                    </select>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group gain-category-group">
+                        <label for="gain-category-select">Categoria</label>
+                        <select id="gain-category-select" required>
+                            <option value="">Selecione uma categoria</option>
+                        </select>
+                    </div>
+                    <div class="form-group gain-subcategory-group">
+                        <label for="gain-subcategory-select">Subcategoria</label>
+                        <select id="gain-subcategory-select">
+                            <option value="">Selecione uma categoria primeiro</option>
+                        </select>
+                        <div id="gain-subcategory-new-row" class="expense-subcategory-new-row hidden">
+                            <input type="text" id="gain-subcategory-new-input" placeholder="Nome da nova subcategoria"
+                                maxlength="80" autocomplete="off">
+                            <button type="button" id="gain-subcategory-new-save" class="btn-primary expense-subcategory-new-btn">Adicionar</button>
+                            <button type="button" id="gain-subcategory-new-cancel" class="btn-secondary expense-subcategory-new-btn">Cancelar</button>
+                        </div>
+                    </div>
                 </div>
                 <div class="form-group gain-description-group">
                     <label for="gain-description">Descrição</label>
