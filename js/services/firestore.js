@@ -31,7 +31,8 @@ export async function fetchAllData(userId) {
             userInvestments: data.userInvestments || [],
             userDebts: data.userDebts || [],
             userDebtUpdates: data.userDebtUpdates || [],
-            expenseSplitRequests: data.expenseSplitRequests || { incoming: [], outgoing: [] }
+            expenseSplitRequests: data.expenseSplitRequests || { incoming: [], outgoing: [] },
+            userNotifications: data.userNotifications || []
         };
     } catch (error) {
         console.error('Erro ao buscar dados:', error);

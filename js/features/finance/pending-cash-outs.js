@@ -181,7 +181,7 @@ export function buildPendingCashOutItems(userAccounts, userExpenses, userProfile
             items.push({
                 expenseId: e.id,
                 periodKey: pk,
-                title: `${isRecSeries ? 'Série mensal' : 'Conta fixa'} · ${e.description || e.category || 'Mensal'}`,
+                title: `${isRecSeries ? 'Série mensal' : 'Mensal na conta'} · ${e.description || e.category || 'Mensal'}`,
                 detail: `${e.category || 'Saída'} · ${d.toLocaleDateString('pt-BR')}`,
                 amount: Number(e.amount) || 0
             });

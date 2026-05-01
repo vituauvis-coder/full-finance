@@ -1,5 +1,5 @@
 import { initAuth } from '../shell/auth.js';
-import { initUI, navigateTo, initAuthForms } from '../shell/app-shell.js';
+import { initUI, navigateTo, initAuthForms, showToast } from '../shell/app-shell.js';
 import { fetchAllData, calculateAllBalances } from '../services/firestore.js';
 import { loadDashboardData } from '../features/dashboard/dashboard.js';
 import { refreshReportsChartsForTheme, loadReportsData } from '../features/reports/reports.js';
@@ -35,6 +35,7 @@ let AppState = {
     debts: [],
     debtUpdates: [],
     expenseSplitRequests: { incoming: [], outgoing: [] },
+    userNotifications: [],
     currency: 'BRL'
 };
 
@@ -64,7 +65,7 @@ async function onAuthenticated(user) {
     document.getElementById('auth-container').classList.add('hidden');
 
     initUI(user, loadPageData);
-    initHeaderNotifications(() => AppState);
+    initHeaderNotifications(() => AppState, refreshAllData);
 
     // Antes de carregar o dashboard: o <select> do período ainda está no 1º option (Janeiro).
     // `initFinance` só sincroniza depois de `refreshAllData`, então o gráfico de saídas lia o mês errado até trocar o tipo de gráfico.
@@ -133,6 +134,7 @@ function onSignedOut() {
         debts: [],
         debtUpdates: [],
         expenseSplitRequests: { incoming: [], outgoing: [] },
+        userNotifications: [],
         currency: 'BRL'
     };
     document.getElementById('main-content').classList.add('hidden');
@@ -153,6 +155,7 @@ async function refreshAllData() {
     AppState.debts = data.userDebts || [];
     AppState.debtUpdates = data.userDebtUpdates || [];
     AppState.expenseSplitRequests = data.expenseSplitRequests || { incoming: [], outgoing: [] };
+    AppState.userNotifications = data.userNotifications || [];
     AppState.userProfile = data.userProfile || null;
     if (data.userProfile?.currency) {
         AppState.currency = data.userProfile.currency;
@@ -174,6 +177,15 @@ async function refreshAllData() {
         AppState.userProfile,
         AppState.expenseSplitRequests
     );
+
+    for (const n of AppState.userNotifications) {
+        if (!n || String(n.kind) !== 'split_payer_confirmed' || n.readAt) continue;
+        const k = `ff-toast-notif-${n.id}`;
+        if (sessionStorage.getItem(k)) continue;
+        showToast(n.title || 'Divisão', n.detail || '', 'info', 6500);
+        sessionStorage.setItem(k, '1');
+        break;
+    }
 
     // Recarrega os dados da página ativa
     const activePageId = document.querySelector('.page:not(.hidden)')?.id;

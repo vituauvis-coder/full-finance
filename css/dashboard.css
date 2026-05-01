@@ -482,7 +482,7 @@
     font-size: 0.95rem;
 }
 
-/* Valor (#expenses 9.ª após checklist+Fixa+Status); #gains 7.ª após checklist */
+/* Valor (#expenses 9.ª após checklist+Essencial+Status); #gains 7.ª após checklist */
 #expenses-table th:nth-child(9),
 #expenses-table td:nth-child(9),
 #gains-table th:nth-child(7),
@@ -494,7 +494,7 @@
     vertical-align: middle;
 }
 
-/* Fixa (#expenses, 7.ª) — pílulas Sim/Não */
+/* Essencial (#expenses, 7.ª) — pílulas Sim/Não */
 #expenses-table td:nth-child(7).expenses-td-fixed {
     text-align: center;
     vertical-align: middle;
@@ -774,7 +774,7 @@
     text-align: center;
 }
 
-/* Fixa + Status na tabela: mesma «caixa» (Sim/Não alinhado com Pago/Pendente; «Pagar» fica só na altura) */
+/* Essencial + Status na tabela: mesma «caixa» (Sim/Não alinhado com Pago/Pendente; «Pagar» fica só na altura) */
 #expenses-table .expense-fixed-pill,
 #expenses-table .expense-status-badge:not(.expense-status-badge--pay) {
     box-sizing: border-box;
@@ -807,7 +807,7 @@
     padding-left: calc(1rem - 3px);
 }
 
-/* Coluna Status e Fixa: estilo moderno escuro com tags coloridas */
+/* Coluna Status e Essencial: estilo moderno escuro com tags coloridas */
 .expense-status-badge,
 .expense-fixed-pill {
     display: inline-flex;
@@ -869,7 +869,7 @@ button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='
     min-height: 1.42rem;
 }
 
-/* Fixa/Variável/Cartão - Tags estilo imagem de referência */
+/* Essencial/Variável/Cartão - Tags estilo imagem de referência */
 .expense-fixed-pill--yes {
     background: rgba(59, 130, 246, 0.15);
     color: #60a5fa;

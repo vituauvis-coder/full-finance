@@ -342,7 +342,7 @@
     margin-bottom: 0;
 }
 
-/* Despesa fixa + Paga lado a lado (quando Paga está visível) */
+/* Despesa essencial + Paga lado a lado (quando Paga está visível) */
 .expense-fixed-paid-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;

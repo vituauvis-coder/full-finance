@@ -92,6 +92,16 @@
     color: var(--warning-color);
 }
 
+.notifications-item--split .notifications-item-icon {
+    background: rgba(34, 197, 94, 0.18);
+    color: var(--secondary-color, #22c55e);
+}
+
+.notifications-item--split-pay .notifications-item-icon {
+    background: rgba(16, 185, 129, 0.2);
+    color: #059669;
+}
+
 .notifications-item-text {
     min-width: 0;
     display: flex;

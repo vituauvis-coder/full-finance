@@ -4,6 +4,7 @@
  */
 import { creditCardInvoiceTotalForCycle } from '../core/credit-installments.js';
 import { formatCurrency, movementDateToJsDate, isCreditCardType, getBillingCycle } from '../core/utils.js';
+import { api } from '../api-client.js';
 
 const MS_DAY = 86400000;
 
@@ -28,6 +29,7 @@ let getAppState = () => ({
     gains: [],
     investments: [],
     expenseSplitRequests: { incoming: [], outgoing: [] },
+    userNotifications: [],
     currency: 'BRL'
 });
 
@@ -168,6 +170,19 @@ export function buildHeaderNotifications(state) {
 
     items.push(...spendingItems);
 
+    const persisted = state.userNotifications || [];
+    persisted
+        .filter((n) => n && !n.readAt && String(n.kind) === 'split_payer_confirmed')
+        .forEach((n) => {
+            items.push({
+                id: `notif-${n.id}`,
+                kind: 'split-pay',
+                title: String(n.title || 'Divisão'),
+                detail: String(n.detail || ''),
+                priority: 0
+            });
+        });
+
     const incomingSplits = state.expenseSplitRequests?.incoming || [];
     incomingSplits
         .filter((s) => s && String(s.status).toUpperCase() === 'PENDING')
@@ -192,6 +207,7 @@ function iconForKind(kind) {
     if (kind === 'invoice') return 'fa-file-invoice-dollar';
     if (kind === 'investment') return 'fa-chart-line';
     if (kind === 'split') return 'fa-users';
+    if (kind === 'split-pay') return 'fa-money-bill-wave';
     return 'fa-chart-pie';
 }
 
@@ -265,10 +281,13 @@ function onKeydown(e) {
 }
 
 /**
- * @param {() => { accounts: any[], expenses: any[], gains: any[], investments: any[], currency: string }} stateGetter
+ * @param {() => object} stateGetter
+ * @param {(() => Promise<void>) | null} afterMarkReadRefresh — após marcar avisos de rateio como lidos (ex.: recarregar dados).
  */
-export function initHeaderNotifications(stateGetter) {
+export function initHeaderNotifications(stateGetter, afterMarkReadRefresh = null) {
     getAppState = typeof stateGetter === 'function' ? stateGetter : getAppState;
+    const onAfterMarkRead =
+        typeof afterMarkReadRefresh === 'function' ? afterMarkReadRefresh : null;
 
     btnEl = document.getElementById('notifications-btn');
     panelEl = document.getElementById('notifications-panel');
@@ -277,12 +296,22 @@ export function initHeaderNotifications(stateGetter) {
 
     if (!btnEl || !panelEl) return;
 
-    btnEl.addEventListener('click', (e) => {
+    btnEl.addEventListener('click', async (e) => {
         e.stopPropagation();
         const open = panelEl.classList.contains('hidden');
         if (open) {
             refreshHeaderNotifications();
             openPanel();
+            try {
+                await api(
+                    '/api/notifications/read-all?kind=split_payer_confirmed',
+                    { method: 'PATCH' }
+                );
+                if (onAfterMarkRead) await onAfterMarkRead();
+                else refreshHeaderNotifications();
+            } catch (err) {
+                console.error(err);
+            }
         } else {
             closePanel();
         }

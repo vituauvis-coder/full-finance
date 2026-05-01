@@ -1,6 +1,6 @@
 import { isCreditCardType, isPixBankAccountType } from './utils.js';
 
-/** Lançamento marcado como despesa fixa (mesma convenção da lista de saídas). */
+/** Lançamento marcado como despesa essencial (`isFixed` na API; mesma convenção da lista de saídas). */
 export function expenseIsMarkedFixed(expense) {
     if (!expense) return false;
     return Boolean(

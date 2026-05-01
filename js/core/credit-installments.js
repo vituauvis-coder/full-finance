@@ -52,7 +52,7 @@ export function isMonthlyFixedCashAccountExpense(expense, account) {
 
 /**
  * Débito no caixa só após marcar o mês: série «um por mês até dezembro» sempre;
- * conta fixa mensal única só se a preferência do perfil estiver ativa.
+ * confirmação mensal na conta só se a preferência do perfil estiver ativa.
  */
 export function shouldDeferCashOutForMonthlyFixedSeries(expense, account, userProfile) {
     if (!isMonthlyFixedCashAccountExpense(expense, account)) return false;

@@ -47,7 +47,7 @@
     background: rgba(255, 255, 255, 0.06);
 }
 
-/* Cabeçalho «Valor»: #expenses 9.ª col (após Fixa+Status); #gains 7.ª (após checklist) */
+/* Cabeçalho «Valor»: #expenses 9.ª col (após Essencial+Status); #gains 7.ª (após checklist) */
 #expenses-table thead th:nth-child(9) .sortable-th__btn,
 #gains-table thead th:nth-child(7) .sortable-th__btn {
     justify-content: flex-end;
@@ -60,7 +60,7 @@
     text-align: center;
 }
 
-/* Fixa (#expenses, 7.ª): Sim/Não centrados */
+/* Essencial (#expenses, 7.ª): Sim/Não centrados */
 #expenses-table thead th:nth-child(7) .sortable-th__btn {
     justify-content: center;
     text-align: center;

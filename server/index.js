@@ -14,6 +14,11 @@ import { safeUpsertBalanceSnapshot } from './balance-snapshot.js';
 import { getDashboardBalanceAtPeriodEnd, setManualBalance, addLedgerEntryForMovement } from './balance-ledger.js';
 import { referenceOnlyForUserMovement } from './reference-only.js';
 import { registerExpenseSplitRoutes, fetchExpenseSplitBundleForUser } from './expense-splits.js';
+import {
+    fetchNotificationsForUser,
+    markNotificationsReadForUser,
+    notifySplitRequesterOnRecipientCashOutConfirm
+} from './user-notifications.js';
 import { isLoanExpense } from '../js/core/credit-installments.js';
 import { getInstallmentDueDates } from '../js/core/credit-installments.js';
 
@@ -393,7 +398,7 @@ app.get('/api/auth/me', async (req, res) => {
 // --- User data bundle ---
 app.get('/api/data', requireAuth, async (req, res) => {
     const uid = req.session.userId;
-    const [userDocRes, accRes, expRes, gainRes, goalRes, invRes, debtRes, debtUpdRes] =
+    const [userDocRes, accRes, expRes, gainRes, goalRes, invRes, debtRes, debtUpdRes, userNotifications] =
         await Promise.all([
             query(
                 `SELECT
@@ -525,7 +530,11 @@ app.get('/api/data', requireAuth, async (req, res) => {
                  FROM debt_updates
                  WHERE user_id = $1`,
                 [uid]
-            )
+            ),
+            fetchNotificationsForUser(uid).catch((e) => {
+                console.error('fetchNotificationsForUser', e);
+                return [];
+            })
         ]);
     const userDoc = userDocRes.rows[0] || null;
     const userAccounts = accRes.rows;
@@ -552,8 +561,21 @@ app.get('/api/data', requireAuth, async (req, res) => {
         userInvestments,
         userDebts,
         userDebtUpdates,
-        expenseSplitRequests
+        expenseSplitRequests,
+        userNotifications: Array.isArray(userNotifications) ? userNotifications : []
     });
+});
+
+app.patch('/api/notifications/read-all', requireAuth, async (req, res) => {
+    try {
+        const uid = req.session.userId;
+        const kindRaw = req.query?.kind != null ? String(req.query.kind).trim() : '';
+        await markNotificationsReadForUser(uid, kindRaw || null);
+        res.json({ ok: true });
+    } catch (e) {
+        console.error('PATCH /api/notifications/read-all', e);
+        res.status(500).json({ error: e.message || 'Erro ao marcar notificações' });
+    }
 });
 
 // --- Histórico de saldo total (snapshots diários) ---
@@ -1823,6 +1845,9 @@ app.post('/api/expenses/:id/confirm-cash-out', requireAuth, async (req, res) => 
         }
         if (!Array.isArray(arr)) arr = [];
         const alreadyHad = arr.includes(periodKey);
+        let payerExpenseAccountType = '';
+        let splitCashOutReimbursementPosted = false;
+        let splitCashOutReimbursementAmount = null;
         if (!alreadyHad) arr.push(periodKey);
         const { rows: updatedRows } = await query(
             `UPDATE expenses
@@ -1864,8 +1889,18 @@ app.post('/api/expenses/:id/confirm-cash-out', requireAuth, async (req, res) => 
                     [existing.accountId, uid]
                 );
                 const payType = String(payAccRows[0]?.type ?? '');
+                payerExpenseAccountType = payType;
                 if (payType === 'cartao_credito') {
                     // Não cria ganhos por confirmação para cartão.
+                    await notifySplitRequesterOnRecipientCashOutConfirm({
+                        alreadyHad,
+                        effectiveSplitRequestId,
+                        payerUserId: uid,
+                        periodKey,
+                        payerExpenseAccountType: payType,
+                        reimbursementPosted: false,
+                        reimbursementAmount: null
+                    });
                     res.json(normalizeMovement(updated));
                     return;
                 }
@@ -1951,11 +1986,25 @@ app.post('/api/expenses/:id/confirm-cash-out', requireAuth, async (req, res) => 
                                     ]
                                 );
                                 await safeUpsertBalanceSnapshot(sr.requesterUserId);
+                                splitCashOutReimbursementPosted = true;
+                                splitCashOutReimbursementAmount = per;
                             }
                         }
                     }
                 }
             }
+        }
+
+        if (!alreadyHad && effectiveSplitRequestId) {
+            await notifySplitRequesterOnRecipientCashOutConfirm({
+                alreadyHad,
+                effectiveSplitRequestId,
+                payerUserId: uid,
+                periodKey,
+                payerExpenseAccountType,
+                reimbursementPosted: splitCashOutReimbursementPosted,
+                reimbursementAmount: splitCashOutReimbursementAmount
+            });
         }
 
         res.json(normalizeMovement(updated));

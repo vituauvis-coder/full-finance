@@ -132,7 +132,7 @@ function setFormSubmittingState(form, isSubmitting, busyLabel = 'Salvando...') {
     if (submitBtn.dataset.originalHtml) submitBtn.innerHTML = submitBtn.dataset.originalHtml;
 }
 
-/** Série mensal em conta de caixa + preferência «conta fixa» — mesma lógica do saldo e do painel de pendentes. */
+/** Série mensal em conta de caixa + preferência de confirmação mensal — mesma lógica do saldo e do painel de pendentes. */
 function expenseUsesMonthlyFixedCashListUi(t, account, userProfile) {
     if (!account) return false;
     return shouldDeferCashOutForMonthlyFixedSeries(t, account, userProfile);
@@ -561,6 +561,18 @@ function expandInstallmentRowsForExpensesTable(list, accounts, userProfile) {
     return out;
 }
 
+/** Na lista de saídas: sufixo « (4 de 12) » para compras parceladas no cartão (`installmentCount` ≥ 2). */
+function expenseCreditInstallmentBracketSuffix(t, account, userProfile, now, listPeriod) {
+    if (!t || !account || !isCreditCardType(account.type)) return '';
+    const nTotal = Math.max(1, parseInt(String(t.installmentCount ?? '1'), 10) || 1);
+    if (nTotal < 2) return '';
+    const dues = getDueDatesForExpenseListPeriod(t, account, now, userProfile, listPeriod);
+    if (!dues.length) return '';
+    const idx = getParcelNumberInFullSchedule(t, account, dues[0], now, userProfile);
+    if (!idx) return '';
+    return ` (${idx} de ${nTotal})`;
+}
+
 let expensesFilterDebounce = null;
 let gainsFilterDebounce = null;
 let cardPurchasesFilterDebounce = null;
@@ -569,7 +581,7 @@ let tableFiltersListenersBound = false;
 /** Modal de confirmação de parcela (lista de saídas): id + periodKey até confirmar. */
 let pendingInstallmentCashOut = null;
 
-/** Evita vários PATCH ao clicar depressa nas pílulas Fixa (mesmo id em várias linhas parcela). */
+/** Evita vários PATCH ao clicar depressa nas pílulas Essencial (mesmo id em várias linhas parcela). */
 const expenseFixedTogglePendingIds = new Set();
 /** Evita duplo clique no toggle Recebido/Pendente na tabela de entradas. */
 const gainReceivedTogglePendingIds = new Set();
@@ -2159,7 +2171,7 @@ function syncGainsQuickStatusButtonsFromCheckboxes() {
     });
 }
 
-/** Filtros rápidos de tipo (fixa / variável / cartão): OR entre opções ativas; nenhuma = sem restrição. */
+/** Filtros rápidos de tipo (essencial / variável / cartão): OR entre opções ativas; nenhuma = sem restrição. */
 function expenseMatchesQuickTypeFilters(t, accounts) {
     const typeSet = expensesFilterState.quickExpenseTypes;
     if (!typeSet || typeSet.size === 0) return true;
@@ -2228,7 +2240,7 @@ function expenseDisplayCategory(t) {
     return String(t.category ?? '—');
 }
 
-/** Saída marcada pelo usuário como despesa fixa (`isFixed` na API). */
+/** Saída marcada pelo usuário como despesa essencial (`isFixed` na API). */
 function expenseIsMarkedFixed(t) {
     if (!t) return false;
     return Boolean(
@@ -2239,12 +2251,12 @@ function expenseIsMarkedFixed(t) {
     );
 }
 
-/** Pílula Sim/Não na coluna Fixa da tabela de saídas (clique alterna `isFixed` via PATCH em lote). */
+/** Pílula Sim/Não na coluna Essencial da tabela de saídas (clique alterna `isFixed` via PATCH em lote). */
 function expenseFixedCellHtmlForTable(t) {
     const idEsc = htmlAttrEscape(t?.id);
     return expenseIsMarkedFixed(t)
-        ? `<button type="button" class="expense-fixed-pill expense-fixed-pill--yes expense-fixed-toggle" data-expense-id="${idEsc}" title="Clique para marcar como variável (não fixa)" aria-label="Desmarcar despesa fixa">Sim</button>`
-        : `<button type="button" class="expense-fixed-pill expense-fixed-pill--no expense-fixed-toggle" data-expense-id="${idEsc}" title="Clique para marcar como despesa fixa" aria-label="Marcar como despesa fixa">Não</button>`;
+        ? `<button type="button" class="expense-fixed-pill expense-fixed-pill--yes expense-fixed-toggle" data-expense-id="${idEsc}" title="Clique para marcar como não essencial" aria-label="Desmarcar despesa essencial">Sim</button>`
+        : `<button type="button" class="expense-fixed-pill expense-fixed-pill--no expense-fixed-toggle" data-expense-id="${idEsc}" title="Clique para marcar como despesa essencial" aria-label="Marcar como despesa essencial">Não</button>`;
 }
 
 function periodRemovalKeysFromDayAndMonth(dayKey, monthKey) {
@@ -2558,8 +2570,8 @@ function updateExpensesSummaryCards() {
     if (elOtherIcon) {
         elOtherIcon.title =
             otherExpensesPeriod > 0
-                ? 'Saídas sem marca «despesa fixa» e sem conta de cartão de crédito (PIX, débito, dinheiro, conta corrente etc.), mesma regra de período e parcelas que os demais cards.'
-                : 'Nenhuma saída deste tipo no período (ou só fixas / só cartão de crédito).';
+                ? 'Saídas sem marca «despesa essencial» e sem conta de cartão de crédito (PIX, débito, dinheiro, conta corrente etc.), mesma regra de período e parcelas que os demais cards.'
+                : 'Nenhuma saída deste tipo no período (ou só essenciais / só cartão de crédito).';
     }
 
     const elMonth = document.getElementById('expenses-summary-month');
@@ -2623,7 +2635,7 @@ function updateExpensesSummaryCards() {
     const label = tParts.label;
     if (elMonthTitle) elMonthTitle.textContent = `Saídas de ${label}`;
     if (elTopTitle) elTopTitle.textContent = `Cartão de Crédito (${label})`;
-    if (elProjTitle) elProjTitle.textContent = `Despesas fixas (${label})`;
+    if (elProjTitle) elProjTitle.textContent = `Despesas essenciais (${label})`;
     if (elOtherTitle) elOtherTitle.textContent = `Outras despesas (${label})`;
 
     // Atualiza o Mapa de Gastos (Treemap)
@@ -3190,6 +3202,10 @@ function getFilteredExpensesList() {
                 ? `${t.category} > ${t.subcategory}` 
                 : t.category;
             const displayAmt = getExpensePerInstallmentDisplayAmount(t, acc);
+            const bracketCredit =
+                acc && isCreditCardType(acc.type) && listPeriodPlain
+                    ? expenseCreditInstallmentBracketSuffix(t, acc, userProfile, new Date(), listPeriodPlain)
+                    : '';
             const hay = [
                 dateStr,
                 String(t.description ?? ''),
@@ -3204,7 +3220,8 @@ function getFilteredExpensesList() {
                 parcelasLbl,
                 statusTxt,
                 movementAccountPaymentKindLabel(acc),
-                expenseIsMarkedFixed(t) ? 'sim fixa despesa fixa' : 'não variável não fixa'
+                expenseIsMarkedFixed(t) ? 'sim essencial despesa essencial' : 'não variável não essencial',
+                bracketCredit.trim()
             ]
                 .join(' ')
                 .toLowerCase();
@@ -3354,7 +3371,13 @@ function renderExpensesBodySliceWithList(list) {
             const dateStr = t.__instEmptyPeriod
                 ? movementDateToJsDate(t.date).toLocaleDateString('pt-BR')
                 : t.__instDueDate.toLocaleDateString('pt-BR');
-            const descSuffix = t.__instEmptyPeriod ? '' : ` · Parcela ${t.__instParcelIndex}/${t.__instParcelTotal}`;
+            const descSuffix = (() => {
+                if (t.__instEmptyPeriod) return '';
+                if (account && isCreditCardType(account.type)) {
+                    return ` (${t.__instParcelIndex} de ${t.__instParcelTotal})`;
+                }
+                return ` · Parcela ${t.__instParcelIndex}/${t.__instParcelTotal}`;
+            })();
             let statusCell;
             if (t.__instEmptyPeriod) {
                 statusCell = '<span class="expense-status-badge expense-status-badge--pending">Pendente</span>';
@@ -3436,8 +3459,11 @@ function renderExpensesBodySliceWithList(list) {
         } else {
             statusCell = expenseTableBatchPaidToggleButton(t);
         }
-        const categoryDisplay = t.subcategory ? `${t.category} > ${t.subcategory}` : t.category;
-        const paymentKindText = escapeHtml(movementAccountPaymentKindLabel(account));
+        const creditInstallSuffix =
+            monthRing && listPeriodMonth
+                ? expenseCreditInstallmentBracketSuffix(t, account, userProfile, now, listPeriodMonth)
+                : '';
+        const descriptionHtml = `${escapeHtml(t.description)}${escapeHtml(creditInstallSuffix)}`;
         const displayAmt = applySplitNetToContribution(
             t,
             movementMonthKey(t.date),
@@ -3470,10 +3496,12 @@ function renderExpensesBodySliceWithList(list) {
             ? `<span class="expense-split-amount-stack"><span class="expense-split-net-amount">${amountHtmlBase}</span><span class="expense-split-gross-strike" title="Valor bruto / original">${formatCurrency(grossShown, currency)}</span></span>`
             : amountHtmlBase;
         const eidAttrNorm = htmlAttrEscape(String(t.id));
+        const categoryDisplay = t.subcategory ? `${t.category} > ${t.subcategory}` : t.category;
+        const paymentKindText = escapeHtml(movementAccountPaymentKindLabel(account));
         tr.innerHTML = `
             <td class="expenses-td-batch"><label class="expense-batch-row-hit"><span class="sr-only">Selecionar para edição em lote</span><input type="checkbox" class="expense-batch-check" data-expense-id="${eidAttrNorm}"></label></td>
             <td>${movementDateToJsDate(t.date).toLocaleDateString('pt-BR')}</td>
-            <td>${escapeHtml(t.description)}</td>
+            <td>${descriptionHtml}</td>
             <td>${escapeHtml(categoryDisplay)}</td>
             <td>${escapeHtml(account?.name || 'N/A')}</td>
             <td>${paymentKindText}</td>
@@ -4603,7 +4631,7 @@ function syncExpenseInstallmentsRow() {
 }
 
 /**
- * Conta fixa mensal (RECORRENTE) não se aplica a empréstimo nem a pagamento com cartão — o fluxo é por parcelas / fatura.
+ * Recorrência mensal na conta (RECORRENTE) não se aplica a empréstimo nem a pagamento com cartão — o fluxo é por parcelas / fatura.
  */
 function syncExpenseRecurringModeVisibility() {
     const grid = document.getElementById('expense-date-recurring-grid');
@@ -4774,10 +4802,10 @@ function updateExpenseInstallmentPreview() {
         prev.classList.remove('hidden');
         if (remaining === 0) {
             prev.innerHTML = `<div class="installment-remaining-summary installment-remaining-summary--recurring-year installment-remaining-summary--with-append" role="status" aria-label="${htmlAttrEscape(
-                `Conta fixa ${year}: todos os meses confirmados no caixa`
+                `Recorrência mensal ${year}: todos os meses confirmados no caixa`
             )}">
   <div class="installment-remaining-copy">
-    <span class="installment-remaining-title">${escapeHtml(`Conta fixa em ${year}`)}</span>
+    <span class="installment-remaining-title">${escapeHtml(`Recorrência mensal em ${year}`)}</span>
     <span class="installment-remaining-line">Os <strong>${total}</strong> meses previstos para este ano já foram confirmados no caixa.</span>
     <span class="installment-remaining-hint">Despesa recorrente: um lançamento por mês até dezembro. Use as tags abaixo para revisar cada mês.</span>
   </div>
@@ -4788,10 +4816,10 @@ function updateExpenseInstallmentPreview() {
         const summary = formatInstallmentRemainingSummaryHtml(st, {
             loan: true,
             summaryVariant: 'recurringYear',
-            summaryTitle: `Conta fixa em ${year}`,
+            summaryTitle: `Recorrência mensal em ${year}`,
             summaryLineHtml: `Faltam <strong>${remaining}</strong> de <strong>${total}</strong> meses neste ano a confirmar no caixa.`,
-            ariaLabel: `Conta fixa em ${year}: faltam ${remaining} de ${total} meses a confirmar no caixa`,
-            hint: 'É uma despesa recorrente (conta fixa), não uma compra parcelada: um lançamento por mês até dezembro. Toque no mês quando o pagamento sair da conta.',
+            ariaLabel: `Recorrência mensal em ${year}: faltam ${remaining} de ${total} meses a confirmar no caixa`,
+            hint: 'É uma despesa mensal recorrente na conta, não uma compra parcelada: um lançamento por mês até dezembro. Toque no mês quando o pagamento sair da conta.',
             appendHtml: tags
         });
         prev.innerHTML =
@@ -4907,7 +4935,7 @@ function openExpenseModal(forEdit, options = null) {
             if (splitScope === 'FULL_EXPENSE' && srcInst >= 2) {
                 form.dataset.splitSourceInstallmentCount = String(srcInst);
             }
-            // Espelha "conta fixa em YYYY" / tags mensais quando a origem é uma série recorrente.
+            // Espelha "recorrência mensal em YYYY" / tags mensais quando a origem é uma série recorrente.
             const srcRecurring = Boolean(src?.recurrenceGroupId && String(src.recurrenceGroupId).trim());
             const srcRecurringMonthly = src?.recurringMonthly === true;
             if (srcRecurring || srcRecurringMonthly) {
@@ -4944,7 +4972,7 @@ function openExpenseModal(forEdit, options = null) {
                 if (dateInpLock) {
                     dateInpLock.readOnly = true;
                     dateInpLock.classList.add('input-readonly-locked');
-                    dateInpLock.title = 'Data da compra original (fixa nesta divisão).';
+                    dateInpLock.title = 'Data da compra original (inalterável nesta divisão).';
                 }
             }
         });
@@ -5505,7 +5533,7 @@ async function handleExpenseRowActions(e) {
             succeeded = true;
             onUpdateCallback?.();
         } catch (error) {
-            console.error('Erro ao atualizar despesa fixa:', error);
+            console.error('Erro ao atualizar despesa essencial:', error);
             showToast(
                 'Não foi possível atualizar',
                 error?.message || 'Tente novamente.',
