@@ -315,12 +315,16 @@ function ensureChartTypeTogglesBound() {
     syncChartTypeToggleUI('financialProgression');
 }
 
-/** @returns {{ expenses: Set<string>, gains: Set<string> }} apenas facetas `paid`/`unpaid` por fluxo. */
+/** @returns {{ expenses: Set<string>, gains: Set<string> }} Saídas: estado + tipos válidos; entradas: só `paid`/`unpaid`. */
 function parseDashboardFlowFacetsFromStorage() {
     const empty = () => ({ expenses: new Set(), gains: new Set() });
     const statusOnly = (arr) => {
         if (!Array.isArray(arr)) return [];
         return arr.filter((k) => typeof k === 'string' && DASHBOARD_STATUS_FACETS_ALLOWED.has(k));
+    };
+    const expenseFlowKeys = (arr) => {
+        if (!Array.isArray(arr)) return [];
+        return arr.filter((k) => typeof k === 'string' && DASHBOARD_FACETS_ALLOWED.has(k));
     };
     try {
         const rawNew = localStorage.getItem(REPORTS_DASHBOARD_FLOW_FACETS_KEY);
@@ -328,7 +332,7 @@ function parseDashboardFlowFacetsFromStorage() {
             const parsed = JSON.parse(rawNew);
             if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
                 return {
-                    expenses: new Set(statusOnly(parsed.expenses)),
+                    expenses: new Set(expenseFlowKeys(parsed.expenses)),
                     gains: new Set(statusOnly(parsed.gains))
                 };
             }
@@ -398,7 +402,7 @@ function persistDashboardExpenseFacetsFromDom() {
             )
             .forEach((btn) => {
                 const f = String(btn.dataset.facet || '').trim();
-                if (f && DASHBOARD_STATUS_FACETS_ALLOWED.has(f)) expenses.push(f);
+                if (f && DASHBOARD_FACETS_ALLOWED.has(f)) expenses.push(f);
             });
         root
             .querySelectorAll(

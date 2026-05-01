@@ -62,6 +62,12 @@ export function isCreditCardType(type) {
     return type === 'cartao_credito';
 }
 
+/** Corrente ou poupança — mesmo agrupamento «PIX» das listas (pagamento por conta bancária). */
+export function isPixBankAccountType(type) {
+    const t = String(type ?? '');
+    return t === 'conta_corrente' || t === 'poupanca';
+}
+
 /** Conta é cartão (crédito ou débito) — exibido em Cartões, não na lista de Contas. */
 export function isCardAccountType(type) {
     return type === 'cartao_credito' || type === 'cartao_debito';

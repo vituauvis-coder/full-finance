@@ -1,4 +1,4 @@
-import { isCreditCardType } from './utils.js';
+import { isCreditCardType, isPixBankAccountType } from './utils.js';
 
 /** Lançamento marcado como despesa fixa (mesma convenção da lista de saídas). */
 export function expenseIsMarkedFixed(expense) {
@@ -11,7 +11,20 @@ export function expenseIsMarkedFixed(expense) {
     );
 }
 
-const TYPE_KEYS = /** @type {const} */ (['fixed', 'variable', 'credit', 'other']);
+/** Série mensal / parcelada (`recurrenceGroupId`), mesma convenção de `credit-installments.js`. */
+export function expenseIsRecurringSeries(expense) {
+    const gid = expense?.recurrenceGroupId;
+    return Boolean(gid != null && String(gid).trim());
+}
+
+const TYPE_KEYS = /** @type {const} */ ([
+    'fixed',
+    'variable',
+    'credit',
+    'pix',
+    'other',
+    'recurring'
+]);
 const STATUS_KEYS = /** @type {const} */ (['paid', 'unpaid']);
 
 /** Valores `data-facet` para estado (rótulos distintos no DOM: Recebido/Pago × Pendente). */
@@ -53,7 +66,9 @@ export function expenseMatchesAnyDashboardFacet(expense, account, facets) {
     if (!facets || facets.size === 0) return true;
 
     const hasCreditAccount = Boolean(account && isCreditCardType(account.type));
+    const pixAccount = Boolean(account && isPixBankAccountType(account.type));
     const fixed = expenseIsMarkedFixed(expense);
+    const recurring = expenseIsRecurringSeries(expense);
 
     let typeMatches = true;
     if (facetsHasSome(facets, TYPE_KEYS)) {
@@ -61,7 +76,9 @@ export function expenseMatchesAnyDashboardFacet(expense, account, facets) {
             (facets.has('fixed') && fixed) ||
             (facets.has('variable') && !fixed) ||
             (facets.has('credit') && hasCreditAccount) ||
-            (facets.has('other') && !fixed && !hasCreditAccount);
+            (facets.has('pix') && pixAccount) ||
+            (facets.has('other') && !fixed && !hasCreditAccount) ||
+            (facets.has('recurring') && recurring);
     }
 
     let statusMatches = true;

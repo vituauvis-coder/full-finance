@@ -1723,21 +1723,53 @@ button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='
     white-space: nowrap;
 }
 
-#dashboard-page .dashboard-expense-facet-btn:hover {
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    border-color: var(--border-color);
+/* Entrada: verde suave por defeito; saída: vermelho suave por defeito */
+#dashboard-page .dashboard-expense-facet-btn[data-dashboard-flow="gains"]:not(.is-active) {
+    background-color: rgba(16, 185, 129, 0.06);
+    border-color: rgba(16, 185, 129, 0.22);
+    color: rgba(4, 120, 87, 0.82);
 }
 
-#dashboard-page .dashboard-expense-facet-btn.is-active {
-    background-color: rgba(225, 29, 72, 0.12);
-    border-color: rgba(225, 29, 72, 0.35);
-    color: #e11d48;
+#dashboard-page .dashboard-expense-facet-btn[data-dashboard-flow="expenses"]:not(.is-active) {
+    background-color: rgba(225, 29, 72, 0.055);
+    border-color: rgba(225, 29, 72, 0.2);
+    color: rgba(190, 24, 93, 0.78);
 }
 
-#dashboard-page .dashboard-expense-facet-btn.is-active:hover {
-    background-color: rgba(225, 29, 72, 0.18);
-    border-color: rgba(225, 29, 72, 0.5);
+#dashboard-page .dashboard-expense-facet-btn[data-dashboard-flow="gains"]:not(.is-active):hover {
+    background-color: rgba(16, 185, 129, 0.11);
+    border-color: rgba(16, 185, 129, 0.32);
+    color: rgba(5, 96, 70, 0.92);
+}
+
+#dashboard-page .dashboard-expense-facet-btn[data-dashboard-flow="expenses"]:not(.is-active):hover {
+    background-color: rgba(225, 29, 72, 0.095);
+    border-color: rgba(225, 29, 72, 0.32);
+    color: rgba(159, 18, 57, 0.9);
+}
+
+#dashboard-page .dashboard-expense-facet-btn[data-dashboard-flow="gains"].is-active {
+    background-color: rgba(16, 185, 129, 0.16);
+    border-color: rgba(16, 185, 129, 0.42);
+    color: #059669;
+}
+
+#dashboard-page .dashboard-expense-facet-btn[data-dashboard-flow="gains"].is-active:hover {
+    background-color: rgba(16, 185, 129, 0.22);
+    border-color: rgba(16, 185, 129, 0.52);
+    color: #047857;
+}
+
+#dashboard-page .dashboard-expense-facet-btn[data-dashboard-flow="expenses"].is-active {
+    background-color: rgba(225, 29, 72, 0.14);
+    border-color: rgba(225, 29, 72, 0.42);
+    color: #be123c;
+}
+
+#dashboard-page .dashboard-expense-facet-btn[data-dashboard-flow="expenses"].is-active:hover {
+    background-color: rgba(225, 29, 72, 0.2);
+    border-color: rgba(225, 29, 72, 0.55);
+    color: #9f1239;
 }
 
 #dashboard-page .dashboard-expense-facet-btn i {
