@@ -14,6 +14,9 @@ export function expenseIsMarkedFixed(expense) {
 const TYPE_KEYS = /** @type {const} */ (['fixed', 'variable', 'credit', 'other']);
 const STATUS_KEYS = /** @type {const} */ (['paid', 'unpaid']);
 
+/** Valores `data-facet` para estado (rótulos distintos no DOM: Recebido/Pago × Pendente). */
+export const DASHBOARD_STATUS_FACET_IDS = STATUS_KEYS;
+
 /** Valores válidos para `data-facet` nos chips do painel (persistência e validação). */
 export const DASHBOARD_EXPENSE_FACET_IDS = /** @type {const} */ ([
     ...TYPE_KEYS,
@@ -21,10 +24,9 @@ export const DASHBOARD_EXPENSE_FACET_IDS = /** @type {const} */ ([
 ]);
 
 /**
- * Critério de agregação no painel perante as facetas «Saída» (estado):
- * — **Saídas**: parcelas/lançamentos conforme pago/pendente/tudo (ver `reports.js`).
- * — **Entradas**: lista filtrada por recebido/pendente; competência continua pela data no mês.
- * — Só «Pendente»: em aberto; só «Pago» ou sem faceta de estado: efetivos; ambos: todos.
+ * Critério de agregação das **saídas** no painel conforme só as facetas do grupo Saída (`expenses`):
+ * — parcelas/lançamentos conforme pago/pendente/tudo (ver `reports.js`).
+ * — Sem nenhum chip em Saída: lista vazia no painel (não exibe totais até seleccionar estado).
  */
 export function dashOutflowCardSummationMode(facets) {
     if (!facets?.size) return 'paid_through';
@@ -73,7 +75,7 @@ export function expenseMatchesAnyDashboardFacet(expense, account, facets) {
 }
 
 export function filterExpensesForDashboardFacets(expenses, accounts, facets) {
-    if (!facets || facets.size === 0) return expenses || [];
+    if (!facets || facets.size === 0) return [];
     const byId = new Map((accounts || []).map((a) => [a.id, a]));
     return (expenses || []).filter((e) =>
         expenseMatchesAnyDashboardFacet(e, byId.get(e.accountId), facets)
@@ -81,11 +83,12 @@ export function filterExpensesForDashboardFacets(expenses, accounts, facets) {
 }
 
 /**
- * Estado «Saída» aplicado às **entradas**: recebido ⇒ `isPaid !== false`; pendente ⇒ `isPaid === false`.
- * Facetas **Tipo** (fixo/variável/…) ignoram‑se aqui — só filtram despesas.
+ * Estado aplicado às **entradas** só pelos chips do grupo Entrada (`gains`):
+ * recebido ⇒ `isPaid !== false`; pendente ⇒ `isPaid === false`.
+ * Sem chip em Entrada: lista vazia no painel.
  */
 export function filterGainsForDashboardFacets(gains, facets) {
-    if (!facets?.size) return gains || [];
+    if (!facets?.size) return [];
 
     let statusMatchesAll = () => true;
     if (facetsHasSome(facets, STATUS_KEYS)) {

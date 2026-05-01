@@ -429,17 +429,29 @@
                 <!-- Seção do Dashboard -->
                 <section id="dashboard-page" class="page active">
                     <div class="dashboard-expense-facets-bar" role="group"
-                        aria-label="Filtrar totais de saídas por estado de pagamento — pode seleccionar vários">
+                        aria-label="Estado das entradas e das saídas no painel — cada grupo é independente; sem seleção num grupo, totais e gráfico desse lado ficam vazios até marcar Recebido ou Pendente (entradas) e Pago ou Pendente (saídas).">
                         <div class="dashboard-expense-facets-bar__chips">
+                            <span class="quick-filters-bar__hint dashboard-expense-facets-bar__group-label">Entrada</span>
+                            <button type="button" class="dashboard-expense-facet-btn" data-dashboard-flow="gains"
+                                data-facet="paid" aria-pressed="false"
+                                title="Somente entradas já recebidas — pode combinar com Pendente">
+                                <i class="fas fa-check-circle" aria-hidden="true"></i> Recebido
+                            </button>
+                            <button type="button" class="dashboard-expense-facet-btn" data-dashboard-flow="gains"
+                                data-facet="unpaid" aria-pressed="false"
+                                title="Somente entradas a receber — pode combinar com Recebido">
+                                <i class="fas fa-clock" aria-hidden="true"></i> Pendente
+                            </button>
+                            <span class="quick-filters-bar__sep" aria-hidden="true"></span>
                             <span class="quick-filters-bar__hint dashboard-expense-facets-bar__group-label">Saída</span>
-                            <button type="button" class="dashboard-expense-facet-btn" data-facet="paid"
-                                aria-pressed="false"
-                                title="Somente lançamentos pagos — pode combinar com Pendente para ver ambos">
+                            <button type="button" class="dashboard-expense-facet-btn" data-dashboard-flow="expenses"
+                                data-facet="paid" aria-pressed="false"
+                                title="Somente saídas já pagas — pode combinar com Pendente">
                                 <i class="fas fa-check" aria-hidden="true"></i> Pago
                             </button>
-                            <button type="button" class="dashboard-expense-facet-btn" data-facet="unpaid"
-                                aria-pressed="false"
-                                title="Somente pendentes (não pagos no saldo conforme marcado na saída) — pode combinar com Pago">
+                            <button type="button" class="dashboard-expense-facet-btn" data-dashboard-flow="expenses"
+                                data-facet="unpaid" aria-pressed="false"
+                                title="Somente saídas pendentes no saldo — pode combinar com Pago">
                                 <i class="fas fa-clock" aria-hidden="true"></i> Pendente
                             </button>
                         </div>

@@ -52,6 +52,7 @@ import {
     isDefaultPeriodValue,
     syncPeriodFilterSelectsToCurrentMonth
 } from '../../core/period-filters.js';
+import { buildSyntheticExpectedSplitGainsRows } from '../../core/expected-split-gain-rows.js';
 import {
     buildTreemapBlocksForDisplay,
     INCOME_TREEMAP_PALETTE,
@@ -2766,98 +2767,20 @@ if (typeof window !== 'undefined') {
     };
 }
 
-/** Normaliza "2026-5", "2026-05" ou ISO para comparação com chave YYYY-MM. */
-function normalizeYyyyMmFromPeriodKey(value) {
-    if (value == null || value === '') return '';
-    const s = String(value).trim();
-    const m = s.match(/^(\d{4})-(\d{1,2})(?:-\d+)?/);
-    if (m) {
-        return `${m[1]}-${String(m[2]).padStart(2, '0')}`;
-    }
-    return '';
-}
-
 /**
  * Linhas sintéticas de expectativa de estorno/rateio aceito ainda sem `Gain` vinculado no pedido.
  * Inclui cartão (o caixa não gera `Gain` no aceite, mas a expectativa ainda é útil na lista “Entradas”).
  * FULL com várias parcelas em conta não cartão: estorno fica por parcela (INSTALLMENT) — exclui FULL nesse caso.
  */
 function computeExpectedSplitGainsRows(period, now = new Date()) {
-    if (!period || !/^month-\d+$/.test(period)) return [];
-    const months = getMonthKeysInPeriod(period, now);
-    const mk = months[0];
-    if (!mk) return [];
-
-    const expenses = userExpenses || [];
-    const accounts = userAccounts || [];
-    const incomeRows = gainsRenderCache?.sorted || [];
-    const outgoing = (userExpenseSplitRequests?.outgoing || []).filter((s) => isAcceptedSettledSplitRequest(s));
-    const out = [];
-
-    for (const s of outgoing) {
-        const srcId = String(s.sourceExpenseId ?? s.sourceExpense?.id ?? '');
-        const src = expenses.find((e) => e && String(e.id) === srcId) || s.sourceExpense;
-        if (!src || !src.accountId) continue;
-        const acc = accounts.find((a) => a.id === src.accountId);
-
-        const scope = normalizeSplitScope(s.splitScope);
-        const nInst = Math.max(1, parseInt(String(src.installmentCount ?? '1'), 10) || 1);
-        const isCard = acc && isCreditCardType(acc.type);
-        const deferFull =
-            scope === 'FULL_EXPENSE' &&
-            nInst >= 2 &&
-            acc &&
-            !isCard;
-
-        if (scope === 'INSTALLMENT') {
-            if (normalizeYyyyMmFromPeriodKey(s.targetPeriodKey) !== mk) continue;
-            if (s.createdGainId) continue;
-        } else if (scope === 'FULL_EXPENSE') {
-            if (deferFull) continue;
-            if (s.createdGainId) continue;
-            if (movementMonthKey(src.date) !== mk) continue;
-        } else {
-            continue;
-        }
-
-        const creditAcc = String(s.requesterCreditAccountId ?? '').trim();
-        if (!creditAcc) continue;
-
-        const alreadyHaveEstorno = incomeRows.some(
-            (g) =>
-                g &&
-                g.relatedExpenseId &&
-                String(g.relatedExpenseId) === String(srcId) &&
-                isSplitReimbursementGain(g) &&
-                movementMonthKey(g.date) === mk
-        );
-        if (alreadyHaveEstorno) continue;
-
-        const y = Number(mk.slice(0, 4));
-        const m = Number(mk.slice(5, 7)) - 1;
-        const dateInMonth = new Date(y, m, Math.min(movementDateToJsDate(src.date).getDate(), new Date(y, m + 1, 0).getDate()), 12, 0, 0, 0);
-
-        const amt = Number(s.amount) || 0;
-        if (amt <= 0) continue;
-
-        const descBase = String(src.description ?? 'Compra').trim() || 'Compra';
-        out.push({
-            id: `__expSplit__${s.id}`,
-            userId: currentUser?.uid,
-            accountId: creditAcc,
-            category: 'Reembolsos',
-            subcategory: null,
-            amount: amt,
-            description: `Expectativa de estorno — ${descBase}`,
-            date: dateInMonth.toISOString(),
-            isPaid: false,
-            recurrenceGroupId: null,
-            relatedExpenseId: src.id,
-            __syntheticExpectedSplit: true,
-            __splitRequestId: s.id
-        });
-    }
-    return out;
+    return buildSyntheticExpectedSplitGainsRows(
+        period,
+        now,
+        userExpenses || [],
+        userAccounts || [],
+        userExpenseSplitRequests?.outgoing || [],
+        gainsRenderCache?.sorted || []
+    );
 }
 
 function filterSyntheticGainsForCurrentFilters(synthetics) {

@@ -29,10 +29,12 @@ import {
 } from '../../core/projected-period-net.js';
 import {
     DASHBOARD_EXPENSE_FACET_IDS,
+    DASHBOARD_STATUS_FACET_IDS,
     dashOutflowCardSummationMode,
     filterExpensesForDashboardFacets,
     filterGainsForDashboardFacets
 } from '../../core/dashboard-expense-facets.js';
+import { buildSyntheticExpectedSplitGainsRows } from '../../core/expected-split-gain-rows.js';
 import { fetchDashboardPeriodBalance } from '../../services/firestore.js';
 import {
     applySplitNetToContribution,
@@ -107,10 +109,13 @@ function createFinancialPointValueLabelsPlugin(userCurrency, monthCount) {
 const REPORTS_CHART_PREF_KEY_FIN = 'reports.chartType.financialProgression';
 const REPORTS_CHART_COLORS_KEY = 'reports.financialChart.colors';
 const REPORTS_CHART_SHOW_SALDO_TOTAL_KEY = 'reports.financialChart.showSaldoTotal';
-/** Chips «Tipo» / «Saída» do painel (`data-facet` activos — array guardado como JSON). */
-const REPORTS_DASHBOARD_EXPENSE_FACETS_KEY = 'reports.dashboard.expenseFacetKeys';
+/** Chips de estado por fluxo (`expenses` / `gains`) — objeto JSON em storage; migrações tratam array antigo. */
+const REPORTS_DASHBOARD_FLOW_FACETS_KEY = 'reports.dashboard.flowFacetKeys';
+/** Legado: um só conjunto aplicado a entradas e saídas. */
+const REPORTS_DASHBOARD_EXPENSE_FACETS_KEY_LEGACY = 'reports.dashboard.expenseFacetKeys';
 
 const DASHBOARD_FACETS_ALLOWED = new Set(DASHBOARD_EXPENSE_FACET_IDS);
+const DASHBOARD_STATUS_FACETS_ALLOWED = new Set(DASHBOARD_STATUS_FACET_IDS);
 
 let dashboardExpenseFacetsHydratedFromStorage = false;
 
@@ -310,24 +315,106 @@ function ensureChartTypeTogglesBound() {
     syncChartTypeToggleUI('financialProgression');
 }
 
-function readDashboardExpenseFacetSetFromDom() {
+/** @returns {{ expenses: Set<string>, gains: Set<string> }} apenas facetas `paid`/`unpaid` por fluxo. */
+function parseDashboardFlowFacetsFromStorage() {
+    const empty = () => ({ expenses: new Set(), gains: new Set() });
+    const statusOnly = (arr) => {
+        if (!Array.isArray(arr)) return [];
+        return arr.filter((k) => typeof k === 'string' && DASHBOARD_STATUS_FACETS_ALLOWED.has(k));
+    };
+    try {
+        const rawNew = localStorage.getItem(REPORTS_DASHBOARD_FLOW_FACETS_KEY);
+        if (rawNew) {
+            const parsed = JSON.parse(rawNew);
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                return {
+                    expenses: new Set(statusOnly(parsed.expenses)),
+                    gains: new Set(statusOnly(parsed.gains))
+                };
+            }
+        }
+        const rawLegacy = localStorage.getItem(REPORTS_DASHBOARD_EXPENSE_FACETS_KEY_LEGACY);
+        if (rawLegacy) {
+            const parsed = JSON.parse(rawLegacy);
+            if (Array.isArray(parsed)) {
+                const keys = statusOnly(parsed);
+                const s = new Set(keys);
+                try {
+                    localStorage.setItem(
+                        REPORTS_DASHBOARD_FLOW_FACETS_KEY,
+                        JSON.stringify({ expenses: [...s], gains: [...s] })
+                    );
+                    localStorage.removeItem(REPORTS_DASHBOARD_EXPENSE_FACETS_KEY_LEGACY);
+                } catch {
+                    /* ignore */
+                }
+                return { expenses: new Set(s), gains: new Set(s) };
+            }
+        }
+    } catch {
+        /* ignore */
+    }
+    return empty();
+}
+
+function readDashboardOutflowFacetSetFromDom() {
     const root = document.getElementById('dashboard-page');
     if (!root) return new Set();
     const facets = new Set();
-    root.querySelectorAll('.dashboard-expense-facet-btn[aria-pressed="true"]').forEach((btn) => {
-        const f = String(btn.dataset.facet || '').trim();
-        if (f) facets.add(f);
-    });
+    root
+        .querySelectorAll(
+            '.dashboard-expense-facet-btn[data-dashboard-flow="expenses"][data-facet][aria-pressed="true"]'
+        )
+        .forEach((btn) => {
+            const f = String(btn.dataset.facet || '').trim();
+            if (f && DASHBOARD_FACETS_ALLOWED.has(f)) facets.add(f);
+        });
+    return facets;
+}
+
+function readDashboardInflowFacetSetFromDom() {
+    const root = document.getElementById('dashboard-page');
+    if (!root) return new Set();
+    const facets = new Set();
+    root
+        .querySelectorAll(
+            '.dashboard-expense-facet-btn[data-dashboard-flow="gains"][data-facet][aria-pressed="true"]'
+        )
+        .forEach((btn) => {
+            const f = String(btn.dataset.facet || '').trim();
+            if (f && DASHBOARD_FACETS_ALLOWED.has(f)) facets.add(f);
+        });
     return facets;
 }
 
 function persistDashboardExpenseFacetsFromDom() {
-    const keys = [...readDashboardExpenseFacetSetFromDom()];
-    keys.sort();
+    const root = document.getElementById('dashboard-page');
+    const expenses = [];
+    const gains = [];
+    if (root) {
+        root
+            .querySelectorAll(
+                '.dashboard-expense-facet-btn[data-dashboard-flow="expenses"][data-facet][aria-pressed="true"]'
+            )
+            .forEach((btn) => {
+                const f = String(btn.dataset.facet || '').trim();
+                if (f && DASHBOARD_STATUS_FACETS_ALLOWED.has(f)) expenses.push(f);
+            });
+        root
+            .querySelectorAll(
+                '.dashboard-expense-facet-btn[data-dashboard-flow="gains"][data-facet][aria-pressed="true"]'
+            )
+            .forEach((btn) => {
+                const f = String(btn.dataset.facet || '').trim();
+                if (f && DASHBOARD_STATUS_FACETS_ALLOWED.has(f)) gains.push(f);
+            });
+    }
+    expenses.sort();
+    gains.sort();
     try {
-        localStorage.setItem(REPORTS_DASHBOARD_EXPENSE_FACETS_KEY, JSON.stringify(keys));
+        localStorage.setItem(REPORTS_DASHBOARD_FLOW_FACETS_KEY, JSON.stringify({ expenses, gains }));
     } catch {
-        /* ignore quota / modo privado */
+        /* ignore */
     }
 }
 
@@ -338,27 +425,17 @@ function hydrateDashboardExpenseFacetsFromStorageOnce() {
     if (dashboardExpenseFacetsHydratedFromStorage) return;
     dashboardExpenseFacetsHydratedFromStorage = true;
 
-    /** @type {string[]} */
-    let stored = [];
-    try {
-        const raw = localStorage.getItem(REPORTS_DASHBOARD_EXPENSE_FACETS_KEY);
-        if (raw) {
-            const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed)) {
-                stored = parsed.filter((k) => typeof k === 'string' && DASHBOARD_FACETS_ALLOWED.has(k));
-            }
-        }
-    } catch {
-        stored = [];
-    }
+    const { expenses: expenseActive, gains: gainActive } = parseDashboardFlowFacetsFromStorage();
 
     const root = document.getElementById('dashboard-page');
     if (!root) return;
-    const active = new Set(stored);
 
-    root.querySelectorAll('.dashboard-expense-facet-btn[data-facet]').forEach((btn) => {
+    root.querySelectorAll('.dashboard-expense-facet-btn[data-facet][data-dashboard-flow]').forEach((btn) => {
         const f = String(btn.dataset.facet || '').trim();
-        const on = active.has(f);
+        const flow = String(btn.dataset.dashboardFlow || '').trim();
+        if (!f || !DASHBOARD_FACETS_ALLOWED.has(f)) return;
+        const activeSet = flow === 'gains' ? gainActive : expenseActive;
+        const on = activeSet.has(f);
         btn.setAttribute('aria-pressed', String(on));
         btn.classList.toggle('is-active', on);
     });
@@ -543,14 +620,26 @@ export async function loadReportsData(
 
     const now = new Date();
     const cardPeriod = isDashboardPeriodLinked() ? periodFilter.value : getDefaultPeriodValue(now);
-    const expenseFacetSet = readDashboardExpenseFacetSetFromDom();
+
+    const syntheticExpectedGains = buildSyntheticExpectedSplitGainsRows(
+        cardPeriod,
+        now,
+        userExpenses || [],
+        userAccounts || [],
+        expenseSplitRequests?.outgoing || [],
+        userGains || []
+    );
+    const gainsForDashboardRaw = [...gainsForTotals, ...syntheticExpectedGains];
+
+    const expenseFacetSet = readDashboardOutflowFacetSetFromDom();
+    const gainFacetSet = readDashboardInflowFacetSetFromDom();
     const dashSummationMode = dashOutflowCardSummationMode(expenseFacetSet);
     const expensesForDashboard = filterExpensesForDashboardFacets(
         userExpenses,
         userAccounts,
         expenseFacetSet
     );
-    const gainsForDashboard = filterGainsForDashboardFacets(gainsForTotals, expenseFacetSet);
+    const gainsForDashboard = filterGainsForDashboardFacets(gainsForDashboardRaw, gainFacetSet);
 
     const allExpensesForCategoryChart = mapExpensesToPeriodContributions(
         DASHBOARD_CHART_AXIS_PERIOD,
@@ -575,7 +664,9 @@ export async function loadReportsData(
         {
             expenseListForBalanceProjection: userExpenses,
             gainListForBalanceProjection: gainsForTotals,
-            dashSummationMode
+            dashSummationMode,
+            dashboardIncomeFacetsActive: gainFacetSet.size > 0,
+            dashboardExpenseFacetsActive: expenseFacetSet.size > 0
         }
     );
 
@@ -1345,7 +1436,9 @@ async function updateDashboardCardsAndTitlesForPeriod(
     {
         expenseListForBalanceProjection,
         gainListForBalanceProjection,
-        dashSummationMode = 'paid_through'
+        dashSummationMode = 'paid_through',
+        dashboardIncomeFacetsActive = true,
+        dashboardExpenseFacetsActive = true
     } = {}
 ) {
     const expenseListForBalanceProj = expenseListForBalanceProjection ?? userExpenses;
@@ -1364,52 +1457,74 @@ async function updateDashboardCardsAndTitlesForPeriod(
         'Fluxo mensal'
     );
 
+    const facetDashReady = dashboardIncomeFacetsActive && dashboardExpenseFacetsActive;
+
     // Valores dos cards respondendo ao período do filtro
-    const income = sumGainsForPeriod(period, gainsForDashboard);
-    const out = sumOutflowsForPeriod(
-        period,
-        userExpenses,
-        userAccounts,
-        now,
-        userProfile,
-        splitRequests,
-        dashSummationMode
-    );
-    setTextIfExists('monthly-income', formatCurrency(income, userCurrency));
-    setTextIfExists('monthly-expenses', formatCurrency(out, userCurrency));
+    const income = dashboardIncomeFacetsActive ? sumGainsForPeriod(period, gainsForDashboard) : null;
+    const out = dashboardExpenseFacetsActive
+        ? sumOutflowsForPeriod(
+              period,
+              userExpenses,
+              userAccounts,
+              now,
+              userProfile,
+              splitRequests,
+              dashSummationMode
+          )
+        : null;
 
-    const incomePrev =
-        prevBounds && prevBounds.prevStart <= prevBounds.prevEnd
-            ? sumMovementsInRange(gainsForDashboard || [], prevBounds.prevStart, prevBounds.prevEnd)
-            : 0;
-    const outPrev =
-        prevBounds && prevBounds.prevStart <= prevBounds.prevEnd
-            ? sumOutflowsClosedRange(
-                  prevBounds.prevStart,
-                  prevBounds.prevEnd,
-                  userExpenses,
-                  userAccounts,
-                  now,
-                  userProfile,
-                  splitRequests,
-                  dashSummationMode
-              )
-            : 0;
+    if (!dashboardIncomeFacetsActive) {
+        setTextIfExists('monthly-income', '—');
+        const incVar = document.getElementById('monthly-income-variation');
+        if (incVar) {
+            incVar.innerHTML =
+                '<span class="card-metric-hint" title="Marque Recebido ou Pendente em Entrada para ver valores.">—</span>';
+        }
+    } else {
+        setTextIfExists('monthly-income', formatCurrency(income ?? 0, userCurrency));
+        const incomePrev =
+            prevBounds && prevBounds.prevStart <= prevBounds.prevEnd
+                ? sumMovementsInRange(gainsForDashboard || [], prevBounds.prevStart, prevBounds.prevEnd)
+                : 0;
+        setMovementSummaryMomVariation(
+            document.getElementById('monthly-income-variation'),
+            income ?? 0,
+            incomePrev,
+            isSingleMonth,
+            false
+        );
+    }
 
-    setMovementSummaryMomVariation(
-        document.getElementById('monthly-income-variation'),
-        income,
-        incomePrev,
-        isSingleMonth,
-        false
-    );
-    setMovementSummaryMomVariation(
-        document.getElementById('monthly-expenses-variation'),
-        out,
-        outPrev,
-        isSingleMonth,
-        true
-    );
+    if (!dashboardExpenseFacetsActive) {
+        setTextIfExists('monthly-expenses', '—');
+        const outVar = document.getElementById('monthly-expenses-variation');
+        if (outVar) {
+            outVar.innerHTML =
+                '<span class="card-metric-hint" title="Marque Pago ou Pendente em Saída para ver valores.">—</span>';
+        }
+    } else {
+        setTextIfExists('monthly-expenses', formatCurrency(out ?? 0, userCurrency));
+        const outPrev =
+            prevBounds && prevBounds.prevStart <= prevBounds.prevEnd
+                ? sumOutflowsClosedRange(
+                      prevBounds.prevStart,
+                      prevBounds.prevEnd,
+                      userExpenses,
+                      userAccounts,
+                      now,
+                      userProfile,
+                      splitRequests,
+                      dashSummationMode
+                  )
+                : 0;
+        setMovementSummaryMomVariation(
+            document.getElementById('monthly-expenses-variation'),
+            out ?? 0,
+            outPrev,
+            isSingleMonth,
+            true
+        );
+    }
 
     // Fluxo líquido (entradas − saídas): meses futuros + mês corrente no filtro; mesma regra do gráfico «Sobra» / dataSobraMes.
     let dashNetProj = 0;
@@ -1417,6 +1532,8 @@ async function updateDashboardCardsAndTitlesForPeriod(
     {
         let { startDate, endDate } = getPeriodDateBounds(period, now);
         if (startDate > endDate) {
+            setTextIfExists('dashboard-projection-total', '—');
+        } else if (!facetDashReady) {
             setTextIfExists('dashboard-projection-total', '—');
         } else {
             for (const mo of enumerateCalendarMonths(startDate, endDate)) {
@@ -1463,7 +1580,10 @@ async function updateDashboardCardsAndTitlesForPeriod(
 
     const projVarEl = document.getElementById('dashboard-projection-variation');
     if (projVarEl) {
-        if (!isSingleMonth) {
+        if (!facetDashReady) {
+            projVarEl.innerHTML =
+                '<span class="card-metric-hint" title="Marque pelo menos uma opção em Entrada e em Saída para ver o balanço filtrado.">—</span>';
+        } else if (!isSingleMonth) {
             setMovementSummaryMomVariation(projVarEl, 0, 0, false, false);
         } else if (!dashAnyProj || !prevBounds) {
             projVarEl.innerHTML =
