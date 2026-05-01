@@ -1193,7 +1193,10 @@ export function formatExpenseTableStatusBadgeHtml(expense, account, userProfile,
         const pkEsc = esc(pk);
         return `<button type="button" class="expense-status-badge expense-status-badge--pay expense-inst-confirm-btn" data-expense-id="${eid}" data-period-key="${pkEsc}">Pagar</button>`;
     }
-    return EXPENSE_TABLE_BADGE_PENDING;
+    const pkPend = calendarDayKeyFromDate(dueInMonth);
+    const eidPend = esc(String(expense.id));
+    const pkPendEsc = esc(pkPend);
+    return `<button type="button" class="expense-status-badge expense-status-badge--pending expense-inst-confirm-btn" data-expense-id="${eidPend}" data-period-key="${pkPendEsc}" title="Confirmar pagamento no caixa (abre confirmação)" aria-label="Confirmar pagamento no caixa desta parcela">Pendente</button>`;
 }
 
 /**

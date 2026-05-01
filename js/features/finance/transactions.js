@@ -152,7 +152,9 @@ function formatMonthlyFixedCashListStatusHtml(t, account, userProfile, now) {
         const pkEsc = escapeHtml(monthKeyFromDate(d));
         return `<button type="button" class="expense-status-badge expense-status-badge--pay expense-inst-confirm-btn" data-expense-id="${eid}" data-period-key="${pkEsc}" title="Registrar pagamento no caixa">Pagar</button>`;
     }
-    return '<span class="expense-status-badge expense-status-badge--pending">Pendente</span>';
+    const eidP = escapeHtml(String(t.id));
+    const pkPend = escapeHtml(monthKeyFromDate(d));
+    return `<button type="button" class="expense-status-badge expense-status-badge--pending expense-inst-confirm-btn" data-expense-id="${eidP}" data-period-key="${pkPend}" title="Confirmar pagamento no caixa (abre confirmação)" aria-label="Confirmar pagamento no caixa para este mês">Pendente</button>`;
 }
 
 /** Tooltip do ↻ na coluna Valor — saídas (linha principal). */
@@ -2182,11 +2184,33 @@ function expenseMatchesQuickTypeFilters(t, accounts) {
     return false;
 }
 
-/** Conjunto `paid`/`unpaid`: OR entre estados; vazio = não exibe linhas (mesma regra das tags do painel). */
-function movementMatchesPaymentStatus(t, statusSet) {
+/**
+ * Saída «paga» para o filtro: `isPaid` ou débito no caixa já confirmado para a data do lançamento
+ * (`cashOutConfirmedPeriods` — séries mensais, rateio espelhado, etc.).
+ */
+function expenseIsEffectivelyPaidForFilter(t, accounts) {
+    if (!t) return false;
+    if (t.isPaid !== false) return true;
+    const acc = accounts?.find((a) => a.id === t.accountId);
+    if (!acc) return false;
+    const d = movementDateToJsDate(t.date);
+    if (Number.isNaN(d.getTime())) return false;
+    const confirmed = parseCashOutConfirmedPeriods(t);
+    if (!confirmed.size) return false;
+    return isPeriodConfirmedForDebit(confirmed, d);
+}
+
+/**
+ * Conjunto `paid`/`unpaid`: OR entre estados; vazio = não exibe linhas (mesma regra das tags do painel).
+ * @param {{ kind?: 'expense', accounts?: any[] } | null} expenseCtx — só em saídas; ganhos ignoram.
+ */
+function movementMatchesPaymentStatus(t, statusSet, expenseCtx = null) {
     if (!statusSet || statusSet.size === 0) return false;
-    const paid = t.isPaid !== false;
-    return (statusSet.has('paid') && paid) || (statusSet.has('unpaid') && t.isPaid === false);
+    const paid =
+        expenseCtx?.kind === 'expense'
+            ? expenseIsEffectivelyPaidForFilter(t, expenseCtx.accounts)
+            : t.isPaid !== false;
+    return (statusSet.has('paid') && paid) || (statusSet.has('unpaid') && !paid);
 }
 
 function sumMovementAmounts(list) {
@@ -3169,7 +3193,12 @@ function getFilteredExpensesList() {
     if (paymentType) {
         list = list.filter((t) => accountPaymentType(accounts.find((a) => a.id === t.accountId)) === paymentType);
     }
-    list = list.filter((t) => movementMatchesPaymentStatus(t, paymentStatus));
+    list = list.filter((t) =>
+        movementMatchesPaymentStatus(t, paymentStatus, {
+            kind: 'expense',
+            accounts
+        })
+    );
     list = list.filter((t) => expenseMatchesQuickTypeFilters(t, accounts));
     if (description && description.trim()) {
         const needleDesc = description.trim().toLowerCase();
@@ -3392,6 +3421,10 @@ function renderExpensesBodySliceWithList(list) {
                 const eid = escapeHtml(String(t.id));
                 const pk = escapeHtml(String(t.__instPeriodKey));
                 statusCell = `<button type="button" class="expense-status-badge expense-status-badge--pay expense-inst-confirm-btn" data-expense-id="${eid}" data-period-key="${pk}" title="Registrar pagamento no caixa">Pagar</button>`;
+            } else if (t.__instDueDate && t.__instPeriodKey) {
+                const eid = escapeHtml(String(t.id));
+                const pk = escapeHtml(String(t.__instPeriodKey));
+                statusCell = `<button type="button" class="expense-status-badge expense-status-badge--pending expense-inst-confirm-btn" data-expense-id="${eid}" data-period-key="${pk}" title="Confirmar pagamento no caixa (abre confirmação)" aria-label="Confirmar pagamento no caixa desta parcela">Pendente</button>`;
             } else {
                 statusCell = '<span class="expense-status-badge expense-status-badge--pending">Pendente</span>';
             }

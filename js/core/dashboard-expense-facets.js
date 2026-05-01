@@ -1,4 +1,5 @@
-import { isCreditCardType, isPixBankAccountType } from './utils.js';
+import { isCreditCardType, isPixBankAccountType, movementDateToJsDate } from './utils.js';
+import { isPeriodConfirmedForDebit, parseCashOutConfirmedPeriods } from './finance-preferences.js';
 
 /** Lançamento marcado como despesa essencial (`isFixed` na API; mesma convenção da lista de saídas). */
 export function expenseIsMarkedFixed(expense) {
@@ -56,10 +57,23 @@ function facetsHasSome(facets, keys) {
     return keys.some((k) => facets.has(k));
 }
 
+/** Igual à lista de saídas: pago se `isPaid` ou se o caixa já foi confirmado para a data do lançamento. */
+function expenseIsEffectivelyPaidForDashboard(expense, account) {
+    if (!expense) return false;
+    if (expense.isPaid !== false) return true;
+    if (!account) return false;
+    const d = movementDateToJsDate(expense.date);
+    if (Number.isNaN(d.getTime())) return false;
+    const confirmed = parseCashOutConfirmedPeriods(expense);
+    if (!confirmed.size) return false;
+    return isPeriodConfirmedForDebit(confirmed, d);
+}
+
 /**
  * Filtros do painel sobre saídas:
  * — **Tipo**: OR entre facetas seleccionadas; se nenhuma de tipo está activa, não restringe por tipo.
- * — **Saída** (estado): pago ⇒ `isPaid !== false`; pendente ⇒ `isPaid === false`. Com «Pago» e «Pendente» aos dois ligados (= OR), passam todas.
+ * — **Saída** (estado): pago ⇒ `isPaid` ou confirmação em `cashOutConfirmedPeriods` para o mês/dia da data; pendente ⇒ o contrário.
+ * — Com «Pago» e «Pendente» aos dois ligados (= OR), passam todas.
  * — Tipo × pagamento com **AND** (alinhado aos filtros rápidos da lista de saídas).
  */
 export function expenseMatchesAnyDashboardFacet(expense, account, facets) {
@@ -83,9 +97,9 @@ export function expenseMatchesAnyDashboardFacet(expense, account, facets) {
 
     let statusMatches = true;
     if (facetsHasSome(facets, STATUS_KEYS)) {
-        const isPaidExpense = expense.isPaid !== false;
+        const isPaidExpense = expenseIsEffectivelyPaidForDashboard(expense, account);
         statusMatches =
-            (facets.has('paid') && isPaidExpense) || (facets.has('unpaid') && expense.isPaid === false);
+            (facets.has('paid') && isPaidExpense) || (facets.has('unpaid') && !isPaidExpense);
     }
 
     return typeMatches && statusMatches;
