@@ -454,7 +454,7 @@
                         <div class="card">
                             <div class="card-icon balance"><i class="fas fa-wallet"></i></div>
                             <div class="card-content">
-                                <h3 id="dashboard-balance-title">Saldo</h3>
+                                <h3 id="dashboard-balance-title">Saldo em conta</h3>
                                 <p id="dashboard-balance-total">—</p>
                                 <span id="dashboard-balance-variation" class="dashboard-card-scope"></span>
                             </div>
@@ -462,7 +462,7 @@
                         <div class="card">
                             <div class="card-icon income"><i class="fas fa-arrow-up"></i></div>
                             <div class="card-content">
-                                <h3 id="monthly-income-title">Entradas do Mês</h3>
+                                <h3 id="monthly-income-title">Entradas</h3>
                                 <p id="monthly-income">R$ 0,00</p>
                                 <span id="monthly-income-variation" class="dashboard-card-scope"></span>
                             </div>
@@ -470,7 +470,7 @@
                         <div class="card">
                             <div class="card-icon expense"><i class="fas fa-arrow-down"></i></div>
                             <div class="card-content">
-                                <h3 id="monthly-expenses-title">Saídas do Mês</h3>
+                                <h3 id="monthly-expenses-title">Saídas</h3>
                                 <p id="monthly-expenses">R$ 0,00</p>
                                 <span id="monthly-expenses-variation" class="dashboard-card-scope"></span>
                             </div>
@@ -487,7 +487,7 @@
                         <div class="card">
                             <div class="card-icon projection"><i class="fas fa-chart-area"></i></div>
                             <div class="card-content">
-                                <h3 id="dashboard-projection-title">Projeção</h3>
+                                <h3 id="dashboard-projection-title">Balanço</h3>
                                 <p id="dashboard-projection-total">—</p>
                                 <span id="dashboard-projection-variation" class="dashboard-card-scope"></span>
                             </div>
@@ -504,18 +504,58 @@
                         <div class="dashboard-reports-charts-grid dashboard-reports-charts-grid--single">
                             <div class="reports-chart-container dashboard-flux-chart-card" id="financial-progression-card">
                                 <div class="reports-chart-header">
-                                    <h3 id="financial-progression-title">Fluxo mensal (Entradas, Saídas e Saldo)</h3>
-                                    <div class="chart-type-toggle" role="group" aria-label="Tipo de gráfico: fluxo e patrimônio">
-                                        <button type="button" class="chart-type-btn" data-chart="financialProgression" data-type="line" aria-label="Exibir como linhas (inclui patrimônio)" title="Linhas · patrimônio">
-                                            <span class="chart-type-icon" aria-hidden="true">〰</span>
-                                        </button>
-                                        <button type="button" class="chart-type-btn" data-chart="financialProgression" data-type="bar" aria-label="Exibir como colunas" title="Colunas">
-                                            <span class="chart-type-icon" aria-hidden="true">▮</span>
-                                        </button>
+                                    <h3 id="financial-progression-title">Fluxo mensal</h3>
+                                    <div class="reports-chart-header-actions">
+                                        <div class="financial-chart-colors-wrap">
+                                            <button type="button" id="financial-chart-colors-btn" class="financial-chart-colors-btn"
+                                                aria-expanded="false" aria-controls="financial-chart-colors-panel"
+                                                title="Cores do gráfico" aria-label="Personalizar cores do gráfico">
+                                                <i class="fas fa-cog" aria-hidden="true"></i>
+                                            </button>
+                                            <div id="financial-chart-colors-panel" class="financial-chart-colors-panel hidden" role="dialog"
+                                                aria-label="Cores do fluxo mensal">
+                                                <p class="financial-chart-colors-intro">Saldo em conta (gráfico)</p>
+                                                <div class="financial-chart-colors-row financial-chart-toggle-row">
+                                                    <label for="fin-show-saldo-total-contas">Saldo em conta no gráfico</label>
+                                                    <input type="checkbox" id="fin-show-saldo-total-contas"
+                                                        aria-label="Exibir série Saldo em conta no gráfico (eixo direito, igual ao card)">
+                                                </div>
+                                                <p class="financial-chart-colors-intro financial-chart-colors-intro--spaced">Cores das séries no gráfico</p>
+                                                <div class="financial-chart-colors-row">
+                                                    <label for="fin-color-ganhos">Entradas</label>
+                                                    <input type="color" id="fin-color-ganhos" data-fin-color="ganhos" aria-label="Cor das entradas">
+                                                </div>
+                                                <div class="financial-chart-colors-row">
+                                                    <label for="fin-color-gastos">Saídas</label>
+                                                    <input type="color" id="fin-color-gastos" data-fin-color="gastos" aria-label="Cor das saídas">
+                                                </div>
+                                                <div class="financial-chart-colors-row">
+                                                    <label for="fin-color-saldo-pos">Balanço (+)</label>
+                                                    <input type="color" id="fin-color-saldo-pos" data-fin-color="saldoPos" aria-label="Cor do saldo positivo">
+                                                </div>
+                                                <div class="financial-chart-colors-row">
+                                                    <label for="fin-color-saldo-neg">Balanço (-)</label>
+                                                    <input type="color" id="fin-color-saldo-neg" data-fin-color="saldoNeg" aria-label="Cor do saldo negativo">
+                                                </div>
+                                                <div class="financial-chart-colors-row">
+                                                    <label for="fin-color-saldo-total">Saldo</label>
+                                                    <input type="color" id="fin-color-saldo-total" data-fin-color="saldoTotal" aria-label="Cor da barra de saldo em conta">
+                                                </div>
+                                                <button type="button" class="financial-chart-colors-reset btn-secondary" id="financial-chart-colors-reset">
+                                                    Restaurar padrão
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="chart-type-toggle" role="group" aria-label="Tipo de gráfico: fluxo e patrimônio">
+                                            <button type="button" class="chart-type-btn" data-chart="financialProgression" data-type="line" aria-label="Exibir como linhas (inclui patrimônio)" title="Linhas · patrimônio">
+                                                <span class="chart-type-icon" aria-hidden="true">〰</span>
+                                            </button>
+                                            <button type="button" class="chart-type-btn" data-chart="financialProgression" data-type="bar" aria-label="Exibir como colunas" title="Colunas">
+                                                <span class="chart-type-icon" aria-hidden="true">▮</span>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                                <p class="financial-progression-hint">Clique num mês no
-                                    gráfico para filtrar os cards pelo período desse mês.</p>
                                 <div class="chart-wrapper chart-wrapper--tall chart-wrapper--flux-full">
                                     <canvas id="financial-progression-chart"></canvas>
                                 </div>

@@ -34,7 +34,14 @@
 /* --- Layout Principal da Aplicação --- */
 .main-content {
     display: flex;
+    /* Altura fixa à viewport: o scroll fica só em .page-content; a coluna do menu não “rola” com a página. */
     min-height: 100vh;
+    min-height: 100dvh;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100vh;
+    max-height: 100dvh;
+    overflow: hidden;
 }
 
 .sidebar {
@@ -347,9 +354,12 @@
 }
 
 .page-content {
-    flex-grow: 1;
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
     padding: 2rem;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .page-header {

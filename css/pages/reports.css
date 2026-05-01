@@ -75,6 +75,108 @@
     margin-bottom: 0;
 }
 
+.reports-chart-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-shrink: 0;
+}
+
+.financial-chart-colors-wrap {
+    position: relative;
+}
+
+.financial-chart-colors-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    padding: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--bg-light) 92%, var(--bg-color) 8%);
+    color: var(--text-color);
+    cursor: pointer;
+    opacity: 0.88;
+    transition: opacity 0.15s ease, background-color 0.15s ease, transform 0.08s ease;
+}
+
+.financial-chart-colors-btn:hover {
+    opacity: 1;
+    background-color: color-mix(in srgb, var(--primary-color) 12%, transparent);
+}
+
+.financial-chart-colors-btn:active {
+    transform: translateY(1px);
+}
+
+.financial-chart-colors-panel {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 6px);
+    z-index: 40;
+    min-width: 260px;
+    padding: 0.85rem 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-light);
+    box-shadow: var(--shadow);
+}
+
+.financial-chart-colors-intro {
+    margin: 0 0 0.65rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-light, var(--text-color));
+    opacity: 0.9;
+}
+
+.financial-chart-colors-intro--spaced {
+    margin-top: 0.75rem;
+    padding-top: 0.65rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.financial-chart-toggle-row input[type='checkbox'] {
+    width: 1.1rem;
+    height: 1.1rem;
+    accent-color: var(--primary-color, #2563eb);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.financial-chart-colors-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.55rem;
+}
+
+.financial-chart-colors-row label {
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.financial-chart-colors-row input[type='color'] {
+    width: 2.25rem;
+    height: 1.75rem;
+    padding: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    background: transparent;
+}
+
+.financial-chart-colors-reset {
+    width: 100%;
+    margin-top: 0.5rem;
+    padding: 0.45rem 0.65rem;
+    font-size: 0.85rem;
+}
+
 .chart-type-toggle {
     display: inline-flex;
     gap: 0.4rem;

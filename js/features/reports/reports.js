@@ -20,8 +20,7 @@ import {
 import { getTotalInvestedSum } from '../investments/investments.js';
 import {
     getDefaultPeriodValue,
-    getPeriodDateBounds,
-    getPeriodTitleParts
+    getPeriodDateBounds
 } from '../../core/period-filters.js';
 import {
     enumerateCalendarMonths,
@@ -74,6 +73,7 @@ function createFinancialPointValueLabelsPlugin(userCurrency, monthCount) {
 
             for (let di = 0; di < data.datasets.length; di++) {
                 const ds = data.datasets[di];
+                if (ds.yAxisID === 'y1') continue;
                 const meta = chart.getDatasetMeta(di);
                 if (meta.hidden) continue;
                 const color =
@@ -101,6 +101,146 @@ function createFinancialPointValueLabelsPlugin(userCurrency, monthCount) {
 }
 
 const REPORTS_CHART_PREF_KEY_FIN = 'reports.chartType.financialProgression';
+const REPORTS_CHART_COLORS_KEY = 'reports.financialChart.colors';
+const REPORTS_CHART_SHOW_SALDO_TOTAL_KEY = 'reports.financialChart.showSaldoTotal';
+
+/** Cor fixa da série «Patrimônio investido» (não personalizável no painel). */
+const FINANCIAL_CHART_INVEST_COLOR = '#14b8a6';
+
+const FINANCIAL_CHART_COLOR_KEYS_DEFAULT = {
+    ganhos: '#22c55e',
+    gastos: '#ef4444',
+    saldoPos: '#fbbf24',
+    saldoNeg: '#f43f5e',
+    saldoTotal: '#6366f1'
+};
+
+function getShowFinancialChartSaldoTotal() {
+    try {
+        const v = localStorage.getItem(REPORTS_CHART_SHOW_SALDO_TOTAL_KEY);
+        if (v === null) return false;
+        return v === '1' || v === 'true';
+    } catch {
+        return false;
+    }
+}
+
+function setShowFinancialChartSaldoTotal(show) {
+    try {
+        localStorage.setItem(REPORTS_CHART_SHOW_SALDO_TOTAL_KEY, show ? '1' : '0');
+    } catch {
+        // ignore
+    }
+}
+
+function normalizeFinChartHex(hex) {
+    const s = String(hex || '').trim();
+    return /^#[0-9a-f]{6}$/i.test(s) ? s.toLowerCase() : null;
+}
+
+function getFinancialChartColors() {
+    const base = { ...FINANCIAL_CHART_COLOR_KEYS_DEFAULT };
+    try {
+        const raw = localStorage.getItem(REPORTS_CHART_COLORS_KEY);
+        if (!raw) return base;
+        const o = JSON.parse(raw);
+        if (!o || typeof o !== 'object') return base;
+        for (const k of Object.keys(FINANCIAL_CHART_COLOR_KEYS_DEFAULT)) {
+            const n = normalizeFinChartHex(o[k]);
+            if (n) base[k] = n;
+        }
+        return base;
+    } catch {
+        return base;
+    }
+}
+
+function saveFinancialChartColors(obj) {
+    try {
+        localStorage.setItem(REPORTS_CHART_COLORS_KEY, JSON.stringify(obj));
+    } catch {
+        // ignore
+    }
+}
+
+function financialChartColorToInputValue(hex) {
+    const n = normalizeFinChartHex(hex);
+    return n || '#000000';
+}
+
+function ensureFinancialChartColorSettingsBound() {
+    if (ensureFinancialChartColorSettingsBound._bound) return;
+    ensureFinancialChartColorSettingsBound._bound = true;
+    const btn = document.getElementById('financial-chart-colors-btn');
+    const panel = document.getElementById('financial-chart-colors-panel');
+    if (!btn || !panel) return;
+
+    const syncInputsFromStorage = () => {
+        const c = getFinancialChartColors();
+        panel.querySelectorAll('input[type="color"][data-fin-color]').forEach((inp) => {
+            const k = inp.dataset.finColor;
+            if (k && c[k]) inp.value = financialChartColorToInputValue(c[k]);
+        });
+        const saldoCb = document.getElementById('fin-show-saldo-total-contas');
+        if (saldoCb) saldoCb.checked = getShowFinancialChartSaldoTotal();
+    };
+
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const nowHidden = panel.classList.toggle('hidden');
+        btn.setAttribute('aria-expanded', String(!nowHidden));
+        if (!nowHidden) syncInputsFromStorage();
+    });
+
+    panel.addEventListener('click', (e) => e.stopPropagation());
+
+    document.getElementById('fin-show-saldo-total-contas')?.addEventListener('change', (ev) => {
+        const el = ev.target;
+        if (!(el instanceof HTMLInputElement)) return;
+        setShowFinancialChartSaldoTotal(el.checked);
+        if (lastReportsLoadArgs) void loadReportsData(...lastReportsLoadArgs);
+    });
+
+    panel.querySelectorAll('input[type="color"][data-fin-color]').forEach((inp) => {
+        inp.addEventListener('input', () => {
+            const key = inp.dataset.finColor;
+            const val = normalizeFinChartHex(inp.value);
+            if (!key || !val) return;
+            const next = { ...getFinancialChartColors(), [key]: val };
+            saveFinancialChartColors(next);
+            if (lastReportsLoadArgs) void loadReportsData(...lastReportsLoadArgs);
+        });
+    });
+
+    document.getElementById('financial-chart-colors-reset')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        try {
+            localStorage.removeItem(REPORTS_CHART_COLORS_KEY);
+            localStorage.removeItem(REPORTS_CHART_SHOW_SALDO_TOTAL_KEY);
+        } catch {
+            // ignore
+        }
+        syncInputsFromStorage();
+        if (lastReportsLoadArgs) void loadReportsData(...lastReportsLoadArgs);
+    });
+
+    document.addEventListener('click', () => {
+        if (!panel.classList.contains('hidden')) {
+            panel.classList.add('hidden');
+            btn.setAttribute('aria-expanded', 'false');
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        if (panel.classList.contains('hidden')) return;
+        panel.classList.add('hidden');
+        btn.setAttribute('aria-expanded', 'false');
+    });
+
+    syncInputsFromStorage();
+}
 
 function safeLocalStorageGet(key, fallback = '') {
     try {
@@ -185,6 +325,7 @@ function onDashboardExpenseFacetBarClick(ev) {
 function ensureReportsListeners() {
     if (reportsListenersBound) return;
     reportsListenersBound = true;
+    ensureFinancialChartColorSettingsBound();
     ensureChartTypeTogglesBound();
     document.getElementById('dashboard-page')?.addEventListener('click', onDashboardExpenseFacetBarClick);
     document.getElementById('period-filter')?.addEventListener('change', () => {
@@ -234,6 +375,85 @@ function refreshCategoryFilterOptions(expenseContributions) {
     select.value = nextValue;
     select.disabled = options.length <= 1;
     return nextValue;
+}
+
+/**
+ * Saldo em contas no fim do mês civil `mo` — mesma regra do card «Saldo em conta» (ledger via API + projeção para meses futuros).
+ */
+async function dashboardBalanceAtEndOfChartMonth(
+    mo,
+    now,
+    userGains,
+    expenseListForBalanceProj,
+    userAccounts,
+    userProfile,
+    splitRequests
+) {
+    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    if (mo.end <= endOfToday) {
+        return fetchDashboardPeriodBalance(mo.start, mo.end);
+    }
+    const baseBal = await fetchDashboardPeriodBalance(
+        new Date(now.getFullYear(), now.getMonth(), 1),
+        endOfToday
+    );
+    if (baseBal == null) return null;
+    let projected = baseBal;
+    const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    if (mo.end >= nextMonthStart) {
+        for (const m2 of enumerateCalendarMonths(nextMonthStart, mo.end)) {
+            const inc = sumProjectedGainsForCalendarMonth(m2, userGains);
+            const outMo = sumOutflowsProjectedForCalendarMonth(
+                m2,
+                expenseListForBalanceProj,
+                userAccounts,
+                now,
+                userProfile,
+                splitRequests
+            );
+            projected += inc - outMo;
+        }
+    }
+    return projected;
+}
+
+/**
+ * Limites do eixo y1 (saldo em conta) para o zero coincidir em pixels com o eixo y principal —
+ * evita barras «penduradas» no topo quando há duas escalas.
+ */
+function computeY1BoundsAlignedToYZero(yMin, yMax, saldoTotals) {
+    const vals = saldoTotals.filter((v) => v != null && Number.isFinite(Number(v))).map(Number);
+    const saldoMax = vals.length ? Math.max(...vals) : 0;
+    const saldoMin = vals.length ? Math.min(...vals) : 0;
+    const span = yMax - yMin;
+    if (span <= 0 || !vals.length) {
+        return { min: Math.min(0, saldoMin), max: Math.max(saldoMax, saldoMin + 1, 1) };
+    }
+    const t = (0 - yMin) / span;
+    let y1Hi = Math.max(saldoMax * 1.03, saldoMax, 1e-6);
+    let y1Lo;
+    if (t <= 1e-10) {
+        y1Lo = Math.min(0, saldoMin);
+        if (y1Hi <= y1Lo) y1Hi = y1Lo + 1;
+        return { min: y1Lo, max: y1Hi };
+    }
+    if (t >= 1 - 1e-10) {
+        y1Lo = Math.min(saldoMin, 0) - Math.max(1, Math.abs(saldoMax) * 0.02);
+        y1Hi = Math.max(saldoMax, y1Lo + 1);
+        return { min: y1Lo, max: y1Hi };
+    }
+    y1Lo = (t * y1Hi) / (t - 1);
+    if (!Number.isFinite(y1Lo)) {
+        y1Lo = Math.min(0, saldoMin);
+    }
+    if (y1Hi < saldoMax) {
+        y1Hi = saldoMax * 1.06;
+        y1Lo = (t * y1Hi) / (t - 1);
+    }
+    if (y1Hi <= y1Lo) {
+        y1Hi = y1Lo + 1;
+    }
+    return { min: y1Lo, max: y1Hi };
 }
 
 /**
@@ -294,8 +514,32 @@ export async function loadReportsData(
         userCurrency,
         userProfile,
         outgoingAcceptedSplits,
-        { chartPeriodForTitles: DASHBOARD_CHART_AXIS_PERIOD, expenseListForBalanceProjection: userExpenses }
+        { expenseListForBalanceProjection: userExpenses }
     );
+
+    let saldoEmContaSeries = null;
+    if (getShowFinancialChartSaldoTotal()) {
+        const { startDate: chartAxisStart, endDate: chartAxisEnd } = getPeriodDateBounds(
+            DASHBOARD_CHART_AXIS_PERIOD,
+            now
+        );
+        if (chartAxisStart <= chartAxisEnd) {
+            const chartMonths = enumerateCalendarMonths(chartAxisStart, chartAxisEnd);
+            saldoEmContaSeries = await Promise.all(
+                chartMonths.map((mo) =>
+                    dashboardBalanceAtEndOfChartMonth(
+                        mo,
+                        now,
+                        gainsForTotals,
+                        userExpenses,
+                        userAccounts,
+                        userProfile,
+                        outgoingAcceptedSplits
+                    )
+                )
+            );
+        }
+    }
 
     renderUnifiedFinancialChart(
         DASHBOARD_CHART_AXIS_PERIOD,
@@ -306,7 +550,8 @@ export async function loadReportsData(
         userCurrency,
         userProfile,
         outgoingAcceptedSplits,
-        cardPeriod
+        cardPeriod,
+        saldoEmContaSeries
     );
 
     const catSel = document.getElementById('category-filter');
@@ -629,36 +874,21 @@ async function updateDashboardCardsAndTitlesForPeriod(
     userCurrency,
     userProfile = null,
     splitRequests = null,
-    { chartPeriodForTitles, expenseListForBalanceProjection } = {}
+    { expenseListForBalanceProjection } = {}
 ) {
     const expenseListForBalanceProj = expenseListForBalanceProjection ?? userExpenses;
     const now = new Date();
-    const parts = getPeriodTitleParts(period, now);
-    const chartTitleParts = getPeriodTitleParts(chartPeriodForTitles ?? period, now);
     const isSingleMonth = /^month-\d+$/.test(period || '');
     const { startDate: dashStart, endDate: dashEnd } = getPeriodDateBounds(period, now);
     const prevBounds = isSingleMonth ? dashboardPrevCalendarMonthBounds(dashStart) : null;
 
-    // Títulos dos cards (período dos cartões)
-    if (parts.kind === 'year') {
-        setTextIfExists('dashboard-balance-title', `Saldo de ${parts.label}`);
-        setTextIfExists('monthly-expenses-title', `Saídas de ${parts.label}`);
-        setTextIfExists('monthly-income-title', `Entradas de ${parts.label}`);
-        setTextIfExists('dashboard-projection-title', `Projeção de ${parts.label}`);
-    } else if (parts.kind === 'month') {
-        setTextIfExists('dashboard-balance-title', `Saldo de ${parts.label}`);
-        setTextIfExists('monthly-expenses-title', `Saídas de ${parts.label}`);
-        setTextIfExists('monthly-income-title', `Entradas de ${parts.label}`);
-        setTextIfExists('dashboard-projection-title', `Projeção de ${parts.label}`);
-    } else {
-        setTextIfExists('dashboard-balance-title', `Saldo · ${parts.label}`);
-        setTextIfExists('monthly-expenses-title', `Saídas · ${parts.label}`);
-        setTextIfExists('monthly-income-title', `Entradas · ${parts.label}`);
-        setTextIfExists('dashboard-projection-title', `Projeção · ${parts.label}`);
-    }
+    setTextIfExists('dashboard-balance-title', 'Saldo em conta');
+    setTextIfExists('monthly-income-title', 'Entradas');
+    setTextIfExists('monthly-expenses-title', 'Saídas');
+    setTextIfExists('dashboard-projection-title', 'Balanço');
     setTextIfExists(
         'financial-progression-title',
-        `Fluxo mensal (Entradas, Saídas e Saldo) · ${chartTitleParts.label}`
+        'Fluxo mensal'
     );
 
     // Valores dos cards respondendo ao período do filtro
@@ -775,7 +1005,7 @@ async function updateDashboardCardsAndTitlesForPeriod(
         }
     }
 
-    // ── Card Saldo ─────────────────────────────────────────────────────────────
+    // ── Card Saldo em conta ────────────────────────────────────────────────────
     let balanceCurr = null;
     let balancePrev = null;
     try {
@@ -986,7 +1216,7 @@ function sumOutflowsForCalendarMonth(
 }
 
 /**
- * Um gráfico: total gasto, total ganhos, investimento (posição atual) e saldo em contas (igual ao card Saldo total).
+ * Série «Saldo em conta» no eixo direito: mesmos valores do card (API / ledger + projeção).
  * `dashboardHighlightPeriod` combina com os cards (`month-*` → destaque na coluna correspondente ao ano do eixo).
  */
 function renderUnifiedFinancialChart(
@@ -998,12 +1228,13 @@ function renderUnifiedFinancialChart(
     userCurrency,
     userProfile = null,
     splitRequests = null,
-    dashboardHighlightPeriod = ''
+    dashboardHighlightPeriod = '',
+    saldoEmContaSeries = null
 ) {
     const canvas = document.getElementById('financial-progression-chart');
     if (!canvas) return;
 
-    canvas.setAttribute('title', 'Clique num mês para filtrar os cards pelo período desse mês');
+    canvas.removeAttribute('title');
 
     const now = new Date();
     let { startDate, endDate } = getPeriodDateBounds(period, now);
@@ -1031,17 +1262,29 @@ function renderUnifiedFinancialChart(
     );
     const dataGanhos = months.map((mo) => sumMovementsInRange(gains, mo.start, mo.end));
     const dataInvest = investmentSeriesNoProjection(months, investedTotal);
-    /** Sobra mensal: entradas do mês menos saídas (realizadas ou projetadas conforme o mês). */
+    /** Balanço mensal: entradas do mês menos saídas (realizadas ou projetadas conforme o mês). */
     const dataSobraMes = months.map((_, i) => (dataGanhos[i] || 0) - (dataGastos[i] || 0));
+
+    const showSaldoTotalBar = getShowFinancialChartSaldoTotal();
+    const dataSaldoTotal =
+        showSaldoTotalBar &&
+        Array.isArray(saldoEmContaSeries) &&
+        saldoEmContaSeries.length === months.length
+            ? saldoEmContaSeries.map((v) =>
+                  v == null || !Number.isFinite(Number(v)) ? null : Number(v)
+              )
+            : [];
 
     if (financialProgressionChart) financialProgressionChart.destroy();
 
     const { tick, grid } = getChartAxisColors();
-    const ganhosColor = '#3b82f6';
-    const gastosColor = '#fbbf24';
-    const invColor = '#14b8a6';
-    const sobraPosColor = '#10b981';
-    const sobraNegColor = '#f43f5e';
+    const fc = getFinancialChartColors();
+    const ganhosColor = fc.ganhos;
+    const gastosColor = fc.gastos;
+    const invColor = FINANCIAL_CHART_INVEST_COLOR;
+    const sobraPosColor = fc.saldoPos;
+    const sobraNegColor = fc.saldoNeg;
+    const saldoTotalColor = fc.saldoTotal;
 
     const emphasisMonthIdx = resolveDashboardChartEmphasisMonthIndex(dashboardHighlightPeriod, months);
 
@@ -1068,7 +1311,7 @@ function renderUnifiedFinancialChart(
     const lineFill = (hex) =>
         projectionFlags.map((pf) => (pf ? colorWithAlpha(hex, 0.24) : colorWithAlpha(hex, 0.45)));
 
-    const datasets = barMode
+    let datasets = barMode
         ? [
               {
                   type: 'bar',
@@ -1096,7 +1339,7 @@ function renderUnifiedFinancialChart(
               },
               {
                   type: 'bar',
-                  label: 'Saldo do mês',
+                  label: 'Balanço',
                   data: dataSobraMes,
                   yAxisID: 'y',
                   backgroundColor: dataSobraMes.map((_, i) => barPaintSobra(i)),
@@ -1160,15 +1403,32 @@ function renderUnifiedFinancialChart(
                   stack: areaMode ? 'main' : undefined
               },
               {
-                  label: 'Saldo do mês',
+                  label: 'Balanço',
                   data: dataSobraMes,
                   yAxisID: 'y',
                   borderColor: sobraPosColor,
                   segment: {
-                      borderColor: segmentBorderColorFactory(sobraPosColor, projectionFlags)
+                      borderColor: (ctx) => {
+                          const i0 = ctx.p0DataIndex;
+                          const i1 = ctx.p1DataIndex;
+                          if (i0 == null || i1 == null) return sobraPosColor;
+                          const v0 = Number(dataSobraMes[i0]) || 0;
+                          const v1 = Number(dataSobraMes[i1]) || 0;
+                          const base = v0 < 0 && v1 < 0 ? sobraNegColor : sobraPosColor;
+                          const proj = projectionFlags[i0] || projectionFlags[i1];
+                          return proj ? colorWithAlpha(base, 0.72) : base;
+                      }
                   },
-                  pointBackgroundColor: pointColorsForProjection(sobraPosColor, projectionFlags),
-                  pointBorderColor: pointBorderColorsForProjection(sobraPosColor, projectionFlags),
+                  pointBackgroundColor: projectionFlags.map((pf, i) => {
+                      const v = Number(dataSobraMes[i]) || 0;
+                      const c = v < 0 ? sobraNegColor : sobraPosColor;
+                      return pf ? colorWithAlpha(c, 0.58) : c;
+                  }),
+                  pointBorderColor: projectionFlags.map((pf, i) => {
+                      const v = Number(dataSobraMes[i]) || 0;
+                      const c = v < 0 ? sobraNegColor : sobraPosColor;
+                      return pf ? colorWithAlpha(c, 0.82) : c;
+                  }),
                   pointRadius: pointRadiusProj,
                   backgroundColor: lineFill(sobraPosColor),
                   fill: false,
@@ -1177,13 +1437,36 @@ function renderUnifiedFinancialChart(
               }
           ];
 
-    const minY = Math.min(
-        0,
-        ...datasets
-            .filter((ds) => ds && ds.yAxisID === 'y')
-            .flatMap((ds) => (Array.isArray(ds.data) ? ds.data : []))
-            .map((v) => (v == null || Number.isNaN(Number(v)) ? 0 : Number(v)))
-    );
+    if (showSaldoTotalBar && dataSaldoTotal.length) {
+        datasets.push({
+            type: 'bar',
+            label: 'Saldo em conta',
+            data: dataSaldoTotal,
+            yAxisID: 'y1',
+            base: 0,
+            order: 0,
+            borderRadius: 6,
+            borderSkipped: false,
+            borderWidth: 0,
+            backgroundColor: dataSaldoTotal.map((_, i) => barPaint(saldoTotalColor, i)),
+            borderColor: dataSaldoTotal.map((_, i) => barPaint(saldoTotalColor, i))
+        });
+    }
+
+    const flowValues = datasets
+        .filter((ds) => ds && ds.yAxisID !== 'y1' && Array.isArray(ds.data))
+        .flatMap((ds) => ds.data)
+        .map((v) => (v == null || Number.isNaN(Number(v)) ? 0 : Number(v)));
+    const minY = Math.min(0, ...flowValues);
+    const maxYRaw = flowValues.length ? Math.max(...flowValues) : 0;
+    const ySpan = maxYRaw - minY;
+    const yPad = ySpan > 0 ? ySpan * 0.08 : Math.max(Math.abs(maxYRaw), Math.abs(minY), 1) * 0.08;
+    const yMax = maxYRaw + yPad;
+
+    const y1Axis =
+        showSaldoTotalBar && dataSaldoTotal.length
+            ? computeY1BoundsAlignedToYZero(minY, yMax, dataSaldoTotal)
+            : null;
 
     financialProgressionChart = new Chart(canvas, {
         type: barMode ? 'bar' : 'line',
@@ -1281,6 +1564,7 @@ function renderUnifiedFinancialChart(
                 y: {
                     position: 'left',
                     min: minY,
+                    max: yMax,
                     stacked: areaMode,
                     ticks: {
                         color: tick,
@@ -1299,9 +1583,36 @@ function renderUnifiedFinancialChart(
                         }
                     },
                     title: {
-                        display: false
+                        display: true,
+                        text: 'Movimentação no mês',
+                        color: colorWithAlpha(tick, 0.82),
+                        font: { size: 11, weight: '600' }
                     }
-                }
+                },
+                ...(showSaldoTotalBar && dataSaldoTotal.length && y1Axis
+                    ? {
+                          y1: {
+                              position: 'right',
+                              min: y1Axis.min,
+                              max: y1Axis.max,
+                              grid: { display: false },
+                              ticks: {
+                                  color: colorWithAlpha(tick, 0.88),
+                                  callback: (val) => {
+                                      const n = Number(val);
+                                      if (!Number.isFinite(n) || n < 0) return '';
+                                      return formatCurrency(n, userCurrency);
+                                  }
+                              },
+                              title: {
+                                  display: true,
+                                  text: 'Saldo em conta',
+                                  color: colorWithAlpha(tick, 0.82),
+                                  font: { size: 11, weight: '600' }
+                              }
+                          }
+                      }
+                    : {})
             }
         },
         plugins: [
