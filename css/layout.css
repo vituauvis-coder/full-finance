@@ -401,6 +401,11 @@
     box-shadow: none;
 }
 
+.app-header.app-header--zero-budget {
+    background: var(--bg-light);
+    box-shadow: none;
+}
+
 .header-left {
     display: flex;
     align-items: center;
@@ -443,6 +448,10 @@
     color: #10b981;
 }
 
+.app-header--zero-budget .header-page-emoji i {
+    color: #f59e0b;
+}
+
 @keyframes header-emoji-swap {
     0% {
         transform: scale(0.82);
@@ -480,6 +489,10 @@
 
 .app-header--gains .header-page-title {
     color: #10b981;
+}
+
+.app-header--zero-budget .header-page-title {
+    color: #f59e0b;
 }
 
 .header-right {
@@ -560,6 +573,12 @@
 .app-header--gains .header-page-actions .btn-primary.header-action-btn {
     background-color: #10b981;
     border-color: #10b981;
+    color: #fff;
+}
+
+.app-header--zero-budget .header-page-actions .btn-primary.header-action-btn {
+    background-color: #f59e0b;
+    border-color: #f59e0b;
     color: #fff;
 }
 

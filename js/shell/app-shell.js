@@ -419,6 +419,7 @@ export function navigateTo(pageId) {
         dashboard: { icon: 'fa-chart-pie', title: 'Dashboard' },
         expenses: { icon: 'fa-arrow-down', title: 'Saídas' },
         gains: { icon: 'fa-arrow-up', title: 'Entradas' },
+        'zero-budget': { icon: 'fa-bullseye', title: 'Planejamento' },
         wallet: { icon: 'fa-wallet', title: 'Carteira' },
         goals: { icon: 'fa-flag-checkered', title: 'Objetivos' },
         investments: { icon: 'fa-chart-line', title: 'Investimentos' },
@@ -445,17 +446,20 @@ export function navigateTo(pageId) {
     // Atualiza a cor de fundo do header baseado na página
     const appHeader = document.querySelector('.app-header');
     if (appHeader) {
-        appHeader.classList.remove('app-header--expenses', 'app-header--gains');
+        appHeader.classList.remove('app-header--expenses', 'app-header--gains', 'app-header--zero-budget');
         if (pageId === 'expenses') {
             appHeader.classList.add('app-header--expenses');
         } else if (pageId === 'gains') {
             appHeader.classList.add('app-header--gains');
+        } else if (pageId === 'zero-budget') {
+            appHeader.classList.add('app-header--zero-budget');
         }
     }
 
     document.getElementById('expenses-header-actions')?.classList.toggle('hidden', pageId !== 'expenses');
     document.getElementById('gains-header-actions')?.classList.toggle('hidden', pageId !== 'gains');
     document.getElementById('dashboard-header-actions')?.classList.toggle('hidden', pageId !== 'dashboard');
+    document.getElementById('zero-budget-header-actions')?.classList.toggle('hidden', pageId !== 'zero-budget');
 
     // Salva a última página visitada
     localStorage.setItem('lastVisitedPage', pageId);

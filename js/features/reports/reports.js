@@ -1,5 +1,6 @@
 // js/reports.js
 import { expenseContributionProjectedToMonthKey } from '../../core/expense-calendar-month.js';
+import { expenseContributionPaidThroughListMonthKey } from '../../core/expense-list-month-contribution.js';
 import {
     expenseCountsAsCashOut,
     formatCurrency,
@@ -31,6 +32,7 @@ import {
     DASHBOARD_EXPENSE_FACET_IDS,
     DASHBOARD_STATUS_FACET_IDS,
     dashOutflowCardSummationMode,
+    expenseIsMarkedFixed,
     filterExpensesForDashboardFacets,
     filterGainsForDashboardFacets
 } from '../../core/dashboard-expense-facets.js';
@@ -1772,12 +1774,212 @@ function createCurrentMonthBandPlugin(enabled, monthIndex, monthCount) {
     };
 }
 
-function sumMovementsInRange(items, rangeStart, rangeEnd) {
+export function sumMovementsInRange(items, rangeStart, rangeEnd) {
     return (items || []).reduce((sum, t) => {
         const d = movementDateToJsDate(t.date);
         if (d >= rangeStart && d <= rangeEnd) return sum + (Number(t.amount) || 0);
         return sum;
     }, 0);
+}
+
+/**
+ * Modo de agregação das saídas no painel (pago até ao corte / pendente / ambos), igual ao card «Saídas».
+ * Usa os chips do dashboard quando visíveis; senão o que estiver em `localStorage`.
+ */
+export function getDashboardExpenseSummationMode() {
+    let expenseFacetSet = readDashboardOutflowFacetSetFromDom();
+    if (expenseFacetSet.size === 0) {
+        expenseFacetSet = parseDashboardFlowFacetsFromStorage().expenses;
+    }
+    return dashOutflowCardSummationMode(expenseFacetSet);
+}
+
+/**
+ * Contribuição no mês civil `mo` de uma única despesa **essencial**, mesma regra do painel (pago/projetado/pendente).
+ */
+export function expenseEssentialDashboardContributionInMonth(
+    t,
+    mo,
+    userAccounts,
+    now,
+    userProfile = null,
+    splitRequests = null,
+    userExpenses = null,
+    dashSummationMode = 'paid_through'
+) {
+    if (!expenseIsMarkedFixed(t)) return 0;
+    const accountsById = new Map((userAccounts || []).map((a) => [a.id, a]));
+    const acc = accountsById.get(t.accountId);
+    const mk = `${mo.start.getFullYear()}-${String(mo.start.getMonth() + 1).padStart(2, '0')}`;
+    const cutoff = mo.end;
+
+    if (isProjectionMonth(mo, now)) {
+        if (dashSummationMode === 'pending_due') {
+            return expenseContributionPendingProjectedForMonthKey(
+                t,
+                acc,
+                mk,
+                mo,
+                now,
+                userProfile,
+                splitRequests,
+                userExpenses,
+                now
+            );
+        }
+        return expenseContributionProjectedToMonthKey(
+            t,
+            acc,
+            mk,
+            now,
+            userProfile,
+            splitRequests,
+            userExpenses
+        );
+    }
+
+    if (dashSummationMode === 'pending_due') {
+        return expenseContributionPendingDueInMonthKey(
+            t,
+            acc,
+            mk,
+            cutoff,
+            userProfile,
+            splitRequests,
+            userExpenses,
+            now
+        );
+    }
+    if (dashSummationMode === 'all_slices') {
+        return expenseContributionAllPaidOrPendingDueInMonthKey(
+            t,
+            acc,
+            mk,
+            cutoff,
+            userProfile,
+            splitRequests,
+            userExpenses
+        );
+    }
+    return expenseContributionPaidThroughToMonthKey(
+        t,
+        acc,
+        mk,
+        cutoff,
+        userProfile,
+        splitRequests,
+        userExpenses,
+        now
+    );
+}
+
+export function sumEssentialOutflowsDashboardPlanningMonth(
+    mo,
+    userExpenses,
+    userAccounts,
+    now,
+    userProfile = null,
+    splitRequests = null,
+    dashSummationMode = 'paid_through'
+) {
+    let sum = 0;
+    for (const t of userExpenses || []) {
+        sum += expenseEssentialDashboardContributionInMonth(
+            t,
+            mo,
+            userAccounts,
+            now,
+            userProfile,
+            splitRequests,
+            userExpenses,
+            dashSummationMode
+        );
+    }
+    return sum;
+}
+
+/**
+ * Contribuição no mês de uma despesa **essencial**, alinhada à **lista de Saídas** (vencimentos no mês,
+ * mês civil completo até `mo.end`, parcelas de cartão pendentes incluídas).
+ */
+export function expenseEssentialListContributionInMonth(
+    t,
+    mo,
+    userAccounts,
+    userProfile = null,
+    splitRequests = null,
+    userExpenses = null
+) {
+    if (!expenseIsMarkedFixed(t)) return 0;
+    const accountsById = new Map((userAccounts || []).map((a) => [a.id, a]));
+    const acc = accountsById.get(t.accountId);
+    const mk = `${mo.start.getFullYear()}-${String(mo.start.getMonth() + 1).padStart(2, '0')}`;
+    return expenseContributionPaidThroughListMonthKey(
+        t,
+        acc,
+        mk,
+        mo.end,
+        userProfile,
+        splitRequests,
+        userExpenses
+    );
+}
+
+export function sumEssentialOutflowsListPlanningMonth(
+    mo,
+    userExpenses,
+    userAccounts,
+    userProfile = null,
+    splitRequests = null
+) {
+    let sum = 0;
+    for (const t of userExpenses || []) {
+        sum += expenseEssentialListContributionInMonth(
+            t,
+            mo,
+            userAccounts,
+            userProfile,
+            splitRequests,
+            userExpenses
+        );
+    }
+    return sum;
+}
+
+/**
+ * Saldo livre para o Planejamento Base Zero: **entradas no mês** como na lista Entradas (inclui
+ * «Expectativa de estorno» sintética) menos **só saídas essenciais** no mês, com a **mesma soma da lista
+ * de Saídas** (parcelas com vencimento no mês, pago ou pendente).
+ */
+export function planningSaldoLivreMes(
+    month,
+    year,
+    gains,
+    expenses,
+    userAccounts,
+    userProfile = null,
+    splitOutgoing = null,
+    now = new Date()
+) {
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+    const months = enumerateCalendarMonths(startDate, endDate);
+    const mo = months[0];
+    if (!mo) return 0;
+
+    const gainsFiltered = (gains || []).filter(
+        (g) => g && !isSplitReimbursementGain(g) && !g.referenceOnly
+    );
+
+    const totalGanhos = sumMovementsInRange(gainsFiltered, mo.start, mo.end);
+    const totalEssencial = sumEssentialOutflowsListPlanningMonth(
+        mo,
+        expenses,
+        userAccounts,
+        userProfile,
+        splitOutgoing
+    );
+    return totalGanhos - totalEssencial;
 }
 
 /**

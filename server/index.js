@@ -19,6 +19,7 @@ import {
     markNotificationsReadForUser,
     notifySplitRequesterOnRecipientCashOutConfirm
 } from './user-notifications.js';
+import { registerZeroBudgetRoutes } from './zero-budget.js';
 import { isLoanExpense } from '../js/core/credit-installments.js';
 import { getInstallmentDueDates } from '../js/core/credit-installments.js';
 
@@ -4197,6 +4198,7 @@ app.delete('/api/kanban-cards/:id', requireAuth, async (req, res) => {
 });
 
 registerExpenseSplitRoutes(app, { requireAuth });
+registerZeroBudgetRoutes(app, requireAuth);
 
 /** Produção (Railway etc.): um único processo Node serve o build Vite (`dist`) e a API. */
 const distPath = path.join(ROOT, 'dist');

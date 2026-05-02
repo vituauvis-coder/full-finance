@@ -22,9 +22,10 @@ import { initDebts, loadDebtsData } from '../features/debts/debts.js';
 import { initHeaderNotifications, refreshHeaderNotifications } from '../shared/header-notifications.js';
 import { setupGlobalErrorHandlers } from './error-handling.js';
 import { syncPeriodFilterSelectsToCurrentMonth } from '../core/period-filters.js';
+import { initZeroBudgetPage, loadZeroBudgetPage, updateZeroBudgetData } from '../features/zero-budget/zero-budget.js';
 
 // --- Estado Global da Aplicação ---
-let AppState = {
+export let AppState = {
     currentUser: null,
     userProfile: null,
     accounts: [],
@@ -38,6 +39,9 @@ let AppState = {
     userNotifications: [],
     currency: 'BRL'
 };
+
+// Expor AppState globalmente para acesso de features
+window.AppState = AppState;
 
 function onThemeChange() {
     refreshReportsChartsForTheme();
@@ -89,6 +93,7 @@ async function onAuthenticated(user) {
     initInvestments(AppState.currentUser, refreshAllData);
     initGoals(AppState.currentUser, AppState.accounts, refreshAllData);
     initDebts(AppState.currentUser, refreshAllData);
+    initZeroBudgetPage();
 
     let lastPage = localStorage.getItem('lastVisitedPage') || 'dashboard';
     if (lastPage === 'reports') {
@@ -178,6 +183,9 @@ async function refreshAllData() {
         AppState.expenseSplitRequests
     );
 
+    // Atualizar dados do Planejamento Base Zero quando mudarem
+    updateZeroBudgetData(AppState.gains, AppState.expenses);
+
     for (const n of AppState.userNotifications) {
         if (!n || String(n.kind) !== 'split_payer_confirmed' || n.readAt) continue;
         const k = `ff-toast-notif-${n.id}`;
@@ -228,6 +236,9 @@ function loadPageData(pageName) {
             break;
         case 'gains':
             loadGainsData(AppState.gains, AppState.accounts, AppState.currency);
+            break;
+        case 'zero-budget':
+            loadZeroBudgetPage();
             break;
         case 'wallet':
             loadAccountsData(AppState.accounts, AppState.currency);

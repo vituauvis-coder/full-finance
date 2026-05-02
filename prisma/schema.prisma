@@ -39,6 +39,7 @@ model User {
   subcategories    Subcategory[]
   balanceSnapshots BalanceSnapshot[]
   kanbanCards      KanbanCard[]
+  zeroBudgetBlocks ZeroBudgetBlock[]
   splitRequestsSent     ExpenseSplitRequest[] @relation("SplitRequester")
   splitRequestsReceived ExpenseSplitRequest[] @relation("SplitRecipient")
 }
@@ -310,4 +311,26 @@ model KanbanCard {
   @@index([column])
   @@index([type])
   @@index([createdAt])
+}
+
+/** Blocos de orçamento para Planejamento Base Zero (1 bloco = 1 categoria de saída; `name` espelha a categoria). */
+model ZeroBudgetBlock {
+  id               String   @id @default(uuid())
+  userId           String   @map("user_id")
+  name             String   @db.VarChar(200)
+  categoryName     String   @map("category_name") @db.VarChar(200)
+  color            String   @default("bg-amber-500") @db.VarChar(50)
+  allocatedAmount  Float    @default(0) @map("allocated_amount")
+  month            Int
+  year             Int
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([userId, month, year, categoryName])
+  @@index([userId])
+  @@index([month, year])
+  @@index([userId, month, year])
+  @@map("zero_budget_blocks")
 }

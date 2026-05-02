@@ -48,6 +48,7 @@
     <link rel="stylesheet" href="css/pages/support.css">
     <link rel="stylesheet" href="css/pages/investments.css">
     <link rel="stylesheet" href="css/pages/debts.css">
+    <link rel="stylesheet" href="css/pages/zero-budget.css">
     <link rel="stylesheet" href="css/responsive.css">
     <link rel="stylesheet" href="css/theme-dark.css">
 
@@ -271,6 +272,8 @@
                                 class="fas fa-arrow-up"></i><span class="sidebar-nav-label">Entradas</span></a></li>
                     <li><a href="#" class="nav-link" data-page="expenses" title="Saídas"><i
                                 class="fas fa-arrow-down"></i><span class="sidebar-nav-label">Saídas</span></a></li>
+                    <li><a href="#" class="nav-link" data-page="zero-budget" title="Planejamento"><i
+                                class="fas fa-bullseye"></i><span class="sidebar-nav-label">Planejamento</span></a></li>
                     <li><a href="#" class="nav-link" data-page="wallet" title="Carteira"><i
                                 class="fas fa-wallet"></i><span class="sidebar-nav-label">Carteira</span></a></li>
                     <li><a href="#" class="nav-link" data-page="investments" title="Investimentos"><i
@@ -404,6 +407,11 @@
                             <button type="button" id="dashboard-filter-open-btn" class="btn-secondary filter-drawer-trigger header-action-btn"
                                 aria-expanded="false" aria-controls="dashboard-filter-drawer" title="Filtrar saídas no painel por categoria">
                                 <i class="fas fa-filter" aria-hidden="true"></i> Filtros
+                            </button>
+                        </div>
+                        <div id="zero-budget-header-actions" class="header-page-actions hidden" aria-label="Ações do planejamento">
+                            <button type="button" id="add-zero-budget-block-btn" class="btn-primary header-action-btn">
+                                <i class="fas fa-plus" aria-hidden="true"></i> Novo bloco
                             </button>
                         </div>
                         <div class="header-notifications">
@@ -796,6 +804,58 @@
                             <tbody></tbody>
                         </table>
                         <div id="gains-pagination" class="table-pagination-host"></div>
+                    </div>
+                </section>
+
+                <!-- Planejamento Base Zero - Orçamento com blocos dinâmicos -->
+                <section id="zero-budget-page" class="page hidden zero-budget-page" aria-label="Planejamento Base Zero">
+                    <div class="zero-budget">
+                        <!-- Timeline de Meses -->
+                        <div class="zero-budget__timeline" role="tablist" aria-label="Mês do planejamento">
+                            <span class="zero-budget__timeline-hint">Mês</span>
+                            <span class="zero-budget__timeline-sep" aria-hidden="true"></span>
+                            <div class="zero-budget__timeline-chips" data-zb-timeline></div>
+                        </div>
+
+                        <!-- Saldo + barra (padrão estético base.html / TelaPlanejamento) -->
+                        <div class="zero-budget__panel">
+                            <div class="zero-budget__balance-card">
+                                <div class="zero-budget__balance-main">
+                                    <span
+                                        class="zero-budget__balance-label"
+                                        title="Igual às listas Entradas e Saídas no mês: soma das entradas (inclui expectativa de estorno) menos a soma das saídas marcadas como essenciais com vencimento neste mês (parcelas de cartão pendentes entram). Consola: explainZeroBudgetBalance(). Opcional: sessionStorage.setItem('ff-zb-explain','1').">
+                                        <i class="fas fa-wallet" aria-hidden="true"></i>
+                                        Saldo livre p/ distribuir (<span data-zb-month-label>Mai/26</span>)
+                                    </span>
+                                    <span
+                                        class="zero-budget__balance-value"
+                                        data-zb-available
+                                        title="Lista Entradas do mês menos lista Saídas essenciais (contribuição no mês).">—</span>
+                                </div>
+                                <div class="zero-budget__totals">
+                                    <div class="zero-budget__stat">
+                                        <span class="zero-budget__stat-label">Alocado</span>
+                                        <span class="zero-budget__stat-value" data-zb-allocated>—</span>
+                                    </div>
+                                    <div class="zero-budget__stat" data-zb-rest-wrap>
+                                        <span class="zero-budget__stat-label">Restante</span>
+                                        <span class="zero-budget__stat-value" data-zb-remaining>—</span>
+                                    </div>
+                                    <div class="zero-budget__stat zero-budget__stat--burst hidden" data-zb-burst-wrap>
+                                        <span class="zero-budget__stat-label zero-budget__stat-label--burst">Estourado</span>
+                                        <span class="zero-budget__stat-value zero-budget__stat-value--burst" data-zb-burst>—</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div
+                                class="zero-budget__bar"
+                                data-zb-summary-bar
+                                role="img"
+                                aria-label="Distribuição do saldo entre blocos no mês"></div>
+                        </div>
+
+                        <!-- Grid de Blocos -->
+                        <div class="zero-budget__blocks-grid" data-zb-blocks></div>
                     </div>
                 </section>
 
@@ -1854,6 +1914,28 @@
                 </div>
                 <ul id="split-incoming-login-list" class="split-incoming-login-list"></ul>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal: novo bloco do Planejamento Base Zero -->
+    <div id="zero-budget-block-modal" class="modal-container hidden" role="dialog" aria-modal="true" aria-labelledby="zero-budget-block-modal-title">
+        <div class="modal-content modal-content--zero-budget">
+            <button type="button" class="modal-close-btn" aria-label="Fechar">&times;</button>
+            <h3 id="zero-budget-block-modal-title"><i class="fas fa-plus-circle" aria-hidden="true"></i> Novo bloco</h3>
+            <form id="zero-budget-block-form" class="zero-budget-modal__form">
+                <div class="zero-budget-modal__row zero-budget-modal__row--categories">
+                    <label class="zero-budget-modal__field-label" id="zero-budget-block-cat-label" for="zero-budget-block-category">Categoria de saída</label>
+                    <p id="zero-budget-block-categories-empty" class="zero-budget-modal__empty-cats hidden">Nenhuma categoria de saída disponível para este mês (todas já têm bloco ou não há categorias). Crie categorias na tela de Saídas.</p>
+                    <div id="zero-budget-block-category-row" class="zero-budget-modal__category-select-row">
+                        <select id="zero-budget-block-category" class="zero-budget-modal__category-select" aria-labelledby="zero-budget-block-cat-label" required></select>
+                    </div>
+                    <small id="zero-budget-block-categories-hint" class="zero-budget-modal__hint">Cada bloco corresponde a uma única categoria; o nome do card será o nome da categoria.</small>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" data-zb-cancel-create>Cancelar</button>
+                    <button type="submit" class="btn-primary"><span>Criar bloco</span></button>
+                </div>
+            </form>
         </div>
     </div>
 

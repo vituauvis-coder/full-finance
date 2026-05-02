@@ -19,7 +19,8 @@
     "import:json": "node scripts/import-json-to-db.mjs",
     "seed:expenses": "node scripts/seed-expenses.mjs",
     "debug:month-expenses": "node scripts/debug-monthly-expenses.mjs",
-    "backfill:ledger": "node scripts/backfill-balance-ledger.mjs"
+    "backfill:ledger": "node scripts/backfill-balance-ledger.mjs",
+    "db:zero-budget:category": "node scripts/pg-migrate-zero-budget-category.mjs"
   },
   "keywords": [],
   "author": "Victor Alves",
