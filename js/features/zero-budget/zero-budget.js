@@ -216,6 +216,26 @@ function roundMoney2(n) {
     return Math.round((Number(n) || 0) * 100) / 100;
 }
 
+function zbSliderFillPercent(value, max) {
+    const m = Number(max);
+    if (!Number.isFinite(m) || m <= 0) return 0;
+    const v = Math.min(Math.max(0, Number(value) || 0), m);
+    return Math.min(100, Math.max(0, (v / m) * 100));
+}
+
+/** Atualiza cor da meta e preenchimento da trilha do range (CSS vars). */
+function updateZbSliderFillStyle(sliderEl) {
+    if (!sliderEl?.dataset?.zbSlider) return;
+    const blockId = sliderEl.dataset.zbSlider;
+    const block = zbState.blocks.find((b) => b.id === blockId);
+    const accent = block ? getColorHex(block.color) : '#f59e0b';
+    const max = parseFloat(sliderEl.max);
+    const val = parseFloat(sliderEl.value);
+    const pct = zbSliderFillPercent(val, max);
+    sliderEl.style.setProperty('--zb-accent', accent);
+    sliderEl.style.setProperty('--zb-fill-pct', `${pct}%`);
+}
+
 /** Categorias de saída ainda sem bloco neste mês. */
 function getAvailableCategoriesForNewBlock() {
     const used = new Set(
@@ -581,6 +601,8 @@ function renderBlockCard(block, availableBalance) {
         </button>
     `).join('');
 
+    const sliderFillPct = zbSliderFillPercent(block.allocatedAmount || 0, maxAllocation);
+
     return `
         <article class="zero-budget__block-card" data-zb-block-id="${block.id}">
             <div class="zero-budget__block-top">
@@ -619,7 +641,8 @@ function renderBlockCard(block, availableBalance) {
                            max="${maxAllocation}"
                            step="0.01"
                            value="${block.allocatedAmount || 0}"
-                           data-zb-slider="${block.id}">
+                           data-zb-slider="${block.id}"
+                           style="--zb-accent: ${colorHex}; --zb-fill-pct: ${sliderFillPct}%;">
                 </div>
             </div>
 
@@ -955,6 +978,7 @@ function handleBlockInput(e) {
         const block = zbState.blocks.find((b) => b.id === blockId);
         if (block) block.allocatedAmount = value;
 
+        updateZbSliderFillStyle(slider);
         renderSummary();
         return;
     }
@@ -1028,6 +1052,7 @@ function syncZbAmountFromInput(inputEl) {
             calcMaxAllocation(ab, zbState.blocks, blockId, block.allocatedAmount || 0)
         );
         slider.value = String(rounded);
+        updateZbSliderFillStyle(slider);
     }
     const wrap = inputEl.closest('[data-zb-amount-wrap]');
     const display = wrap?.querySelector('[data-zb-amount-display]');
