@@ -514,6 +514,7 @@
     background: var(--bg-color);
     border: 1px solid var(--border-color);
     box-shadow: none;
+    min-width: 0;
 }
 
 [data-theme='dark'] .zero-budget__balance-card {
@@ -534,6 +535,7 @@
     flex-direction: column;
     align-items: flex-start;
     min-width: 0;
+    flex: 1 1 auto;
 }
 
 .zero-budget__balance-label {
@@ -566,41 +568,43 @@
     color: var(--text-color);
 }
 
-/* Total alocado + Restante: mesmo bloco visual, mesma escala (alinhado ao cartão principal) */
+/* Total alocado + Restante: sempre na mesma linha (sem wrap — evita empilhar ao mover sliders) */
 .zero-budget__totals {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: stretch;
     justify-content: flex-end;
-    gap: 0.75rem 1.25rem;
+    gap: 0.75rem 1rem;
     width: 100%;
+    min-width: 0;
 }
 
 @media (min-width: 768px) {
     .zero-budget__totals {
         width: auto;
         flex: 0 1 auto;
-        max-width: min(100%, 22rem);
+        min-width: 0;
+        max-width: min(100%, 36rem);
     }
 }
 
 .zero-budget__stat {
     flex: 1 1 0;
     min-width: 0;
-    max-width: 11rem;
+    max-width: none;
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
+    align-items: center;
     justify-content: center;
-    gap: 0.2rem;
-    text-align: right;
-    padding: 0.5rem 0.65rem;
+    gap: 0.3rem;
+    text-align: center;
+    padding: 0.6rem clamp(0.75rem, 3vw, 1.45rem) 0.7rem clamp(0.75rem, 3vw, 1.45rem);
     border-radius: 0.65rem;
     background: color-mix(in srgb, var(--text-color) 5%, transparent);
     border: 1px solid color-mix(in srgb, var(--border-color) 90%, transparent);
 }
 
-[data-theme='dark'] .zero-budget__stat {
+[data-theme='dark'] .zero-budget__stat:not(.zero-budget__stat--remaining):not(.zero-budget__stat--burst) {
     background: color-mix(in srgb, var(--bg-light) 92%, var(--text-color));
     border-color: var(--border-color);
 }
@@ -619,33 +623,99 @@
 }
 
 .zero-budget__stat-value {
-    font-size: clamp(1rem, 2.4vw, 1.125rem);
+    font-size: clamp(1.05rem, 2.5vw, 1.2rem);
     font-weight: 800;
     letter-spacing: -0.02em;
-    line-height: 1.2;
+    line-height: 1.25;
     font-variant-numeric: tabular-nums;
     color: var(--text-color);
+    max-width: 100%;
+}
+
+@media (min-width: 400px) {
+    .zero-budget__stat-value {
+        white-space: nowrap;
+    }
 }
 
 [data-theme='dark'] .zero-budget__stat-value {
     color: var(--text-color);
 }
 
+/* Restante: verde (entradas), amarelo perto do limite — tons via JS */
+.zero-budget__stat--remaining {
+    transition:
+        background-color 0.35s ease,
+        border-color 0.35s ease,
+        box-shadow 0.35s ease;
+}
+
+.zero-budget__stat--remaining .zero-budget__stat-label,
+.zero-budget__stat--remaining .zero-budget__stat-value {
+    transition: color 0.35s ease;
+}
+
+.zero-budget__stat--remaining-safe {
+    background: color-mix(in srgb, var(--gains-accent, #10b981) 16%, var(--bg-color));
+    border-color: color-mix(in srgb, var(--gains-accent, #10b981) 42%, var(--border-color));
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--gains-accent) 12%, transparent);
+}
+
+.zero-budget__stat--remaining-safe .zero-budget__stat-label {
+    color: color-mix(in srgb, var(--gains-accent) 35%, var(--text-light));
+}
+
+.zero-budget__stat--remaining-safe .zero-budget__stat-value {
+    color: var(--gains-accent, #10b981);
+}
+
+.zero-budget__stat--remaining-warn {
+    background: color-mix(in srgb, var(--warning-color, #f59e0b) 18%, var(--bg-color));
+    border-color: color-mix(in srgb, var(--warning-color, #f59e0b) 45%, var(--border-color));
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--warning-color) 14%, transparent);
+}
+
+.zero-budget__stat--remaining-warn .zero-budget__stat-label {
+    color: color-mix(in srgb, var(--warning-color) 40%, var(--text-light));
+}
+
+.zero-budget__stat--remaining-warn .zero-budget__stat-value {
+    color: var(--warning-color, #f59e0b);
+}
+
+.zero-budget__stat--remaining-neutral {
+    /* saldo livre ≤ 0 mas ainda não estourado alocação */
+    background: color-mix(in srgb, var(--text-color) 6%, transparent);
+    border-color: color-mix(in srgb, var(--border-color) 90%, transparent);
+}
+
+[data-theme='dark'] .zero-budget__stat--remaining-safe {
+    background: color-mix(in srgb, var(--gains-accent, #34d399) 12%, var(--bg-color));
+    border-color: color-mix(in srgb, var(--gains-accent) 38%, var(--border-color));
+}
+
+[data-theme='dark'] .zero-budget__stat--remaining-warn {
+    background: color-mix(in srgb, var(--warning-color, #fbbf24) 14%, var(--bg-color));
+    border-color: color-mix(in srgb, var(--warning-color) 40%, var(--border-color));
+}
+
 .zero-budget__stat--burst {
     flex: 1 1 0;
-    max-width: 11rem;
-    background: rgba(244, 63, 94, 0.12);
-    border-color: rgba(244, 63, 94, 0.35);
+    min-width: 0;
+    max-width: none;
+    background: color-mix(in srgb, var(--danger-color, #ef4444) 16%, var(--bg-color));
+    border-color: color-mix(in srgb, var(--danger-color, #ef4444) 48%, var(--border-color));
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--danger-color) 12%, transparent);
     animation: zero-budget-pulse 2s ease-in-out infinite;
 }
 
 .zero-budget__stat-label--burst {
-    color: #fb7185;
+    color: color-mix(in srgb, var(--danger-color, #ef4444) 55%, var(--text-light));
 }
 
 .zero-budget__stat-value--burst {
-    font-size: clamp(1rem, 2.4vw, 1.125rem);
-    color: #f43f5e;
+    font-size: clamp(1.05rem, 2.5vw, 1.2rem);
+    color: var(--danger-color, #ef4444);
 }
 
 @keyframes zero-budget-pulse {
@@ -660,12 +730,87 @@
 
 .zero-budget__bar {
     display: flex;
+    align-items: stretch;
+    box-sizing: border-box;
     height: 2rem;
     width: 100%;
+    padding: 0;
+    /* Só o espaço entre trechos: mostra o mesmo fundo da trilha (sem “anel” extra por padding) */
+    gap: 3px;
     border-radius: 999px;
-    overflow: hidden;
+    /* visible: balão do hover fica acima da barra (overflow:hidden cortava o tooltip) */
+    overflow: visible;
     background: color-mix(in srgb, var(--text-color) 12%, var(--bg-color));
     box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.18);
+    position: relative;
+    z-index: 2;
+    isolation: isolate;
+}
+
+/*
+ * Fluxo visível: faixa clara atravessa a barra POR CIMA dos segmentos (antes ficava z-index 0
+ * e sumia atrás das cores sólidas). pointer-events: none não bloqueia hover/clique.
+ */
+.zero-budget__bar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 40%;
+    max-width: 40%;
+    box-sizing: border-box;
+    z-index: 4;
+    pointer-events: none;
+    border-radius: 999px;
+    /* Recorta a faixa à pílula (evita “bicos” a sair da curva da barra) */
+    clip-path: inset(0 round 999px);
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.06) 28%,
+        rgba(255, 255, 255, 0.42) 50%,
+        rgba(255, 255, 255, 0.06) 72%,
+        transparent 100%
+    );
+    mix-blend-mode: soft-light;
+    animation: zero-budget-bar-sweep 3.5s ease-in-out infinite;
+}
+
+/* Só dentro da largura da barra: 40% + left máx 60% = 100% (nada de left negativo / >100%) */
+@keyframes zero-budget-bar-sweep {
+    0% {
+        left: 0%;
+        opacity: 0.28;
+    }
+    45% {
+        opacity: 0.82;
+    }
+    100% {
+        left: 60%;
+        opacity: 0.28;
+    }
+}
+
+[data-theme='dark'] .zero-budget__bar::before {
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.04) 28%,
+        rgba(255, 255, 255, 0.28) 50%,
+        rgba(255, 255, 255, 0.04) 72%,
+        transparent 100%
+    );
+    mix-blend-mode: overlay;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .zero-budget__bar::before {
+        animation: none;
+        opacity: 0 !important;
+        left: 0;
+        visibility: hidden;
+    }
 }
 
 [data-theme='dark'] .zero-budget__bar {
@@ -674,9 +819,13 @@
 }
 
 .zero-budget__bar-seg--empty {
-    min-height: 100%;
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 0;
+    align-self: stretch;
     background: color-mix(in srgb, var(--text-color) 8%, var(--bg-color));
     cursor: default;
+    border-radius: 999px;
 }
 
 [data-theme='dark'] .zero-budget__bar-seg--empty {
@@ -685,50 +834,99 @@
 
 .zero-budget__bar-seg {
     position: relative;
+    z-index: 1;
     min-width: 0;
-    height: 100%;
-    border-right: 1px solid rgba(0, 0, 0, 0.18);
-    cursor: default;
+    align-self: stretch;
+    cursor: pointer;
     transition: filter 0.15s ease;
 }
 
-.zero-budget__bar-seg:last-child {
-    border-right: none;
+/* Arredondamento mínimo; só espaço (gap) entre cores — fundo visível = o da própria trilha */
+.zero-budget__bar-seg:not(.zero-budget__bar-seg--empty):not(:only-child) {
+    border-radius: 4px;
+}
+
+.zero-budget__bar-seg:not(.zero-budget__bar-seg--empty):first-child:not(:only-child) {
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
+}
+
+.zero-budget__bar-seg:not(.zero-budget__bar-seg--empty):last-child:not(:only-child) {
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+
+.zero-budget__bar-seg:only-child {
+    border-radius: 999px;
 }
 
 .zero-budget__bar-seg--rest {
     background: color-mix(in srgb, var(--text-color) 22%, var(--bg-color)) !important;
-    box-shadow:
-        inset 0 0 0 1px color-mix(in srgb, var(--border-color) 70%, transparent),
-        inset 1px 0 0 color-mix(in srgb, var(--text-color) 12%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--border-color) 65%, transparent);
 }
 
-.zero-budget__bar-seg:hover {
+.zero-budget__bar-seg:hover,
+.zero-budget__bar-seg:focus-within {
     filter: brightness(1.08);
+    z-index: 5;
 }
 
 .zero-budget__bar-tip {
     position: absolute;
-    bottom: calc(100% + 10px);
+    bottom: calc(100% + 12px);
     left: 50%;
-    transform: translateX(-50%) translateY(4px);
-    padding: 0.55rem 0.75rem;
-    border-radius: 0.65rem;
-    background: var(--bg-light);
-    border: 1px solid var(--border-color);
+    transform: translateX(-50%) translateY(6px);
+    min-width: 7.5rem;
+    max-width: min(16.5rem, 70vw);
+    padding: 0.65rem 0.85rem 0.7rem;
+    border-radius: 0.7rem;
+    background: color-mix(in srgb, var(--bg-light) 96%, var(--text-color));
+    border: 1px solid color-mix(in srgb, var(--border-color) 88%, var(--text-color));
     color: var(--text-color);
     font-size: 0.75rem;
-    white-space: nowrap;
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+    text-align: center;
+    box-shadow:
+        0 4px 6px -1px rgba(0, 0, 0, 0.08),
+        0 12px 28px rgba(0, 0, 0, 0.16);
     opacity: 0;
     pointer-events: none;
     transition:
-        opacity 0.15s ease,
-        transform 0.15s ease;
-    z-index: 20;
+        opacity 0.18s ease,
+        transform 0.18s ease;
+    z-index: 30;
 }
 
-.zero-budget__bar-seg:hover .zero-budget__bar-tip {
+/* Seta do balão (borda + preenchimento, alinhada ao tema) */
+.zero-budget__bar-tip::before,
+.zero-budget__bar-tip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-left-color: transparent;
+    border-right-color: transparent;
+    border-bottom: none;
+    pointer-events: none;
+}
+
+.zero-budget__bar-tip::before {
+    margin-top: 0;
+    border-width: 7px 7px 0 7px;
+    border-top-color: color-mix(in srgb, var(--border-color) 88%, var(--text-color));
+}
+
+.zero-budget__bar-tip::after {
+    margin-top: -1px;
+    border-width: 6px 6px 0 6px;
+    border-top-color: color-mix(in srgb, var(--bg-light) 96%, var(--text-color));
+}
+
+.zero-budget__bar-seg:hover .zero-budget__bar-tip,
+.zero-budget__bar-seg:focus-within .zero-budget__bar-tip {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
 }
@@ -737,33 +935,52 @@
     display: block;
     font-size: 0.62rem;
     font-weight: 700;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--text-light);
-    margin-bottom: 0.2rem;
+    margin-bottom: 0.25rem;
+    line-height: 1.25;
+    white-space: normal;
+    word-break: break-word;
 }
 
 .zero-budget__bar-tip-value {
+    display: block;
     font-weight: 900;
-    font-size: 0.95rem;
+    font-size: 1.05rem;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
 }
 
 .zero-budget__bar-tip-pct {
     display: block;
-    margin-top: 0.15rem;
+    margin-top: 0.2rem;
     font-size: 0.72rem;
-    font-weight: 600;
-    color: var(--warning-color);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1.3;
+}
+
+.zero-budget__bar-tip-pct--muted {
+    color: var(--text-light);
 }
 
 [data-theme='dark'] .zero-budget__bar-tip {
-    background: var(--bg-light);
+    background: color-mix(in srgb, var(--bg-light) 94%, var(--text-color));
     border-color: var(--border-color);
     color: var(--text-color);
+    box-shadow:
+        0 4px 6px -1px rgba(0, 0, 0, 0.25),
+        0 14px 32px rgba(0, 0, 0, 0.45);
 }
 
-[data-theme='dark'] .zero-budget__bar-tip-pct {
-    color: var(--warning-color);
+[data-theme='dark'] .zero-budget__bar-tip::before {
+    border-top-color: var(--border-color);
+}
+
+[data-theme='dark'] .zero-budget__bar-tip::after {
+    border-top-color: color-mix(in srgb, var(--bg-light) 94%, var(--text-color));
 }
 
 .zero-budget__categories {
@@ -1244,53 +1461,6 @@
 .zero-budget__block-slider:active::-moz-range-thumb {
     cursor: grabbing;
     transform: scale(1.06);
-}
-
-/* ============================================================================
-   BARRA DUPLA DE PROGRESSO (Orçado vs Gasto)
-   ============================================================================ */
-
-.zero-budget__block-progress {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-}
-
-.zero-budget__dual-bar {
-    position: relative;
-    height: 0.6rem;
-    border-radius: 999px;
-    overflow: hidden;
-    background: var(--bg-color);
-}
-
-.zero-budget__dual-bar-bg {
-    position: absolute;
-    left: 0;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    opacity: 0.3;
-}
-
-.zero-budget__dual-bar-fill {
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    border-radius: 999px;
-    transition: none;
-}
-
-.zero-budget__progress-labels {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.7rem;
-    color: var(--text-light);
-}
-
-[data-theme='dark'] .zero-budget__progress-labels {
-    color: var(--text-light);
 }
 
 /* ============================================================================

@@ -1,7 +1,7 @@
 /**
  * Planejamento Base Zero - Lógica completa com persistência
  * Blocos dinâmicos vinculados a categorias, cálculo automático de saldo,
- * sliders limitados, e barra de progresso dupla (orçado vs gasto real)
+ * sliders limitados por saldo livre
  */
 
 import {
@@ -18,11 +18,8 @@ import {
 import {
     calcAvailableBalance,
     explainPlanningBalance,
-    calcBlockSpending,
     calcTotalAllocated,
-    calcRemainingBalance,
     calcMaxAllocation,
-    calcProgressPercentage,
     formatMoney,
     getColorHex,
     getAvailableColors
@@ -31,6 +28,43 @@ import { openModal, closeModal } from '../../shell/app-shell.js';
 import { buildSyntheticExpectedSplitGainsRows } from '../../core/expected-split-gain-rows.js';
 
 const ZB_BAR_BG_ALLOWED = new Set(getAvailableColors().map((c) => c.class));
+
+/** Classes de tom do card «Restante» (alinhado ao CSS). */
+const ZB_REMAINING_TONE_CLASSES = [
+    'zero-budget__stat--remaining-safe',
+    'zero-budget__stat--remaining-warn',
+    'zero-budget__stat--remaining-neutral'
+];
+
+/** Acima desta fração do saldo livre ainda não alocada → verde; abaixo → amarelo. */
+const ZB_REMAINING_SAFE_RATIO = 0.22;
+
+/**
+ * @param {HTMLElement | null | undefined} restWrap
+ * @param {number} availableBalance
+ * @param {number} remaining
+ * @param {boolean} isOverallocated
+ */
+function applyZbRemainingVisual(restWrap, availableBalance, remaining, isOverallocated) {
+    if (!restWrap) return;
+    for (const c of ZB_REMAINING_TONE_CLASSES) {
+        restWrap.classList.remove(c);
+    }
+    if (isOverallocated || remaining < 0) return;
+    const avail = Number(availableBalance) || 0;
+    if (avail <= 0) {
+        restWrap.classList.add(
+            remaining > 0 ? 'zero-budget__stat--remaining-safe' : 'zero-budget__stat--remaining-neutral'
+        );
+        return;
+    }
+    const ratio = remaining / avail;
+    if (ratio > ZB_REMAINING_SAFE_RATIO) {
+        restWrap.classList.add('zero-budget__stat--remaining-safe');
+    } else {
+        restWrap.classList.add('zero-budget__stat--remaining-warn');
+    }
+}
 
 function zbBarBgClass(cls) {
     const s = String(cls || '').trim();
@@ -375,6 +409,8 @@ function renderSummary() {
         }
     }
 
+    applyZbRemainingVisual(restWrap, availableBalance, remaining, isOverallocated);
+
     if (!barEl) return;
 
     const denom = Math.max(availableBalance, totalAllocated, 1e-9);
@@ -404,25 +440,31 @@ function renderSummary() {
 
     if (segs.length === 0) {
         barEl.innerHTML =
-            '<div class="zero-budget__bar-seg zero-budget__bar-seg--empty" style="width:100%"></div>';
+            '<div class="zero-budget__bar-seg zero-budget__bar-seg--empty"></div>';
         return;
     }
 
     barEl.innerHTML = segs
         .map((seg) => {
-            const pct = denom > 0 ? (seg.valor / denom) * 100 : 0;
-            const pctOfSaldo =
-                availableBalance > 0 ? ((seg.valor / availableBalance) * 100).toFixed(1) : '0.0';
-            const width = `width:${pct}%`;
+            const pctBar = denom > 0 ? ((seg.valor / denom) * 100).toFixed(1) : '0.0';
+            /* Centavos inteiros → flex-grow estável (evita float estranho no layout) */
+            const w = Math.max(0, Math.round((Number(seg.valor) || 0) * 100));
+            const flexBase = `flex:${w} 1 0;min-width:0`;
             const style = seg.rest
-                ? width
-                : `${width};background-color:${getColorHex(seg.colorClass)}`;
+                ? flexBase
+                : `${flexBase};background-color:${getColorHex(seg.colorClass)}`;
             const klass = seg.rest ? 'zero-budget__bar-seg zero-budget__bar-seg--rest' : 'zero-budget__bar-seg';
-            return `<div class="${klass}" style="${style}">
+            const accentHex = seg.rest ? '' : getColorHex(seg.colorClass);
+            const pctClass = seg.rest
+                ? 'zero-budget__bar-tip-pct zero-budget__bar-tip-pct--muted'
+                : 'zero-budget__bar-tip-pct';
+            const pctStyle = seg.rest ? '' : ` style="color:${accentHex}"`;
+            const aria = `${String(seg.nome ?? 'Trecho')}: ${formatMoney(seg.valor)}, ${pctBar}% do orçamento`;
+            return `<div class="${klass}" style="${style}" role="img" aria-label="${escapeHtml(aria)}" tabindex="0">
                 <div class="zero-budget__bar-tip">
                     <span class="zero-budget__bar-tip-name">${escapeHtml(seg.nome)}</span>
                     <span class="zero-budget__bar-tip-value">${formatMoney(seg.valor)}</span>
-                    <span class="zero-budget__bar-tip-pct">${pctOfSaldo}% do saldo livre</span>
+                    <span class="${pctClass}"${pctStyle}>${pctBar}% do orçamento</span>
                 </div>
             </div>`;
         })
@@ -467,14 +509,6 @@ function renderBlocks() {
 function renderBlockCard(block, availableBalance) {
     const colorHex = getColorHex(block.color);
     const catName = getBlockCategoryName(block);
-    const spending = calcBlockSpending(
-        zbState.expenses,
-        catName,
-        zbState.currentMonth,
-        zbState.currentYear
-    );
-    
-    const progressPercent = calcProgressPercentage(spending, block.allocatedAmount);
     const maxAllocation = calcMaxAllocation(
         availableBalance,
         zbState.blocks,
@@ -520,19 +554,6 @@ function renderBlockCard(block, availableBalance) {
                            step="1"
                            value="${block.allocatedAmount || 0}"
                            data-zb-slider="${block.id}">
-                </div>
-                <div class="zero-budget__block-progress" data-zb-progress-wrap="${block.id}">
-                    <div class="zero-budget__dual-bar">
-                        <div class="zero-budget__dual-bar-bg" style="background-color: ${colorHex}33;"></div>
-                        <div class="zero-budget__dual-bar-fill"
-                             data-zb-progress-fill="${block.id}"
-                             style="width: ${progressPercent}%; background-color: ${colorHex};">
-                        </div>
-                    </div>
-                    <div class="zero-budget__progress-labels">
-                        <span data-zb-progress-spent="${block.id}">Gasto: ${formatMoney(spending)}</span>
-                        <span data-zb-progress-pct="${block.id}">${Math.round(progressPercent)}%</span>
-                    </div>
                 </div>
             </div>
 
@@ -602,6 +623,7 @@ async function handleBlockActions(e) {
             const block = zbState.blocks.find(b => b.id === blockId);
             if (block) block.color = color;
             renderBlocks();
+            renderSummary();
         } catch (err) {
             showNotification('Erro ao atualizar cor', 'error');
         }
@@ -623,24 +645,6 @@ function handleBlockInput(e) {
 
         const block = zbState.blocks.find((b) => b.id === blockId);
         if (block) block.allocatedAmount = value;
-
-        const spending = calcBlockSpending(
-            zbState.expenses,
-            getBlockCategoryName(block),
-            zbState.currentMonth,
-            zbState.currentYear
-        );
-        const progressPercent = calcProgressPercentage(spending, value);
-        const colorHex = getColorHex(block?.color || 'bg-amber-500');
-        const fill = zbRootElement?.querySelector(`[data-zb-progress-fill="${blockId}"]`);
-        if (fill) {
-            fill.style.width = `${progressPercent}%`;
-            fill.style.backgroundColor = colorHex;
-        }
-        const spentEl = zbRootElement?.querySelector(`[data-zb-progress-spent="${blockId}"]`);
-        if (spentEl) spentEl.textContent = `Gasto: ${formatMoney(spending)}`;
-        const pctEl = zbRootElement?.querySelector(`[data-zb-progress-pct="${blockId}"]`);
-        if (pctEl) pctEl.textContent = `${Math.round(progressPercent)}%`;
 
         renderSummary();
         return;

@@ -1,6 +1,6 @@
 /**
  * Utilitários de cálculo para Planejamento Base Zero
- * Calcula saldos disponíveis, gastos por bloco, e limites de alocação
+ * Calcula saldos disponíveis e limites de alocação
  */
 
 import { movementDateToJsDate } from './utils.js';
@@ -12,53 +12,6 @@ import {
     expenseEssentialListContributionInMonth,
     sumMovementsInRange
 } from '../features/reports/reports.js';
-
-/**
- * Extrai ano/mês civil do lançamento (alinhado às listas Entradas/Saídas).
- * - `YYYY-MM-DD` no início da string → usa o calendário literal (evita deslocamento UTC).
- * - `{ seconds }` (legado API) → componentes em UTC (data “só dia” gravada em UTC 00:00).
- * - Demais → `movementDateToJsDate` e calendário local.
- * @param {unknown} dateField
- * @returns {{ year: number, month: number } | null}
- */
-function movementCalendarYearMonth(dateField) {
-    if (dateField == null) return null;
-    if (typeof dateField === 'object' && typeof dateField.toDate === 'function') {
-        const d = dateField.toDate();
-        if (Number.isNaN(d.getTime())) return null;
-        return { year: d.getFullYear(), month: d.getMonth() + 1 };
-    }
-    if (typeof dateField === 'object' && dateField.seconds != null) {
-        const d = new Date(Number(dateField.seconds) * 1000);
-        if (Number.isNaN(d.getTime())) return null;
-        return { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1 };
-    }
-    if (dateField instanceof Date) {
-        if (Number.isNaN(dateField.getTime())) return null;
-        return { year: dateField.getFullYear(), month: dateField.getMonth() + 1 };
-    }
-    const raw = String(dateField).trim();
-    const isoDay = /^(\d{4})-(\d{2})-(\d{2})/.exec(raw);
-    if (isoDay) {
-        return { year: parseInt(isoDay[1], 10), month: parseInt(isoDay[2], 10) };
-    }
-    const d = movementDateToJsDate(dateField);
-    if (Number.isNaN(d.getTime())) return null;
-    return { year: d.getFullYear(), month: d.getMonth() + 1 };
-}
-
-/**
- * Verifica se uma data está no mês/ano especificado
- * @param {unknown} dateField - Data da movimentação (ISO, Firestore-like, Date)
- * @param {number} month - Mês (1-12)
- * @param {number} year - Ano completo (ex: 2026)
- * @returns {boolean}
- */
-export function matchMonth(dateField, month, year) {
-    const ym = movementCalendarYearMonth(dateField);
-    if (!ym) return false;
-    return ym.month === month && ym.year === year;
-}
 
 /**
  * Chave mês civil YYYY-MM (igual Saídas / Entradas).
@@ -212,32 +165,6 @@ export function calcAvailableBalance(gains, expenses, month, year, ctx = {}) {
 }
 
 /**
- * Calcula o gasto real em um bloco específico
- * Soma despesas das categorias vinculadas ao bloco
- * @param {Array} expenses - Lista de saídas (Expense)
- * @param {Array} blockCategories - Nomes das categorias vinculadas ao bloco
- * @param {number} month - Mês (1-12)
- * @param {number} year - Ano
- * @returns {number} Total gasto no bloco
- */
-export function calcBlockSpending(expenses, blockCategories, month, year) {
-    const cats = Array.isArray(blockCategories)
-        ? blockCategories
-        : blockCategories && String(blockCategories).trim()
-          ? [String(blockCategories).trim()]
-          : [];
-    if (cats.length === 0) {
-        return 0;
-    }
-
-    return expenses
-        .filter((e) => {
-            return matchMonth(e.date, month, year) && cats.includes(e.category);
-        })
-        .reduce((sum, e) => sum + (e.amount || 0), 0);
-}
-
-/**
  * Calcula o total já alocado em todos os blocos
  * @param {Array} blocks - Lista de blocos de orçamento
  * @returns {number} Total alocado
@@ -283,19 +210,6 @@ export function calcMaxAllocation(availableBalance, allBlocks, currentBlockId, c
     // Retorna o máximo entre o valor já alocado (para permitir reduzir)
     // e o saldo restante disponível
     return Math.max(currentAllocated, remaining);
-}
-
-/**
- * Calcula a porcentagem de preenchimento da barra de progresso
- * @param {number} spent - Valor gasto
- * @param {number} allocated - Valor alocado
- * @returns {number} Porcentagem (0-100)
- */
-export function calcProgressPercentage(spent, allocated) {
-    if (!allocated || allocated <= 0) {
-        return 0;
-    }
-    return Math.min(100, (spent / allocated) * 100);
 }
 
 /**
