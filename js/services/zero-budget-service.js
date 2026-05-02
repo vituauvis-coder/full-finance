@@ -108,3 +108,70 @@ export async function deleteZeroBudgetBlock(id) {
         throw err;
     }
 }
+
+/**
+ * @param {string} blockId
+ * @returns {Promise<Array<{ id: string, blockId: string, title: string, amount: number, isPurchased: boolean, sortOrder: number, createdAt: string }>>}
+ */
+export async function fetchZeroBudgetBlockTodos(blockId) {
+    const res = await fetch(`${API_BASE_URL}/api/zero-budget/blocks/${encodeURIComponent(blockId)}/todos`, {
+        credentials: 'include'
+    });
+    if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Erro ao carregar lista de compras');
+    }
+    const data = await res.json();
+    return data.todos || [];
+}
+
+/**
+ * @param {string} blockId
+ * @param {{ title: string, amount?: number }} body
+ */
+export async function createZeroBudgetBlockTodo(blockId, body) {
+    const res = await fetch(`${API_BASE_URL}/api/zero-budget/blocks/${encodeURIComponent(blockId)}/todos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(body)
+    });
+    if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Erro ao adicionar item');
+    }
+    return res.json();
+}
+
+/**
+ * @param {string} todoId
+ * @param {{ title?: string, amount?: number, isPurchased?: boolean }} body
+ */
+export async function updateZeroBudgetBlockTodo(todoId, body) {
+    const res = await fetch(`${API_BASE_URL}/api/zero-budget/todos/${encodeURIComponent(todoId)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(body)
+    });
+    if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Erro ao atualizar item');
+    }
+    return res.json();
+}
+
+/**
+ * @param {string} todoId
+ */
+export async function deleteZeroBudgetBlockTodo(todoId) {
+    const res = await fetch(`${API_BASE_URL}/api/zero-budget/todos/${encodeURIComponent(todoId)}`, {
+        method: 'DELETE',
+        credentials: 'include'
+    });
+    if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Erro ao remover item');
+    }
+    return res.json();
+}

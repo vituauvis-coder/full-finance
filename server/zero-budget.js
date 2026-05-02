@@ -4,6 +4,7 @@
  * Versão PostgreSQL (Supabase)
  */
 
+import { randomUUID } from 'node:crypto';
 import { query } from './db.js';
 
 /**
@@ -11,6 +12,50 @@ import { query } from './db.js';
  */
 function trimCat(s) {
     return String(s || '').trim();
+}
+
+/**
+ * @param {string} s
+ */
+function trimTitle(s) {
+    const t = String(s || '').trim();
+    return t.length > 500 ? t.slice(0, 500) : t;
+}
+
+function todoAmount(n) {
+    const x = Number(n);
+    if (!Number.isFinite(x) || x < 0) return 0;
+    return Math.round(x * 100) / 100;
+}
+
+/**
+ * @param {string} userId
+ * @param {string} blockId
+ */
+async function assertBlockOwned(userId, blockId) {
+    const r = await query(
+        `SELECT id FROM zero_budget_blocks WHERE id = $1 AND user_id = $2`,
+        [blockId, userId]
+    );
+    if (!(r?.rows || []).length) {
+        throw new Error('Bloco não encontrado ou não pertence ao usuário');
+    }
+}
+
+/**
+ * @param {string} userId
+ * @param {string} todoId
+ * @returns {Promise<{ id: string, blockId: string } | null>}
+ */
+async function findTodoForUser(userId, todoId) {
+    const r = await query(
+        `SELECT t.id, t.block_id as "blockId"
+         FROM zero_budget_block_todos t
+         INNER JOIN zero_budget_blocks b ON b.id = t.block_id
+         WHERE t.id = $1 AND b.user_id = $2`,
+        [todoId, userId]
+    );
+    return r?.rows?.[0] || null;
 }
 
 /**
@@ -135,8 +180,119 @@ export async function updateZeroBudgetBlock(userId, blockId, data) {
 }
 
 /**
- * Remove um bloco
+ * Lista to-dos de um bloco (ordem estável)
+ * @param {string} userId
+ * @param {string} blockId
  */
+export async function fetchZeroBudgetBlockTodos(userId, blockId) {
+    await assertBlockOwned(userId, blockId);
+    const r = await query(
+        `SELECT t.id,
+                t.block_id as "blockId",
+                t.title,
+                t.amount,
+                t.is_purchased as "isPurchased",
+                t.sort_order as "sortOrder",
+                t.created_at as "createdAt"
+         FROM zero_budget_block_todos t
+         INNER JOIN zero_budget_blocks b ON b.id = t.block_id
+         WHERE t.block_id = $1 AND b.user_id = $2
+         ORDER BY t.sort_order ASC, t.created_at ASC`,
+        [blockId, userId]
+    );
+    return r?.rows || [];
+}
+
+/**
+ * @param {string} userId
+ * @param {string} blockId
+ * @param {{ title?: string, amount?: number }} data
+ */
+export async function createZeroBudgetBlockTodo(userId, blockId, data) {
+    await assertBlockOwned(userId, blockId);
+    const title = trimTitle(data?.title);
+    if (!title) {
+        throw new Error('Título é obrigatório');
+    }
+    const amount = todoAmount(data?.amount);
+    const id = randomUUID();
+    const maxRes = await query(
+        `SELECT COALESCE(MAX(sort_order), -1) + 1 as n
+         FROM zero_budget_block_todos WHERE block_id = $1`,
+        [blockId]
+    );
+    const sortOrder = Number(maxRes?.rows?.[0]?.n) || 0;
+    const ins = await query(
+        `INSERT INTO zero_budget_block_todos (id, block_id, title, amount, is_purchased, sort_order)
+         VALUES ($1, $2, $3, $4, FALSE, $5)
+         RETURNING id, block_id as "blockId", title, amount, is_purchased as "isPurchased",
+                   sort_order as "sortOrder", created_at as "createdAt"`,
+        [id, blockId, title, amount, sortOrder]
+    );
+    const row = ins?.rows?.[0];
+    if (!row) throw new Error('Falha ao criar item');
+    return row;
+}
+
+/**
+ * @param {string} userId
+ * @param {string} todoId
+ * @param {{ title?: string, amount?: number, isPurchased?: boolean }} data
+ */
+export async function updateZeroBudgetBlockTodo(userId, todoId, data) {
+    const found = await findTodoForUser(userId, todoId);
+    if (!found) {
+        throw new Error('Item não encontrado ou não pertence ao usuário');
+    }
+    const updates = [];
+    const params = [];
+    let i = 1;
+    if (data.title !== undefined) {
+        const title = trimTitle(data.title);
+        if (!title) throw new Error('Título não pode ficar vazio');
+        updates.push(`title = $${i++}`);
+        params.push(title);
+    }
+    if (data.isPurchased !== undefined) {
+        updates.push(`is_purchased = $${i++}`);
+        params.push(Boolean(data.isPurchased));
+    }
+    if (data.amount !== undefined) {
+        updates.push(`amount = $${i++}`);
+        params.push(todoAmount(data.amount));
+    }
+    if (updates.length === 0) {
+        throw new Error('Nenhum campo para atualizar');
+    }
+    params.push(todoId);
+    await query(
+        `UPDATE zero_budget_block_todos SET ${updates.join(', ')} WHERE id = $${i}`,
+        params
+    );
+    const r = await query(
+        `SELECT t.id, t.block_id as "blockId", t.title, t.amount, t.is_purchased as "isPurchased",
+                t.sort_order as "sortOrder", t.created_at as "createdAt"
+         FROM zero_budget_block_todos t
+         WHERE t.id = $1`,
+        [todoId]
+    );
+    return r?.rows?.[0];
+}
+
+/**
+ * @param {string} userId
+ * @param {string} todoId
+ */
+export async function deleteZeroBudgetBlockTodo(userId, todoId) {
+    const found = await findTodoForUser(userId, todoId);
+    if (!found) {
+        throw new Error('Item não encontrado ou não pertence ao usuário');
+    }
+    await query(`DELETE FROM zero_budget_block_todos WHERE id = $1`, [todoId]);
+    return { success: true };
+}
+
+/** Remove um bloco (cascade remove to-dos no Postgres). */
 export async function deleteZeroBudgetBlock(userId, blockId) {
     const existingRes = await query(
         `SELECT id FROM zero_budget_blocks WHERE id = $1 AND user_id = $2`,
@@ -207,6 +363,62 @@ export function registerZeroBudgetRoutes(app, requireAuth) {
         } catch (error) {
             console.error('Erro ao remover bloco:', error);
             res.status(error.message.includes('não encontrado') ? 404 : 500).json({ error: error.message });
+        }
+    });
+
+    app.get('/api/zero-budget/blocks/:blockId/todos', requireAuth, async (req, res) => {
+        try {
+            const userId = req.session.userId;
+            const { blockId } = req.params;
+            const todos = await fetchZeroBudgetBlockTodos(userId, blockId);
+            res.json({ todos });
+        } catch (error) {
+            console.error('Erro ao listar to-dos do bloco:', error);
+            res.status(error.message.includes('não encontrado') ? 404 : 500).json({
+                error: error.message || 'Erro ao listar itens'
+            });
+        }
+    });
+
+    app.post('/api/zero-budget/blocks/:blockId/todos', requireAuth, async (req, res) => {
+        try {
+            const userId = req.session.userId;
+            const { blockId } = req.params;
+            const todo = await createZeroBudgetBlockTodo(userId, blockId, req.body);
+            res.status(201).json(todo);
+        } catch (error) {
+            console.error('Erro ao criar to-do do bloco:', error);
+            res.status(error.message.includes('não encontrado') ? 404 : 400).json({
+                error: error.message || 'Erro ao criar item'
+            });
+        }
+    });
+
+    app.patch('/api/zero-budget/todos/:todoId', requireAuth, async (req, res) => {
+        try {
+            const userId = req.session.userId;
+            const { todoId } = req.params;
+            const todo = await updateZeroBudgetBlockTodo(userId, todoId, req.body);
+            res.json(todo);
+        } catch (error) {
+            console.error('Erro ao atualizar to-do:', error);
+            res.status(error.message.includes('não encontrado') ? 404 : 400).json({
+                error: error.message || 'Erro ao atualizar item'
+            });
+        }
+    });
+
+    app.delete('/api/zero-budget/todos/:todoId', requireAuth, async (req, res) => {
+        try {
+            const userId = req.session.userId;
+            const { todoId } = req.params;
+            await deleteZeroBudgetBlockTodo(userId, todoId);
+            res.json({ success: true });
+        } catch (error) {
+            console.error('Erro ao remover to-do:', error);
+            res.status(error.message.includes('não encontrado') ? 404 : 500).json({
+                error: error.message || 'Erro ao remover item'
+            });
         }
     });
 }

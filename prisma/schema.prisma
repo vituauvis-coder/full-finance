@@ -327,10 +327,28 @@ model ZeroBudgetBlock {
   updatedAt        DateTime @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  todos ZeroBudgetBlockTodo[]
 
   @@unique([userId, month, year, categoryName])
   @@index([userId])
   @@index([month, year])
   @@index([userId, month, year])
   @@map("zero_budget_blocks")
+}
+
+/** Itens de «lista de compras» por bloco Base Zero (marcar quando comprado). */
+model ZeroBudgetBlockTodo {
+  id          String   @id @default(uuid())
+  blockId     String   @map("block_id")
+  title       String   @db.NVarChar(500)
+  /** Valor estimado do item (wishlist); somado na UI para total da lista. */
+  amount      Float    @default(0)
+  isPurchased Boolean  @default(false) @map("is_purchased")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  block ZeroBudgetBlock @relation(fields: [blockId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([blockId])
+  @@map("zero_budget_block_todos")
 }

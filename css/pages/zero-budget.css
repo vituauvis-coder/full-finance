@@ -149,6 +149,270 @@
     max-width: 560px;
 }
 
+/* Lista de compras do bloco — modal largo, lista compacta */
+.modal-content.modal-content--zb-todos {
+    width: min(40rem, calc(100vw - 1.5rem));
+    max-width: min(40rem, calc(100vw - 1.5rem));
+    display: flex;
+    flex-direction: column;
+    max-height: min(88vh, 46rem);
+}
+
+@media (min-width: 640px) {
+    #zb-block-todos-overlay .modal-content.modal-content--zb-todos {
+        width: min(40rem, calc(100vw - 2rem));
+        max-width: min(40rem, calc(100vw - 2rem));
+    }
+}
+
+/* Campos numéricos sem setas (Chrome / Edge / Firefox) */
+.modal-content.modal-content--zb-todos input[type='number']::-webkit-outer-spin-button,
+.modal-content.modal-content--zb-todos input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.modal-content.modal-content--zb-todos input[type='number'] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+@media (min-width: 640px) {
+    .modal-content.modal-content--zb-todos > form[data-zb-todos-form] {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        grid-template-columns: none;
+    }
+}
+
+#zb-block-todos-overlay.modal-container {
+    z-index: 10002;
+}
+
+/* Cabeçalho alinhado à mesma calha horizontal do corpo e do form */
+#zb-block-todos-overlay .modal-content.modal-content--zb-todos > h3 {
+    padding-left: 1.35rem;
+    padding-right: 2.75rem;
+    font-size: 1.05rem;
+}
+
+/* Corpo só cresce com o conteúdo da lista — evita “buraco” entre lista e formulário */
+.modal-content.modal-content--zb-todos .zb-todos-modal__body {
+    flex: 0 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 0.5rem 1.35rem 0.85rem;
+    border-bottom: 1px solid var(--border-color);
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.02) 0%, transparent 55%);
+}
+
+.modal-content.modal-content--zb-todos .zb-todos-modal__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    flex: 0 1 auto;
+    min-height: 2.75rem;
+    max-height: min(22rem, 52vh);
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.modal-content.modal-content--zb-todos .zb-todos-modal__total-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.35rem 0.75rem;
+    padding: 0.45rem 0.65rem;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--warning-color) 10%, var(--bg-light));
+    border: 1px solid color-mix(in srgb, var(--warning-color) 28%, var(--border-color));
+    flex-shrink: 0;
+}
+
+.modal-content.modal-content--zb-todos .zb-todos-modal__total-label {
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-light);
+}
+
+.modal-content.modal-content--zb-todos .zb-todos-modal__total-value {
+    font-size: 0.98rem;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    color: var(--text-color);
+}
+
+.modal-content.modal-content--zb-todos .zb-todos-modal__new-grid {
+    display: grid;
+    gap: 0.55rem;
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 420px) {
+    .modal-content.modal-content--zb-todos .zb-todos-modal__new-grid {
+        grid-template-columns: 1fr minmax(6.75rem, 30%);
+    }
+}
+
+.modal-content.modal-content--zb-todos .zb-todos-modal__field--amount .zero-budget-modal__text-input {
+    text-align: right;
+}
+
+.modal-content.modal-content--zb-todos .zb-todos-modal__empty {
+    margin: 0;
+    padding: 0.75rem 0.6rem;
+    text-align: center;
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    color: var(--text-light);
+    border-radius: 10px;
+    border: 1px dashed color-mix(in srgb, var(--border-color) 80%, transparent);
+    background: var(--bg-color);
+}
+
+.modal-content.modal-content--zb-todos .zb-todos-modal__item {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.35rem 0.55rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-light);
+    cursor: pointer;
+    text-align: left;
+    transition:
+        border-color 0.18s ease,
+        box-shadow 0.18s ease,
+        background 0.18s ease;
+}
+
+.modal-content.modal-content--zb-todos .zb-todos-modal__item:hover {
+    border-color: color-mix(in srgb, var(--warning-color) 45%, var(--border-color));
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.modal-content.modal-content--zb-todos .zb-todos-modal__item.is-purchased {
+    opacity: 0.78;
+    background: var(--bg-color);
+}
+
+.modal-content.modal-content--zb-todos .zb-todos-modal__item.is-purchased .zb-todos-modal__item-title {
+    text-decoration: line-through;
+    color: var(--text-light);
+}
+
+.modal-content.modal-content--zb-todos .zb-todos-modal__item.is-purchased .zb-todos-modal__item-amount {
+    opacity: 0.88;
+}
+
+.modal-content.modal-content--zb-todos .zb-todos-modal__check {
+    flex: 0 0 auto;
+    font-size: 0.95rem;
+    color: var(--text-light);
+    line-height: 1;
+}
+
+.modal-content.modal-content--zb-todos .zb-todos-modal__item.is-purchased .zb-todos-modal__check {
+    color: var(--success-color, #16a34a);
+}
+
+.modal-content.modal-content--zb-todos .zb-todos-modal__item-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.25;
+    color: var(--text-color);
+}
+
+.modal-content.modal-content--zb-todos .zb-todos-modal__item-amount {
+    flex: 0 0 auto;
+    width: 6.25rem;
+    max-width: 38%;
+    margin: 0;
+    padding: 0.22rem 0.4rem;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    line-height: 1.2;
+    text-align: right;
+    color: var(--text-color);
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    cursor: text;
+    box-sizing: border-box;
+}
+
+.modal-content.modal-content--zb-todos .zb-todos-modal__item-amount:focus {
+    outline: none;
+    border-color: color-mix(in srgb, var(--warning-color) 55%, var(--border-color));
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--warning-color) 22%, transparent);
+}
+
+.modal-content.modal-content--zb-todos .zb-todos-modal__remove {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.65rem;
+    height: 1.65rem;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-light);
+    cursor: pointer;
+    transition:
+        background 0.15s ease,
+        color 0.15s ease;
+}
+
+.modal-content.modal-content--zb-todos .zb-todos-modal__remove:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger-color, #dc2626);
+}
+
+.modal-content.modal-content--zb-todos .zb-todos-modal__field {
+    margin-bottom: 0;
+}
+
+/* Formulário e ações: mesma calha horizontal do corpo + respiro inferior */
+#zb-block-todos-overlay .modal-content.modal-content--zb-todos > form[data-zb-todos-form] {
+    padding: 0.65rem 1.35rem 1.25rem;
+    gap: 0.65rem;
+}
+
+#zb-block-todos-overlay .modal-content.modal-content--zb-todos .form-actions {
+    margin-top: 0.2rem;
+    padding-top: 0.75rem;
+    gap: 0.55rem;
+}
+
+#zb-block-todos-overlay .modal-content.modal-content--zb-todos .form-actions .btn-primary,
+#zb-block-todos-overlay .modal-content.modal-content--zb-todos .form-actions .btn-secondary {
+    padding: 0.6rem 0.9rem;
+    min-height: 0;
+}
+
+.modal-content.modal-content--zb-todos .zero-budget-modal__field-label {
+    font-size: 0.78rem;
+    margin-bottom: 0.08rem;
+}
+
+.modal-content.modal-content--zb-todos .zero-budget-modal__text-input {
+    padding: 0.4rem 0.5rem;
+    font-size: 0.875rem;
+    border-radius: 8px;
+}
+
 .zero-budget-modal__form {
     display: flex;
     flex-direction: column;
@@ -1196,12 +1460,12 @@
 }
 
 /* ============================================================================
-   GRID DE BLOCOS — até 2 por linha; 1 bloco ocupa a largura toda
+   GRID DE BLOCOS — até 3 por linha; 1 bloco ocupa a largura toda
    ============================================================================ */
 
 .zero-budget__blocks-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 1.25rem;
     flex: 1 1 auto;
     min-height: 0;
@@ -1256,6 +1520,19 @@
     border-radius: 16px;
     position: relative;
     box-shadow: none;
+    cursor: pointer;
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.zero-budget__block-card:hover {
+    border-color: color-mix(in srgb, var(--border-color) 70%, var(--text-color));
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme='dark'] .zero-budget__block-card:hover {
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
 }
 
 [data-theme='dark'] .zero-budget__block-card {
@@ -1265,11 +1542,12 @@
 
 .zero-budget__block-top {
     display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
+    flex-wrap: nowrap;
+    align-items: center;
     justify-content: space-between;
     gap: 0.65rem 1rem;
     margin-bottom: 0.65rem;
+    min-width: 0;
 }
 
 .zero-budget__block-name-row {
@@ -1351,17 +1629,85 @@
     background: rgba(244, 63, 94, 0.1);
 }
 
+.zero-budget__block-amount-wrap {
+    flex: 0 0 auto;
+    min-width: 0;
+    max-width: 100%;
+    text-align: right;
+    box-sizing: border-box;
+}
+
 .zero-budget__block-amount-value {
+    display: block;
+    width: max-content;
+    max-width: 100%;
+    margin: 0;
+    padding: 0.1rem 0.35rem;
+    font: inherit;
     font-size: 1.25rem;
     font-weight: 900;
+    font-family: inherit;
     letter-spacing: -0.02em;
+    line-height: 1.25;
     color: var(--text-color);
     text-align: right;
     white-space: nowrap;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 0.35rem;
+    box-sizing: border-box;
+    cursor: pointer;
+    transition:
+        color 0.15s ease,
+        background 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.zero-budget__block-amount-value:hover {
+    background: color-mix(in srgb, var(--text-color) 8%, transparent);
+}
+
+.zero-budget__block-amount-value:focus {
+    outline: none;
+}
+
+.zero-budget__block-amount-value:focus-visible {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--warning-color) 55%, transparent);
 }
 
 [data-theme='dark'] .zero-budget__block-amount-value {
     color: var(--text-color);
+}
+
+.zero-budget__block-amount-input {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    margin: 0;
+    padding: 0.1rem 0.35rem;
+    font: inherit;
+    font-size: 1.25rem;
+    font-weight: 900;
+    font-family: inherit;
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+    color: var(--text-color);
+    text-align: right;
+    background: color-mix(in srgb, var(--bg-color) 65%, var(--bg-light));
+    border: 1px solid var(--border-color);
+    border-radius: 0.35rem;
+}
+
+.zero-budget__block-amount-input:focus {
+    outline: none;
+    border-color: color-mix(in srgb, var(--warning-color) 65%, var(--border-color));
+}
+
+[data-theme='dark'] .zero-budget__block-amount-input {
+    color: var(--text-color);
+    background: color-mix(in srgb, var(--bg-color) 40%, var(--bg-light));
 }
 
 .zero-budget__block-tags {
@@ -1419,10 +1765,10 @@
     width: 1.125rem;
     height: 1.125rem;
     margin-top: -0.3125rem;
-    background: var(--bg-light);
+    background: #000000;
     border-radius: 50%;
     cursor: grab;
-    border: 2px solid var(--text-color);
+    border: 2px solid #000000;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
     transition: transform 0.08s ease, box-shadow 0.08s ease;
 }
@@ -1434,8 +1780,8 @@
 }
 
 [data-theme='dark'] .zero-budget__block-slider::-webkit-slider-thumb {
-    background: var(--bg-light);
-    border-color: var(--text-color);
+    background: #ffffff;
+    border-color: #ffffff;
 }
 
 .zero-budget__block-slider::-moz-range-track {
@@ -1451,11 +1797,16 @@
 .zero-budget__block-slider::-moz-range-thumb {
     width: 1.125rem;
     height: 1.125rem;
-    background: var(--bg-light);
+    background: #000000;
     border-radius: 50%;
     cursor: grab;
-    border: 2px solid var(--text-color);
+    border: 2px solid #000000;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
+}
+
+[data-theme='dark'] .zero-budget__block-slider::-moz-range-thumb {
+    background: #ffffff;
+    border-color: #ffffff;
 }
 
 .zero-budget__block-slider:active::-moz-range-thumb {
@@ -1608,15 +1959,17 @@
     margin-left: auto;
 }
 
-/* ============================================================================
-   UTILITÁRIOS
-   ============================================================================ */
-
-/* Timeline chips container */
-.zero-budget__timeline-chips {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.5rem;
-    flex: 1 1 auto;
+.zero-budget__block-open-todos-hint {
+    margin: 0.85rem 0 0;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.78rem;
+    color: var(--text-light);
+    text-align: center;
 }
+
+.zero-budget__block-card button,
+.zero-budget__block-card input[type='range'] {
+    cursor: pointer;
+}
+

@@ -8,7 +8,11 @@ import {
     fetchZeroBudgetBlocks,
     createZeroBudgetBlock,
     updateZeroBudgetBlock,
-    deleteZeroBudgetBlock
+    deleteZeroBudgetBlock,
+    fetchZeroBudgetBlockTodos,
+    createZeroBudgetBlockTodo,
+    updateZeroBudgetBlockTodo,
+    deleteZeroBudgetBlockTodo
 } from '../../services/zero-budget-service.js';
 
 import {
@@ -79,12 +83,15 @@ let zbState = {
     categories: [], // Categorias de despesas disponíveis
     gains: [],
     expenses: [],
-    isLoading: false,
-    editingBlock: null // ID do bloco sendo editado (para cálculo de limite)
+    isLoading: false
 };
 
 let zbRootElement = null;
 
+/** Overlay «lista de compras» por bloco */
+let zbTodosOverlayEl = null;
+/** @type {string | null} */
+let zbTodosOpenBlockId = null;
 // Meses para exibição
 const MONTH_NAMES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
@@ -160,6 +167,55 @@ function zbMergedGainsForSaldoLivre() {
     return synthetic.length ? [...raw, ...synthetic] : raw;
 }
 
+function getCurrentZbAvailableBalance() {
+    return calcAvailableBalance(
+        zbMergedGainsForSaldoLivre(),
+        zbState.expenses,
+        zbState.currentMonth,
+        zbState.currentYear,
+        zbPlanningCtx()
+    );
+}
+
+/**
+ * pt-BR: "1.234,56" → 1234.56; "1.203" (milhar sem centavos) → 1203.
+ * Vazio ou inválido → NaN.
+ */
+function parsePtBrMoneyInput(str) {
+    const s0 = String(str ?? '')
+        .trim()
+        .replace(/R\$\s?/gi, '')
+        .replace(/\s/g, '');
+    if (!s0) return NaN;
+    if (s0.includes(',')) {
+        const normalized = s0.replace(/\./g, '').replace(',', '.');
+        const n = parseFloat(normalized);
+        return Number.isFinite(n) ? n : NaN;
+    }
+    const only = s0.replace(/[^\d.]/g, '');
+    if (!only) return NaN;
+    const parts = only.split('.');
+    if (parts.length > 1) {
+        const last = parts[parts.length - 1];
+        if (/^\d{3}$/.test(last)) {
+            const joined = only.replace(/\./g, '');
+            const n = parseFloat(joined);
+            return Number.isFinite(n) ? n : NaN;
+        }
+    }
+    const n = parseFloat(only);
+    return Number.isFinite(n) ? n : NaN;
+}
+
+function formatZbAmountForInput(n) {
+    const v = Number(n) || 0;
+    return v.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+
+function roundMoney2(n) {
+    return Math.round((Number(n) || 0) * 100) / 100;
+}
+
 /** Categorias de saída ainda sem bloco neste mês. */
 function getAvailableCategoriesForNewBlock() {
     const used = new Set(
@@ -178,6 +234,8 @@ export function initZeroBudgetPage() {
     
     root.dataset.zbInitDone = '1';
     zbRootElement = root;
+
+    ensureZbTodosOverlay();
     
     // Setup event listeners globais
     setupEventListeners(root);
@@ -273,6 +331,8 @@ function setupEventListeners(root) {
     root.addEventListener('click', handleBlockActions);
     root.addEventListener('input', handleBlockInput);
     root.addEventListener('change', handleBlockChange);
+    root.addEventListener('keydown', handleBlockKeydown);
+    root.addEventListener('focusout', handleBlockFocusOut);
 
     // Botão novo bloco (no header)
     const addBtn = document.getElementById('add-zero-budget-block-btn');
@@ -488,14 +548,8 @@ function renderBlocks() {
         return;
     }
     
-    const availableBalance = calcAvailableBalance(
-        zbMergedGainsForSaldoLivre(),
-        zbState.expenses,
-        zbState.currentMonth,
-        zbState.currentYear,
-        zbPlanningCtx()
-    );
-    
+    const availableBalance = getCurrentZbAvailableBalance();
+
     const blocksHtml = zbState.blocks.map(block => {
         return renderBlockCard(block, availableBalance);
     }).join('');
@@ -540,9 +594,21 @@ function renderBlockCard(block, availableBalance) {
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
-                <span class="zero-budget__block-amount-value" data-zb-amount-display="${block.id}">
-                    ${formatMoney(block.allocatedAmount || 0)}
-                </span>
+                <div class="zero-budget__block-amount-wrap" data-zb-amount-wrap="${block.id}">
+                    <button type="button"
+                            class="zero-budget__block-amount-value"
+                            data-zb-amount-display="${block.id}"
+                            title="Clique para editar o valor"
+                            aria-label="Valor alocado, editar">
+                        ${formatMoney(block.allocatedAmount || 0)}
+                    </button>
+                    <input type="text"
+                           class="zero-budget__block-amount-input hidden"
+                           inputmode="decimal"
+                           autocomplete="off"
+                           data-zb-amount-input="${block.id}"
+                           aria-label="Valor alocado em reais" />
+                </div>
             </div>
 
             <div class="zero-budget__block-body">
@@ -551,7 +617,7 @@ function renderBlockCard(block, availableBalance) {
                            class="zero-budget__block-slider"
                            min="0"
                            max="${maxAllocation}"
-                           step="1"
+                           step="0.01"
                            value="${block.allocatedAmount || 0}"
                            data-zb-slider="${block.id}">
                 </div>
@@ -563,8 +629,227 @@ function renderBlockCard(block, availableBalance) {
                     ${colorsHtml}
                 </div>
             </div>
+            <p class="zero-budget__block-open-todos-hint" aria-hidden="true">
+                Clique no card para exibir lista
+            </p>
         </article>
     `;
+}
+
+function zbTodosOnKeydown(e) {
+    if (e.key === 'Escape') {
+        closeBlockTodosOverlay();
+    }
+}
+
+function ensureZbTodosOverlay() {
+    if (zbTodosOverlayEl?.isConnected) return zbTodosOverlayEl;
+
+    const wrap = document.createElement('div');
+    wrap.id = 'zb-block-todos-overlay';
+    wrap.className = 'modal-container hidden';
+    wrap.setAttribute('role', 'dialog');
+    wrap.setAttribute('aria-modal', 'true');
+    wrap.setAttribute('aria-labelledby', 'zb-todos-panel-title');
+    wrap.innerHTML = `
+        <div class="modal-content modal-content--zero-budget modal-content--zb-todos">
+            <button type="button" class="modal-close-btn" data-zb-todos-close aria-label="Fechar">&times;</button>
+            <h3 id="zb-todos-panel-title"><span data-zb-todos-heading-cat></span></h3>
+            <div class="zb-todos-modal__body">
+                <ul class="zb-todos-modal__list" data-zb-todos-list></ul>
+                <div class="zb-todos-modal__total-row" data-zb-todos-total-row>
+                    <span class="zb-todos-modal__total-label">Total da lista</span>
+                    <strong class="zb-todos-modal__total-value" data-zb-todos-total>${formatMoney(0)}</strong>
+                </div>
+            </div>
+            <form class="zero-budget-modal__form" data-zb-todos-form>
+                <div class="zb-todos-modal__new-grid">
+                    <div class="zb-todos-modal__field zb-todos-modal__field--title">
+                        <label for="zb-todos-title-input" class="zero-budget-modal__field-label">Novo item</label>
+                        <input id="zb-todos-title-input" type="text" name="title" class="zero-budget-modal__text-input"
+                               maxlength="500" placeholder="Ex.: presente, assinatura, equipamento…" autocomplete="off" required />
+                    </div>
+                    <div class="zb-todos-modal__field zb-todos-modal__field--amount">
+                        <label for="zb-todos-amount-input" class="zero-budget-modal__field-label">Valor</label>
+                        <input id="zb-todos-amount-input" type="number" name="amount" class="zero-budget-modal__text-input"
+                               min="0" step="0.01" placeholder="0" inputmode="decimal" aria-label="Valor estimado (opcional)" />
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" data-zb-todos-close>Fechar</button>
+                    <button type="submit" class="btn-primary"><span>Adicionar</span></button>
+                </div>
+            </form>
+        </div>
+    `;
+    document.body.appendChild(wrap);
+    zbTodosOverlayEl = wrap;
+
+    wrap.addEventListener('click', (ev) => {
+        if (ev.target === wrap) {
+            closeBlockTodosOverlay();
+            return;
+        }
+        if (ev.target.closest('[data-zb-todos-close]')) {
+            closeBlockTodosOverlay();
+            return;
+        }
+        const delBtn = ev.target.closest('[data-zb-todo-delete]');
+        if (delBtn) {
+            const id = delBtn.getAttribute('data-zb-todo-delete');
+            if (id && confirm('Remover este item da lista?')) {
+                void (async () => {
+                    try {
+                        await deleteZeroBudgetBlockTodo(id);
+                        await refreshZbTodosList();
+                    } catch (err) {
+                        showNotification(err?.message || 'Erro ao remover', 'error');
+                    }
+                })();
+            }
+            return;
+        }
+        const row = ev.target.closest('[data-zb-todo-toggle]');
+        if (row && !ev.target.closest('[data-zb-todo-delete]') && !ev.target.closest('[data-zb-todo-amount-input]')) {
+            const id = row.getAttribute('data-zb-todo-toggle');
+            const purchased = row.getAttribute('data-zb-todo-purchased') === '1';
+            if (!id) return;
+            void (async () => {
+                try {
+                    await updateZeroBudgetBlockTodo(id, { isPurchased: !purchased });
+                    await refreshZbTodosList();
+                } catch (err) {
+                    showNotification(err?.message || 'Erro ao atualizar', 'error');
+                }
+            })();
+        }
+    });
+
+    const form = wrap.querySelector('[data-zb-todos-form]');
+    form?.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        const blockId = zbTodosOpenBlockId;
+        if (!blockId) return;
+        const input = form.querySelector('input[name="title"]');
+        const amtField = form.querySelector('input[name="amount"]');
+        const title = String(input?.value || '').trim();
+        if (!title) return;
+        const amount = roundMoney2(parseFloat(String(amtField?.value ?? '')) || 0);
+        try {
+            await createZeroBudgetBlockTodo(blockId, { title, amount });
+            if (input) input.value = '';
+            if (amtField) amtField.value = '';
+            await refreshZbTodosList();
+        } catch (err) {
+            showNotification(err?.message || 'Erro ao adicionar', 'error');
+        }
+    });
+
+    wrap.addEventListener('change', (ev) => {
+        const inp = ev.target.closest('[data-zb-todo-amount-input]');
+        if (!inp) return;
+        const id = inp.getAttribute('data-zb-todo-amount-input');
+        if (!id) return;
+        const v = roundMoney2(parseFloat(inp.value) || 0);
+        inp.value = String(v);
+        void (async () => {
+            try {
+                await updateZeroBudgetBlockTodo(id, { amount: v });
+                await refreshZbTodosList();
+            } catch (err) {
+                showNotification(err?.message || 'Erro ao atualizar valor', 'error');
+                await refreshZbTodosList();
+            }
+        })();
+    });
+
+    return wrap;
+}
+
+function renderZbTodosList(todos) {
+    const ul = zbTodosOverlayEl?.querySelector('[data-zb-todos-list]');
+    const totalEl = zbTodosOverlayEl?.querySelector('[data-zb-todos-total]');
+    if (!ul) return;
+    let sum = 0;
+    for (const t of todos || []) {
+        sum += Number(t.amount) || 0;
+    }
+    if (totalEl) totalEl.textContent = formatMoney(sum);
+    if (!todos.length) {
+        ul.innerHTML =
+            '<li class="zb-todos-modal__empty">Nenhum item ainda. Use o formulário abaixo para adicionar.</li>';
+        return;
+    }
+    ul.innerHTML = todos
+        .map((t) => {
+            const id = String(t.id || '');
+            const bought = Boolean(t.isPurchased);
+            const amt = roundMoney2(Number(t.amount) || 0);
+            return `
+        <li class="zb-todos-modal__item ${bought ? 'is-purchased' : ''}"
+            data-zb-todo-toggle="${id}"
+            data-zb-todo-purchased="${bought ? '1' : '0'}">
+            <span class="zb-todos-modal__check" aria-hidden="true"><i class="fas ${
+                bought ? 'fa-check-circle' : 'fa-circle'
+            }"></i></span>
+            <span class="zb-todos-modal__item-title">${escapeHtml(t.title)}</span>
+            <input type="number" class="zb-todos-modal__item-amount" min="0" step="0.01"
+                data-zb-todo-amount-input="${id}"
+                value="${amt}"
+                aria-label="Valor estimado do item" />
+            <button type="button" class="zb-todos-modal__remove" data-zb-todo-delete="${id}" aria-label="Remover item"><i class="fas fa-trash-alt" aria-hidden="true"></i></button>
+        </li>`;
+        })
+        .join('');
+}
+
+async function refreshZbTodosList() {
+    const id = zbTodosOpenBlockId;
+    if (!id || !zbTodosOverlayEl) return;
+    try {
+        const todos = await fetchZeroBudgetBlockTodos(id);
+        renderZbTodosList(todos);
+    } catch {
+        /* mantém lista anterior */
+    }
+}
+
+async function openBlockTodosOverlay(blockId) {
+    const overlay = ensureZbTodosOverlay();
+    const block = zbState.blocks.find((b) => b.id === blockId);
+    zbTodosOpenBlockId = blockId;
+
+    const heading = overlay.querySelector('[data-zb-todos-heading-cat]');
+    if (heading) {
+        heading.textContent = getBlockCategoryName(block) || 'Meta';
+    }
+
+    overlay.classList.remove('hidden');
+    overlay.classList.add('active');
+    document.body.classList.add('modal-open');
+
+    document.removeEventListener('keydown', zbTodosOnKeydown, true);
+    document.addEventListener('keydown', zbTodosOnKeydown, true);
+
+    let todos = [];
+    try {
+        todos = await fetchZeroBudgetBlockTodos(blockId);
+    } catch (err) {
+        showNotification(err?.message || 'Erro ao carregar lista', 'error');
+    }
+    renderZbTodosList(todos);
+
+    overlay.querySelector('#zb-todos-title-input')?.focus();
+}
+
+function closeBlockTodosOverlay() {
+    const overlay = zbTodosOverlayEl;
+    document.removeEventListener('keydown', zbTodosOnKeydown, true);
+    zbTodosOpenBlockId = null;
+    if (!overlay) return;
+    overlay.classList.add('hidden');
+    overlay.classList.remove('active');
+    document.body.classList.remove('modal-open');
 }
 
 /**
@@ -629,12 +914,36 @@ async function handleBlockActions(e) {
         }
         return;
     }
+
+    const amountTrigger = e.target.closest('[data-zb-amount-display]');
+    if (amountTrigger) {
+        startZbAmountEdit(amountTrigger);
+        return;
+    }
+
+    const interactive = e.target.closest(
+        'button, input, textarea, select, .zero-budget__block-colors, .zero-budget__block-amount-wrap'
+    );
+    if (interactive) return;
+
+    const card = e.target.closest('.zero-budget__block-card');
+    if (!card) return;
+    const blockId = card.dataset.zbBlockId;
+    if (blockId) {
+        void openBlockTodosOverlay(blockId);
+    }
 }
 
 /**
  * Manipula inputs nos blocos
  */
 function handleBlockInput(e) {
+    const amtIn = e.target.closest('[data-zb-amount-input]');
+    if (amtIn) {
+        syncZbAmountFromInput(amtIn);
+        return;
+    }
+
     const slider = e.target.closest('[data-zb-slider]');
     if (slider) {
         const blockId = slider.dataset.zbSlider;
@@ -670,6 +979,139 @@ async function handleBlockChange(e) {
         return;
     }
 
+}
+
+function startZbAmountEdit(triggerEl) {
+    const wrap = triggerEl.closest('[data-zb-amount-wrap]');
+    if (!wrap) return;
+    const blockId = wrap.dataset.zbAmountWrap;
+    const inp = wrap.querySelector('[data-zb-amount-input]');
+    const display = wrap.querySelector('[data-zb-amount-display]');
+    if (!inp || !display || !blockId) return;
+    const block = zbState.blocks.find((b) => b.id === blockId);
+    if (!block) return;
+    wrap.dataset.zbAmountInitial = String(roundMoney2(block.allocatedAmount || 0));
+    const rect = display.getBoundingClientRect();
+    const w = Math.ceil(rect.width);
+    const h = Math.ceil(rect.height);
+    if (w > 0) {
+        wrap.style.minWidth = `${w}px`;
+        wrap.dataset.zbAmountMinW = String(w);
+    } else {
+        wrap.style.minWidth = '';
+        delete wrap.dataset.zbAmountMinW;
+    }
+    wrap.style.minHeight = h > 0 ? `${h}px` : '';
+    display.classList.add('hidden');
+    inp.classList.remove('hidden');
+    inp.value = formatZbAmountForInput(block.allocatedAmount || 0);
+    requestAnimationFrame(() => {
+        inp.focus();
+        inp.select();
+    });
+}
+
+function syncZbAmountFromInput(inputEl) {
+    const blockId = inputEl.dataset.zbAmountInput;
+    const raw = parsePtBrMoneyInput(inputEl.value);
+    if (!Number.isFinite(raw)) return;
+    const block = zbState.blocks.find((b) => b.id === blockId);
+    if (!block) return;
+    const ab = getCurrentZbAvailableBalance();
+    const maxVal = calcMaxAllocation(ab, zbState.blocks, blockId, block.allocatedAmount || 0);
+    const clamped = Math.min(Math.max(0, raw), maxVal);
+    const rounded = roundMoney2(clamped);
+    block.allocatedAmount = rounded;
+    const slider = zbRootElement?.querySelector(`[data-zb-slider="${blockId}"]`);
+    if (slider) {
+        slider.max = String(
+            calcMaxAllocation(ab, zbState.blocks, blockId, block.allocatedAmount || 0)
+        );
+        slider.value = String(rounded);
+    }
+    const wrap = inputEl.closest('[data-zb-amount-wrap]');
+    const display = wrap?.querySelector('[data-zb-amount-display]');
+    if (display) display.textContent = formatMoney(rounded);
+    if (wrap && document.activeElement === inputEl) {
+        const base = Number(wrap.dataset.zbAmountMinW) || 0;
+        const need = Math.ceil(inputEl.scrollWidth) + 8;
+        if (need > base) {
+            wrap.style.minWidth = `${need}px`;
+        } else if (base > 0) {
+            wrap.style.minWidth = `${base}px`;
+        }
+    }
+    renderSummary();
+}
+
+async function commitZbAmountEdit(inputEl) {
+    if (inputEl.dataset.zbCommitting === '1') return;
+    const wrap = inputEl.closest('[data-zb-amount-wrap]');
+    const blockId = wrap?.dataset?.zbAmountWrap;
+    if (!wrap || !blockId) return;
+
+    inputEl.dataset.zbCommitting = '1';
+    const block = zbState.blocks.find((b) => b.id === blockId);
+    const start = roundMoney2(Number(wrap.dataset.zbAmountInitial) || 0);
+
+    try {
+        if (!block) return;
+        const raw = parsePtBrMoneyInput(inputEl.value);
+        if (!Number.isFinite(raw)) {
+            block.allocatedAmount = start;
+        } else {
+            const ab = getCurrentZbAvailableBalance();
+            const maxVal = calcMaxAllocation(ab, zbState.blocks, blockId, block.allocatedAmount || 0);
+            const clamped = Math.min(Math.max(0, raw), maxVal);
+            block.allocatedAmount = roundMoney2(clamped);
+        }
+        const end = roundMoney2(block.allocatedAmount || 0);
+        if (Math.abs(end - start) > 0.0001) {
+            await updateZeroBudgetBlock(blockId, { allocatedAmount: end });
+        }
+        renderBlocks();
+        renderSummary();
+    } catch (err) {
+        if (block) block.allocatedAmount = start;
+        renderBlocks();
+        renderSummary();
+        showNotification('Erro ao salvar valor', 'error');
+    } finally {
+        delete inputEl.dataset.zbCommitting;
+    }
+}
+
+function cancelZbAmountEdit(inputEl) {
+    inputEl.dataset.zbSkipCommit = '1';
+    const wrap = inputEl.closest('[data-zb-amount-wrap]');
+    const blockId = wrap?.dataset?.zbAmountWrap;
+    const start = roundMoney2(Number(wrap?.dataset?.zbAmountInitial) || 0);
+    const block = zbState.blocks.find((b) => b.id === blockId);
+    if (block) block.allocatedAmount = start;
+    renderBlocks();
+    renderSummary();
+}
+
+function handleBlockKeydown(e) {
+    const inp = e.target.closest('[data-zb-amount-input]');
+    if (!inp) return;
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        inp.blur();
+    } else if (e.key === 'Escape') {
+        e.preventDefault();
+        cancelZbAmountEdit(inp);
+    }
+}
+
+function handleBlockFocusOut(e) {
+    const inp = e.target.closest('[data-zb-amount-input]');
+    if (!inp) return;
+    if (inp.dataset.zbSkipCommit === '1') {
+        delete inp.dataset.zbSkipCommit;
+        return;
+    }
+    void commitZbAmountEdit(inp);
 }
 
 /**
