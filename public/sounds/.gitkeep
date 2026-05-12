@@ -1,0 +1,2 @@
+# delete.mp3 e save.mp3 (ver js/core/ui-sounds.js).
+# Sem save.mp3, usa-se síntese Web Audio; sem delete.mp3, um ruído filtrado curto.

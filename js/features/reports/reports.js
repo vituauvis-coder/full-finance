@@ -44,6 +44,39 @@ import {
     isSplitReimbursementGain
 } from '../../core/split-net.js';
 import { setMovementSummaryMomVariation } from '../../core/movement-summary-variation.js';
+import { setButtonLoading } from '../../core/button-loading.js';
+
+/**
+ * Aplica estado "carregando" nos filtros e (opcional) num botão antes de
+ * recarregar os relatórios. Garante restauração via try/finally.
+ */
+async function reloadReportsWithBusy(triggerBtn = null) {
+    if (!lastReportsLoadArgs) return;
+    const periodSel = document.getElementById('period-filter');
+    const categorySel = document.getElementById('category-filter');
+    const wasCategoryDisabled = categorySel ? categorySel.disabled : false;
+    [periodSel, categorySel].forEach((el) => {
+        if (!el) return;
+        el.disabled = true;
+        el.setAttribute('aria-busy', 'true');
+    });
+    if (triggerBtn) setButtonLoading(triggerBtn, true);
+    try {
+        await loadReportsData(...lastReportsLoadArgs);
+    } finally {
+        if (periodSel) {
+            periodSel.disabled = false;
+            periodSel.removeAttribute('aria-busy');
+        }
+        if (categorySel) {
+            // refreshCategoryFilterOptions pode redefinir o disabled; preservamos.
+            categorySel.disabled = wasCategoryDisabled;
+            categorySel.removeAttribute('aria-busy');
+        }
+        if (triggerBtn && triggerBtn.isConnected) setButtonLoading(triggerBtn, false);
+    }
+}
+
 let financialProgressionChart = null;
 let lastReportsLoadArgs = null;
 let reportsListenersBound = false;
@@ -215,7 +248,7 @@ function ensureFinancialChartColorSettingsBound() {
         const el = ev.target;
         if (!(el instanceof HTMLInputElement)) return;
         setShowFinancialChartSaldoTotal(el.checked);
-        if (lastReportsLoadArgs) void loadReportsData(...lastReportsLoadArgs);
+        void reloadReportsWithBusy();
     });
 
     panel.querySelectorAll('input[type="color"][data-fin-color]').forEach((inp) => {
@@ -225,7 +258,7 @@ function ensureFinancialChartColorSettingsBound() {
             if (!key || !val) return;
             const next = { ...getFinancialChartColors(), [key]: val };
             saveFinancialChartColors(next);
-            if (lastReportsLoadArgs) void loadReportsData(...lastReportsLoadArgs);
+            void reloadReportsWithBusy();
         });
     });
 
@@ -239,7 +272,7 @@ function ensureFinancialChartColorSettingsBound() {
             // ignore
         }
         syncInputsFromStorage();
-        if (lastReportsLoadArgs) void loadReportsData(...lastReportsLoadArgs);
+        void reloadReportsWithBusy(e.currentTarget instanceof HTMLButtonElement ? e.currentTarget : null);
     });
 
     document.addEventListener('click', () => {
@@ -311,7 +344,7 @@ function ensureChartTypeTogglesBound() {
         if (!chartKey || !type) return;
         setChartTypePreference(chartKey, type);
         syncChartTypeToggleUI(chartKey);
-        if (lastReportsLoadArgs) void loadReportsData(...lastReportsLoadArgs);
+        void reloadReportsWithBusy(btn instanceof HTMLButtonElement ? btn : null);
     });
 
     syncChartTypeToggleUI('financialProgression');
@@ -456,7 +489,7 @@ function onDashboardExpenseFacetBarClick(ev) {
     btn.setAttribute('aria-pressed', String(next));
     btn.classList.toggle('is-active', next);
     persistDashboardExpenseFacetsFromDom();
-    if (lastReportsLoadArgs) void loadReportsData(...lastReportsLoadArgs);
+    void reloadReportsWithBusy(btn instanceof HTMLButtonElement ? btn : null);
 }
 
 function ensureReportsListeners() {
@@ -468,10 +501,10 @@ function ensureReportsListeners() {
     document.getElementById('dashboard-page')?.addEventListener('click', onDashboardExpenseFacetBarClick);
     document.getElementById('period-filter')?.addEventListener('change', () => {
         markDashboardPeriodLinked();
-        if (lastReportsLoadArgs) void loadReportsData(...lastReportsLoadArgs);
+        void reloadReportsWithBusy();
     });
     document.getElementById('category-filter')?.addEventListener('change', () => {
-        if (lastReportsLoadArgs) void loadReportsData(...lastReportsLoadArgs);
+        void reloadReportsWithBusy();
     });
 }
 
@@ -733,7 +766,7 @@ function applyDashboardPeriodFromChartMonth(monthsForAxis, dataIndex) {
     if (sel.value === periodValue) return;
     sel.value = periodValue;
     markDashboardPeriodLinked();
-    void loadReportsData(...lastReportsLoadArgs);
+    void reloadReportsWithBusy();
 }
 
 function monthKeyFromMonthObj(mo) {

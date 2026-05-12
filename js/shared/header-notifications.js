@@ -302,6 +302,10 @@ export function initHeaderNotifications(stateGetter, afterMarkReadRefresh = null
         if (open) {
             refreshHeaderNotifications();
             openPanel();
+            // Mantém o ícone do sino, apenas sinaliza atividade via aria-busy + classe
+            // (a substituição completa por spinner ficaria estranha no header).
+            btnEl.setAttribute('aria-busy', 'true');
+            btnEl.classList.add('btn-busy');
             try {
                 await api(
                     '/api/notifications/read-all?kind=split_payer_confirmed',
@@ -311,6 +315,9 @@ export function initHeaderNotifications(stateGetter, afterMarkReadRefresh = null
                 else refreshHeaderNotifications();
             } catch (err) {
                 console.error(err);
+            } finally {
+                btnEl.removeAttribute('aria-busy');
+                btnEl.classList.remove('btn-busy');
             }
         } else {
             closePanel();

@@ -3,6 +3,8 @@
  * Comunica com a API REST para persistir dados no SQL Server
  */
 
+import { playTrashSound } from '../core/ui-sounds.js';
+
 const API_BASE_URL = import.meta.env.DEV ? '' : import.meta.env.VITE_API_URL || '';
 
 /**
@@ -102,6 +104,7 @@ export async function deleteZeroBudgetBlock(id) {
             console.error('Erro ao excluir bloco:', res.status, errorData);
             throw new Error(errorData.error || 'Erro ao excluir bloco');
         }
+        playTrashSound();
         return res.json();
     } catch (err) {
         console.error('Erro completo ao excluir bloco:', err);
@@ -173,5 +176,6 @@ export async function deleteZeroBudgetBlockTodo(todoId) {
         const errorData = await res.json().catch(() => ({}));
         throw new Error(errorData.error || 'Erro ao remover item');
     }
+    playTrashSound();
     return res.json();
 }

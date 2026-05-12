@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import './load-env.js';
 import dns from 'node:dns';
 import pg from 'pg';
 
@@ -10,7 +10,9 @@ if (typeof dns.setDefaultResultOrder === 'function') {
 
 let connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
-    throw new Error('DATABASE_URL não definido (ver .env)');
+    throw new Error(
+        'DATABASE_URL não definido: crie um arquivo .env na raiz do repositório (full-finance/.env) com DATABASE_URL=...'
+    );
 }
 
 /**

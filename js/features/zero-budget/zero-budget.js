@@ -20,6 +20,11 @@ import {
 } from '../../services/category-service.js';
 
 import {
+    runWithButtonLoading,
+    setFormSubmittingState
+} from '../../core/button-loading.js';
+
+import {
     calcAvailableBalance,
     explainPlanningBalance,
     calcTotalAllocated,
@@ -723,7 +728,7 @@ function ensureZbTodosOverlay() {
             if (id && confirm('Remover este item da lista?')) {
                 void (async () => {
                     try {
-                        await deleteZeroBudgetBlockTodo(id);
+                        await runWithButtonLoading(delBtn, () => deleteZeroBudgetBlockTodo(id));
                         await refreshZbTodosList();
                     } catch (err) {
                         showNotification(err?.message || 'Erro ao remover', 'error');
@@ -738,11 +743,18 @@ function ensureZbTodosOverlay() {
             const purchased = row.getAttribute('data-zb-todo-purchased') === '1';
             if (!id) return;
             void (async () => {
+                row.setAttribute('aria-busy', 'true');
+                row.classList.add('btn-busy');
                 try {
                     await updateZeroBudgetBlockTodo(id, { isPurchased: !purchased });
                     await refreshZbTodosList();
                 } catch (err) {
                     showNotification(err?.message || 'Erro ao atualizar', 'error');
+                } finally {
+                    if (row.isConnected) {
+                        row.removeAttribute('aria-busy');
+                        row.classList.remove('btn-busy');
+                    }
                 }
             })();
         }
@@ -758,6 +770,7 @@ function ensureZbTodosOverlay() {
         const title = String(input?.value || '').trim();
         if (!title) return;
         const amount = roundMoney2(parseFloat(String(amtField?.value ?? '')) || 0);
+        setFormSubmittingState(form, true, 'Adicionando...');
         try {
             await createZeroBudgetBlockTodo(blockId, { title, amount });
             if (input) input.value = '';
@@ -765,6 +778,8 @@ function ensureZbTodosOverlay() {
             await refreshZbTodosList();
         } catch (err) {
             showNotification(err?.message || 'Erro ao adicionar', 'error');
+        } finally {
+            setFormSubmittingState(form, false);
         }
     });
 
@@ -776,12 +791,21 @@ function ensureZbTodosOverlay() {
         const v = roundMoney2(parseFloat(inp.value) || 0);
         inp.value = String(v);
         void (async () => {
+            inp.disabled = true;
+            inp.setAttribute('aria-busy', 'true');
+            inp.classList.add('btn-busy');
             try {
                 await updateZeroBudgetBlockTodo(id, { amount: v });
                 await refreshZbTodosList();
             } catch (err) {
                 showNotification(err?.message || 'Erro ao atualizar valor', 'error');
                 await refreshZbTodosList();
+            } finally {
+                if (inp.isConnected) {
+                    inp.disabled = false;
+                    inp.removeAttribute('aria-busy');
+                    inp.classList.remove('btn-busy');
+                }
             }
         })();
     });
@@ -908,7 +932,7 @@ async function handleBlockActions(e) {
         const blockId = deleteBtn.dataset.zbDelete;
         if (confirm('Tem certeza que deseja excluir este bloco?')) {
             try {
-                await deleteZeroBudgetBlock(blockId);
+                await runWithButtonLoading(deleteBtn, () => deleteZeroBudgetBlock(blockId));
                 await loadData();
                 renderFullUI();
                 showNotification('Bloco excluído com sucesso', 'success');
@@ -918,15 +942,15 @@ async function handleBlockActions(e) {
         }
         return;
     }
-    
+
     // Mudar cor
     const colorBtn = e.target.closest('[data-zb-set-color]');
     if (colorBtn) {
         const blockId = colorBtn.dataset.zbSetColor;
         const color = colorBtn.dataset.color;
-        
+
         try {
-            await updateZeroBudgetBlock(blockId, { color });
+            await runWithButtonLoading(colorBtn, () => updateZeroBudgetBlock(blockId, { color }));
             // Atualizar localmente para feedback imediato
             const block = zbState.blocks.find(b => b.id === blockId);
             if (block) block.color = color;
@@ -992,6 +1016,9 @@ async function handleBlockChange(e) {
     if (slider && e.target === slider) {
         const blockId = slider.dataset.zbSlider;
         const value = parseFloat(slider.value) || 0;
+        slider.disabled = true;
+        slider.setAttribute('aria-busy', 'true');
+        slider.classList.add('btn-busy');
         try {
             await updateZeroBudgetBlock(blockId, { allocatedAmount: value });
             const block = zbState.blocks.find((b) => b.id === blockId);
@@ -999,6 +1026,10 @@ async function handleBlockChange(e) {
             renderSummary();
         } catch (err) {
             showNotification('Erro ao salvar valor', 'error');
+        } finally {
+            slider.disabled = false;
+            slider.removeAttribute('aria-busy');
+            slider.classList.remove('btn-busy');
         }
         return;
     }
@@ -1076,6 +1107,8 @@ async function commitZbAmountEdit(inputEl) {
     if (!wrap || !blockId) return;
 
     inputEl.dataset.zbCommitting = '1';
+    inputEl.setAttribute('aria-busy', 'true');
+    inputEl.classList.add('btn-busy');
     const block = zbState.blocks.find((b) => b.id === blockId);
     const start = roundMoney2(Number(wrap.dataset.zbAmountInitial) || 0);
 
@@ -1092,7 +1125,12 @@ async function commitZbAmountEdit(inputEl) {
         }
         const end = roundMoney2(block.allocatedAmount || 0);
         if (Math.abs(end - start) > 0.0001) {
-            await updateZeroBudgetBlock(blockId, { allocatedAmount: end });
+            inputEl.disabled = true;
+            try {
+                await updateZeroBudgetBlock(blockId, { allocatedAmount: end });
+            } finally {
+                inputEl.disabled = false;
+            }
         }
         renderBlocks();
         renderSummary();
@@ -1103,6 +1141,8 @@ async function commitZbAmountEdit(inputEl) {
         showNotification('Erro ao salvar valor', 'error');
     } finally {
         delete inputEl.dataset.zbCommitting;
+        inputEl.removeAttribute('aria-busy');
+        inputEl.classList.remove('btn-busy');
     }
 }
 
@@ -1182,6 +1222,7 @@ async function openCreateBlockModal() {
 
 async function handleCreateBlockSubmit(e) {
     e.preventDefault();
+    const form = e.target;
     const sel = document.getElementById('zero-budget-block-category');
     if (!sel || sel.disabled) {
         showNotification('Nenhuma categoria disponível para este mês', 'error');
@@ -1194,6 +1235,7 @@ async function handleCreateBlockSubmit(e) {
     }
     const categoryName = decodeURIComponent(raw);
 
+    setFormSubmittingState(form, true, 'Criando bloco...');
     try {
         await createZeroBudgetBlock({
             categoryName,
@@ -1209,6 +1251,8 @@ async function handleCreateBlockSubmit(e) {
         showNotification('Bloco criado com sucesso', 'success');
     } catch (err) {
         showNotification(err?.message || 'Erro ao criar bloco', 'error');
+    } finally {
+        setFormSubmittingState(form, false);
     }
 }
 

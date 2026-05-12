@@ -31,15 +31,6 @@
     color: #171717;
 }
 
-[data-theme="dark"] .fab {
-    color: #171717;
-}
-
-[data-theme="dark"] .fab-expense,
-[data-theme="dark"] .fab-gain {
-    color: #fff;
-}
-
 [data-theme="dark"] .app-header {
     background: var(--bg-light);
     box-shadow: none;

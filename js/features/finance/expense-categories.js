@@ -13,6 +13,10 @@ import {
     deleteSubcategory
 } from '../../services/category-service.js';
 import { populateGainCategorySelect, invalidateGainCategoriesCache, populateGainSubcategorySelect } from './gain-categories.js';
+import {
+    runWithButtonLoading,
+    setButtonLoading
+} from '../../core/button-loading.js';
 
 // Cache local das categorias
 let categoriesCache = null;
@@ -413,23 +417,28 @@ export function setupExpenseCategoryUi() {
             if (subNewInput) subNewInput.value = '';
         }
     
-        async function saveNewSubcategory() {
+        async function saveNewSubcategory(triggerBtn = null) {
             const name = subNewInput?.value?.trim();
             const category = sel?.value?.trim();
             if (!name || !category) return;
-            const result = await addCustomSubcategory(category, name);
-            if (result.ok) {
-                populateExpenseSubcategorySelect(name, true);
-                hideSubNewRow();
-            }
+            const btn = triggerBtn || subSaveBtn;
+            const exec = async () => {
+                const result = await addCustomSubcategory(category, name);
+                if (result.ok) {
+                    populateExpenseSubcategorySelect(name, true);
+                    hideSubNewRow();
+                }
+            };
+            if (btn) await runWithButtonLoading(btn, exec);
+            else await exec();
         }
     
         subCancelBtn?.addEventListener('click', hideSubNewRow);
-        subSaveBtn?.addEventListener('click', () => saveNewSubcategory());
+        subSaveBtn?.addEventListener('click', () => saveNewSubcategory(subSaveBtn));
         subNewInput?.addEventListener('keydown', async (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                await saveNewSubcategory();
+                await saveNewSubcategory(subSaveBtn);
             }
         });
     }
@@ -506,35 +515,40 @@ function openCategoryFormModal(categoryId = null, categoryName = '', categoryTyp
             alert('Digite um nome para a categoria');
             return;
         }
-        
-        if (editingCategoryId) {
-            try {
-                await updateCategory(editingCategoryId, name, type);
-                formModal.classList.add('hidden');
-                await renderCategoriesList();
-                if (type === 'GAIN') {
-                    await populateGainCategorySelect(name, true);
-                } else {
-                    await populateExpenseCategorySelect(name, true);
+
+        setButtonLoading(saveBtn, true, { busyLabel: 'Salvando...' });
+        try {
+            if (editingCategoryId) {
+                try {
+                    await updateCategory(editingCategoryId, name, type);
+                    formModal.classList.add('hidden');
+                    await renderCategoriesList();
+                    if (type === 'GAIN') {
+                        await populateGainCategorySelect(name, true);
+                    } else {
+                        await populateExpenseCategorySelect(name, true);
+                    }
+                } catch (err) {
+                    alert(err?.message || 'Erro ao atualizar categoria');
                 }
-            } catch (err) {
-                alert(err?.message || 'Erro ao atualizar categoria');
-            }
-        } else {
-            const result = await createCategory(name, type);
-            if (result.id) {
-                formModal.classList.add('hidden');
-                await renderCategoriesList();
-                if (type === 'GAIN') {
-                    await populateGainCategorySelect(name, true);
-                } else {
-                    await populateExpenseCategorySelect(name, true);
-                }
-            } else if (result.error?.includes('já existe')) {
-                alert('Esta categoria já existe');
             } else {
-                alert(result.error || 'Erro ao criar categoria');
+                const result = await createCategory(name, type);
+                if (result.id) {
+                    formModal.classList.add('hidden');
+                    await renderCategoriesList();
+                    if (type === 'GAIN') {
+                        await populateGainCategorySelect(name, true);
+                    } else {
+                        await populateExpenseCategorySelect(name, true);
+                    }
+                } else if (result.error?.includes('já existe')) {
+                    alert('Esta categoria já existe');
+                } else {
+                    alert(result.error || 'Erro ao criar categoria');
+                }
             }
+        } finally {
+            setButtonLoading(saveBtn, false);
         }
     };
     
@@ -597,7 +611,7 @@ async function renderCategoriesList() {
                     <button type="button" onclick="editCategoryItem('${cat.id}', '${cat.name}', '${cat.type}')" title="Editar" style="padding: 0.4rem 0.6rem; background: none; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; color: var(--text-light); font-size: 0.8rem; transition: all 0.2s;">
                         <i class="fas fa-pencil-alt"></i>
                     </button>
-                    <button type="button" onclick="deleteCategoryItem('${cat.id}', '${cat.name}')" title="Excluir" style="padding: 0.4rem 0.6rem; background: none; border: 1px solid var(--danger-color, #ef4444); border-radius: 6px; cursor: pointer; color: var(--danger-color, #ef4444); font-size: 0.8rem; transition: all 0.2s;">
+                    <button type="button" onclick="deleteCategoryItem('${cat.id}', '${cat.name}', this)" title="Excluir" style="padding: 0.4rem 0.6rem; background: none; border: 1px solid var(--danger-color, #ef4444); border-radius: 6px; cursor: pointer; color: var(--danger-color, #ef4444); font-size: 0.8rem; transition: all 0.2s;">
                         <i class="fas fa-trash-alt"></i>
                     </button>
                 </div>
@@ -612,7 +626,7 @@ async function renderCategoriesList() {
                                 <button type="button" onclick="editSubcategoryItem('${sub.id}', '${sub.name}', '${cat.id}', '${cat.name}')" title="Editar subcategoria" style="padding: 0.2rem 0.4rem; background: none; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; color: var(--text-light); font-size: 0.7rem; transition: all 0.2s;">
                                     <i class="fas fa-pencil-alt"></i>
                                 </button>
-                                <button type="button" onclick="deleteSubcategoryItem('${sub.id}', '${sub.name}')" title="Excluir subcategoria" style="padding: 0.2rem 0.4rem; background: none; border: 1px solid var(--danger-color, #ef4444); border-radius: 4px; cursor: pointer; color: var(--danger-color, #ef4444); font-size: 0.7rem; transition: all 0.2s;">
+                                <button type="button" onclick="deleteSubcategoryItem('${sub.id}', '${sub.name}', this)" title="Excluir subcategoria" style="padding: 0.2rem 0.4rem; background: none; border: 1px solid var(--danger-color, #ef4444); border-radius: 4px; cursor: pointer; color: var(--danger-color, #ef4444); font-size: 0.7rem; transition: all 0.2s;">
                                     <i class="fas fa-trash-alt"></i>
                                 </button>
                             </div>
@@ -629,14 +643,18 @@ window.editCategoryItem = (id, name, type = 'EXPENSE') => {
     openCategoryFormModal(id, name, type);
 };
 
-window.deleteCategoryItem = async (id, name) => {
+window.deleteCategoryItem = async (id, name, btn = null) => {
     if (!confirm(`Deseja excluir a categoria "${name}"?\n\nTodas as subcategorias serão excluídas também.`)) return;
-    
-    try {
+
+    const exec = async () => {
         await deleteCategory(id);
         await renderCategoriesList();
         await populateExpenseCategorySelect('', true);
         await populateGainCategorySelect('', true);
+    };
+    try {
+        if (btn) await runWithButtonLoading(btn, exec);
+        else await exec();
     } catch (err) {
         alert('Erro ao excluir categoria: ' + err.message);
     }
@@ -647,15 +665,19 @@ window.editSubcategoryItem = (id, name, categoryId, categoryName) => {
     openSubcategoryFormModal(categoryId, categoryName, id, name);
 };
 
-window.deleteSubcategoryItem = async (id, name) => {
+window.deleteSubcategoryItem = async (id, name, btn = null) => {
     if (!confirm(`Deseja excluir a subcategoria "${name}"?`)) return;
-    
-    try {
+
+    const exec = async () => {
         await deleteSubcategory(id);
         await renderCategoriesList();
         await populateExpenseSubcategorySelect('', true);
         invalidateGainCategoriesCache();
         await populateGainSubcategorySelect('', true);
+    };
+    try {
+        if (btn) await runWithButtonLoading(btn, exec);
+        else await exec();
     } catch (err) {
         alert('Erro ao excluir subcategoria: ' + err.message);
     }
@@ -704,31 +726,36 @@ function openSubcategoryFormModal(categoryId = null, categoryName = '', subcateg
             alert('Digite um nome para a subcategoria');
             return;
         }
-        
-        if (editingSubcategoryId) {
-            try {
-                await updateSubcategory(editingSubcategoryId, name);
-                formModal.classList.add('hidden');
-                await renderCategoriesList();
-                await populateExpenseSubcategorySelect(name, true);
-                invalidateGainCategoriesCache();
-                await populateGainSubcategorySelect(name, true);
-            } catch (err) {
-                alert(err?.message || 'Erro ao atualizar subcategoria');
-            }
-        } else {
-            const result = await createSubcategory(categoryId, name);
-            if (result.id) {
-                formModal.classList.add('hidden');
-                await renderCategoriesList();
-                await populateExpenseSubcategorySelect(name, true);
-                invalidateGainCategoriesCache();
-                await populateGainSubcategorySelect(name, true);
-            } else if (result.error?.includes('já existe')) {
-                alert('Esta subcategoria já existe');
+
+        setButtonLoading(saveBtn, true, { busyLabel: 'Salvando...' });
+        try {
+            if (editingSubcategoryId) {
+                try {
+                    await updateSubcategory(editingSubcategoryId, name);
+                    formModal.classList.add('hidden');
+                    await renderCategoriesList();
+                    await populateExpenseSubcategorySelect(name, true);
+                    invalidateGainCategoriesCache();
+                    await populateGainSubcategorySelect(name, true);
+                } catch (err) {
+                    alert(err?.message || 'Erro ao atualizar subcategoria');
+                }
             } else {
-                alert(result.error || 'Erro ao criar subcategoria');
+                const result = await createSubcategory(categoryId, name);
+                if (result.id) {
+                    formModal.classList.add('hidden');
+                    await renderCategoriesList();
+                    await populateExpenseSubcategorySelect(name, true);
+                    invalidateGainCategoriesCache();
+                    await populateGainSubcategorySelect(name, true);
+                } else if (result.error?.includes('já existe')) {
+                    alert('Esta subcategoria já existe');
+                } else {
+                    alert(result.error || 'Erro ao criar subcategoria');
+                }
             }
+        } finally {
+            setButtonLoading(saveBtn, false);
         }
     };
     

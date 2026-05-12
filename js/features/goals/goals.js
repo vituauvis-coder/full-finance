@@ -1,6 +1,10 @@
 import { formatCurrency, isCardAccountType } from '../../core/utils.js';
 import { saveGoal, deleteGoal } from '../../services/firestore.js';
 import { openModal, closeModal, showMessage } from '../../shell/app-shell.js';
+import {
+    runWithButtonLoading,
+    setFormSubmittingState
+} from '../../core/button-loading.js';
 
 let currentUser;
 let userAccounts;
@@ -241,6 +245,7 @@ async function handleGoalFormSubmit(e) {
         linkedAccountIds
     };
 
+    setFormSubmittingState(form, true, 'Salvando objetivo...');
     try {
         await saveGoal(data, form['goal-id'].value || null);
         closeModal('goal-modal');
@@ -248,6 +253,8 @@ async function handleGoalFormSubmit(e) {
     } catch (error) {
         console.error('Erro ao salvar meta:', error);
         showMessage('goal-message', 'Não foi possível salvar a meta. Tente novamente.', 'error');
+    } finally {
+        setFormSubmittingState(form, false);
     }
 }
 
@@ -265,7 +272,7 @@ async function handleGoalListClick(e) {
         const id = deleteButton.dataset.id;
         if (confirm('Tem certeza que deseja excluir este objetivo?')) {
             try {
-                await deleteGoal(id);
+                await runWithButtonLoading(deleteButton, () => deleteGoal(id));
                 onUpdateCallback();
             } catch (error) {
                 console.error('Erro ao excluir meta:', error);

@@ -2,6 +2,7 @@
 // Categorias de ganho com subcategorias (mesmo padrão que expense-categories.js)
 
 import { fetchCategories, createSubcategory } from '../../services/category-service.js';
+import { runWithButtonLoading } from '../../core/button-loading.js';
 
 /** Cache de categorias carregadas do banco */
 let categoriesCache = null;
@@ -293,23 +294,28 @@ export function setupGainCategoryUi() {
             if (subNewInput) subNewInput.value = '';
         }
 
-        async function saveNewSubcategory() {
+        async function saveNewSubcategory(triggerBtn = null) {
             const name = subNewInput?.value?.trim();
             const category = sel?.value?.trim();
             if (!name || !category) return;
-            const result = await addCustomGainSubcategory(category, name);
-            if (result.ok) {
-                await populateGainSubcategorySelect(name, true);
-                hideSubNewRow();
-            }
+            const btn = triggerBtn || subSaveBtn;
+            const exec = async () => {
+                const result = await addCustomGainSubcategory(category, name);
+                if (result.ok) {
+                    await populateGainSubcategorySelect(name, true);
+                    hideSubNewRow();
+                }
+            };
+            if (btn) await runWithButtonLoading(btn, exec);
+            else await exec();
         }
 
         subCancelBtn?.addEventListener('click', hideSubNewRow);
-        subSaveBtn?.addEventListener('click', () => void saveNewSubcategory());
+        subSaveBtn?.addEventListener('click', () => void saveNewSubcategory(subSaveBtn));
         subNewInput?.addEventListener('keydown', async (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                await saveNewSubcategory();
+                await saveNewSubcategory(subSaveBtn);
             }
         });
     }

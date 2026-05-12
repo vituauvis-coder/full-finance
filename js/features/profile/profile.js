@@ -3,9 +3,33 @@ import { showMessage, openModal, closeModal, refreshSidebarCollapseTabPosition }
 import { api } from '../../api-client.js';
 import { DEFAULT_FINANCE_PREFERENCES, getFinancePreferences } from '../../core/finance-preferences.js';
 import { getPeriodDateBounds } from '../../core/period-filters.js';
+import {
+    runWithButtonLoading,
+    setButtonLoading,
+    setFormSubmittingState
+} from '../../core/button-loading.js';
+import { playPingSound, isUiSoundEnabled, setUiSoundEnabled } from '../../core/ui-sounds.js';
 
 let currentUser = null;
 let onAppDataRefresh = null;
+
+function syncUiSoundsCheckboxFromStorage() {
+    const el = document.getElementById('ui-sounds-enabled');
+    if (el) el.checked = isUiSoundEnabled();
+}
+
+function initUiSoundsCheckbox() {
+    const el = document.getElementById('ui-sounds-enabled');
+    if (!el || el.dataset.boundUiSounds === '1') return;
+    el.dataset.boundUiSounds = '1';
+    syncUiSoundsCheckboxFromStorage();
+    el.addEventListener('change', () => {
+        setUiSoundEnabled(el.checked);
+        if (el.checked) {
+            playPingSound();
+        }
+    });
+}
 
 /**
  * Inicializa a página de perfil, configurando os listeners de formulários e botões.
@@ -28,6 +52,8 @@ export function initProfile(user, onRefreshAllData) {
 
     document.getElementById('finance-preferences-form')?.addEventListener('submit', handleFinancePreferencesSubmit);
     document.getElementById('finance-pref-manual-enabled')?.addEventListener('change', syncFinancePrefSuboptions);
+
+    initUiSoundsCheckbox();
 
     document.getElementById('default-currency')?.addEventListener('change', syncAccountSnapshot);
     window.addEventListener('fullfinan-themechange', syncAccountSnapshot);
@@ -60,6 +86,7 @@ async function loadProfileData() {
 
         updateProfileImages(userData.profilePhotoURL);
         fillFinancePreferencesForm(userData);
+        syncUiSoundsCheckboxFromStorage();
         syncAccountSnapshot();
         refreshSidebarCollapseTabPosition();
     } catch (error) {
@@ -111,6 +138,7 @@ function syncFinancePrefSuboptions() {
 
 async function handleFinancePreferencesSubmit(e) {
     e.preventDefault();
+    const form = e.target;
     const en = document.getElementById('finance-pref-manual-enabled');
     const cc = document.getElementById('finance-pref-cc');
     const loan = document.getElementById('finance-pref-loan');
@@ -123,13 +151,17 @@ async function handleFinancePreferencesSubmit(e) {
             monthlyFixed: monthly?.checked !== false
         }
     };
+    setFormSubmittingState(form, true, 'Salvando preferências...');
     try {
         await updateUserProfile(currentUser.uid, { financePreferences });
         showMessage('finance-preferences-message', 'Preferências de caixa salvas.', 'success');
+        playPingSound();
         await onAppDataRefresh?.();
     } catch (err) {
         console.error(err);
         showMessage('finance-preferences-message', 'Não foi possível salvar. Tente novamente.', 'error');
+    } finally {
+        setFormSubmittingState(form, false);
     }
 }
 
@@ -154,9 +186,11 @@ export function applyProfilePhotoFromUserProfile(userProfile) {
 
 async function handleProfileUpdate(e) {
     e.preventDefault();
+    const form = e.target;
     const newName = document.getElementById('profile-name').value.trim();
     if (!newName) return;
 
+    setFormSubmittingState(form, true, 'Salvando...');
     try {
         await updateUserProfile(currentUser.uid, { name: newName });
         document.getElementById('user-name-display').textContent = newName;
@@ -164,9 +198,12 @@ async function handleProfileUpdate(e) {
         if (heroTitle) heroTitle.textContent = newName;
         refreshSidebarCollapseTabPosition();
         showMessage('profile-message', 'Nome atualizado com sucesso!', 'success');
+        playPingSound();
     } catch (error) {
         console.error('Erro ao atualizar nome:', error);
         showMessage('profile-message', 'Não foi possível atualizar o perfil. Tente novamente.', 'error');
+    } finally {
+        setFormSubmittingState(form, false);
     }
 }
 
@@ -176,6 +213,7 @@ async function handlePasswordChange(e) {
     const currentPassword = form['current-password'].value;
     const newPassword = form['new-password'].value;
 
+    setFormSubmittingState(form, true, 'Alterando senha...');
     try {
         await api('/api/profile/password', {
             method: 'POST',
@@ -183,10 +221,13 @@ async function handlePasswordChange(e) {
         });
         form.reset();
         showMessage('password-message', 'Senha alterada com sucesso!', 'success');
+        playPingSound();
     } catch (error) {
         console.error('Erro ao alterar senha:', error);
         const message = error.code === 'auth/wrong-password' ? 'Senha atual incorreta.' : 'Erro ao alterar senha. Tente novamente.';
         showMessage('password-message', message, 'error');
+    } finally {
+        setFormSubmittingState(form, false);
     }
 }
 
@@ -215,11 +256,14 @@ async function handlePhotoUpload(e) {
     const file = input.files?.[0];
     if (!file) return;
 
+    const changeBtn = document.getElementById('change-photo-btn');
+    if (changeBtn) setButtonLoading(changeBtn, true, { busyLabel: 'Enviando...' });
     try {
         const dataUrl = await readProfileImageAsDataUrl(file);
         await updateUserProfile(currentUser.uid, { profilePhotoURL: dataUrl });
         updateProfileImages(dataUrl);
         showMessage('personalization-message', 'Foto de perfil atualizada!', 'success');
+        playPingSound();
     } catch (error) {
         console.error('Erro ao processar a foto:', error);
         const msg =
@@ -231,15 +275,24 @@ async function handlePhotoUpload(e) {
         showMessage('personalization-message', msg, 'error');
     } finally {
         input.value = '';
+        if (changeBtn) setButtonLoading(changeBtn, false);
     }
 }
 
 async function handlePhotoRemove() {
     if (!confirm('Tem certeza que deseja remover sua foto de perfil?')) return;
+    const removeBtn = document.getElementById('remove-photo-btn');
     try {
-        await updateUserProfile(currentUser.uid, { profilePhotoURL: null });
+        if (removeBtn) {
+            await runWithButtonLoading(removeBtn, () =>
+                updateUserProfile(currentUser.uid, { profilePhotoURL: null })
+            , { busyLabel: 'Removendo...' });
+        } else {
+            await updateUserProfile(currentUser.uid, { profilePhotoURL: null });
+        }
         updateProfileImages(null);
         showMessage('personalization-message', 'Foto removida com sucesso!', 'success');
+        playPingSound();
     } catch (error) {
         console.error('Erro ao remover a foto:', error);
         showMessage('personalization-message', 'Não foi possível remover a foto. Tente novamente.', 'error');
@@ -248,19 +301,24 @@ async function handlePhotoRemove() {
 
 async function handleBalanceAdjustment(e) {
     e.preventDefault();
+    const form = e.target;
     const balance = parseFloat(document.getElementById('profile-current-balance').value);
     if (isNaN(balance)) return;
 
+    setFormSubmittingState(form, true, 'Atualizando saldo...');
     try {
         await api('/api/profile/balance', {
             method: 'POST',
             body: JSON.stringify({ balance })
         });
         showMessage('balance-adjustment-message', 'Saldo atualizado com sucesso!', 'success');
+        playPingSound();
         if (onAppDataRefresh) await onAppDataRefresh();
     } catch (error) {
         console.error('Erro ao ajustar saldo:', error);
         showMessage('balance-adjustment-message', 'Erro ao atualizar saldo. Tente novamente.', 'error');
+    } finally {
+        setFormSubmittingState(form, false);
     }
 }
 
@@ -277,17 +335,16 @@ function validateDeleteEmail(e) {
 
 async function handleDeleteAccount() {
     const deleteButton = document.getElementById('confirm-delete-btn');
-    deleteButton.disabled = true;
-    deleteButton.textContent = 'Excluindo...';
+    if (!deleteButton) return;
 
     try {
-        await deleteUserAccount();
+        await runWithButtonLoading(deleteButton, () => deleteUserAccount(), {
+            busyLabel: 'Excluindo...'
+        });
         alert('Conta deletada com sucesso. Você será desconectado.');
         window.location.reload();
     } catch (error) {
         console.error('Erro ao deletar conta:', error);
         showMessage('delete-account-message', 'Erro ao deletar conta. Tente novamente.', 'error');
-        deleteButton.disabled = false;
-        deleteButton.textContent = 'Eu entendo as consequências, deletar minha conta';
     }
 }

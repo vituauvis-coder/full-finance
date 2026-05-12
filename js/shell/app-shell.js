@@ -1,6 +1,10 @@
 // js/shell/app-shell.js
 // CORREÇÃO: Arquivo refatorado para corrigir navegação, modais e menu mobile.
 import { handleLogin, handleRegister, getAuthErrorMessage, signOut } from './auth.js';
+import {
+    runWithButtonLoading,
+    setFormSubmittingState
+} from '../core/button-loading.js';
 
 // --- Estado e Callbacks do Módulo ---
 let currentUser = null;
@@ -272,11 +276,14 @@ export function initAuthForms() {
             const email = loginForm['login-email'].value;
             const password = loginForm['login-password'].value;
 
+            setFormSubmittingState(loginForm, true, 'Entrando...');
             try {
                 await handleLogin(email, password);
                 // O onAuthStateChanged em main.js cuidará da transição de tela.
             } catch (error) {
                 if (authError) authError.textContent = getAuthErrorMessage(error.code);
+            } finally {
+                setFormSubmittingState(loginForm, false);
             }
         });
     }
@@ -292,6 +299,7 @@ export function initAuthForms() {
             const password = registerForm['register-password'].value;
             const confirmPassword = registerForm['register-confirm-password'].value;
 
+            setFormSubmittingState(registerForm, true, 'Criando conta...');
             try {
                 await handleRegister(name, email, password, confirmPassword);
                 // O onAuthStateChanged em main.js cuidará da transição de tela.
@@ -301,6 +309,8 @@ export function initAuthForms() {
                         ? error.message
                         : getAuthErrorMessage(error.code);
                 }
+            } finally {
+                setFormSubmittingState(registerForm, false);
             }
         });
     }
@@ -569,12 +579,15 @@ function setupTour() {
 function setupLogout() {
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
-        logoutBtn.addEventListener('click', () => {
-            if (confirm('Tem certeza que deseja sair?')) {
-                signOut().catch((error) => {
-                    console.error('Erro ao fazer logout:', error);
-                    alert('Erro ao sair. Tente novamente.');
+        logoutBtn.addEventListener('click', async () => {
+            if (!confirm('Tem certeza que deseja sair?')) return;
+            try {
+                await runWithButtonLoading(logoutBtn, () => signOut(), {
+                    busyLabel: 'Saindo...'
                 });
+            } catch (error) {
+                console.error('Erro ao fazer logout:', error);
+                alert('Erro ao sair. Tente novamente.');
             }
         });
     }

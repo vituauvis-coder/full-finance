@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import './load-env.js';
 import crypto from 'node:crypto';
 import os from 'node:os';
 import fs from 'fs';

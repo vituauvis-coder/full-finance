@@ -99,6 +99,12 @@ import {
     parseCashOutConfirmedPeriods
 } from '../../core/finance-preferences.js';
 import { expenseContributionPaidThroughListMonthKey as expenseContributionPaidThroughMonthKey } from '../../core/expense-list-month-contribution.js';
+import {
+    runWithButtonLoading,
+    setButtonLoading,
+    setFormSubmittingState
+} from '../../core/button-loading.js';
+import { playPingSound } from '../../core/ui-sounds.js';
 
 function escapeHtml(text) {
     const d = document.createElement('div');
@@ -111,26 +117,6 @@ function htmlAttrEscape(text) {
         .replace(/&/g, '&amp;')
         .replace(/"/g, '&quot;')
         .replace(/</g, '&lt;');
-}
-
-function setFormSubmittingState(form, isSubmitting, busyLabel = 'Salvando...') {
-    if (!(form instanceof HTMLFormElement)) return;
-    const submitBtn = form.querySelector('button[type="submit"]');
-    if (!(submitBtn instanceof HTMLButtonElement)) return;
-
-    if (isSubmitting) {
-        form.dataset.submitting = '1';
-        if (!submitBtn.dataset.originalHtml) submitBtn.dataset.originalHtml = submitBtn.innerHTML;
-        submitBtn.disabled = true;
-        submitBtn.setAttribute('aria-busy', 'true');
-        submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin" aria-hidden="true" style="margin-right: 8px;"></i><span>${busyLabel}</span>`;
-        return;
-    }
-
-    form.dataset.submitting = '0';
-    submitBtn.disabled = false;
-    submitBtn.removeAttribute('aria-busy');
-    if (submitBtn.dataset.originalHtml) submitBtn.innerHTML = submitBtn.dataset.originalHtml;
 }
 
 /** Série mensal em conta de caixa + preferência de confirmação mensal — mesma lógica do saldo e do painel de pendentes. */
@@ -217,6 +203,15 @@ function truncateDisplayHtml(text, max) {
     const raw = String(text ?? '');
     if (raw.length <= max) return escapeHtml(raw);
     return `${escapeHtml(raw.slice(0, Math.max(0, max - 1)))}…`;
+}
+
+/** Texto encurtado para células de tabela com tooltip do conteúdo completo. */
+const TABLE_CELL_TRUNCATE_LIMIT = 40;
+function buildTruncatedTableCellHtml(text, max = TABLE_CELL_TRUNCATE_LIMIT) {
+    const raw = String(text ?? '');
+    if (raw.length <= max) return escapeHtml(raw);
+    const cut = `${raw.slice(0, max).trimEnd()}...`;
+    return `<span class="table-cell-truncate" title="${htmlAttrEscape(raw)}">${escapeHtml(cut)}</span>`;
 }
 
 /** Chaves YYYY-MM-DD das parcelas marcadas como pagas no formulário (empréstimo ou cartão parcelado). */
@@ -970,6 +965,7 @@ async function handleExpenseSplitFormSubmit(e) {
         showToast('Conta', 'Selecione a conta para receber o estorno.', 'warning');
         return;
     }
+    setFormSubmittingState(form, true, 'Enviando solicitação...');
     try {
         const expForSeries = sourceExpenseId
             ? userExpenses?.find((e) => String(e.id) === String(sourceExpenseId))
@@ -1007,6 +1003,8 @@ async function handleExpenseSplitFormSubmit(e) {
     } catch (err) {
         console.error(err);
         showToast('Erro', err.message || 'Não foi possível enviar.', 'error');
+    } finally {
+        setFormSubmittingState(form, false);
     }
 }
 
@@ -1066,7 +1064,11 @@ function renderOutgoingSplitsPanel(currency) {
             const sid = btn.dataset.splitId;
             if (!sid || !confirm('Remover esta solicitação de divisão?')) return;
             try {
-                await cancelExpenseSplitRequest(sid);
+                await runWithButtonLoading(
+                    btn,
+                    () => cancelExpenseSplitRequest(sid),
+                    { busyLabel: 'Removendo...' }
+                );
                 showToast('Removido', 'A divisão foi excluída.', 'info');
                 onUpdateCallback?.();
             } catch (err) {
@@ -1131,7 +1133,11 @@ function setupExpenseSplitUi() {
         const sid = btn.dataset.splitId;
         if (!sid || !confirm('Remover esta divisão? Só é permitido se ainda não foi aceita.')) return;
         try {
-            await cancelExpenseSplitRequest(sid);
+            await runWithButtonLoading(
+                btn,
+                () => cancelExpenseSplitRequest(sid),
+                { busyLabel: 'Removendo...' }
+            );
             showToast(
                 'Divisão removida',
                 'Se não houver divisões aceitas, você poderá excluir a saída.',
@@ -1176,7 +1182,7 @@ export function showPendingSplitsLoginModal() {
         btn.addEventListener('click', () => handleSplitIncomingAccept(btn.dataset.splitId));
     });
     listEl.querySelectorAll('.split-incoming-reject-btn').forEach((btn) => {
-        btn.addEventListener('click', () => handleSplitIncomingReject(btn.dataset.splitId));
+        btn.addEventListener('click', () => handleSplitIncomingReject(btn.dataset.splitId, btn));
     });
 
     openModal('split-incoming-login-modal');
@@ -1219,10 +1225,18 @@ async function handleSplitIncomingAccept(splitId) {
     }
 }
 
-async function handleSplitIncomingReject(splitId) {
+async function handleSplitIncomingReject(splitId, btn = null) {
     if (!splitId || !confirm('Recusar esta divisão?')) return;
     try {
-        await rejectExpenseSplitRequest(splitId);
+        if (btn) {
+            await runWithButtonLoading(
+                btn,
+                () => rejectExpenseSplitRequest(splitId),
+                { busyLabel: 'Recusando...' }
+            );
+        } else {
+            await rejectExpenseSplitRequest(splitId);
+        }
         showToast('Recusado', 'O solicitante foi notificado pelo status.', 'info');
         closeModal('split-incoming-login-modal');
         onUpdateCallback?.();
@@ -1294,8 +1308,6 @@ export function initFinance(
 
     document.getElementById('add-expense-btn')?.addEventListener('click', () => openExpenseModal(false));
     document.getElementById('add-gain-btn')?.addEventListener('click', () => openGainModal(false));
-    document.getElementById('quick-add-expense-btn')?.addEventListener('click', () => openExpenseModal(false));
-    document.getElementById('quick-add-gain-btn')?.addEventListener('click', () => openGainModal(false));
     document.getElementById('expense-form')?.addEventListener('submit', handleExpenseFormSubmit);
     document.getElementById('expense-form')?.addEventListener('click', handleLoanMonthTagClick);
     document.getElementById('gain-form')?.addEventListener('submit', handleGainFormSubmit);
@@ -1693,6 +1705,7 @@ async function handleExpenseBatchFormSubmit(e) {
             m === 0 ? 'Nenhuma saída foi atualizada (verifique permissões ou ids).' : `${m} saída(s) atualizadas.`,
             m === 0 ? 'warning' : 'success'
         );
+        if (m > 0) playPingSound();
         clearExpenseBatchSelection();
         onUpdateCallback?.();
     } catch (err) {
@@ -1847,6 +1860,7 @@ async function handleGainBatchFormSubmit(e) {
             m === 0 ? 'Nenhuma entrada foi atualizada (verifique permissões ou ids).' : `${m} entrada(s) atualizadas.`,
             m === 0 ? 'warning' : 'success'
         );
+        if (m > 0) playPingSound();
         clearGainBatchSelection();
         onUpdateCallback?.();
     } catch (err) {
@@ -1863,21 +1877,24 @@ function setupInstallmentCashOutConfirmModal() {
     const cancel = document.getElementById('confirm-installment-cash-out-cancel');
     ok?.addEventListener('click', async () => {
         if (!pendingInstallmentCashOut?.expenseId || !pendingInstallmentCashOut?.periodKey) return;
-        ok.disabled = true;
         try {
-            await confirmExpenseCashOut(
-                pendingInstallmentCashOut.expenseId,
-                pendingInstallmentCashOut.periodKey
+            await runWithButtonLoading(
+                ok,
+                () =>
+                    confirmExpenseCashOut(
+                        pendingInstallmentCashOut.expenseId,
+                        pendingInstallmentCashOut.periodKey
+                    ),
+                { busyLabel: 'Confirmando...' }
             );
             pendingInstallmentCashOut = null;
             closeModal(modalId);
             onUpdateCallback?.();
+            playPingSound();
             showToast('Pagamento', 'Parcela registrada no saldo.', 'success');
         } catch (err) {
             console.error(err);
             showToast('Erro', 'Não foi possível confirmar o pagamento.', 'error');
-        } finally {
-            ok.disabled = false;
         }
     });
     cancel?.addEventListener('click', () => {
@@ -3372,7 +3389,7 @@ function renderExpensesBodySliceWithList(list) {
             tr.innerHTML = `
             <td class="expenses-td-batch"><label class="expense-batch-row-hit"><span class="sr-only">Selecionar para edição em lote</span><input type="checkbox" class="expense-batch-check" data-expense-id="${eidAttr}"></label></td>
             <td>${dateStr}</td>
-            <td>${escapeHtml(t.description)}${escapeHtml(descSuffix)}</td>
+            <td>${buildTruncatedTableCellHtml(`${t.description ?? ''}${descSuffix ?? ''}`)}</td>
             <td>${escapeHtml(categoryDisplay)}</td>
             <td>${escapeHtml(account?.name || 'N/A')}</td>
             <td>${paymentKindText}</td>
@@ -3415,7 +3432,9 @@ function renderExpensesBodySliceWithList(list) {
             monthRing && listPeriodMonth
                 ? expenseCreditInstallmentBracketSuffix(t, account, userProfile, now, listPeriodMonth)
                 : '';
-        const descriptionHtml = `${escapeHtml(t.description)}${escapeHtml(creditInstallSuffix)}`;
+        const descriptionHtml = buildTruncatedTableCellHtml(
+            `${t.description ?? ''}${creditInstallSuffix ?? ''}`
+        );
         const displayAmt = applySplitNetToContribution(
             t,
             movementMonthKey(t.date),
@@ -4048,7 +4067,7 @@ function renderGainsBodySliceWithList(list) {
         tr.innerHTML = `
             <td class="gains-td-batch"><label class="gain-batch-row-hit"><span class="sr-only">Selecionar para seleção em lote</span><input type="checkbox" class="gain-batch-check" data-gain-id="${gidForAttr}"></label></td>
             <td>${movementDateToJsDate(t.date).toLocaleDateString('pt-BR')}</td>
-            <td>${escapeHtml(String(t.description ?? ''))}</td>
+            <td>${buildTruncatedTableCellHtml(t.description)}</td>
             <td>${escapeHtml(categoryDisplay)}</td>
             <td>${escapeHtml(account?.name || 'N/A')}</td>
             <td>${paymentKindText}</td>
@@ -5260,7 +5279,8 @@ async function handleExpenseFormSubmit(e) {
                         isFixed: Boolean(e.isFixed),
                         cashOutConfirmedPeriods: paid ? JSON.stringify([mk]) : null
                     },
-                    e.id
+                    e.id,
+                    { skipUiSound: true }
                 );
             }
         }
@@ -5472,17 +5492,12 @@ async function handleExpenseRowActions(e) {
         const togglesSameExpense = [...document.querySelectorAll('#expenses-table tbody button.expense-fixed-toggle')].filter(
             (b) => String(b.dataset.expenseId ?? '').trim() === expenseId
         );
-        const snapshots = togglesSameExpense.map((btn) => ({ btn, html: btn.innerHTML }));
-        snapshots.forEach(({ btn }) => {
-            btn.disabled = true;
-            btn.setAttribute('aria-busy', 'true');
-            btn.innerHTML =
-                '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i><span class="sr-only">A atualizar…</span>';
-        });
+        togglesSameExpense.forEach((btn) => setButtonLoading(btn, true));
         let succeeded = false;
         try {
             await patchExpensesBatch([expenseId], { isFixed: nextFixed });
             succeeded = true;
+            playPingSound();
             onUpdateCallback?.();
         } catch (error) {
             console.error('Erro ao atualizar despesa essencial:', error);
@@ -5494,11 +5509,8 @@ async function handleExpenseRowActions(e) {
         } finally {
             expenseFixedTogglePendingIds.delete(expenseId);
             if (!succeeded) {
-                snapshots.forEach(({ btn, html }) => {
-                    if (!btn.isConnected) return;
-                    btn.innerHTML = html;
-                    btn.removeAttribute('aria-busy');
-                    btn.disabled = false;
+                togglesSameExpense.forEach((btn) => {
+                    if (btn.isConnected) setButtonLoading(btn, false);
                 });
             }
         }
@@ -5517,18 +5529,16 @@ async function handleExpenseRowActions(e) {
             return;
         }
         expensePaidTogglePendingKeys.add(pendingKey);
-        snapshots.forEach(({ btn }) => {
-            btn.disabled = true;
-            btn.setAttribute('aria-busy', 'true');
-            btn.innerHTML =
-                '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i><span class="sr-only">A atualizar…</span>';
-        });
+        snapshots.forEach(({ btn }) => setButtonLoading(btn, true));
         let succeeded = false;
         try {
             const mode = paidToggleBtn.dataset.paidToggleMode;
             if (mode === 'batch-is-paid') {
                 const showsPaidNow = exp.isPaid !== false;
                 await patchExpensesBatch([expenseId], { isPaid: !showsPaidNow });
+                if (!showsPaidNow) {
+                    playPingSound();
+                }
             } else if (mode === 'monthly-fixed-unconfirm') {
                 const anchor = movementDateToJsDate(exp.date);
                 const rm = periodRemovalKeysFromDayAndMonth(
@@ -5539,7 +5549,8 @@ async function handleExpenseRowActions(e) {
                     expensePutPayloadFromRow(exp, {
                         cashOutConfirmedPeriods: filterCashOutConfirmedJsonAfterRemoval(exp, rm)
                     }),
-                    expenseId
+                    expenseId,
+                    { skipUiSound: true }
                 );
             } else if (mode === 'period-keys-unconfirm') {
                 const rm = periodRemovalKeysFromDayAndMonth(
@@ -5550,7 +5561,8 @@ async function handleExpenseRowActions(e) {
                     expensePutPayloadFromRow(exp, {
                         cashOutConfirmedPeriods: filterCashOutConfirmedJsonAfterRemoval(exp, rm)
                     }),
-                    expenseId
+                    expenseId,
+                    { skipUiSound: true }
                 );
             } else if (mode === 'inst-row-period-unconfirm') {
                 const rm = periodRemovalKeysFromInstPeriodKey(paidToggleBtn.dataset.instPeriodKey);
@@ -5558,7 +5570,8 @@ async function handleExpenseRowActions(e) {
                     expensePutPayloadFromRow(exp, {
                         cashOutConfirmedPeriods: filterCashOutConfirmedJsonAfterRemoval(exp, rm)
                     }),
-                    expenseId
+                    expenseId,
+                    { skipUiSound: true }
                 );
             }
             succeeded = true;
@@ -5573,11 +5586,8 @@ async function handleExpenseRowActions(e) {
         } finally {
             expensePaidTogglePendingKeys.delete(pendingKey);
             if (!succeeded) {
-                snapshots.forEach(({ btn, html }) => {
-                    if (!btn.isConnected) return;
-                    btn.innerHTML = html;
-                    btn.removeAttribute('aria-busy');
-                    btn.disabled = false;
+                snapshots.forEach(({ btn }) => {
+                    if (btn.isConnected) setButtonLoading(btn, false);
                 });
             }
         }
@@ -5606,7 +5616,7 @@ async function handleExpenseRowActions(e) {
     if (target.classList.contains('btn-delete')) {
         if (confirm('Tem certeza que deseja excluir esta saída?')) {
             try {
-                await deleteExpense(rowId);
+                await runWithButtonLoading(target, () => deleteExpense(rowId));
                 onUpdateCallback();
             } catch (error) {
                 console.error('Erro ao excluir saída:', error);
@@ -5731,13 +5741,11 @@ async function handleGainRowActions(e) {
         const showsReceivedNow = row.isPaid !== false;
         const nextIsPaid = !showsReceivedNow;
         gainReceivedTogglePendingIds.add(gid);
-        const prevHtml = recvBtn.innerHTML;
-        recvBtn.disabled = true;
-        recvBtn.setAttribute('aria-busy', 'true');
-        recvBtn.innerHTML =
-            '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i><span class="sr-only">A atualizar…</span>';
+        setButtonLoading(recvBtn, true);
+        let succeeded = false;
         try {
-            await saveGain(buildGainPutPayloadFromRow(row, nextIsPaid), gid);
+            await saveGain(buildGainPutPayloadFromRow(row, nextIsPaid), gid, { skipUiSound: !nextIsPaid });
+            succeeded = true;
             onUpdateCallback?.();
         } catch (error) {
             console.error('Erro ao atualizar estado recebido da entrada:', error);
@@ -5746,11 +5754,9 @@ async function handleGainRowActions(e) {
                 error?.message || 'Tente novamente.',
                 error?.status === 409 ? 'warning' : 'error'
             );
-            recvBtn.innerHTML = prevHtml;
-            recvBtn.disabled = false;
-            recvBtn.removeAttribute('aria-busy');
         } finally {
             gainReceivedTogglePendingIds.delete(gid);
+            if (!succeeded && recvBtn.isConnected) setButtonLoading(recvBtn, false);
         }
         return;
     }
@@ -5763,7 +5769,7 @@ async function handleGainRowActions(e) {
     if (target.classList.contains('btn-delete')) {
         if (confirm('Tem certeza que deseja excluir esta entrada?')) {
             try {
-                await deleteGain(rowId);
+                await runWithButtonLoading(target, () => deleteGain(rowId));
                 onUpdateCallback();
             } catch (error) {
                 console.error('Erro ao excluir entrada:', error);
@@ -6055,6 +6061,7 @@ async function handleAccountFormSubmit(e) {
         data.holderName = holderTrim || null;
     }
 
+    setFormSubmittingState(form, true, 'Salvando conta...');
     try {
         await saveAccount(data, id);
         closeModal('account-modal');
@@ -6062,6 +6069,8 @@ async function handleAccountFormSubmit(e) {
     } catch (error) {
         console.error('Erro ao salvar conta:', error);
         showMessage('account-message', 'Não foi possível salvar a conta. Tente novamente.', 'error');
+    } finally {
+        setFormSubmittingState(form, false);
     }
 }
 
@@ -6077,7 +6086,7 @@ async function handleAccountActions(e) {
     } else if (button.classList.contains('btn-delete')) {
         if (confirm('Tem certeza que deseja excluir esta conta? Saídas e entradas associadas a ela também serão removidas.')) {
             try {
-                await deleteAccount(id);
+                await runWithButtonLoading(button, () => deleteAccount(id));
                 onUpdateCallback();
             } catch (error) {
                 console.error('Erro ao excluir conta:', error);
@@ -6574,7 +6583,9 @@ async function handleCardButtonActions(e) {
             )
         ) {
             try {
-                await deleteAccount(id);
+                await runWithButtonLoading(button, () => deleteAccount(id), {
+                    busyLabel: 'Excluindo...'
+                });
                 closeModal('card-purchases-modal');
                 onUpdateCallback();
             } catch (error) {

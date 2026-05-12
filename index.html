@@ -309,14 +309,6 @@
             <!-- Área de Conteúdo da Página -->
             <main class="page-content">
                 <button id="menu-toggle-btn" class="menu-toggle-btn"><i class="fas fa-bars"></i></button>
-                <div class="fab-group" aria-label="Lançamentos rápidos">
-                    <button type="button" id="quick-add-expense-btn" class="fab fab-expense" title="Nova saída">
-                        <i class="fas fa-minus"></i>
-                    </button>
-                    <button type="button" id="quick-add-gain-btn" class="fab fab-gain" title="Nova entrada">
-                        <i class="fas fa-plus"></i>
-                    </button>
-                </div>
 
                 <!-- Header Mobile-Friendly -->
                 <header class="app-header">
@@ -1447,6 +1439,16 @@
                                                     <option value="EUR">Euro (€)</option>
                                                 </select>
                                                 <small class="field-hint">Saldos, listas e relatórios</small>
+                                            </div>
+                                        </div>
+                                        <div class="currency-section">
+                                            <h4 class="profile-subheading">Sons da interface</h4>
+                                            <div class="form-group">
+                                                <label class="checkbox-label" for="ui-sounds-enabled">
+                                                    <input type="checkbox" id="ui-sounds-enabled" name="ui-sounds-enabled" checked>
+                                                    <span>Sons ao guardar, pagar e apagar</span>
+                                                </label>
+                                                <small class="field-hint">Som «save» ao confirmar alterações; «delete» ao apagar. Respeita «reduzir movimento» do sistema.</small>
                                             </div>
                                         </div>
                                     </div>

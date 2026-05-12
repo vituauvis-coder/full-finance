@@ -265,6 +265,26 @@
     opacity: 0.7;
 }
 
+/* Estado "busy" universal para botões em loading (aplicado pelo helper button-loading.js). */
+.btn-busy {
+    cursor: progress !important;
+    opacity: 0.85;
+    pointer-events: none;
+}
+
+.btn-busy > .fa-spinner {
+    margin-right: 0.4em;
+}
+
+.btn-busy > .btn-busy-label {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+button[aria-busy="true"] {
+    cursor: progress;
+}
+
 .upload-progress {
     display: none;
     align-items: center;
@@ -454,6 +474,12 @@
     align-items: center;
     gap: 0.25rem;
     /* Espaçamento entre os botões */
+}
+
+/* Texto truncado em células de tabela (mostra "..." no fim e tooltip com o texto completo). */
+.table-cell-truncate {
+    cursor: help;
+    word-break: break-word;
 }
 
 /* Em tabelas, evite `display:flex` direto no `<td>` (quebra alinhamento quando outra coluna tem 2 linhas). */
@@ -674,59 +700,6 @@
 input.input-readonly-locked {
     background: var(--bg-color);
     cursor: not-allowed;
-}
-
-/* NOVO CÓDIGO */
-.fab-group {
-    position: fixed;
-    bottom: 2rem;
-    right: 2rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    z-index: 999;
-}
-
-.fab {
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background-color: var(--primary-color);
-    color: white;
-    border: none;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    font-size: 1.5rem;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    transition: transform 0.2s ease-in-out, background-color 0.2s ease;
-}
-
-.fab-expense {
-    background-color: var(--danger-color, #ef4444);
-}
-
-.fab-expense:hover {
-    filter: brightness(1.08);
-    transform: scale(1.05);
-}
-
-.fab-gain {
-    background-color: var(--gains-accent, #10b981);
-}
-
-.fab-gain:hover {
-    filter: brightness(1.08);
-    transform: scale(1.05);
-}
-
-/* Ajuste para telas menores */
-@media (max-width: 768px) {
-    .fab-group {
-        bottom: 1.5rem;
-        right: 1.5rem;
-    }
 }
 
 /* NOVO CSS em css/components.css */

@@ -6,6 +6,8 @@
  * encaminhar à API — igual a api-client.js. Se VITE_API_URL apontar a localhost e
  * outro PC acessar pelo IP da rede, fetch iria para o localhost daquele PC (falha).
  */
+import { playTrashSound } from '../core/ui-sounds.js';
+
 const API_BASE_URL = import.meta.env.DEV ? '' : import.meta.env.VITE_API_URL || '';
 
 /**
@@ -86,6 +88,7 @@ export async function deleteCategory(id) {
         const err = await res.json();
         throw new Error(err.error || 'Erro ao excluir categoria');
     }
+    playTrashSound();
     return res.json();
 }
 
@@ -156,5 +159,6 @@ export async function deleteSubcategory(id) {
         const err = await res.json();
         throw new Error(err.error || 'Erro ao excluir subcategoria');
     }
+    playTrashSound();
     return res.json();
 }

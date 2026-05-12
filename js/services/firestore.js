@@ -1,5 +1,6 @@
 // Camada de dados local (substitui Firestore)
 import { api, apiUpload } from '../api-client.js';
+import { playPingSound, playTrashSound } from '../core/ui-sounds.js';
 
 export {
     calculateAllBalances,
@@ -40,7 +41,13 @@ export async function fetchAllData(userId) {
     }
 }
 
-async function saveDocument(collectionName, data, docId) {
+/**
+ * @param {string} collectionName
+ * @param {object} data
+ * @param {string|null|undefined} docId
+ * @param {{ skipUiSound?: boolean }} [options]
+ */
+async function saveDocument(collectionName, data, docId, options = {}) {
     const payload = { ...data };
     if (Object.prototype.hasOwnProperty.call(payload, 'date') && payload.date != null) {
         payload.date = serializeDate(payload.date);
@@ -58,23 +65,29 @@ async function saveDocument(collectionName, data, docId) {
     const basePath = paths[collectionName];
     if (!basePath) throw new Error('Coleção inválida');
 
+    let result;
     if (docId) {
-        return api(`${basePath}/${docId}`, {
+        result = await api(`${basePath}/${docId}`, {
             method: 'PUT',
             body: JSON.stringify(payload)
         });
+    } else {
+        let postPath = basePath;
+        if (collectionName === 'gains' && payload.isRecurring === true) {
+            postPath = `${basePath}?recurring=1`;
+        }
+        if (collectionName === 'expenses' && payload.recurringMonthly === true && !docId) {
+            postPath = `${basePath}?recurring=1`;
+        }
+        result = await api(postPath, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
     }
-    let postPath = basePath;
-    if (collectionName === 'gains' && payload.isRecurring === true) {
-        postPath = `${basePath}?recurring=1`;
+    if (!options.skipUiSound) {
+        playPingSound();
     }
-    if (collectionName === 'expenses' && payload.recurringMonthly === true && !docId) {
-        postPath = `${basePath}?recurring=1`;
-    }
-    return api(postPath, {
-        method: 'POST',
-        body: JSON.stringify(payload)
-    });
+    return result;
 }
 
 async function deleteDocument(collectionName, docId) {
@@ -90,9 +103,10 @@ async function deleteDocument(collectionName, docId) {
     const basePath = paths[collectionName];
     if (!basePath) throw new Error('Coleção inválida');
     await api(`${basePath}/${docId}`, { method: 'DELETE' });
+    playTrashSound();
 }
 
-export const saveExpense = (data, docId) => saveDocument('expenses', data, docId);
+export const saveExpense = (data, docId, options) => saveDocument('expenses', data, docId, options);
 
 /** Atualiza campos permitidos em várias saídas (`PATCH /api/expenses/batch`). */
 export async function patchExpensesBatch(ids, patch) {
@@ -107,12 +121,12 @@ export async function patchGainsBatch(ids, patch) {
         body: JSON.stringify({ ids, patch })
     });
 }
-export const saveGain = (data, docId) => saveDocument('gains', data, docId);
-export const saveAccount = (data, docId) => saveDocument('accounts', data, docId);
-export const saveGoal = (data, docId) => saveDocument('goals', data, docId);
-export const saveInvestment = (data, docId) => saveDocument('investments', data, docId);
-export const saveDebt = (data, docId) => saveDocument('debts', data, docId);
-export const saveDebtUpdate = (data, docId) => saveDocument('debtUpdates', data, docId);
+export const saveGain = (data, docId, options) => saveDocument('gains', data, docId, options);
+export const saveAccount = (data, docId, options) => saveDocument('accounts', data, docId, options);
+export const saveGoal = (data, docId, options) => saveDocument('goals', data, docId, options);
+export const saveInvestment = (data, docId, options) => saveDocument('investments', data, docId, options);
+export const saveDebt = (data, docId, options) => saveDocument('debts', data, docId, options);
+export const saveDebtUpdate = (data, docId, options) => saveDocument('debtUpdates', data, docId, options);
 
 export const deleteAccount = (docId) => deleteDocument('accounts', docId);
 export const deleteExpense = (docId) => deleteDocument('expenses', docId);
@@ -209,7 +223,9 @@ export async function rejectExpenseSplitRequest(id) {
 }
 
 export async function cancelExpenseSplitRequest(id) {
-    return api(`/api/expense-splits/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    const r = await api(`/api/expense-splits/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    playTrashSound();
+    return r;
 }
 
 export async function patchExpenseSplitProof(id, senderProofUrl) {

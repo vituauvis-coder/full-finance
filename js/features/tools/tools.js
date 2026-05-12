@@ -1,6 +1,11 @@
 import { formatCurrency } from '../../core/utils.js';
 import { api } from '../../api-client.js';
 import { openModal, closeModal } from '../../shell/app-shell.js';
+import {
+    runWithButtonLoading,
+    setFormSubmittingState
+} from '../../core/button-loading.js';
+import { playTrashSound } from '../../core/ui-sounds.js';
 
 // Estado do kanban
 let kanbanCards = [];
@@ -270,7 +275,7 @@ function createKanbanCardElement(card) {
 
     div.querySelector('.delete')?.addEventListener('click', (e) => {
         e.stopPropagation();
-        deleteKanbanCard(card.id);
+        deleteKanbanCard(card.id, e.currentTarget);
     });
 
     // Clique na imagem para ampliar
@@ -293,7 +298,7 @@ function createKanbanCardElement(card) {
             e.stopPropagation();
             const newColumn = btn.dataset.move;
             if (newColumn && newColumn !== card.column) {
-                moveKanbanCard(card.id, newColumn);
+                moveKanbanCard(card.id, newColumn, btn);
             }
         });
     });
@@ -363,6 +368,7 @@ function openKanbanModal(card = null) {
 
 async function saveKanbanCard(e) {
     e.preventDefault();
+    const form = e.target;
 
     const id = document.getElementById('kanban-card-id').value;
     const type = document.getElementById('kanban-card-type').value;
@@ -418,6 +424,7 @@ async function saveKanbanCard(e) {
         payload = { ...payload, description, benefit };
     }
 
+    setFormSubmittingState(form, true, 'Salvando...');
     try {
         if (id) {
             // Editar
@@ -438,14 +445,21 @@ async function saveKanbanCard(e) {
     } catch (error) {
         console.error('Erro ao salvar kanban card:', error);
         alert('Erro ao salvar. Tente novamente.');
+    } finally {
+        setFormSubmittingState(form, false);
     }
 }
 
-async function deleteKanbanCard(id) {
+async function deleteKanbanCard(id, btn = null) {
     if (!confirm('Tem certeza que deseja excluir esta sugestão?')) return;
 
     try {
-        await api(`/api/kanban-cards/${id}`, { method: 'DELETE' });
+        if (btn) {
+            await runWithButtonLoading(btn, () => api(`/api/kanban-cards/${id}`, { method: 'DELETE' }));
+        } else {
+            await api(`/api/kanban-cards/${id}`, { method: 'DELETE' });
+        }
+        playTrashSound();
         await loadKanbanCards();
     } catch (error) {
         console.error('Erro ao deletar kanban card:', error);
@@ -453,12 +467,23 @@ async function deleteKanbanCard(id) {
     }
 }
 
-async function moveKanbanCard(id, newColumn) {
+async function moveKanbanCard(id, newColumn, btn = null) {
     try {
-        await api(`/api/kanban-cards/${id}`, {
-            method: 'PUT',
-            body: JSON.stringify({ column: newColumn })
-        });
+        if (btn) {
+            await runWithButtonLoading(
+                btn,
+                () =>
+                    api(`/api/kanban-cards/${id}`, {
+                        method: 'PUT',
+                        body: JSON.stringify({ column: newColumn })
+                    })
+            );
+        } else {
+            await api(`/api/kanban-cards/${id}`, {
+                method: 'PUT',
+                body: JSON.stringify({ column: newColumn })
+            });
+        }
         await loadKanbanCards();
     } catch (error) {
         console.error('Erro ao mover kanban card:', error);

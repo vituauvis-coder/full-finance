@@ -1,6 +1,10 @@
 import { openModal, closeModal, showToast } from '../../shell/app-shell.js';
 import { formatCurrency, movementDateToJsDate } from '../../core/utils.js';
 import { saveDebt, saveDebtUpdate, deleteDebtUpdate } from '../../services/firestore.js';
+import {
+    runWithButtonLoading,
+    setFormSubmittingState
+} from '../../core/button-loading.js';
 
 let debtsCache = null;
 let debtUpdatesCache = null;
@@ -324,6 +328,7 @@ function bindDebtsEvents(currentUser, onDataRefresh) {
             return;
         }
 
+        setFormSubmittingState(form, true, 'Salvando dívida...');
         try {
             const debt = getOrCreateDebtByCompany(company, debtsCache, currentUser.uid);
             let debtId = debt.id;
@@ -346,6 +351,8 @@ function bindDebtsEvents(currentUser, onDataRefresh) {
         } catch (err) {
             console.error(err);
             showToast('Erro ao salvar.');
+        } finally {
+            setFormSubmittingState(form, false);
         }
     });
 
@@ -355,7 +362,7 @@ function bindDebtsEvents(currentUser, onDataRefresh) {
         const id = btn.dataset.id;
         if (!id) return;
         try {
-            await deleteDebtUpdate(id);
+            await runWithButtonLoading(btn, () => deleteDebtUpdate(id));
             showToast('Atualização excluída.');
             await onDataRefresh?.();
         } catch (err) {

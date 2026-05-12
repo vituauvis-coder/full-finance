@@ -1,6 +1,10 @@
 import { formatCurrency, isCardAccountType } from '../../core/utils.js';
 import { saveInvestment, deleteInvestment } from '../../services/firestore.js';
 import { openModal, closeModal, showMessage } from '../../shell/app-shell.js';
+import {
+    runWithButtonLoading,
+    setFormSubmittingState
+} from '../../core/button-loading.js';
 
 /** Soma o valor das posições cadastradas (card do dashboard e “Posição investida”). */
 export function getTotalInvestedSum(userInvestments) {
@@ -274,6 +278,7 @@ async function handleInvestmentFormSubmit(e) {
         linkedAccountId: linked || null
     };
 
+    setFormSubmittingState(form, true, 'Salvando investimento...');
     try {
         await saveInvestment(data, form['investment-id'].value || null);
         closeModal('investment-modal');
@@ -281,6 +286,8 @@ async function handleInvestmentFormSubmit(e) {
     } catch (error) {
         console.error('Erro ao salvar investimento:', error);
         showMessage('investment-message', 'Não foi possível salvar o investimento. Tente novamente.', 'error');
+    } finally {
+        setFormSubmittingState(form, false);
     }
 }
 
@@ -290,7 +297,7 @@ async function handleInvestmentsListClick(e) {
         const id = delBtn.dataset.id;
         if (id && confirm('Excluir esta posição de investimento?')) {
             try {
-                await deleteInvestment(id);
+                await runWithButtonLoading(delBtn, () => deleteInvestment(id));
                 onUpdateCallback();
             } catch (error) {
                 console.error('Erro ao excluir investimento:', error);
