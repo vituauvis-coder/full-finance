@@ -4048,7 +4048,11 @@ function renderGainsBodySliceWithList(list) {
         const amountHtml = t.recurrenceGroupId
             ? `<span class="movement-amount-with-rec-inner">${recBadge}${formatCurrency(t.amount, currency)}</span>`
             : formatCurrency(t.amount, currency);
-        const paymentKindText = escapeHtml(movementAccountPaymentKindLabel(account));
+        const paymentKindText = escapeHtml(
+            isSplitReimbursementGain(t) || t.__syntheticExpectedSplit
+                ? 'PIX'
+                : movementAccountPaymentKindLabel(account)
+        );
         const gidForAttr = htmlAttrEscape(String(t.id));
         const isSynthSplit = Boolean(t.__syntheticExpectedSplit);
         const receivedCell = isSynthSplit

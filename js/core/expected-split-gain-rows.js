@@ -196,7 +196,7 @@ export function buildSyntheticExpectedSplitGainsRows(
                 id: rowId,
                 accountId: creditAcc,
                 category: 'Reembolsos',
-                subcategory: null,
+                subcategory: 'PIX',
                 amount: amt,
                 description: `Expectativa de estorno — ${descBase}`,
                 date: dateInMonth.toISOString(),

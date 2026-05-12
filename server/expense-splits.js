@@ -567,7 +567,7 @@ export function registerExpenseSplitRoutes(app, { requireAuth }) {
                             id, user_id, account_id, category, subcategory, amount, description,
                             date, is_paid, recurrence_group_id, related_expense_id, reference_only
                          ) VALUES (
-                            $1,$2,$3,'Reembolsos',NULL,$4,$5,
+                            $1,$2,$3,'Reembolsos','PIX',$4,$5,
                             now(), true, NULL, $6, $7
                          )
                          RETURNING

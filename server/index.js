@@ -1254,7 +1254,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                                 splitRequestRow.requesterUserId,
                                 splitRequestRow.requesterCreditAccountId,
                                 'Reembolsos',
-                                null,
+                                'PIX',
                                 Number(splitRequestRow.amount) || 0,
                                 `Estorno parcial — ${sourceDesc}`,
                                 splitRequestRow.sourceExpenseId,
@@ -1402,7 +1402,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                             splitRequestRow.requesterUserId,
                             splitRequestRow.requesterCreditAccountId,
                             'Reembolsos',
-                            null,
+                            'PIX',
                             Number(splitRequestRow.amount) || 0,
                             `Estorno parcial — ${sourceDesc}`,
                             splitRequestRow.sourceExpenseId,
@@ -1973,7 +1973,7 @@ app.post('/api/expenses/:id/confirm-cash-out', requireAuth, async (req, res) => 
                                         id, user_id, account_id, category, subcategory, amount, description,
                                         date, is_paid, recurrence_group_id, related_expense_id, reference_only
                                      ) VALUES (
-                                        $1,$2,$3,'Reembolsos',NULL,$4,$5,
+                                        $1,$2,$3,'Reembolsos','PIX',$4,$5,
                                         now(), true, NULL, $6, $7
                                      )`,
                                     [
