@@ -9,8 +9,7 @@ import {
     syncFinanceState,
     loadExpensesData,
     loadGainsData,
-    loadAccountsData,
-    loadCardsData,
+    loadWalletPage,
     showPendingSplitsLoginModal
 } from '../features/finance/index.js';
 import { initProfile, applyProfilePhotoFromUserProfile } from '../features/profile/profile.js';
@@ -241,8 +240,14 @@ function loadPageData(pageName) {
             loadZeroBudgetPage();
             break;
         case 'wallet':
-            loadAccountsData(AppState.accounts, AppState.currency);
-            loadCardsData(AppState.accounts, AppState.expenses, AppState.currency);
+            loadWalletPage(
+                AppState.accounts,
+                AppState.expenses,
+                AppState.gains,
+                AppState.currency,
+                AppState.userProfile,
+                AppState.expenseSplitRequests
+            );
             break;
         case 'goals':
             loadGoalsData(AppState.goals, AppState.accounts, AppState.currency);

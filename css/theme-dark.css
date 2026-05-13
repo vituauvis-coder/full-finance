@@ -55,6 +55,12 @@
     border: 1px solid var(--border-color);
 }
 
+[data-theme="dark"] .app-header.app-header--wallet {
+    background: var(--bg-light);
+    box-shadow: none;
+    border: 1px solid var(--border-color);
+}
+
 [data-theme="dark"] .app-header--expenses .header-page-title {
     color: #f43f5e;
 }
@@ -67,6 +73,10 @@
     color: #fbbf24;
 }
 
+[data-theme="dark"] .app-header--wallet .header-page-title {
+    color: #60a5fa;
+}
+
 [data-theme="dark"] .app-header--expenses .header-page-emoji i {
     color: #f43f5e;
 }
@@ -77,6 +87,10 @@
 
 [data-theme="dark"] .app-header--zero-budget .header-page-emoji i {
     color: #fbbf24;
+}
+
+[data-theme="dark"] .app-header--wallet .header-page-emoji i {
+    color: #60a5fa;
 }
 
 [data-theme="dark"] .app-header--expenses .header-page-actions .btn-primary.header-action-btn {
@@ -92,6 +106,11 @@
 [data-theme="dark"] .app-header--zero-budget .header-page-actions .btn-primary.header-action-btn {
     background-color: #f59e0b;
     border-color: #f59e0b;
+}
+
+[data-theme="dark"] .app-header--wallet .header-page-actions .btn-primary.header-action-btn {
+    background-color: #2563eb;
+    border-color: #2563eb;
 }
 
 [data-theme="dark"] .quick-filter-btn.active,

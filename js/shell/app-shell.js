@@ -456,13 +456,15 @@ export function navigateTo(pageId) {
     // Atualiza a cor de fundo do header baseado na página
     const appHeader = document.querySelector('.app-header');
     if (appHeader) {
-        appHeader.classList.remove('app-header--expenses', 'app-header--gains', 'app-header--zero-budget');
+        appHeader.classList.remove('app-header--expenses', 'app-header--gains', 'app-header--zero-budget', 'app-header--wallet');
         if (pageId === 'expenses') {
             appHeader.classList.add('app-header--expenses');
         } else if (pageId === 'gains') {
             appHeader.classList.add('app-header--gains');
         } else if (pageId === 'zero-budget') {
             appHeader.classList.add('app-header--zero-budget');
+        } else if (pageId === 'wallet') {
+            appHeader.classList.add('app-header--wallet');
         }
     }
 
@@ -470,6 +472,7 @@ export function navigateTo(pageId) {
     document.getElementById('gains-header-actions')?.classList.toggle('hidden', pageId !== 'gains');
     document.getElementById('dashboard-header-actions')?.classList.toggle('hidden', pageId !== 'dashboard');
     document.getElementById('zero-budget-header-actions')?.classList.toggle('hidden', pageId !== 'zero-budget');
+    document.getElementById('wallet-header-actions')?.classList.toggle('hidden', pageId !== 'wallet');
 
     // Salva a última página visitada
     localStorage.setItem('lastVisitedPage', pageId);

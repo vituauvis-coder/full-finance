@@ -765,6 +765,76 @@ export function getCreditInstallmentMonthAllocationsIncludingFuture(expense, acc
     return out;
 }
 
+/**
+ * Alocação por mês-calendário (YYYY-MM) pelo vencimento de cada parcela no ciclo do cartão.
+ * Inclui histórico mesmo após o plano estar totalmente quitado (diferente de
+ * {@link getCreditInstallmentMonthAllocationsIncludingFuture}, que zera quando tudo foi pago).
+ * Exclui apenas despesas marcadas `isPaid` (canceladas / quitadas no registro).
+ */
+export function getCreditInstallmentMonthAllocationsScheduledByDue(expense, account) {
+    const out = {};
+    if (!account || !isCreditCardType(account.type)) return out;
+    if (expense.isPaid === true) return out;
+
+    const closeDay = account.closeDay ?? account.closingDay;
+    const dueDay = account.dueDay ?? account.dueDate;
+    const n = Math.max(1, parseInt(String(expense.installmentCount ?? '1'), 10) || 1);
+    const purchase = movementDateToJsDate(expense.date);
+    const amt = Number(expense.amount) || 0;
+    if (Number.isNaN(purchase.getTime())) return out;
+
+    if (parseCardDay(dueDay) == null) {
+        if (n >= 2) return out;
+        if (!isExpenseInstallmentDueCountedInCashFlow(expense, purchase)) return out;
+        const mk = `${purchase.getFullYear()}-${String(purchase.getMonth() + 1).padStart(2, '0')}`;
+        out[mk] = (out[mk] || 0) + amt;
+        return out;
+    }
+
+    const dueDates = getInstallmentDueDates(purchase, n, closeDay, dueDay);
+    const per = amt / n;
+    dueDates.forEach((d) => {
+        if (!isExpenseInstallmentDueCountedInCashFlow(expense, d)) return;
+        const mk = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        out[mk] = (out[mk] || 0) + per;
+    });
+    return out;
+}
+
+/**
+ * Se a despesa no cartão tem parcela com vencimento no mês `monthKey` (YYYY-MM),
+ * devolve índice 1-based e total de parcelas; senão `null`.
+ * Mesmas regras que {@link getCreditInstallmentMonthAllocationsScheduledByDue}.
+ * @returns {{ index: number, total: number } | null}
+ */
+export function getCreditInstallmentIndexDueInMonthKey(expense, account, monthKey) {
+    if (!account || !isCreditCardType(account.type)) return null;
+    if (expense.isPaid === true) return null;
+
+    const closeDay = account.closeDay ?? account.closingDay;
+    const dueDay = account.dueDay ?? account.dueDate;
+    const n = Math.max(1, parseInt(String(expense.installmentCount ?? '1'), 10) || 1);
+    const purchase = movementDateToJsDate(expense.date);
+    if (Number.isNaN(purchase.getTime())) return null;
+
+    if (parseCardDay(dueDay) == null) {
+        if (n >= 2) return null;
+        if (!isExpenseInstallmentDueCountedInCashFlow(expense, purchase)) return null;
+        const mk = `${purchase.getFullYear()}-${String(purchase.getMonth() + 1).padStart(2, '0')}`;
+        if (mk !== monthKey) return null;
+        return { index: 1, total: 1 };
+    }
+
+    const dueDates = getInstallmentDueDates(purchase, n, closeDay, dueDay);
+    for (let i = 0; i < dueDates.length; i++) {
+        const d = dueDates[i];
+        if (!isExpenseInstallmentDueCountedInCashFlow(expense, d)) continue;
+        const mk = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        if (mk === monthKey) return { index: i + 1, total: n };
+    }
+    return null;
+}
+
 export function creditCardCashOutForCalendarMonth(expense, account, monthKey, now = new Date(), userProfile = null) {
     const allocs = getCreditInstallmentMonthAllocations(expense, account, now, userProfile);
     return allocs[monthKey] || 0;

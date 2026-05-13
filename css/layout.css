@@ -406,6 +406,11 @@
     box-shadow: none;
 }
 
+.app-header.app-header--wallet {
+    background: var(--bg-light);
+    box-shadow: none;
+}
+
 .header-left {
     display: flex;
     align-items: center;
@@ -452,6 +457,10 @@
     color: #f59e0b;
 }
 
+.app-header--wallet .header-page-emoji i {
+    color: #2563eb;
+}
+
 @keyframes header-emoji-swap {
     0% {
         transform: scale(0.82);
@@ -493,6 +502,10 @@
 
 .app-header--zero-budget .header-page-title {
     color: #f59e0b;
+}
+
+.app-header--wallet .header-page-title {
+    color: #2563eb;
 }
 
 .header-right {
@@ -579,6 +592,12 @@
 .app-header--zero-budget .header-page-actions .btn-primary.header-action-btn {
     background-color: #f59e0b;
     border-color: #f59e0b;
+    color: #fff;
+}
+
+.app-header--wallet .header-page-actions .btn-primary.header-action-btn {
+    background-color: #2563eb;
+    border-color: #2563eb;
     color: #fff;
 }
 

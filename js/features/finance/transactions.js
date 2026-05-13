@@ -10,6 +10,7 @@ import {
     formatInstallmentRemainingSummaryHtml,
     formatInstallmentStatusPlain,
     getInstallmentDueDates,
+    getCreditInstallmentIndexDueInMonthKey,
     getInstallmentState,
     getExpensePerInstallmentDisplayAmount,
     getLoanInstallmentDueDates,
@@ -21,7 +22,8 @@ import {
     shouldDeferCashOutForMonthlyFixedSeries
 } from '../../core/credit-installments.js';
 import {
-    expenseContributionProjectedToMonthKey
+    expenseContributionProjectedToMonthKey,
+    expenseCreditInstallmentScheduledForMonthKey
 } from '../../core/expense-calendar-month.js';
 import {
     expenseCountsAsCashOut,
@@ -105,6 +107,7 @@ import {
     setFormSubmittingState
 } from '../../core/button-loading.js';
 import { playPingSound } from '../../core/ui-sounds.js';
+import { computeCashBalanceTotalAsOf } from '../../core/cash-balance.js';
 
 function escapeHtml(text) {
     const d = document.createElement('div');
@@ -1265,7 +1268,7 @@ function cacheAccountTypeOptionsIfNeeded() {
     }
 }
 
-/** No cadastro de cartão só Crédito / Débito; em contas normais, lista completa. */
+/** No cadastro de cartão só Crédito / Débito; em contas normais, lista completa; na Carteira (wizard) só contas não-cartão. */
 function setAccountTypeSelectMode(mode) {
     cacheAccountTypeOptionsIfNeeded();
     const sel = document.getElementById('account-type');
@@ -1279,6 +1282,17 @@ function setAccountTypeSelectMode(mode) {
         `;
         if (typeLabel) typeLabel.textContent = 'Tipo de cartão';
         typeGroup?.classList.add('account-type-group--full-width');
+    } else if (mode === 'bankOnly') {
+        const tmp = document.createElement('select');
+        tmp.innerHTML = cachedAccountTypeOptionsFull;
+        sel.innerHTML = '';
+        Array.from(tmp.options).forEach((opt) => {
+            if (opt.value !== 'cartao_credito' && opt.value !== 'cartao_debito') {
+                sel.appendChild(opt.cloneNode(true));
+            }
+        });
+        if (typeLabel) typeLabel.textContent = 'Tipo';
+        typeGroup?.classList.remove('account-type-group--full-width');
     } else {
         sel.innerHTML = cachedAccountTypeOptionsFull;
         if (typeLabel) typeLabel.textContent = 'Tipo';
@@ -1317,21 +1331,21 @@ export function initFinance(
         if (!cb) return;
         cb.checked = e.target.value !== '1';
     });
-    document.getElementById('add-account-btn')?.addEventListener('click', openNewAccountModal);
-    document.getElementById('add-credit-card-btn')?.addEventListener('click', openNewCreditCardModal);
+    document.getElementById('add-wallet-btn')?.addEventListener('click', () => openWalletCreateModal());
+    document.getElementById('wallet-institutions-list')?.addEventListener('click', handleWalletInstitutionsLinkClick);
     document.getElementById('account-form')?.addEventListener('submit', handleAccountFormSubmit);
     document.getElementById('accounts-list')?.addEventListener('click', handleAccountActions);
+    document.getElementById('wallet-institutions-list')?.addEventListener('click', handleAccountActions);
+    document.getElementById('wallet-institutions-list')?.addEventListener('click', handleCreditCardListClick);
     document.getElementById('credit-cards-list')?.addEventListener('click', handleCreditCardListClick);
     document.getElementById('credit-cards-list')?.addEventListener('keydown', handleCreditCardListKeydown);
+    initWalletPageUiOnce();
     document.getElementById('card-purchases-modal')?.addEventListener('click', handleCardPurchasesModalActions);
     document.querySelector('#expenses-table tbody')?.addEventListener('click', handleExpenseRowActions);
     document.querySelector('#gains-table tbody')?.addEventListener('click', handleGainRowActions);
     document.getElementById('account-type')?.addEventListener('change', (e) => toggleCreditCardFields(e.target.value));
-    document.getElementById('account-form')?.addEventListener('change', (e) => {
-        if (e.target.name === 'card-plastic-tone') {
-            syncCardCustomColorRow(e.target.closest('form'));
-        }
-    });
+    document.getElementById('wallet-wizard-add-credit')?.addEventListener('change', syncWalletWizardPanels);
+    document.getElementById('wallet-wizard-add-debit')?.addEventListener('change', syncWalletWizardPanels);
     document.getElementById('expense-payment-method')?.addEventListener('change', () => syncExpenseInstallmentsRow());
     document.getElementById('expense-installments')?.addEventListener('input', () => syncExpenseInstallmentsRow());
     document.getElementById('expense-date')?.addEventListener('change', () => syncExpenseInstallmentsRow());
@@ -1908,110 +1922,87 @@ function openInstallmentCashOutConfirmModal(expenseId, periodKey) {
     openModal('confirm-installment-cash-out-modal');
 }
 
-/** Valores salvos em `account.plasticTone` → classe CSS do plástico (exceto `custom` + `plasticColor`). */
-const PLASTIC_TONE_CLASSES = {
-    violet: 'credit-card-plastic--violet',
-    ocean: 'credit-card-plastic--ocean',
-    ember: 'credit-card-plastic--ember',
-    yellow: 'credit-card-plastic--yellow',
-    red: 'credit-card-plastic--red',
-    green: 'credit-card-plastic--green',
-    gray: 'credit-card-plastic--gray',
-    graphite: 'credit-card-plastic--graphite',
-    navy: 'credit-card-plastic--navy',
-    gold: 'credit-card-plastic--gold',
-    platinum: 'credit-card-plastic--platinum',
-    rosegold: 'credit-card-plastic--rosegold',
-    burgundy: 'credit-card-plastic--burgundy',
-    teal: 'credit-card-plastic--teal',
-    midnight: 'credit-card-plastic--midnight'
-};
-
-/** Tons exibidos no modal (11); demais em `PLASTIC_TONE_CLASSES` servem a cartões já salvos. */
-const PLASTIC_PICKER_TONES = [
-    'violet',
-    'ocean',
-    'navy',
-    'gold',
-    'platinum',
-    'rosegold',
-    'red',
-    'burgundy',
-    'green',
-    'graphite',
-    'midnight'
-];
-
-/** Tons antigos sem opção no seletor → tom mais próximo ao abrir o formulário. */
-const PLASTIC_TONE_LEGACY_TO_PICKER = {
-    ember: 'gold',
-    yellow: 'gold',
-    teal: 'green',
-    gray: 'graphite'
-};
-
-function plasticToneForPickerForm(storedTone) {
-    if (storedTone === 'custom') return 'custom';
-    const key = storedTone && PLASTIC_TONE_CLASSES[storedTone] ? storedTone : 'violet';
-    if (PLASTIC_PICKER_TONES.includes(key)) return key;
-    if (PLASTIC_TONE_LEGACY_TO_PICKER[key]) return PLASTIC_TONE_LEGACY_TO_PICKER[key];
-    return 'violet';
+function setNodeListDisabled(root, disabled) {
+    if (!root) return;
+    root.querySelectorAll('input, select, textarea, button').forEach((el) => {
+        el.disabled = disabled;
+    });
 }
 
-function normalizeHexColor(input) {
-    if (!input || typeof input !== 'string') return '#7c3aed';
-    let h = input.trim();
-    if (!h.startsWith('#')) h = `#${h}`;
-    if (/^#[0-9A-Fa-f]{6}$/.test(h)) return h.toLowerCase();
-    if (/^#[0-9A-Fa-f]{3}$/.test(h)) {
-        return `#${h[1]}${h[1]}${h[2]}${h[2]}${h[3]}${h[3]}`.toLowerCase();
+function syncWalletWizardPanels() {
+    const creditOn = document.getElementById('wallet-wizard-add-credit')?.checked === true;
+    const debitOn = document.getElementById('wallet-wizard-add-debit')?.checked === true;
+    const creditPanel = document.getElementById('wallet-wizard-credit-fields');
+    const debitPanel = document.getElementById('wallet-wizard-debit-fields');
+    creditPanel?.classList.toggle('hidden', !creditOn);
+    debitPanel?.classList.toggle('hidden', !debitOn);
+    setNodeListDisabled(creditPanel, !creditOn);
+    setNodeListDisabled(debitPanel, !debitOn);
+}
+
+function hideWalletWizardUi() {
+    const modeEl = document.getElementById('account-form-mode');
+    if (modeEl) modeEl.value = '';
+    const block = document.getElementById('wallet-wizard-block');
+    block?.classList.add('hidden');
+    const cbC = document.getElementById('wallet-wizard-add-credit');
+    const cbD = document.getElementById('wallet-wizard-add-debit');
+    if (cbC) {
+        cbC.checked = false;
+        cbC.disabled = true;
     }
-    return '#7c3aed';
-}
-
-/** Gradiente no plástico a partir de uma cor escolhida pelo usuário. */
-function plasticGradientCss(hex) {
-    const h = normalizeHexColor(hex);
-    const r = parseInt(h.slice(1, 3), 16);
-    const g = parseInt(h.slice(3, 5), 16);
-    const b = parseInt(h.slice(5, 7), 16);
-    const dr = Math.round(r * 0.42);
-    const dg = Math.round(g * 0.42);
-    const db = Math.round(b * 0.42);
-    const lr = Math.round(r + (255 - r) * 0.38);
-    const lg = Math.round(g + (255 - g) * 0.38);
-    const lb = Math.round(b + (255 - b) * 0.38);
-    return `linear-gradient(135deg, rgb(${dr},${dg},${db}) 0%, ${h} 48%, rgb(${lr},${lg},${lb}) 100%)`;
-}
-
-function plasticClassForAccount(account, fallbackIndex) {
-    if (account.plasticTone === 'custom') return 'credit-card-plastic--custom';
-    const key = account.plasticTone;
-    if (key && PLASTIC_TONE_CLASSES[key]) return PLASTIC_TONE_CLASSES[key];
-    const order = Object.values(PLASTIC_TONE_CLASSES);
-    return order[fallbackIndex % order.length];
-}
-
-function syncCardCustomColorRow(form) {
-    const rootForm = form || document.getElementById('account-form');
-    if (!rootForm) return;
-    const row = rootForm.querySelector('#card-custom-color-row');
-    const customChecked = rootForm.querySelector('input[name="card-plastic-tone"][value="custom"]:checked');
-    if (row) row.classList.toggle('hidden', !customChecked);
-}
-
-function setCardPlasticToneRadios(form, tone, plasticColor) {
-    if (tone === 'custom') {
-        const radio = form.querySelector('input[name="card-plastic-tone"][value="custom"]');
-        if (radio) radio.checked = true;
-        const colorInput = form.querySelector('#card-plastic-color');
-        if (colorInput) colorInput.value = normalizeHexColor(plasticColor);
-    } else {
-        const v = plasticToneForPickerForm(tone && PLASTIC_TONE_CLASSES[tone] ? tone : 'violet');
-        const input = form.querySelector(`input[name="card-plastic-tone"][value="${v}"]`);
-        if (input) input.checked = true;
+    if (cbD) {
+        cbD.checked = false;
+        cbD.disabled = true;
     }
-    syncCardCustomColorRow(form);
+    const creditPanel = document.getElementById('wallet-wizard-credit-fields');
+    const debitPanel = document.getElementById('wallet-wizard-debit-fields');
+    creditPanel?.classList.add('hidden');
+    debitPanel?.classList.add('hidden');
+    setNodeListDisabled(creditPanel, true);
+    setNodeListDisabled(debitPanel, true);
+    const sub = document.getElementById('account-modal-subtitle');
+    if (sub) {
+        sub.textContent = '';
+        sub.classList.add('hidden');
+    }
+}
+
+function handleWalletInstitutionsLinkClick(e) {
+    const link = e.target.closest('[data-wallet-link-credit]');
+    if (!link) return;
+    e.preventDefault();
+    const bid = link.getAttribute('data-wallet-link-credit');
+    if (bid) openNewCreditCardModal(bid);
+}
+
+function openWalletCreateModal() {
+    const form = document.getElementById('account-form');
+    if (!form) return;
+    setAccountTypeSelectMode('bankOnly');
+    form.reset();
+    form['account-id'].value = '';
+    const modeEl = document.getElementById('account-form-mode');
+    if (modeEl) modeEl.value = 'wallet_wizard';
+
+    document.getElementById('wallet-wizard-block')?.classList.remove('hidden');
+    const cbC = document.getElementById('wallet-wizard-add-credit');
+    const cbD = document.getElementById('wallet-wizard-add-debit');
+    if (cbC) cbC.disabled = false;
+    if (cbD) cbD.disabled = false;
+    syncWalletWizardPanels();
+
+    const titleEl = document.getElementById('account-modal-title');
+    if (titleEl) titleEl.textContent = 'Nova na carteira';
+    const sub = document.getElementById('account-modal-subtitle');
+    if (sub) {
+        sub.textContent =
+            'Primeiro a conta bancária; depois pode marcar cartão de crédito e/ou débito na mesma instituição.';
+        sub.classList.remove('hidden');
+    }
+    document.getElementById('account-message')?.classList.add('hidden');
+    toggleCreditCardFields(form['account-type'].value);
+    openModal('account-modal');
 }
 
 /** Contas não-cartão para vincular cartão de crédito ou débito. */
@@ -2048,23 +2039,21 @@ function toggleCreditCardFields(type) {
     const holderInput = document.getElementById('card-holder-name');
     const holderLabel = document.getElementById('account-holder-label');
     const holderHint = document.getElementById('account-holder-hint');
-    const colorGroup = document.getElementById('card-color-group');
     const nameLabel = document.getElementById('account-name-label');
     const cardLinkedGroup = document.getElementById('card-linked-account-group');
     const cardLinkedSelect = document.getElementById('card-linked-account');
     const accountForm = document.getElementById('account-form');
     const editingAccountId = accountForm?.['account-id']?.value || '';
+    const isWalletWizard = document.getElementById('account-form-mode')?.value === 'wallet_wizard';
 
     holderGroup?.classList.remove('hidden');
     if (isCardAccountType(type)) {
-        colorGroup?.classList.remove('hidden');
         holderInput?.setAttribute('required', 'required');
         if (nameLabel) nameLabel.textContent = 'Nome do cartão';
         if (holderLabel) holderLabel.textContent = 'Titular (como no cartão)';
         holderHint?.classList.add('hidden');
         if (holderInput) holderInput.placeholder = 'Como impresso no cartão';
     } else {
-        colorGroup?.classList.add('hidden');
         holderInput?.removeAttribute('required');
         if (nameLabel) nameLabel.textContent = 'Nome da conta';
         if (holderLabel) holderLabel.textContent = 'Titular da conta';
@@ -2077,18 +2066,28 @@ function toggleCreditCardFields(type) {
         cardLimit?.setAttribute('required', 'required');
         cardClose?.setAttribute('required', 'required');
         cardDue?.setAttribute('required', 'required');
-        cardLinkedGroup?.classList.remove('hidden');
-        populateCardLinkedAccountSelect(cardLinkedSelect, editingAccountId);
-        cardLinkedSelect?.setAttribute('required', 'required');
+        if (!isWalletWizard) {
+            cardLinkedGroup?.classList.remove('hidden');
+            populateCardLinkedAccountSelect(cardLinkedSelect, editingAccountId);
+            cardLinkedSelect?.setAttribute('required', 'required');
+        } else {
+            cardLinkedGroup?.classList.add('hidden');
+            cardLinkedSelect?.removeAttribute('required');
+        }
         setCardLinkedHint(type);
     } else if (type === 'cartao_debito') {
         creditCardFields.classList.add('hidden');
         cardLimit?.removeAttribute('required');
         cardClose?.removeAttribute('required');
         cardDue?.removeAttribute('required');
-        cardLinkedGroup?.classList.remove('hidden');
-        populateCardLinkedAccountSelect(cardLinkedSelect, editingAccountId);
-        cardLinkedSelect?.setAttribute('required', 'required');
+        if (!isWalletWizard) {
+            cardLinkedGroup?.classList.remove('hidden');
+            populateCardLinkedAccountSelect(cardLinkedSelect, editingAccountId);
+            cardLinkedSelect?.setAttribute('required', 'required');
+        } else {
+            cardLinkedGroup?.classList.add('hidden');
+            cardLinkedSelect?.removeAttribute('required');
+        }
         setCardLinkedHint(type);
     } else {
         creditCardFields.classList.add('hidden');
@@ -5880,6 +5879,418 @@ function resolveBankThemeClass(name) {
     return '';
 }
 
+// --- Carteira (página unificada) — mês civil na timeline (igual Planejamento Base Zero) ---
+const WALLET_MONTH_NAMES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+let walletSelectedMonth = 0;
+let walletSelectedYear = 0;
+
+function ensureWalletMonthDefaults() {
+    const n = new Date();
+    if (!walletSelectedMonth || walletSelectedMonth < 1 || walletSelectedMonth > 12) {
+        walletSelectedMonth = n.getMonth() + 1;
+    }
+    if (!walletSelectedYear || walletSelectedYear < 2000) {
+        walletSelectedYear = n.getFullYear();
+    }
+}
+let initWalletPageUiOnceRan = false;
+/** @type {{ accounts: any[], expenses: any[], gains: any[], currency: string, userProfile: any, expenseSplitRequests: any } | null} */
+let walletRefreshCtx = null;
+
+function walletMonthLabel() {
+    return `${WALLET_MONTH_NAMES[walletSelectedMonth - 1]}/${String(walletSelectedYear).slice(-2)}`;
+}
+
+/** Soma das parcelas de cartão com vencimento no mês civil (YYYY-MM), com rateio líquido. */
+function creditCardInstallmentsDueInCalendarMonth(card, expenses, year, month1to12, userProfile, acceptedSplits, allExpenses) {
+    const y = Number(year);
+    const m = Number(month1to12);
+    if (!Number.isFinite(y) || !Number.isFinite(m) || m < 1 || m > 12) return 0;
+    const monthKey = `${y}-${String(m).padStart(2, '0')}`;
+    const list = allExpenses != null ? allExpenses : expenses || [];
+    const splits = acceptedSplits != null ? acceptedSplits : [];
+    let sum = 0;
+    for (const t of expenses || []) {
+        if (t.accountId !== card.id) continue;
+        sum += expenseCreditInstallmentScheduledForMonthKey(t, card, monthKey, userProfile, splits, list);
+    }
+    return sum;
+}
+
+function renderWalletTimeline() {
+    const timeline = document.querySelector('[data-wallet-timeline]');
+    if (!timeline) return;
+    const yShort = String(walletSelectedYear).slice(-2);
+    timeline.innerHTML = WALLET_MONTH_NAMES.map((name, index) => {
+        const monthNum = index + 1;
+        const isActive = monthNum === walletSelectedMonth;
+        const label = `${name}/${yShort}`;
+        return `<button type="button" class="zero-budget__month-btn${isActive ? ' is-active' : ''}" data-wallet-month="${monthNum}" role="tab" aria-selected="${isActive ? 'true' : 'false'}">${label}</button>`;
+    }).join('');
+}
+
+function initWalletPageUiOnce() {
+    if (initWalletPageUiOnceRan) return;
+    const page = document.getElementById('wallet-page');
+    if (!page) return;
+    initWalletPageUiOnceRan = true;
+    page.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-wallet-month]');
+        if (!btn || !page.contains(btn)) return;
+        const m = parseInt(btn.getAttribute('data-wallet-month'), 10);
+        if (!Number.isFinite(m) || m < 1 || m > 12) return;
+        walletSelectedMonth = m;
+        walletSelectedYear = new Date().getFullYear();
+        const ctx = walletRefreshCtx;
+        if (!ctx) return;
+        loadWalletPage(ctx.accounts, ctx.expenses, ctx.gains, ctx.currency, ctx.userProfile, ctx.expenseSplitRequests);
+    });
+    page.addEventListener('keydown', handleCreditCardListKeydown);
+}
+/**
+ * @param {any[]} accounts
+ * @param {any[]} expenses
+ * @param {any[]} gains
+ * @param {string} currency
+ * @param {any} [userProfile]
+ * @param {{ incoming?: any[], outgoing?: any[] } | null} [expenseSplitRequests]
+ */
+export function loadWalletPage(accounts, expenses, gains, currency, userProfile = null, expenseSplitRequests = null) {
+    initWalletPageUiOnce();
+    const accs = accounts || [];
+    const exps = expenses || [];
+    const gns = gains || [];
+    const cur = currency || 'BRL';
+    const prof = userProfile !== null && userProfile !== undefined ? userProfile : financeUserProfile;
+    walletRefreshCtx = {
+        accounts: accs,
+        expenses: exps,
+        gains: gns,
+        currency: cur,
+        userProfile: prof,
+        expenseSplitRequests: expenseSplitRequests ?? userExpenseSplitRequests
+    };
+    ensureWalletMonthDefaults();
+
+    const list = document.getElementById('wallet-institutions-list');
+    if (!list) return;
+
+    const splitOut = expenseSplitRequests?.outgoing ?? userExpenseSplitRequests?.outgoing ?? [];
+    const asOf = new Date();
+    asOf.setHours(23, 59, 59, 999);
+    const totalCash = computeCashBalanceTotalAsOf(accs, exps, gns, asOf, prof, splitOut);
+
+    const creditCards = accs.filter((a) => isCreditCardType(a.type));
+    const acceptedSplits = getOutgoingAcceptedSettledSplits();
+    const monthKey = `${walletSelectedYear}-${String(walletSelectedMonth).padStart(2, '0')}`;
+    const cardById = new Map(creditCards.map((c) => [c.id, c]));
+    let totalInvoices = 0;
+    for (const t of exps) {
+        const c = cardById.get(t.accountId);
+        if (!c) continue;
+        totalInvoices += expenseCreditInstallmentScheduledForMonthKey(t, c, monthKey, prof, acceptedSplits, exps);
+    }
+    let totalLimit = 0;
+    for (const c of creditCards) {
+        const lim = parseFloat(String(c?.limit ?? '').replace(',', '.'));
+        if (Number.isFinite(lim) && lim > 0) totalLimit += lim;
+    }
+    const netPurchasing = totalCash - totalInvoices;
+    const pctLimit = totalLimit > 0 ? Math.min(100, (totalInvoices / totalLimit) * 100) : 0;
+
+    const monLbl = walletMonthLabel();
+    const elLimit = document.getElementById('wallet-summary-total-limit');
+    const elInv = document.getElementById('wallet-summary-invoices');
+    const elNet = document.getElementById('wallet-summary-net');
+    const elBar = document.getElementById('wallet-summary-invoices-bar-fill');
+    const elLimitHint = document.getElementById('wallet-summary-total-limit-hint');
+    if (elLimit) elLimit.textContent = formatCurrency(totalLimit, cur);
+    if (elInv) elInv.textContent = formatCurrency(totalInvoices, cur);
+    if (elNet) elNet.textContent = formatCurrency(netPurchasing, cur);
+    if (elBar) elBar.style.width = `${pctLimit}%`;
+    if (elLimitHint) {
+        elLimitHint.textContent =
+            creditCards.length === 0
+                ? 'Nenhum cartão de crédito cadastrado'
+                : `${creditCards.length} cartão(ões) · limite somado`;
+    }
+
+    const byBankId = new Map(accs.filter((a) => !isCardAccountType(a.type)).map((a) => [a.id, a]));
+    const linkedCredit = (id) => creditCards.filter((c) => c.linkedAccountId === id);
+    const linkedBankOk = (lid) => !!(lid && byBankId.has(lid));
+
+    const bankAccounts = accs.filter((a) => !isCardAccountType(a.type));
+    const bankRowsSorted = bankAccounts
+        .map((acc) => {
+            const credits = linkedCredit(acc.id);
+            let spendScore = 0;
+            for (const c of credits) {
+                spendScore += creditCardInstallmentsDueInCalendarMonth(
+                    c,
+                    exps,
+                    walletSelectedYear,
+                    walletSelectedMonth,
+                    prof,
+                    acceptedSplits,
+                    exps
+                );
+            }
+            return { acc, credits, spendScore };
+        })
+        .sort((a, b) => {
+            if (b.spendScore !== a.spendScore) return b.spendScore - a.spendScore;
+            return String(a.acc.name).localeCompare(String(b.acc.name), 'pt-BR');
+        });
+
+    const rowsHtml = [];
+    let tint = 0;
+
+    for (const { acc, credits } of bankRowsSorted) {
+        // Coluna de cartões: só crédito; valores do mês selecionado na timeline.
+        const hasCards = credits.length > 0;
+        const typeLabel = accountTypeDisplayLabel(acc.type);
+        const accountCol = `
+            <div class="wallet-institution-row__label"><i class="fas ${accountTypeIconClass(acc.type)}" aria-hidden="true"></i> ${escapeHtml(typeLabel)}</div>
+            <div class="wallet-institution-row__amount">${formatCurrency(Number(acc.currentBalance) || 0, cur)}</div>`;
+        const cardsCol = buildWalletCardsColumnHtml(
+            credits,
+            exps,
+            cur,
+            walletSelectedYear,
+            walletSelectedMonth,
+            acc.id,
+            prof,
+            acceptedSplits
+        );
+        const actionsCol = `
+            <div class="wallet-institution-row__row-actions">
+                <button type="button" class="btn-action btn-edit" data-id="${escapeHtml(acc.id)}" title="Editar conta" aria-label="Editar conta"><i class="fas fa-pen" aria-hidden="true"></i></button>
+                <button type="button" class="btn-action btn-delete" data-id="${escapeHtml(acc.id)}" title="Excluir conta" aria-label="Excluir conta"><i class="fas fa-trash-alt" aria-hidden="true"></i></button>
+            </div>`;
+        rowsHtml.push(`
+            <article class="wallet-institution-row wallet-institution-row--tint-${tint % 5}" data-has-account="1" data-has-cards="${hasCards ? '1' : '0'}">
+                <div class="wallet-institution-row__strip" aria-hidden="true"></div>
+                <div class="wallet-institution-row__bank">
+                    <h3>${escapeHtml(acc.name)}</h3>
+                    <span class="wallet-institution-row__meta">Conta</span>
+                </div>
+                <div class="wallet-institution-row__account">${accountCol}</div>
+                <div class="wallet-institution-row__cards">${cardsCol}</div>
+                ${actionsCol}
+            </article>`);
+        tint += 1;
+    }
+
+    const orphanCredits = creditCards
+        .filter((c) => !linkedBankOk(c.linkedAccountId))
+        .sort((a, b) => {
+            const sa = creditCardInstallmentsDueInCalendarMonth(
+                a,
+                exps,
+                walletSelectedYear,
+                walletSelectedMonth,
+                prof,
+                acceptedSplits,
+                exps
+            );
+            const sb = creditCardInstallmentsDueInCalendarMonth(
+                b,
+                exps,
+                walletSelectedYear,
+                walletSelectedMonth,
+                prof,
+                acceptedSplits,
+                exps
+            );
+            if (sb !== sa) return sb - sa;
+            return String(a.name).localeCompare(String(b.name), 'pt-BR');
+        });
+    for (const c of orphanCredits) {
+        const cardsCol = buildWalletCardsColumnHtml(
+            [c],
+            exps,
+            cur,
+            walletSelectedYear,
+            walletSelectedMonth,
+            null,
+            prof,
+            acceptedSplits
+        );
+        rowsHtml.push(`
+            <article class="wallet-institution-row wallet-institution-row--tint-${tint % 5}" data-has-account="0" data-has-cards="1">
+                <div class="wallet-institution-row__strip" aria-hidden="true"></div>
+                <div class="wallet-institution-row__bank">
+                    <h3>${escapeHtml(c.name)}</h3>
+                    <span class="wallet-institution-row__meta">Cartão (sem conta vinculada)</span>
+                </div>
+                <div class="wallet-institution-row__account">
+                    <div class="wallet-institution-row__empty"><i class="fas fa-lock" aria-hidden="true"></i> Sem conta atrelada</div>
+                </div>
+                <div class="wallet-institution-row__cards">${cardsCol}</div>
+                <div class="wallet-institution-row__row-actions"></div>
+            </article>`);
+        tint += 1;
+    }
+
+    const hasAnyBank = accs.some((a) => !isCardAccountType(a.type));
+    const debitCards = accs.filter((a) => isCardAccountType(a.type) && !isCreditCardType(a.type));
+    const hasAnyCard = creditCards.length > 0 || debitCards.length > 0;
+    if (!hasAnyBank && !hasAnyCard) {
+        list.innerHTML = `
+            <div class="accounts-empty-state">
+                <div class="accounts-empty-state__icon" aria-hidden="true"><i class="fas fa-wallet"></i></div>
+                <p class="accounts-empty-state__title">Carteira vazia</p>
+                <p class="accounts-empty-state__text">Use o botão <strong>Nova</strong> no topo da página (ao lado dos avisos) para criar conta e, se quiser, cartões na mesma instituição.</p>
+            </div>`;
+    } else {
+        list.innerHTML = rowsHtml.join('');
+    }
+
+    const dueTitle = document.querySelector('#wallet-due-panel .wallet-aside-card__title');
+    if (dueTitle) {
+        dueTitle.innerHTML = `<i class="fas fa-calendar-check" aria-hidden="true"></i> Vencimentos · ${escapeHtml(monLbl)}`;
+    }
+    const actTitle = document.querySelector('#wallet-activity-panel .wallet-aside-card__title');
+    if (actTitle) {
+        actTitle.innerHTML = `<i class="fas fa-receipt" aria-hidden="true"></i> Compras na fatura <span class="wallet-aside-card__title-note">(${escapeHtml(monLbl)})</span>`;
+    }
+
+    const dueHost = document.getElementById('wallet-due-list');
+    if (dueHost) {
+        const sorted = [...creditCards].sort((a, b) => {
+            const da = Number(a.dueDay) || 0;
+            const db = Number(b.dueDay) || 0;
+            if (da !== db) return da - db;
+            return String(a.name).localeCompare(String(b.name), 'pt-BR');
+        });
+        if (sorted.length === 0) {
+            dueHost.innerHTML = '<p class="wallet-aside-empty">Nenhum cartão de crédito.</p>';
+        } else {
+            dueHost.innerHTML = sorted
+                .map((c) => {
+                    const inv = creditCardInstallmentsDueInCalendarMonth(
+                        c,
+                        exps,
+                        walletSelectedYear,
+                        walletSelectedMonth,
+                        prof,
+                        acceptedSplits,
+                        exps
+                    );
+                    const due = c.dueDay != null ? `Dia ${c.dueDay}` : '—';
+                    return `
+                <div class="wallet-aside-row">
+                    <div>
+                        <div class="wallet-aside-row__name">${escapeHtml(c.name)}</div>
+                        <div class="wallet-aside-row__sub">${escapeHtml(due)}</div>
+                    </div>
+                    <div class="wallet-aside-row__amt">${formatCurrency(inv, cur)}</div>
+                </div>`;
+                })
+                .join('');
+        }
+    }
+
+    const actHost = document.getElementById('wallet-activity-list');
+    if (actHost) {
+        const merged = [];
+        for (const t of exps) {
+            const c = cardById.get(t.accountId);
+            if (!c) continue;
+            const contrib = expenseCreditInstallmentScheduledForMonthKey(
+                t,
+                c,
+                monthKey,
+                prof,
+                acceptedSplits,
+                exps
+            );
+            if (!Number.isFinite(contrib) || contrib === 0) continue;
+            const inst = getCreditInstallmentIndexDueInMonthKey(t, c, monthKey);
+            merged.push({
+                date: t.date,
+                label: t.description || 'Saída',
+                amount: -Math.abs(contrib),
+                cardName: c.name,
+                inst
+            });
+        }
+        merged.sort((a, b) => movementDateToJsDate(b.date).getTime() - movementDateToJsDate(a.date).getTime());
+        const top = merged.slice(0, 12);
+        if (top.length === 0) {
+            actHost.innerHTML = `<p class="wallet-aside-empty">Nenhuma parcela desta fatura com vencimento em ${escapeHtml(monLbl)}.</p>`;
+        } else {
+            actHost.innerHTML = top
+                .map((m) => {
+                    const sub =
+                        m.inst != null
+                            ? `Parcela ${m.inst.index} de ${m.inst.total} · ${escapeHtml(m.cardName)}`
+                            : escapeHtml(m.cardName);
+                    return `
+                <div class="wallet-activity-row">
+                    <span class="wallet-activity-row__dot wallet-activity-row__dot--out" aria-hidden="true"></span>
+                    <div class="wallet-activity-row__body">
+                        <span class="wallet-activity-row__lbl">${escapeHtml(m.label)}</span>
+                        <span class="wallet-activity-row__sub">${sub}</span>
+                    </div>
+                    <span class="wallet-activity-row__val wallet-activity-row__val--out">${formatCurrency(m.amount, cur)}</span>
+                </div>`;
+                })
+                .join('');
+        }
+    }
+
+    renderWalletTimeline();
+}
+
+/** Coluna direita: só cartões de crédito; parcelas com vencimento no mês civil. `linkBankId` permite atalho «Adicionar cartão». */
+function buildWalletCardsColumnHtml(
+    creditList,
+    expenses,
+    currency,
+    year,
+    month1to12,
+    linkBankId = null,
+    userProfile = null,
+    acceptedSplits = null
+) {
+    const parts = [];
+    for (const c of creditList) {
+        const bill = creditCardInstallmentsDueInCalendarMonth(
+            c,
+            expenses,
+            year,
+            month1to12,
+            userProfile,
+            acceptedSplits,
+            expenses
+        );
+        const lim = Number(c.limit);
+        const pct = Number.isFinite(lim) && lim > 0 ? Math.min(100, (bill / lim) * 100) : 0;
+        const due = c.dueDay != null ? `Vence dia ${c.dueDay}` : 'Vencimento —';
+        parts.push(`
+            <div class="wallet-credit-block">
+                <button type="button" tabindex="0" class="wallet-card-open credit-card-card--interactive" data-card-id="${escapeHtml(c.id)}" aria-label="Ver lançamentos: ${escapeHtml(c.name)}">
+                    <div class="wallet-credit-block__head wallet-credit-block__head--due-only">
+                        <span class="wallet-credit-block__due">${escapeHtml(due)}</span>
+                    </div>
+                    <div class="wallet-institution-row__label wallet-institution-row__label--credit-inline"><i class="fas fa-calendar-alt" aria-hidden="true"></i> Parcelas no mês</div>
+                    <div class="wallet-institution-row__amount wallet-institution-row__amount--credit wallet-institution-row__amount--credit-compact">${formatCurrency(bill, currency)}</div>
+                    <div class="wallet-kpi-progress" aria-hidden="true"><span class="wallet-kpi-progress__fill" style="width:${pct}%"></span></div>
+                </button>
+            </div>`);
+    }
+    if (parts.length === 0) {
+        const link =
+            linkBankId != null && String(linkBankId).trim() !== ''
+                ? `<button type="button" class="wallet-link-add-card" data-wallet-link-credit="${escapeHtml(String(linkBankId))}">Adicionar cartão de crédito</button>`
+                : '';
+        return `<div class="wallet-institution-row__empty"><i class="fas fa-lock" aria-hidden="true"></i> Sem cartão de crédito atrelado${link}</div>`;
+    }
+    return parts.join('');
+}
+
 // --- LÓGICA DE CONTAS E CARTÕES ---
 export function loadAccountsData(accounts, currency) {
     const list = document.getElementById('accounts-list');
@@ -5945,33 +6356,57 @@ export function loadAccountsData(accounts, currency) {
 }
 
 function openNewAccountModal() {
+    hideWalletWizardUi();
     const form = document.getElementById('account-form');
+    if (!form) return;
     setAccountTypeSelectMode('full');
     form.reset();
     form['account-id'].value = '';
     document.getElementById('account-modal-title').textContent = 'Nova Conta';
+    const sub = document.getElementById('account-modal-subtitle');
+    if (sub) {
+        sub.textContent = '';
+        sub.classList.add('hidden');
+    }
     toggleCreditCardFields(form['account-type'].value);
     openModal('account-modal');
 }
 
-function openNewCreditCardModal() {
+function openNewCreditCardModal(preLinkedBankId = null) {
+    hideWalletWizardUi();
     const bankCount = (userAccounts || []).filter((a) => !isCardAccountType(a.type)).length;
-    if (bankCount === 0) {
+    if (!preLinkedBankId && bankCount === 0) {
         showToast(
             'Conta necessária',
-            'Cadastre pelo menos uma conta na secção Contas desta página antes de criar um cartão vinculado.',
+            'Crie primeiro uma conta na Carteira (botão Nova no topo) antes de vincular um cartão.',
             'warning'
         );
         return;
     }
+    if (
+        preLinkedBankId &&
+        !(userAccounts || []).some((a) => a.id === preLinkedBankId && !isCardAccountType(a.type))
+    ) {
+        showToast('Conta inválida', 'Não foi possível encontrar a conta para vincular o cartão.', 'warning');
+        return;
+    }
     const form = document.getElementById('account-form');
+    if (!form) return;
     setAccountTypeSelectMode('cardsOnly');
     form.reset();
     form['account-id'].value = '';
     form['account-type'].value = 'cartao_credito';
     toggleCreditCardFields('cartao_credito');
-    setCardPlasticToneRadios(form, 'violet');
+    if (preLinkedBankId) {
+        const sel = document.getElementById('card-linked-account');
+        if (sel) sel.value = preLinkedBankId;
+    }
     document.getElementById('account-modal-title').textContent = 'Novo cartão';
+    const sub = document.getElementById('account-modal-subtitle');
+    if (sub) {
+        sub.textContent = '';
+        sub.classList.add('hidden');
+    }
     openModal('account-modal');
 }
 
@@ -5979,6 +6414,7 @@ function openNewCreditCardModal() {
 function fillAndOpenAccountForm(acc) {
     const form = document.getElementById('account-form');
     if (!form || !acc) return;
+    hideWalletWizardUi();
     setAccountTypeSelectMode(isCardAccountType(acc.type) ? 'cardsOnly' : 'full');
     form['account-id'].value = acc.id;
     form['account-name'].value = acc.name;
@@ -5992,9 +6428,6 @@ function fillAndOpenAccountForm(acc) {
         const sel = document.getElementById('card-linked-account');
         if (sel) sel.value = acc.linkedAccountId || '';
     }
-    if (isCardAccountType(acc.type)) {
-        setCardPlasticToneRadios(form, acc.plasticTone, acc.plasticColor);
-    }
     if (acc.type === 'cartao_credito') {
         form['card-limit'].value = acc.limit != null ? acc.limit : '';
         form['card-closing-day'].value = acc.closeDay != null ? acc.closeDay : '';
@@ -6003,6 +6436,11 @@ function fillAndOpenAccountForm(acc) {
     document.getElementById('account-modal-title').textContent = isCardAccountType(acc.type)
         ? 'Editar cartão'
         : 'Editar Conta';
+    const sub = document.getElementById('account-modal-subtitle');
+    if (sub) {
+        sub.textContent = '';
+        sub.classList.add('hidden');
+    }
     openModal('account-modal');
 }
 
@@ -6011,11 +6449,135 @@ async function handleAccountFormSubmit(e) {
     const form = e.target;
     const id = form['account-id'].value;
     const type = form['account-type'].value;
+    const mode = document.getElementById('account-form-mode')?.value || '';
     const nameTrim = (form['account-name']?.value || '').trim();
     if (!nameTrim) {
         showMessage('account-message', 'O nome da conta é obrigatório.', 'error');
         return;
     }
+
+    const holderTrim = (form['card-holder-name']?.value || '').trim();
+
+    if (mode === 'wallet_wizard' && !id) {
+        const addCr = document.getElementById('wallet-wizard-add-credit')?.checked === true;
+        const addDb = document.getElementById('wallet-wizard-add-debit')?.checked === true;
+
+        if (addCr) {
+            const lim = parseFloat(String(form.querySelector('#wizard-credit-limit')?.value || '').replace(',', '.'));
+            const closeDay = parseInt(form.querySelector('#wizard-credit-closing-day')?.value, 10);
+            const dueDay = parseInt(form.querySelector('#wizard-credit-due-day')?.value, 10);
+            if (!Number.isFinite(lim) || lim <= 0) {
+                showMessage('account-message', 'Indique um limite válido (> 0) para o cartão de crédito.', 'error');
+                return;
+            }
+            if (
+                !Number.isFinite(closeDay) ||
+                closeDay < 1 ||
+                closeDay > 31 ||
+                !Number.isFinite(dueDay) ||
+                dueDay < 1 ||
+                dueDay > 31
+            ) {
+                showMessage(
+                    'account-message',
+                    'Indique dias de fechamento e vencimento entre 1 e 31 para o cartão de crédito.',
+                    'error'
+                );
+                return;
+            }
+        }
+
+        const bankPayload = {
+            userId: currentUser.uid,
+            name: nameTrim,
+            type,
+            initialBalance: 0,
+            holderName: holderTrim || null
+        };
+
+        let cardSteps = 0;
+        if (addCr) cardSteps += 1;
+        if (addDb) cardSteps += 1;
+        let remainingSounds = cardSteps;
+
+        setFormSubmittingState(form, true, 'A guardar…');
+        let createdBank = null;
+        try {
+            createdBank = await saveAccount(bankPayload, '', { skipUiSound: remainingSounds > 0 });
+            const bid = createdBank?.id;
+            if (!bid) {
+                throw new Error('Resposta sem id da conta.');
+            }
+
+            const holderCard = holderTrim || nameTrim;
+
+            if (addCr) {
+                const crNameRaw = (form.querySelector('#wizard-credit-card-name')?.value || '').trim();
+                const crName = crNameRaw || `${nameTrim} Crédito`;
+                const lim = parseFloat(
+                    String(form.querySelector('#wizard-credit-limit')?.value || '').replace(',', '.')
+                );
+                const closeDay = parseInt(form.querySelector('#wizard-credit-closing-day')?.value, 10);
+                const dueDay = parseInt(form.querySelector('#wizard-credit-due-day')?.value, 10);
+                const creditData = {
+                    userId: currentUser.uid,
+                    name: crName,
+                    type: 'cartao_credito',
+                    linkedAccountId: bid,
+                    holderName: holderCard,
+                    limit: lim,
+                    closeDay,
+                    dueDay,
+                    plasticTone: null,
+                    plasticColor: null
+                };
+                remainingSounds -= 1;
+                await saveAccount(creditData, '', { skipUiSound: remainingSounds > 0 });
+            }
+
+            if (addDb) {
+                const dbNameRaw = (form.querySelector('#wizard-debit-card-name')?.value || '').trim();
+                const dbName = dbNameRaw || `${nameTrim} Débito`;
+                const debitData = {
+                    userId: currentUser.uid,
+                    name: dbName,
+                    type: 'cartao_debito',
+                    linkedAccountId: bid,
+                    holderName: holderCard,
+                    initialBalance: 0,
+                    plasticTone: null,
+                    plasticColor: null
+                };
+                remainingSounds -= 1;
+                await saveAccount(debitData, '', { skipUiSound: remainingSounds > 0 });
+            }
+
+            hideWalletWizardUi();
+            closeModal('account-modal');
+            onUpdateCallback();
+        } catch (error) {
+            console.error('Erro ao salvar carteira:', error);
+            const msg =
+                error?.message ||
+                (typeof error === 'string' ? error : 'Não foi possível guardar. Tente novamente.');
+            if (createdBank?.id) {
+                onUpdateCallback();
+                hideWalletWizardUi();
+                closeModal('account-modal');
+                showToast(
+                    'Conta criada',
+                    `${msg} Pode completar o cartão com «Adicionar cartão de crédito» na linha da conta ou com Nova no topo.`,
+                    'warning'
+                );
+            } else {
+                showMessage('account-message', msg, 'error');
+            }
+        } finally {
+            setFormSubmittingState(form, false);
+        }
+        return;
+    }
+
     const data = {
         userId: currentUser.uid,
         name: nameTrim,
@@ -6026,19 +6588,10 @@ async function handleAccountFormSubmit(e) {
         data.initialBalance = 0;
     }
 
-    const holderTrim = (form['card-holder-name']?.value || '').trim();
     if (isCardAccountType(type)) {
         data.holderName = holderTrim;
-        const toneRadio = form.querySelector('input[name="card-plastic-tone"]:checked');
-        const tv = toneRadio?.value;
-        if (tv === 'custom') {
-            data.plasticTone = 'custom';
-            data.plasticColor = normalizeHexColor(form.querySelector('#card-plastic-color')?.value);
-        } else {
-            data.plasticTone =
-                tv && PLASTIC_TONE_CLASSES[tv] && PLASTIC_PICKER_TONES.includes(tv) ? tv : 'violet';
-            delete data.plasticColor;
-        }
+        data.plasticTone = null;
+        data.plasticColor = null;
     }
 
     if (type === 'cartao_credito' || type === 'cartao_debito') {
@@ -6394,18 +6947,22 @@ function openCardPurchasesModal(accountId) {
 }
 
 function handleCreditCardListClick(e) {
-    const article = e.target.closest('.credit-card-card[data-card-id]');
-    if (article) {
-        openCardPurchasesModal(article.getAttribute('data-card-id'));
+    const hit =
+        e.target.closest('.credit-card-card[data-card-id]') ||
+        e.target.closest('button.wallet-card-open[data-card-id]');
+    if (hit) {
+        openCardPurchasesModal(hit.getAttribute('data-card-id'));
     }
 }
 
 function handleCreditCardListKeydown(e) {
     if (e.key !== 'Enter' && e.key !== ' ') return;
-    const article = e.target.closest('.credit-card-card[data-card-id]');
-    if (!article) return;
+    const hit =
+        e.target.closest('.credit-card-card[data-card-id]') ||
+        e.target.closest('button.wallet-card-open[data-card-id]');
+    if (!hit) return;
     e.preventDefault();
-    openCardPurchasesModal(article.getAttribute('data-card-id'));
+    openCardPurchasesModal(hit.getAttribute('data-card-id'));
 }
 
 function handleCardPurchasesModalActions(e) {
@@ -6424,18 +6981,13 @@ function handleCardPurchasesModalActions(e) {
     handleCardButtonActions(e);
 }
 
-function buildCreditCardArticleElement(card, index, expenses, currency) {
+function buildCreditCardArticleElement(card, _index, expenses, currency) {
     const cardElement = document.createElement('article');
     cardElement.className = 'credit-card-card credit-card-card--interactive';
     cardElement.setAttribute('data-card-id', card.id);
     cardElement.setAttribute('role', 'button');
     cardElement.setAttribute('tabindex', '0');
     cardElement.setAttribute('aria-label', `Ver compras e lançamentos: ${card.name}`);
-    const isCustomPlastic = card.plasticTone === 'custom';
-    const tone = plasticClassForAccount(card, index);
-    const plasticInlineStyle = isCustomPlastic
-        ? ` style="background: ${plasticGradientCss(card.plasticColor)}"`
-        : '';
     const cardNameSafe = escapeHtml(card.name);
     const holderRaw =
         card.holderName != null && String(card.holderName).trim() !== ''
@@ -6496,7 +7048,7 @@ function buildCreditCardArticleElement(card, index, expenses, currency) {
     }
 
     cardElement.innerHTML = `
-            <div class="credit-card-plastic ${tone}"${plasticInlineStyle}>
+            <div class="credit-card-plastic credit-card-plastic--default">
                 <div class="credit-card-plastic__shine" aria-hidden="true"></div>
                 <div class="credit-card-plastic__top">
                     <div class="credit-card-plastic__chip" aria-hidden="true" title="Chip"></div>

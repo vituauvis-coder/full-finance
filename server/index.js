@@ -2678,6 +2678,15 @@ function accountPayloadFromBody(body, uid) {
             }
             continue;
         }
+        if (key === 'plasticTone' || key === 'plasticColor') {
+            if (v === null || v === undefined || v === '') {
+                data[key] = null;
+            } else {
+                const s = String(v).trim();
+                data[key] = s === '' ? null : s;
+            }
+            continue;
+        }
         if (v === null || v === '') continue;
         if (key === 'name' || key === 'type') {
             data[key] = String(v).trim();

@@ -9,5 +9,6 @@ export {
     loadGainsData,
     loadAccountsData,
     loadCardsData,
+    loadWalletPage,
     showPendingSplitsLoginModal
 } from './transactions.js';

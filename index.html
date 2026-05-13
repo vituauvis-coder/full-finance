@@ -406,6 +406,11 @@
                                 <i class="fas fa-plus" aria-hidden="true"></i> Novo bloco
                             </button>
                         </div>
+                        <div id="wallet-header-actions" class="header-page-actions hidden" aria-label="Ações da carteira">
+                            <button type="button" id="add-wallet-btn" class="btn-primary header-action-btn">
+                                <i class="fas fa-plus" aria-hidden="true"></i> Nova
+                            </button>
+                        </div>
                         <div class="header-notifications">
                             <button type="button" class="header-btn" id="notifications-btn" title="Avisos"
                                 aria-expanded="false" aria-haspopup="true" aria-controls="notifications-panel">
@@ -853,30 +858,56 @@
                     </div>
                 </section>
 
-                <!-- Carteira: contas bancárias + cartões -->
-                <section id="wallet-page" class="page hidden wallet-page">
-                    <div class="wallet-page__section wallet-page__section--accounts" aria-labelledby="wallet-accounts-heading">
-                        <div class="wallet-page__section-head">
-                            <h2 id="wallet-accounts-heading" class="wallet-page__section-title">Contas</h2>
-                            <div class="actions-bar wallet-page__actions">
-                                <button type="button" id="add-account-btn" class="btn-primary"><i class="fas fa-plus"></i> Nova conta</button>
+                <!-- Carteira: contas + cartões (layout unificado) -->
+                <section id="wallet-page" class="page hidden wallet-page" aria-label="Carteira">
+                    <div class="zero-budget__timeline wallet-page__timeline" role="tablist" aria-label="Mês civil para ver parcelas de crédito com vencimento nesse mês">
+                        <span class="zero-budget__timeline-hint">Mês</span>
+                        <span class="zero-budget__timeline-sep" aria-hidden="true"></span>
+                        <div class="zero-budget__timeline-chips" data-wallet-timeline></div>
+                    </div>
+                    <div class="summary-cards movements-summary" aria-label="Resumo da carteira">
+                        <div class="card">
+                            <div class="card-icon balance movements-summary-card-icon wallet-summary-kpi-icon--limit" aria-hidden="true" title="Soma dos limites cadastrados em todos os cartões de crédito"><i class="fas fa-layer-group"></i></div>
+                            <div class="card-content">
+                                <h3 id="wallet-summary-limit-title">Limite total (crédito)</h3>
+                                <p id="wallet-summary-total-limit">—</p>
+                                <span id="wallet-summary-total-limit-hint" class="dashboard-card-scope">Soma dos limites de todos os cartões</span>
                             </div>
                         </div>
-                        <div id="accounts-list" class="accounts-grid accounts-page__grid">
-                            <!-- Cards de conta via JS -->
+                        <div class="card">
+                            <div class="card-icon expense movements-summary-card-icon" aria-hidden="true"><i class="fas fa-credit-card"></i></div>
+                            <div class="card-content">
+                                <h3 id="wallet-summary-invoices-title">Parcelas no crédito (mês)</h3>
+                                <p id="wallet-summary-invoices">—</p>
+                                <div id="wallet-summary-invoices-bar" class="wallet-kpi-progress" role="presentation" aria-hidden="true">
+                                    <span id="wallet-summary-invoices-bar-fill" class="wallet-kpi-progress__fill"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-icon balance movements-summary-card-icon" aria-hidden="true"><i class="fas fa-balance-scale"></i></div>
+                            <div class="card-content">
+                                <h3 id="wallet-summary-net-title">Poder de compra real</h3>
+                                <p id="wallet-summary-net">—</p>
+                            </div>
                         </div>
                     </div>
-                    <div class="wallet-page__section wallet-page__section--cards" aria-labelledby="wallet-cards-heading">
-                        <div class="wallet-page__section-head">
-                            <h2 id="wallet-cards-heading" class="wallet-page__section-title">Cartões</h2>
-                            <div class="actions-bar">
-                                <button type="button" id="add-credit-card-btn" class="btn-primary"><i class="fas fa-plus"></i>
-                                    Novo cartão</button>
+                    <div class="wallet-page__layout">
+                        <div class="wallet-page__main">
+                            <div id="wallet-institutions-list" class="wallet-institutions-list" aria-live="polite">
+                                <!-- Linhas conta + cartões via JS -->
                             </div>
                         </div>
-                        <div id="credit-cards-list" class="credit-cards-page">
-                            <!-- Cartões inseridos via JS -->
-                        </div>
+                        <aside class="wallet-page__aside" aria-label="Painel lateral da carteira">
+                            <div id="wallet-due-panel" class="wallet-aside-card">
+                                <h3 class="wallet-aside-card__title"><i class="fas fa-calendar-check" aria-hidden="true"></i> Vencimentos (crédito)</h3>
+                                <div id="wallet-due-list" class="wallet-aside-card__body"></div>
+                            </div>
+                            <div id="wallet-activity-panel" class="wallet-aside-card">
+                                <h3 class="wallet-aside-card__title"><i class="fas fa-receipt" aria-hidden="true"></i> Compras na fatura <span class="wallet-aside-card__title-note">(mês)</span></h3>
+                                <div id="wallet-activity-list" class="wallet-aside-card__body"></div>
+                            </div>
+                        </aside>
                     </div>
                 </section>
 
@@ -2305,9 +2336,11 @@
         <div class="modal-content">
             <button class="modal-close-btn">&times;</button>
             <h3 id="account-modal-title">Nova Conta</h3>
+            <p id="account-modal-subtitle" class="hidden"></p>
             <div id="account-message" class="form-message hidden"></div>
             <form id="account-form">
                 <input type="hidden" id="account-id" name="account-id">
+                <input type="hidden" id="account-form-mode" name="account-form-mode" value="">
                 <div class="form-group">
                     <label for="account-name" id="account-name-label">Nome da conta</label>
                     <input type="text" id="account-name" name="account-name" placeholder="Ex: Conta principal, Carteira" required aria-required="true">
@@ -2316,54 +2349,6 @@
                     <label for="card-holder-name" id="account-holder-label">Titular da conta</label>
                     <input type="text" id="card-holder-name" name="card-holder-name" placeholder="Nome completo do titular" maxlength="120" autocomplete="name">
                     <small id="account-holder-hint" class="form-hint hidden"></small>
-                </div>
-                <div class="form-group hidden" id="card-color-group">
-                    <span class="form-label-block" id="card-color-label">Cor do cartão</span>
-                    <div class="card-tone-picker container-items" role="radiogroup" aria-labelledby="card-color-label">
-                        <label class="card-tone-item" data-plastic="violet" title="Roxo" data-hex="#7c3aed">
-                            <input type="radio" name="card-plastic-tone" value="violet" checked>
-                        </label>
-                        <label class="card-tone-item" data-plastic="ocean" title="Azul oceano" data-hex="#0ea5e9">
-                            <input type="radio" name="card-plastic-tone" value="ocean">
-                        </label>
-                        <label class="card-tone-item" data-plastic="navy" title="Azul corporativo" data-hex="#1d4ed8">
-                            <input type="radio" name="card-plastic-tone" value="navy">
-                        </label>
-                        <label class="card-tone-item" data-plastic="gold" title="Dourado" data-hex="#d97706">
-                            <input type="radio" name="card-plastic-tone" value="gold">
-                        </label>
-                        <label class="card-tone-item" data-plastic="platinum" title="Prata / platina" data-hex="#cbd5e1">
-                            <input type="radio" name="card-plastic-tone" value="platinum">
-                        </label>
-                        <label class="card-tone-item" data-plastic="rosegold" title="Rose gold" data-hex="#c08497">
-                            <input type="radio" name="card-plastic-tone" value="rosegold">
-                        </label>
-                        <label class="card-tone-item" data-plastic="red" title="Vermelho" data-hex="#dc2626">
-                            <input type="radio" name="card-plastic-tone" value="red">
-                        </label>
-                        <label class="card-tone-item" data-plastic="burgundy" title="Bordô" data-hex="#991b1b">
-                            <input type="radio" name="card-plastic-tone" value="burgundy">
-                        </label>
-                        <label class="card-tone-item" data-plastic="green" title="Verde" data-hex="#10b981">
-                            <input type="radio" name="card-plastic-tone" value="green">
-                        </label>
-                        <label class="card-tone-item" data-plastic="graphite" title="Grafite" data-hex="#1e293b">
-                            <input type="radio" name="card-plastic-tone" value="graphite">
-                        </label>
-                        <label class="card-tone-item" data-plastic="midnight" title="Preto" data-hex="#171717">
-                            <input type="radio" name="card-plastic-tone" value="midnight">
-                        </label>
-                        <label class="card-tone-item card-tone-item--custom" title="Cor livre (gradiente)" data-hex="livre">
-                            <input type="radio" name="card-plastic-tone" value="custom">
-                        </label>
-                    </div>
-                    <div id="card-custom-color-row" class="card-custom-color-row hidden">
-                        <label for="card-plastic-color">Cor personalizada</label>
-                        <div class="card-custom-color-inputs">
-                            <input type="color" id="card-plastic-color" value="#7c3aed" aria-label="Selecionar cor do cartão">
-                        </div>
-                    </div>
-                    <small class="form-hint">Define o gradiente principal do cartão na lista.</small>
                 </div>
                 <div class="form-group" id="account-type-group">
                     <label for="account-type">Tipo</label>
@@ -2398,6 +2383,48 @@
                         <option value="">Selecione a conta</option>
                     </select>
                     <small id="card-linked-hint" class="form-hint" data-hint-credit="Indique a conta corrente ou outra conta deste banco emissor. Obrigatório para cadastrar o cartão." data-hint-debit="Cartão de débito: os lançamentos ficam associados a este cartão; o saldo da conta bancária continua na secção Contas (Carteira)."></small>
+                </div>
+                <div id="wallet-wizard-block" class="hidden">
+                    <p class="form-section-label">Cartões na mesma instituição (opcional)</p>
+                    <div class="form-group">
+                        <label class="wallet-wizard-toggle">
+                            <input type="checkbox" id="wallet-wizard-add-credit" autocomplete="off" disabled>
+                            Adicionar cartão de crédito
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="wallet-wizard-toggle">
+                            <input type="checkbox" id="wallet-wizard-add-debit" autocomplete="off" disabled>
+                            Adicionar cartão de débito
+                        </label>
+                    </div>
+                    <div id="wallet-wizard-credit-fields" class="hidden">
+                        <div class="form-group">
+                            <label for="wizard-credit-card-name">Nome do cartão de crédito</label>
+                            <input type="text" id="wizard-credit-card-name" name="wizard-credit-card-name" maxlength="120"
+                                placeholder="Opcional — usamos o nome da conta + « Crédito »" disabled>
+                            <small class="form-hint">Limite e datas de fatura são obrigatórios quando esta opção está ativa.</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="wizard-credit-limit">Limite do cartão</label>
+                            <input type="number" step="0.01" id="wizard-credit-limit" name="wizard-credit-limit" placeholder="Ex.: 5000" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label for="wizard-credit-closing-day">Dia do fechamento</label>
+                            <input type="number" id="wizard-credit-closing-day" name="wizard-credit-closing-day" min="1" max="31" placeholder="Ex.: 20" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label for="wizard-credit-due-day">Dia do vencimento</label>
+                            <input type="number" id="wizard-credit-due-day" name="wizard-credit-due-day" min="1" max="31" placeholder="Ex.: 28" disabled>
+                        </div>
+                    </div>
+                    <div id="wallet-wizard-debit-fields" class="hidden">
+                        <div class="form-group">
+                            <label for="wizard-debit-card-name">Nome do cartão de débito</label>
+                            <input type="text" id="wizard-debit-card-name" name="wizard-debit-card-name" maxlength="120"
+                                placeholder="Opcional — usamos o nome da conta + « Débito »" disabled>
+                        </div>
+                    </div>
                 </div>
                 <button type="submit" class="btn-primary">Salvar</button>
             </form>

@@ -5,6 +5,7 @@
 import {
     creditCardCashOutForCalendarMonth,
     getCreditInstallmentMonthAllocationsIncludingFuture,
+    getCreditInstallmentMonthAllocationsScheduledByDue,
     getLoanInstallmentMonthAllocationsIncludingFuture,
     isLoanExpense,
     loanInstallmentCashOutForCalendarMonth,
@@ -46,6 +47,20 @@ export function expenseContributionToCalendarMonth(
         splitRequests,
         allUserExpenses
     );
+}
+
+/** Parcelas de cartão com vencimento no mês `monthKey` (YYYY-MM), com rateio líquido — Carteira / faturas por mês civil. */
+export function expenseCreditInstallmentScheduledForMonthKey(
+    t,
+    acc,
+    monthKey,
+    userProfile,
+    splitRequests,
+    allUserExpenses
+) {
+    if (!acc || !isCreditCardType(acc.type)) return 0;
+    const allocs = getCreditInstallmentMonthAllocationsScheduledByDue(t, acc);
+    return applySplitNetToContribution(t, monthKey, allocs[monthKey] || 0, splitRequests, allUserExpenses);
 }
 
 export function expenseContributionProjectedToMonthKey(
