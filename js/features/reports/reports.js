@@ -41,7 +41,6 @@ import { fetchDashboardPeriodBalance } from '../../services/firestore.js';
 import {
     applySplitNetToContribution,
     isAcceptedSettledSplitRequest,
-    isSplitReimbursementGain
 } from '../../core/split-net.js';
 import { setMovementSummaryMomVariation } from '../../core/movement-summary-variation.js';
 import { setButtonLoading } from '../../core/button-loading.js';
@@ -652,7 +651,7 @@ export async function loadReportsData(
     const outgoingAcceptedSplits = (expenseSplitRequests?.outgoing || []).filter((s) =>
         isAcceptedSettledSplitRequest(s)
     );
-    const gainsForTotals = (userGains || []).filter((g) => !isSplitReimbursementGain(g));
+    const gainsForTotals = (userGains || []).filter((g) => g && !g.referenceOnly);
 
     const periodFilter = document.getElementById('period-filter');
     if (!periodFilter) return;
@@ -2000,9 +1999,7 @@ export function planningSaldoLivreMes(
     const mo = months[0];
     if (!mo) return 0;
 
-    const gainsFiltered = (gains || []).filter(
-        (g) => g && !isSplitReimbursementGain(g) && !g.referenceOnly
-    );
+    const gainsFiltered = (gains || []).filter((g) => g && !g.referenceOnly);
 
     const totalGanhos = sumMovementsInRange(gainsFiltered, mo.start, mo.end);
     const totalEssencial = sumEssentialOutflowsListPlanningMonth(

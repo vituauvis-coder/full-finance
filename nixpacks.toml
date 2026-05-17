@@ -1,0 +1,3 @@
+# Cliente PostgreSQL para pg_dump (backup admin em /api/admin/backup/database)
+[phases.setup]
+nixPkgs = ["postgresql"]

@@ -2376,7 +2376,7 @@ function gainTopLevelCategory(t) {
 }
 
 function gainCountsInTotals(t) {
-    return !isSplitReimbursementGain(t);
+    return Boolean(t && !t.referenceOnly);
 }
 
 function monthKeyFromDateObj(d) {
@@ -2846,7 +2846,7 @@ function computeExpectedSplitGainsRows(period, now = new Date()) {
     );
 }
 
-function filterSyntheticGainsForCurrentFilters(synthetics) {
+function filterSyntheticGainsForCurrentFilters(synthetics, { omitPaymentStatus = false } = {}) {
     if (!synthetics?.length) return [];
     const {
         category,
@@ -2866,7 +2866,7 @@ function filterSyntheticGainsForCurrentFilters(synthetics) {
         if (category && t.category !== category) return false;
         if (category && subcategory && String(t.subcategory ?? '') !== String(subcategory)) return false;
         if (accountId && t.accountId !== accountId) return false;
-        if (!movementMatchesPaymentStatus(t, paymentStatus)) return false;
+        if (!omitPaymentStatus && !movementMatchesPaymentStatus(t, paymentStatus)) return false;
         if (description && description.trim()) {
             const nd = description.trim().toLowerCase();
             if (!String(t.description ?? '').toLowerCase().includes(nd)) return false;
@@ -2906,17 +2906,127 @@ function filterSyntheticGainsForCurrentFilters(synthetics) {
     });
 }
 
-function sumExpectedSplitGainsForPeriod(period, now = new Date()) {
-    const rows = filterSyntheticGainsForCurrentFilters(computeExpectedSplitGainsRows(period, now));
-    return rows.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
-}
-
 function expandExpectedSplitGainsForTable(list, period, now = new Date()) {
     const extra = filterSyntheticGainsForCurrentFilters(computeExpectedSplitGainsRows(period, now));
     if (!extra.length) return list;
     const ids = new Set((list || []).map((t) => String(t.id)));
     const add = extra.filter((r) => !ids.has(String(r.id)));
     return add.length ? [...list, ...add] : list;
+}
+
+/** Lista de entradas no período com filtros da página, exceto status Recebido/Pendente. */
+function getFilteredGainsListForPendingSummary(period = gainsFilterState.period) {
+    return applyGainsFiltersToList(buildGainsListForPeriod(period), { omitPaymentStatus: true });
+}
+
+/** Soma entradas ainda não marcadas como recebidas (inclui expectativas de estorno no período). */
+function sumPendingGainsForSummary(period, now = new Date()) {
+    let list = getFilteredGainsListForPendingSummary(period);
+    const extra = filterSyntheticGainsForCurrentFilters(
+        computeExpectedSplitGainsRows(period, now),
+        { omitPaymentStatus: true }
+    );
+    const ids = new Set(list.map((t) => String(t.id)));
+    const add = extra.filter((r) => !ids.has(String(r.id)));
+    if (add.length) list = [...list, ...add];
+
+    let sum = 0;
+    for (const t of list) {
+        if (!gainCountsInTotals(t)) continue;
+        if (t.isPaid !== false) continue;
+        sum += Number(t.amount) || 0;
+    }
+    return sum;
+}
+
+function buildGainsListForPeriod(period) {
+    const { sorted } = gainsRenderCache;
+    const { dateFrom, dateTo } = gainsFilterState;
+    return (dateFrom || dateTo)
+        ? [...sorted]
+        : sorted.filter((t) => movementDateInListPeriod(t.date, period));
+}
+
+function buildGainsListForCurrentFilters() {
+    return buildGainsListForPeriod(gainsFilterState.period || getDefaultPeriodValue());
+}
+
+function applyGainsFiltersToList(list, { omitPaymentStatus = false } = {}) {
+    const { accounts, currency } = gainsRenderCache;
+    const {
+        q,
+        category,
+        subcategory,
+        paymentType,
+        paymentStatus,
+        description,
+        amountMin,
+        amountMax,
+        dateFrom,
+        dateTo,
+        accountId
+    } = gainsFilterState;
+    let out = list;
+    if (category) {
+        out = out.filter((t) => t.category === category);
+    }
+    if (category && subcategory) {
+        out = out.filter((t) => String(t.subcategory ?? '') === String(subcategory));
+    }
+    if (accountId) {
+        out = out.filter((t) => t.accountId === accountId);
+    }
+    if (paymentType) {
+        out = out.filter(
+            (t) => accountPaymentType(accounts.find((a) => a.id === t.accountId)) === paymentType
+        );
+    }
+    if (!omitPaymentStatus) {
+        out = out.filter((t) => movementMatchesPaymentStatus(t, paymentStatus));
+    }
+    if (description && description.trim()) {
+        const needleDesc = description.trim().toLowerCase();
+        out = out.filter((t) => String(t.description ?? '').toLowerCase().includes(needleDesc));
+    }
+    if (amountMin != null || amountMax != null) {
+        const min = amountMin != null ? Number(amountMin) : null;
+        const max = amountMax != null ? Number(amountMax) : null;
+        out = out.filter((t) => {
+            const v = Number(t.amount) || 0;
+            if (min != null && v < min) return false;
+            if (max != null && v > max) return false;
+            return true;
+        });
+    }
+    if (dateFrom || dateTo) {
+        out = out.filter((t) => movementMatchesDateRange(t, dateFrom, dateTo));
+    }
+    const needle = (q || '').trim().toLowerCase();
+    if (needle) {
+        out = out.filter((t) => {
+            const acc = accounts.find((a) => a.id === t.accountId);
+            const dateStr = movementDateToJsDate(t.date).toLocaleDateString('pt-BR');
+            const categoryDisplay = t.subcategory
+                ? `${t.category} > ${t.subcategory}`
+                : t.category;
+            const hay = [
+                dateStr,
+                String(t.description ?? ''),
+                categoryDisplay,
+                String(t.category ?? ''),
+                String(t.subcategory ?? ''),
+                String(acc?.name ?? ''),
+                formatCurrency(t.amount, currency),
+                t.isPaid === false ? 'a receber' : 'recebido',
+                t.recurrenceGroupId ? 'recorrente série' : '',
+                movementAccountPaymentKindLabel(acc)
+            ]
+                .join(' ')
+                .toLowerCase();
+            return hay.includes(needle);
+        });
+    }
+    return out;
 }
 
 function updateGainsSummaryCards() {
@@ -2937,7 +3047,7 @@ function updateGainsSummaryCards() {
     const elProjTitle = document.getElementById('gains-summary-projection-title');
     const elTopTitle = document.getElementById('gains-summary-top-cat-title');
     if (elTotalTitle) elTotalTitle.textContent = `Entradas de ${label}`;
-    if (elProjTitle) elProjTitle.textContent = `Valor previsto de ${label}`;
+    if (elProjTitle) elProjTitle.textContent = `A receber em ${label}`;
     if (elTopTitle) elTopTitle.textContent = `Principal categoria de ${label}`;
 
     if (!ps || ps.size === 0) {
@@ -2962,14 +3072,12 @@ function updateGainsSummaryCards() {
     const rowsForSummary = getSortedFilteredGainsList();
 
     let receivedTotal = 0;
-    let pendingInPeriod = 0;
     rowsForSummary.forEach((t) => {
         if (!gainCountsInTotals(t)) return;
         const amt = Number(t.amount) || 0;
         if (t.isPaid !== false) receivedTotal += amt;
-        else pendingInPeriod += amt;
     });
-    const forecastTotal = receivedTotal + pendingInPeriod;
+    const pendingTotal = sumPendingGainsForSummary(period, now);
 
     const firstMonthParts = months[0].split('-');
     const prevMonthDate = new Date(Number(firstMonthParts[0]), Number(firstMonthParts[1]) - 1 - 1, 1);
@@ -2978,8 +3086,7 @@ function updateGainsSummaryCards() {
 
     let totalPrevMonthReceived = 0;
     let topCatPrevMonthAmt = 0;
-    let totalPrevMonthForecast = 0;
-    const prevSynthetic = isSingleMonth ? sumExpectedSplitGainsForPeriod(periodPrev, now) : 0;
+    let totalPrevMonthPending = 0;
     {
         const byCatPrev = new Map();
         sorted.forEach((t) => {
@@ -2989,7 +3096,6 @@ function updateGainsSummaryCards() {
             if (!movementMatchesPaymentStatus(t, ps)) return;
             const amt = Number(t.amount) || 0;
             if (t.isPaid !== false) totalPrevMonthReceived += amt;
-            totalPrevMonthForecast += amt;
             const k = gainTopLevelCategory(t);
             byCatPrev.set(k, (byCatPrev.get(k) || 0) + amt);
         });
@@ -2997,7 +3103,9 @@ function updateGainsSummaryCards() {
             if (amt > topCatPrevMonthAmt) topCatPrevMonthAmt = amt;
         });
     }
-    totalPrevMonthForecast += prevSynthetic;
+    if (isSingleMonth) {
+        totalPrevMonthPending = sumPendingGainsForSummary(periodPrev, now);
+    }
 
     const byCat = new Map();
     rowsForSummary.forEach((t) => {
@@ -3020,7 +3128,7 @@ function updateGainsSummaryCards() {
     const elTopIcon = document.getElementById('gains-summary-top-cat-icon');
 
     if (elTotal) elTotal.textContent = formatCurrency(receivedTotal, currency);
-    if (elProjection) elProjection.textContent = formatCurrency(forecastTotal, currency);
+    if (elProjection) elProjection.textContent = formatCurrency(pendingTotal, currency);
 
     if (elTop) {
         elTop.textContent = topCatAmt > 0 && topCat ? topCat : '—';
@@ -3041,8 +3149,8 @@ function updateGainsSummaryCards() {
     );
     setMovementSummaryMomVariation(
         document.getElementById('gains-summary-projection-variation'),
-        forecastTotal,
-        totalPrevMonthForecast,
+        pendingTotal,
+        totalPrevMonthPending,
         isSingleMonth,
         false
     );
@@ -3059,7 +3167,7 @@ function updateGainsSummaryCards() {
     const projIcon = document.getElementById('gains-summary-projection-icon');
     if (projIcon) {
         projIcon.title =
-            'Recebido (lançamentos marcados) + a receber + expectativas de rateio quando houver';
+            'Soma das entradas do período ainda não marcadas como recebidas, incluindo expectativas de estorno de rateio';
     }
 
     syncGainsFilterButtonHighlight();
@@ -3646,81 +3754,7 @@ function syncRangeLabels(prefix, currency) {
 }
 
 function getFilteredGainsList() {
-    const { sorted, accounts, currency } = gainsRenderCache;
-    const {
-        q,
-        category,
-        subcategory,
-        paymentType,
-        paymentStatus,
-        description,
-        amountMin,
-        amountMax,
-        dateFrom,
-        dateTo,
-        accountId,
-        period
-    } = gainsFilterState;
-    // Período é o filtro principal; só é ignorado quando o usuário seleciona Data (de/até).
-    let list = (dateFrom || dateTo)
-        ? [...sorted]
-        : sorted.filter((t) => movementDateInListPeriod(t.date, period));
-    if (category) {
-        list = list.filter((t) => t.category === category);
-    }
-    if (category && subcategory) {
-        list = list.filter((t) => String(t.subcategory ?? '') === String(subcategory));
-    }
-    if (accountId) {
-        list = list.filter((t) => t.accountId === accountId);
-    }
-    if (paymentType) {
-        list = list.filter((t) => accountPaymentType(accounts.find((a) => a.id === t.accountId)) === paymentType);
-    }
-    list = list.filter((t) => movementMatchesPaymentStatus(t, paymentStatus));
-    if (description && description.trim()) {
-        const needleDesc = description.trim().toLowerCase();
-        list = list.filter((t) => String(t.description ?? '').toLowerCase().includes(needleDesc));
-    }
-    if (amountMin != null || amountMax != null) {
-        const min = amountMin != null ? Number(amountMin) : null;
-        const max = amountMax != null ? Number(amountMax) : null;
-        list = list.filter((t) => {
-            const v = Number(t.amount) || 0;
-            if (min != null && v < min) return false;
-            if (max != null && v > max) return false;
-            return true;
-        });
-    }
-    if (dateFrom || dateTo) {
-        list = list.filter((t) => movementMatchesDateRange(t, dateFrom, dateTo));
-    }
-    const needle = q.trim().toLowerCase();
-    if (needle) {
-        list = list.filter((t) => {
-            const acc = accounts.find((a) => a.id === t.accountId);
-            const dateStr = movementDateToJsDate(t.date).toLocaleDateString('pt-BR');
-            const categoryDisplay = t.subcategory 
-                ? `${t.category} > ${t.subcategory}` 
-                : t.category;
-            const hay = [
-                dateStr,
-                String(t.description ?? ''),
-                categoryDisplay,
-                String(t.category ?? ''),
-                String(t.subcategory ?? ''),
-                String(acc?.name ?? ''),
-                formatCurrency(t.amount, currency),
-                t.isPaid === false ? 'a receber' : 'recebido',
-                t.recurrenceGroupId ? 'recorrente série' : '',
-                movementAccountPaymentKindLabel(acc)
-            ]
-                .join(' ')
-                .toLowerCase();
-            return hay.includes(needle);
-        });
-    }
-    return list;
+    return applyGainsFiltersToList(buildGainsListForCurrentFilters());
 }
 
 function populateGainFilterSelects() {

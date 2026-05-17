@@ -20,6 +20,15 @@ import {
     notifySplitRequesterOnRecipientCashOutConfirm
 } from './user-notifications.js';
 import { registerZeroBudgetRoutes } from './zero-budget.js';
+import {
+    backupContentType,
+    backupFilename,
+    checkBackupRateLimit,
+    checkPgDumpAvailable,
+    isDatabaseBackupEnabled,
+    recordBackupAttempt,
+    spawnPgDump
+} from './db-backup.js';
 import { isLoanExpense } from '../js/core/credit-installments.js';
 import { getInstallmentDueDates } from '../js/core/credit-installments.js';
 
@@ -3523,13 +3532,113 @@ app.delete('/api/user', requireAuth, async (req, res) => {
     req.session.destroy(() => res.json({ ok: true }));
 });
 
+function adminDatabaseProjectLabel() {
+    try {
+        const u = new URL(process.env.DATABASE_URL || '');
+        const host = u.hostname || '';
+        if (host.includes('supabase.co')) return 'PostgreSQL (Supabase)';
+        if (host) return `PostgreSQL (${host})`;
+    } catch {
+        /* ignore */
+    }
+    return 'PostgreSQL';
+}
+
 // ========== Admin API ==========
 app.get('/api/admin/meta', requireAdmin, (req, res) => {
     res.json({
-        projectLabel: 'local (SQL Server)',
+        projectLabel: adminDatabaseProjectLabel(),
         roles: [ROLE_USER, ROLE_ADMIN],
         appVersion: APP_VERSION,
         uploadsPath: 'data/uploads (perfil e ficheiros locais)'
+    });
+});
+
+app.get('/api/admin/backup/capabilities', requireAdmin, async (req, res) => {
+    const pgDumpAvailable = await checkPgDumpAvailable();
+    res.json({
+        enabled: isDatabaseBackupEnabled(),
+        pgDumpAvailable,
+        recommendedFormat: 'custom',
+        rateLimitMinutes: 15
+    });
+});
+
+app.get('/api/admin/backup/database', requireAdmin, async (req, res) => {
+    if (!isDatabaseBackupEnabled()) {
+        return res.status(403).json({ error: 'Backup do banco desativado neste servidor (ADMIN_DB_BACKUP_ENABLED).' });
+    }
+
+    const rate = checkBackupRateLimit(req.session.userId);
+    if (!rate.allowed) {
+        const minutes = Math.ceil((rate.retryAfterMs || 0) / 60000);
+        return res.status(429).json({
+            error: `Aguarde cerca de ${minutes} minuto(s) antes de gerar outro backup.`,
+            retryAfterMs: rate.retryAfterMs
+        });
+    }
+
+    const pgDumpAvailable = await checkPgDumpAvailable();
+    if (!pgDumpAvailable) {
+        return res.status(503).json({
+            error:
+                'pg_dump não está disponível neste servidor. Instale o cliente PostgreSQL (macOS: brew install libpq; Railway: nixPkgs postgresql no nixpacks.toml).'
+        });
+    }
+
+    const format = String(req.query.format || 'custom').toLowerCase() === 'sql' ? 'sql' : 'custom';
+    const startedAt = Date.now();
+    const child = spawnPgDump({ format });
+    let stderr = '';
+
+    child.stderr.on('data', (chunk) => {
+        stderr += chunk.toString();
+    });
+
+    child.on('error', (err) => {
+        console.error('pg_dump spawn error:', err.message);
+        if (!res.headersSent) {
+            res.status(500).json({ error: 'Falha ao iniciar pg_dump no servidor.' });
+        } else {
+            res.destroy();
+        }
+    });
+
+    res.setHeader('Content-Type', backupContentType(format));
+    res.setHeader('Content-Disposition', `attachment; filename="${backupFilename(format)}"`);
+    res.setHeader('X-Backup-Generated-At', new Date().toISOString());
+    res.setHeader('Cache-Control', 'no-store');
+
+    child.stdout.pipe(res);
+
+    child.on('close', async (code) => {
+        const durationMs = Date.now() - startedAt;
+        if (code !== 0) {
+            console.error('pg_dump exit', code, stderr.slice(0, 2000));
+            if (!res.headersSent) {
+                res.status(500).json({ error: 'pg_dump falhou ao gerar o backup.' });
+            } else if (!res.writableEnded) {
+                res.destroy();
+            }
+            return;
+        }
+
+        recordBackupAttempt(req.session.userId);
+        try {
+            const id = crypto.randomUUID();
+            await query(
+                `INSERT INTO admin_logs (id, user_id, action, details, created_at)
+                 VALUES ($1, $2, $3, $4, now())`,
+                [
+                    id,
+                    req.session.userId,
+                    'database_backup',
+                    JSON.stringify({ format, durationMs })
+                ]
+            );
+        } catch (e) {
+            console.warn('admin_logs database_backup:', e.message);
+        }
     });
 });
 

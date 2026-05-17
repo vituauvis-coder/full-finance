@@ -355,6 +355,31 @@
     color: inherit;
 }
 
+[data-theme="dark"] .portal-tooltip {
+    background: rgba(38, 38, 38, 0.92);
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.06) inset,
+        0 8px 28px -6px rgba(0, 0, 0, 0.45),
+        0 24px 56px -12px rgba(0, 0, 0, 0.55);
+}
+
+[data-theme="dark"] .portal-tooltip[data-tone='expense'] .portal-tooltip__kicker {
+    color: #f87171;
+}
+
+[data-theme="dark"] .portal-tooltip[data-tone='income'] .portal-tooltip__kicker {
+    color: #34d399;
+}
+
+[data-theme="dark"] .portal-tooltip[data-tone='balance'] .portal-tooltip__kicker {
+    color: #60a5fa;
+}
+
+[data-theme="dark"] .portal-tooltip[data-tone='projection'] .portal-tooltip__kicker {
+    color: #fbbf24;
+}
+
 [data-theme="dark"] .installment-tooltip-panel {
     background: var(--bg-light);
     border-color: var(--border-color);

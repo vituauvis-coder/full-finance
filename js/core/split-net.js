@@ -14,6 +14,7 @@ export function isAcceptedSettledSplitRequest(split) {
     return st === 'ACCEPTED';
 }
 
+/** Estorno de split persistido (categoria Reembolsos). Usado no ledger de caixa; não excluir do card Entradas se recebido. */
 export function isSplitReimbursementGain(gain) {
     if (!gain) return false;
     if (!gain.relatedExpenseId) return false;

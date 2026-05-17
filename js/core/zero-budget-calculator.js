@@ -5,7 +5,6 @@
 
 import { movementDateToJsDate } from './utils.js';
 import { expenseIsMarkedFixed } from './dashboard-expense-facets.js';
-import { isSplitReimbursementGain } from './split-net.js';
 import { enumerateCalendarMonths } from './projected-period-net.js';
 import {
     planningSaldoLivreMes,
@@ -78,9 +77,7 @@ export function explainPlanningBalance(gains, expenses, month, year, ctx = {}) {
         };
     }
 
-    const gainsFiltered = (gains || []).filter(
-        (g) => g && !isSplitReimbursementGain(g) && !g.referenceOnly
-    );
+    const gainsFiltered = (gains || []).filter((g) => g && !g.referenceOnly);
 
     /** @type {Array<{ id: string, data: string, descricao: string, categoria: string, valor: number, situacao: string }>} */
     const gainRows = [];

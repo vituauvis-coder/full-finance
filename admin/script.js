@@ -2,6 +2,7 @@
 // CONFIGURAÇÕES E ESTADO GLOBAL
 // ==========================================================================
 import { TablePaginationController } from '../js/shared/table-pagination.js';
+import { runWithButtonLoading } from '../js/core/button-loading.js';
 
 /** Papel ADMIN vem do banco (`user.role` / `user.isAdmin` na resposta da API). */
 function isUserAdmin(user) {
@@ -31,8 +32,37 @@ let chartsInstances = {};
 
 function chartPrimaryColor() {
     return (
-        getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim() || '#7c3aed'
+        getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim() || '#404040'
     );
+}
+
+/** Cores de eixos/legendas alinhadas ao tema (claro/escuro). */
+function adminChartTheme() {
+    const root = getComputedStyle(document.documentElement);
+    const text = root.getPropertyValue('--text-color').trim() || '#262626';
+    const muted = root.getPropertyValue('--text-light').trim() || '#737373';
+    const grid = root.getPropertyValue('--border-color').trim() || '#e5e5e5';
+    return {
+        text,
+        muted,
+        grid,
+        primary: chartPrimaryColor()
+    };
+}
+
+function adminChartScaleOptions() {
+    const t = adminChartTheme();
+    return {
+        x: {
+            grid: { color: t.grid, display: false },
+            ticks: { color: t.muted, font: { size: 11 } }
+        },
+        y: {
+            beginAtZero: true,
+            grid: { color: t.grid },
+            ticks: { color: t.muted, font: { size: 11 } }
+        }
+    };
 }
 
 function showToast(message, type = 'info', title = '') {
@@ -72,8 +102,8 @@ const elements = {
     accessDenied: document.getElementById('access-denied'),
     logoutBtn: document.getElementById('admin-logout-btn'),
     loginForm: document.getElementById('admin-login-form'),
-    sidebarNav: document.querySelector('.sidebar-nav'),
-    tabContents: document.querySelectorAll('.tab-content'),
+    sidebarNav: document.querySelector('.sidebar-menu'),
+    tabContents: document.querySelectorAll('.admin-tab-content'),
     statTotalUsers: document.getElementById('stat-total-users'),
     statNewUsers: document.getElementById('stat-new-users'),
     statTotalTransactions: document.getElementById('stat-total-transactions'),
@@ -94,9 +124,9 @@ function initEventListeners() {
     elements.loginForm.addEventListener('submit', handleLogin);
     elements.logoutBtn.addEventListener('click', handleLogout);
 
-    elements.sidebarNav.addEventListener('click', (e) => {
-        const btn = e.target.closest('.nav-item');
-        if (btn) switchTab(btn.dataset.tab);
+    elements.sidebarNav?.addEventListener('click', (e) => {
+        const btn = e.target.closest('.admin-nav-link');
+        if (btn?.dataset.tab) switchTab(btn.dataset.tab);
     });
 
     elements.userSearchInput.addEventListener('input', () => filterUsers());
@@ -110,14 +140,21 @@ function initEventListeners() {
     document.getElementById('admin-sidebar-close')?.addEventListener('click', closeAdminSidebar);
     document.getElementById('admin-sidebar-overlay')?.addEventListener('click', closeAdminSidebar);
 
-    document.querySelectorAll('.modal-close, .btn-cancel').forEach((btn) => {
+    document.querySelectorAll('.admin-modal-close, .btn-cancel').forEach((btn) => {
         btn.addEventListener('click', () => {
-            document.querySelectorAll('.modal-overlay').forEach((m) => {
+            document.querySelectorAll('.admin-modal-overlay').forEach((m) => {
                 m.classList.add('hidden');
                 m.style.display = 'none';
             });
         });
     });
+
+    document.getElementById('btn-db-backup')?.addEventListener('click', () =>
+        downloadDatabaseBackup('custom')
+    );
+    document.getElementById('btn-db-backup-sql')?.addEventListener('click', () =>
+        downloadDatabaseBackup('sql')
+    );
 }
 
 function toggleAdminTheme() {
@@ -151,13 +188,17 @@ function syncThemeToggleIcon() {
 
 function openAdminSidebar() {
     document.getElementById('admin-sidebar')?.classList.add('is-open');
-    document.getElementById('admin-sidebar-overlay')?.classList.add('is-visible');
+    const overlay = document.getElementById('admin-sidebar-overlay');
+    overlay?.classList.remove('hidden');
+    overlay?.classList.add('is-visible');
     document.getElementById('admin-menu-toggle')?.setAttribute('aria-expanded', 'true');
 }
 
 function closeAdminSidebar() {
     document.getElementById('admin-sidebar')?.classList.remove('is-open');
-    document.getElementById('admin-sidebar-overlay')?.classList.remove('is-visible');
+    const overlay = document.getElementById('admin-sidebar-overlay');
+    overlay?.classList.add('hidden');
+    overlay?.classList.remove('is-visible');
     document.getElementById('admin-menu-toggle')?.setAttribute('aria-expanded', 'false');
 }
 
@@ -253,22 +294,22 @@ function showAccessDenied() {
 }
 
 function updateAdminChrome() {
-    const nameEl = document.querySelector('.admin-profile .name');
-    const imgEl = document.querySelector('.admin-profile img');
+    const nameEl = document.getElementById('admin-profile-name');
+    const imgEl = document.getElementById('admin-profile-photo');
     if (nameEl && currentUser) {
-        nameEl.textContent = currentUser.email || 'Administrador';
+        nameEl.textContent = currentUser.name || currentUser.email || 'Administrador';
     }
     if (imgEl && currentUser) {
-        const label = encodeURIComponent(currentUser.email || 'Admin');
-        imgEl.src = `https://ui-avatars.com/api/?name=${label}&background=7c3aed&color=fff`;
-        imgEl.alt = '';
+        const label = encodeURIComponent(currentUser.name || currentUser.email || 'Admin');
+        imgEl.src = `https://ui-avatars.com/api/?name=${label}&background=404040&color=fff`;
+        imgEl.alt = currentUser.email || '';
     }
 }
 
 function switchTab(tabId) {
     closeAdminSidebar();
 
-    document.querySelectorAll('.nav-item').forEach((btn) => {
+    document.querySelectorAll('.sidebar-menu .admin-nav-link').forEach((btn) => {
         const on = btn.dataset.tab === tabId;
         btn.classList.toggle('active', on);
         btn.setAttribute('aria-selected', on ? 'true' : 'false');
@@ -291,6 +332,7 @@ function switchTab(tabId) {
         usuarios: 'Utilizadores',
         logs: 'Registo de auditoria',
         suporte: 'Feedbacks',
+        backup: 'Backup e dados',
         settings: 'Configurações'
     };
     document.getElementById('page-title').textContent = titles[tabId] || 'Painel admin';
@@ -300,6 +342,7 @@ function switchTab(tabId) {
         loadLogs(document.getElementById('log-filter-action')?.value || '', { resetPage: false });
     }
     if (tabId === 'suporte') loadFeedbacks({ resetPage: false });
+    if (tabId === 'backup') loadBackupTab();
     if (tabId === 'settings') loadSettings();
 }
 
@@ -347,7 +390,8 @@ function initChartsFromStats(stats) {
     const series = days >= 30 ? stats.userGrowth30 : stats.userGrowth7;
     const labels = (series || []).map((b) => b.label);
     const dataPoints = (series || []).map((b) => b.count);
-    const pc = chartPrimaryColor();
+    const theme = adminChartTheme();
+    const scales = adminChartScaleOptions();
 
     const cvGrowth = document.getElementById('usersGrowthChart');
     if (cvGrowth) {
@@ -361,11 +405,12 @@ function initChartsFromStats(stats) {
                     {
                         label: 'Novos utilizadores',
                         data: dataPoints,
-                        borderColor: pc,
-                        backgroundColor: 'rgba(124, 58, 237, 0.14)',
+                        borderColor: theme.primary,
+                        backgroundColor: 'rgba(64, 64, 64, 0.1)',
                         fill: true,
                         tension: 0.35,
-                        pointRadius: 3
+                        pointRadius: 3,
+                        pointBackgroundColor: theme.primary
                     }
                 ]
             },
@@ -373,12 +418,14 @@ function initChartsFromStats(stats) {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true },
-                    x: { grid: { display: false } }
-                }
+                scales
             }
         });
+        const ds = chartsInstances.growth.data.datasets[0];
+        ds.backgroundColor =
+            document.documentElement.getAttribute('data-theme') === 'dark'
+                ? 'rgba(250, 250, 250, 0.08)'
+                : 'rgba(64, 64, 64, 0.1)';
     }
 
     const cvFinance = document.getElementById('financeTypeChart');
@@ -405,7 +452,14 @@ function initChartsFromStats(stats) {
                 maintainAspectRatio: false,
                 cutout: '70%',
                 plugins: {
-                    legend: { position: 'bottom', labels: { usePointStyle: true, padding: 16 } }
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 16,
+                            color: theme.text
+                        }
+                    }
                 }
             }
         });
@@ -417,7 +471,7 @@ function initChartsFromStats(stats) {
         const top = stats.topExpenseCategories || [];
         const catLabels = top.map((c) => c.category);
         const catData = top.map((c) => c.count);
-        const catColors = [pc, '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#3b82f6', '#0ea5e9', '#64748b'];
+        const catColors = [theme.primary, '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#3b82f6', '#0ea5e9', '#64748b'];
         if (chartsInstances.categories) chartsInstances.categories.destroy();
         chartsInstances.categories = new Chart(ctxCategories, {
             type: 'bar',
@@ -438,8 +492,8 @@ function initChartsFromStats(stats) {
                 maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
-                    x: { beginAtZero: true, grid: { display: false } },
-                    y: { grid: { display: false } }
+                    x: { ...scales.x, grid: { color: theme.grid } },
+                    y: { ...scales.y, grid: { display: false } }
                 }
             }
         });
@@ -794,8 +848,111 @@ const LOG_ACTION_LABELS = {
     reset_password: '🔑 Reset de Senha',
     view_details: '👁️ Visualização',
     export_csv: '📥 Exportação CSV',
-    role_change: '👤 Alteração de papel (USER/ADMIN)'
+    role_change: '👤 Alteração de papel (USER/ADMIN)',
+    backup: '📦 Backup JSON',
+    database_backup: '💾 Backup PostgreSQL'
 };
+
+let backupCapabilities = null;
+let lastDatabaseBackupAt = null;
+
+async function loadBackupTab() {
+    const statusEl = document.getElementById('backup-capabilities-text');
+    const lastEl = document.getElementById('backup-last-info');
+    const btnDump = document.getElementById('btn-db-backup');
+    const btnSql = document.getElementById('btn-db-backup-sql');
+
+    try {
+        backupCapabilities = await apiJson('/api/admin/backup/capabilities');
+        const { enabled, pgDumpAvailable, rateLimitMinutes } = backupCapabilities;
+
+        if (!enabled) {
+            statusEl.innerHTML =
+                '<span class="admin-status-pill admin-status-pill--warn"><i class="fas fa-ban"></i> Desativado no servidor</span> O administrador desativou backups via <code>ADMIN_DB_BACKUP_ENABLED</code>.';
+            btnDump.disabled = true;
+            btnSql.disabled = true;
+        } else if (!pgDumpAvailable) {
+            statusEl.innerHTML =
+                '<span class="admin-status-pill admin-status-pill--warn"><i class="fas fa-exclamation-triangle"></i> pg_dump indisponível</span> Instale o cliente PostgreSQL no servidor onde a API roda (local: <code>brew install libpq</code>; Railway: <code>nixpacks.toml</code> com postgresql).';
+            btnDump.disabled = true;
+            btnSql.disabled = true;
+        } else {
+            statusEl.innerHTML = `<span class="admin-status-pill admin-status-pill--ok"><i class="fas fa-check-circle"></i> Pronto</span> Backup completo via pg_dump (limite: 1 a cada ${rateLimitMinutes || 15} min por administrador).`;
+            btnDump.disabled = false;
+            btnSql.disabled = false;
+        }
+    } catch (e) {
+        statusEl.textContent = 'Não foi possível verificar o servidor: ' + e.message;
+        btnDump.disabled = true;
+        btnSql.disabled = true;
+    }
+
+    if (lastEl) {
+        lastEl.textContent = lastDatabaseBackupAt
+            ? `Último backup nesta sessão: ${new Date(lastDatabaseBackupAt).toLocaleString('pt-BR')}`
+            : '';
+    }
+}
+
+function parseContentDispositionFilename(header) {
+    if (!header) return null;
+    const m = /filename\*?=(?:UTF-8''|")?([^";]+)/i.exec(header);
+    if (!m) return null;
+    try {
+        return decodeURIComponent(m[1].replace(/"/g, '').trim());
+    } catch {
+        return m[1].replace(/"/g, '').trim();
+    }
+}
+
+async function downloadDatabaseBackup(format = 'custom') {
+    const btn =
+        format === 'sql'
+            ? document.getElementById('btn-db-backup-sql')
+            : document.getElementById('btn-db-backup');
+
+    await runWithButtonLoading(btn, async () => {
+        const q = format === 'sql' ? '?format=sql' : '';
+        const res = await fetch(`/api/admin/backup/database${q}`, { credentials: 'include' });
+
+        if (!res.ok) {
+            let msg = res.statusText;
+            try {
+                const ct = res.headers.get('content-type') || '';
+                if (ct.includes('application/json')) {
+                    const body = await res.json();
+                    msg = body.error || msg;
+                } else {
+                    msg = (await res.text()) || msg;
+                }
+            } catch {
+                /* ignore */
+            }
+            throw new Error(msg);
+        }
+
+        const blob = await res.blob();
+        const generatedAt = res.headers.get('X-Backup-Generated-At');
+        const filename =
+            parseContentDispositionFilename(res.headers.get('Content-Disposition')) ||
+            `full-finance-backup.${format === 'sql' ? 'sql' : 'dump'}`;
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        lastDatabaseBackupAt = generatedAt || new Date().toISOString();
+        loadBackupTab();
+        showToast(`Download iniciado: ${filename}`, 'success', 'Backup PostgreSQL');
+    }, { busyLabel: 'Gerando backup…' }).catch((e) => {
+        showToast(e.message || String(e), 'error', 'Backup PostgreSQL');
+    });
+}
 
 function renderAdminLogsTable() {
     const tbody = document.getElementById('logs-table-body');
@@ -1088,47 +1245,55 @@ window.removeAdminRole = async (userId) => {
     }
 };
 
-// Funções de Backup
+// Exportação JSON (aba Backup)
 document.getElementById('btn-backup-users')?.addEventListener('click', () => {
-    downloadJSON(usersCache, 'users_backup');
-    logAdminAction('backup', { type: 'users', count: usersCache.length });
+    runWithButtonLoading(document.getElementById('btn-backup-users'), async () => {
+        downloadJSON(usersCache, 'users_backup');
+        await logAdminAction('backup', { type: 'users', count: usersCache.length });
+        showToast('Exportação JSON iniciada.', 'success');
+    });
 });
 
 document.getElementById('btn-backup-ledger')?.addEventListener('click', () => {
-    downloadJSON(transactionsCache, 'ledger_backup');
-    logAdminAction('backup', { type: 'ledger', count: transactionsCache.length });
+    runWithButtonLoading(document.getElementById('btn-backup-ledger'), async () => {
+        downloadJSON(transactionsCache, 'ledger_backup');
+        await logAdminAction('backup', { type: 'ledger', count: transactionsCache.length });
+        showToast('Exportação JSON iniciada.', 'success');
+    });
 });
 
-document.getElementById('btn-backup-all')?.addEventListener('click', async () => {
-    const allData = {
-        users: usersCache,
-        ledger: transactionsCache,
-        exportDate: new Date().toISOString(),
-        exportedBy: currentUser?.email
-    };
+document.getElementById('btn-backup-all')?.addEventListener('click', () => {
+    runWithButtonLoading(document.getElementById('btn-backup-all'), async () => {
+        const allData = {
+            users: usersCache,
+            ledger: transactionsCache,
+            exportDate: new Date().toISOString(),
+            exportedBy: currentUser?.email
+        };
 
-    try {
-        const admin_logs = [];
-        let page = 1;
-        let total = 1;
-        while (admin_logs.length < total) {
-            const batch = await apiJson(`/api/admin/logs?page=${page}&pageSize=100`);
-            const items = batch.items || [];
-            admin_logs.push(...items);
-            total = batch.total ?? admin_logs.length;
-            if (!items.length) break;
-            page += 1;
-            if (page > 200) break;
+        try {
+            const admin_logs = [];
+            let page = 1;
+            let total = 1;
+            while (admin_logs.length < total) {
+                const batch = await apiJson(`/api/admin/logs?page=${page}&pageSize=100`);
+                const items = batch.items || [];
+                admin_logs.push(...items);
+                total = batch.total ?? admin_logs.length;
+                if (!items.length) break;
+                page += 1;
+                if (page > 200) break;
+            }
+            allData.admin_logs = admin_logs;
+        } catch (e) {
+            showToast('Pacote sem auditoria completa: ' + e.message, 'warning');
+            allData.admin_logs = [];
         }
-        allData.admin_logs = admin_logs;
-    } catch (e) {
-        showToast('Backup sem lista completa de auditoria: ' + e.message, 'warning');
-        allData.admin_logs = [];
-    }
 
-    downloadJSON(allData, 'full_backup');
-    logAdminAction('backup', { type: 'full' });
-    showToast('Download iniciado.', 'success');
+        downloadJSON(allData, 'full_backup');
+        await logAdminAction('backup', { type: 'full' });
+        showToast('Pacote JSON gerado.', 'success');
+    });
 });
 
 function downloadJSON(data, filename) {

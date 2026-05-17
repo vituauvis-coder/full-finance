@@ -6,6 +6,7 @@ import { createServer } from 'net';
 import { spawn } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { envWithPgToolsPath, logPgToolsPathHint } from './pg-tools-path.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, '..');
@@ -34,7 +35,8 @@ function findFreePort(start, end) {
 
 const preferred = Number(process.env.PORT) || 3003;
 const port = await findFreePort(preferred, preferred + 40);
-const env = { ...process.env, PORT: String(port) };
+const env = envWithPgToolsPath({ ...process.env, PORT: String(port) });
+logPgToolsPathHint();
 
 if (port !== preferred) {
     console.log(

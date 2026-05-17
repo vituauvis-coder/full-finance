@@ -12,7 +12,7 @@ import {
     getLoanInstallmentMonthAllocationsIncludingFuture,
     isLoanExpense
 } from './credit-installments.js';
-import { applySplitNetToContribution, isSplitReimbursementGain } from './split-net.js';
+import { applySplitNetToContribution } from './split-net.js';
 
 /** Mês-calendário estritamente após o mês de referência (projeção). */
 export function isProjectionMonth(mo, ref = new Date()) {
@@ -135,7 +135,6 @@ export function sumProjectedGainsForCalendarMonth(mo, userGains) {
     let sum = 0;
     for (const t of userGains || []) {
         if (t.referenceOnly) continue;
-        if (isSplitReimbursementGain(t)) continue;
         const d = movementDateToJsDate(t.date);
         if (d >= mo.start && d <= mo.end) sum += Number(t.amount) || 0;
     }

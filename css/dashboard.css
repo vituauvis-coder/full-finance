@@ -293,9 +293,32 @@
     line-height: 1.35;
 }
 
-/* Legendas dos cards de Saídas/Entradas: texto no atributo title do ícone (tooltip ao passar o mouse) */
-.movements-summary .movements-summary-card-icon {
+/* Ícones dos cards de resumo: descrição no hover via portal-tooltip.js */
+.movements-summary .movements-summary-card-icon.has-portal-tooltip {
     cursor: help;
+    transition:
+        transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.movements-summary .movements-summary-card-icon.portal-tooltip-active {
+    transform: scale(1.06);
+}
+
+.movements-summary .movements-summary-card-icon.expense.portal-tooltip-active {
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.22);
+}
+
+.movements-summary .movements-summary-card-icon.income.portal-tooltip-active {
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.22);
+}
+
+.movements-summary .movements-summary-card-icon.balance.portal-tooltip-active {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22);
+}
+
+.movements-summary .movements-summary-card-icon.projection.portal-tooltip-active {
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.22);
 }
 
 .dashboard-grid {
