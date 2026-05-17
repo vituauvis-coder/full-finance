@@ -42,6 +42,7 @@
     max-height: 100vh;
     max-height: 100dvh;
     overflow: hidden;
+    overscroll-behavior: none;
 }
 
 .sidebar {
@@ -58,13 +59,10 @@
     z-index: 1000;
     /* Ajustado para ficar acima do conteúdo mas abaixo de modais */
 
-    /* Melhorias de Layout */
-    position: sticky;
-    /* Fixa o sidebar na tela */
-    top: 0;
-    /* Alinha no topo */
     height: 100vh;
-    /* Ocupa toda a altura da tela */
+    height: 100dvh;
+    max-height: 100vh;
+    max-height: 100dvh;
     overflow-y: auto;
     /* Permite rolagem interna se necessário */
     flex-shrink: 0;
@@ -95,17 +93,17 @@
     transition: opacity 0.3s ease-in-out;
 }
 
-/* Coluna do menu: altura da viewport para a aba absolute (top: 50%) não “descer” com páginas longas */
+/* Coluna do menu: reserva largura no flex; o painel fixo fica em @media (min-width: 769px) */
 .sidebar-shell {
     position: relative;
     flex-shrink: 0;
-    align-self: flex-start;
+    align-self: stretch;
     display: flex;
     flex-direction: column;
     height: 100vh;
+    height: 100dvh;
     min-height: 100vh;
-    position: sticky;
-    top: 0;
+    min-height: 100dvh;
     z-index: 999;
 }
 
@@ -359,6 +357,7 @@
     min-height: 0;
     padding: 2rem;
     overflow-y: auto;
+    overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
 }
 
@@ -752,8 +751,26 @@
     flex-shrink: 0;
 }
 
-/* --- Sidebar recolhida (desktop) --- */
+/* --- Sidebar desktop: fixa à viewport + recolhida --- */
 @media (min-width: 769px) {
+    .sidebar-shell {
+        width: 250px;
+        flex: 0 0 250px;
+        transition: flex-basis 0.25s ease, width 0.25s ease;
+    }
+
+    .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        z-index: 1000;
+    }
+
+    .main-content.sidebar-collapsed .sidebar-shell {
+        width: 76px;
+        flex: 0 0 76px;
+    }
+
     .main-content.sidebar-collapsed .sidebar {
         width: 76px;
         padding: 1rem 0.5rem;
