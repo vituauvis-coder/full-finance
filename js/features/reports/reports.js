@@ -38,6 +38,8 @@ import {
 } from '../../core/dashboard-expense-facets.js';
 import { buildSyntheticExpectedSplitGainsRows } from '../../core/expected-split-gain-rows.js';
 import { fetchDashboardPeriodBalance } from '../../services/firestore.js';
+import { DASHBOARD_SUMMARY_COPY, summaryFilterRequiredHintHtml } from '../../core/movement-summary-copy.js';
+import { setSummaryCardTitle } from '../../components/movement-summary-cards.js';
 import {
     applySplitNetToContribution,
     isAcceptedSettledSplitRequest,
@@ -1482,10 +1484,10 @@ async function updateDashboardCardsAndTitlesForPeriod(
     const { startDate: dashStart, endDate: dashEnd } = getPeriodDateBounds(period, now);
     const prevBounds = isSingleMonth ? dashboardPrevCalendarMonthBounds(dashStart) : null;
 
-    setTextIfExists('dashboard-balance-title', 'Saldo em conta');
-    setTextIfExists('monthly-income-title', 'Entradas');
-    setTextIfExists('monthly-expenses-title', 'Saídas');
-    setTextIfExists('dashboard-projection-title', 'Balanço');
+    setSummaryCardTitle('dashboard-balance', DASHBOARD_SUMMARY_COPY.titles.balance);
+    setSummaryCardTitle('monthly-income', DASHBOARD_SUMMARY_COPY.titles.income);
+    setSummaryCardTitle('monthly-expenses', DASHBOARD_SUMMARY_COPY.titles.expenses);
+    setSummaryCardTitle('dashboard-projection', DASHBOARD_SUMMARY_COPY.titles.projection);
     setTextIfExists(
         'financial-progression-title',
         'Fluxo mensal'
@@ -1511,8 +1513,7 @@ async function updateDashboardCardsAndTitlesForPeriod(
         setTextIfExists('monthly-income', '—');
         const incVar = document.getElementById('monthly-income-variation');
         if (incVar) {
-            incVar.innerHTML =
-                '<span class="card-metric-hint" title="Marque Recebido ou Pendente em Entrada para ver valores.">—</span>';
+            incVar.innerHTML = summaryFilterRequiredHintHtml(DASHBOARD_SUMMARY_COPY.incomeFacetHint);
         }
     } else {
         setTextIfExists('monthly-income', formatCurrency(income ?? 0, userCurrency));
@@ -1533,8 +1534,7 @@ async function updateDashboardCardsAndTitlesForPeriod(
         setTextIfExists('monthly-expenses', '—');
         const outVar = document.getElementById('monthly-expenses-variation');
         if (outVar) {
-            outVar.innerHTML =
-                '<span class="card-metric-hint" title="Marque Pago ou Pendente em Saída para ver valores.">—</span>';
+            outVar.innerHTML = summaryFilterRequiredHintHtml(DASHBOARD_SUMMARY_COPY.expenseFacetHint);
         }
     } else {
         setTextIfExists('monthly-expenses', formatCurrency(out ?? 0, userCurrency));
@@ -1598,13 +1598,11 @@ async function updateDashboardCardsAndTitlesForPeriod(
     const projVarEl = document.getElementById('dashboard-projection-variation');
     if (projVarEl) {
         if (!facetDashReady) {
-            projVarEl.innerHTML =
-                '<span class="card-metric-hint" title="Marque pelo menos uma opção em Entrada e em Saída para ver o balanço filtrado.">—</span>';
+            projVarEl.innerHTML = summaryFilterRequiredHintHtml(DASHBOARD_SUMMARY_COPY.projectionFacetHint);
         } else if (!isSingleMonth) {
             setMovementSummaryMomVariation(projVarEl, 0, 0, false, false);
         } else if (!dashAnyProj || !prevBounds) {
-            projVarEl.innerHTML =
-                '<span class="card-metric-hint" title="Comparativo mês a mês quando só um mês está seleccionado no filtro.">—</span>';
+            projVarEl.innerHTML = summaryFilterRequiredHintHtml(DASHBOARD_SUMMARY_COPY.projectionSingleMonthHint);
         } else {
             const selMonths = enumerateCalendarMonths(dashStart, dashEnd);
             const prevMonths = enumerateCalendarMonths(prevBounds.prevStart, prevBounds.prevEnd);
@@ -1688,8 +1686,7 @@ async function updateDashboardCardsAndTitlesForPeriod(
         if (!isSingleMonth) {
             setMovementSummaryMomVariation(balVarEl, 0, 0, false, false);
         } else if (balanceCurr == null) {
-            balVarEl.innerHTML =
-                '<span class="card-metric-hint" title="Saldo indisponível para calcular a variação.">—</span>';
+            balVarEl.innerHTML = summaryFilterRequiredHintHtml(DASHBOARD_SUMMARY_COPY.balanceVariationHint);
         } else {
             setMovementSummaryMomVariation(
                 balVarEl,

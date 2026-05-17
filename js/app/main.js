@@ -23,6 +23,7 @@ import { setupGlobalErrorHandlers } from './error-handling.js';
 import { syncPeriodFilterSelectsToCurrentMonth } from '../core/period-filters.js';
 import { initZeroBudgetPage, loadZeroBudgetPage, updateZeroBudgetData } from '../features/zero-budget/zero-budget.js';
 import { initPortalTooltips } from '../core/portal-tooltip.js';
+import { mountMovementSummaryCards } from '../components/movement-summary-cards.js';
 
 // --- Estado Global da Aplicação ---
 export let AppState = {
@@ -52,6 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupGlobalErrorHandlers();
     initThemeFromStorage();
     initThemeToggle();
+    mountMovementSummaryCards();
     initPortalTooltips();
     window.addEventListener('fullfinan-themechange', onThemeChange);
     initAuth(onAuthenticated, onSignedOut);

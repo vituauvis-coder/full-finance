@@ -47,6 +47,18 @@ import {
 } from '../../core/split-net.js';
 import { setMovementSummaryMomVariation } from '../../core/movement-summary-variation.js';
 import {
+    EXPENSES_SUMMARY_COPY,
+    GAINS_SUMMARY_COPY,
+    expensesMonthTooltip,
+    expensesCreditCardTooltip,
+    expensesOtherTooltip,
+    expensesSummaryTitles,
+    gainsSummaryTitles,
+    gainsTopCategoryTooltip,
+    summaryFilterRequiredHintHtml
+} from '../../core/movement-summary-copy.js';
+import { setSummaryCardTooltip, setSummaryCardTitle } from '../../components/movement-summary-cards.js';
+import {
     getDefaultPeriodValue,
     getMonthKeysInPeriod,
     getPeriodDateBounds,
@@ -2411,8 +2423,7 @@ function updateExpensesSummaryCards() {
     if (!cache?.sorted) return;
     readExpensesFilterFromDom();
     const ps = expensesFilterState.paymentStatus;
-    const dashHint =
-        '<span class="card-metric-hint" title="Marque Pago ou Pendente nas tags ou no filtro para ver totais.">—</span>';
+    const dashHint = summaryFilterRequiredHintHtml(EXPENSES_SUMMARY_COPY.filterRequiredHint);
     if (!ps || ps.size === 0) {
         ['expenses-summary-month', 'expenses-summary-projection', 'expenses-summary-top-cat', 'expenses-summary-other'].forEach(
             (id) => {
@@ -2514,24 +2525,11 @@ function updateExpensesSummaryCards() {
 
     // Atualiza a UI
     const elTop = document.getElementById('expenses-summary-top-cat');
-    const elTopIcon = document.getElementById('expenses-summary-top-cat-icon');
     if (elTop) {
         elTop.textContent = formatCurrency(creditCardPeriod, currency);
     }
-    if (elTopIcon) {
-        elTopIcon.title =
-            creditCardPeriod > 0
-                ? 'Total das compras lançadas no cartão de crédito neste período (parcelas contabilizadas no mês de vencimento, mesma base da lista).'
-                : 'Nenhuma saída com cartão de crédito no período.';
-    }
-
-    const elOtherIcon = document.getElementById('expenses-summary-other-icon');
-    if (elOtherIcon) {
-        elOtherIcon.title =
-            otherExpensesPeriod > 0
-                ? 'Saídas sem marca «despesa essencial» e sem conta de cartão de crédito (PIX, débito, dinheiro, conta corrente etc.), mesma regra de período e parcelas que os demais cards.'
-                : 'Nenhuma saída deste tipo no período (ou só essenciais / só cartão de crédito).';
-    }
+    setSummaryCardTooltip('expenses-summary-top-cat', expensesCreditCardTooltip(creditCardPeriod > 0));
+    setSummaryCardTooltip('expenses-summary-other', expensesOtherTooltip(otherExpensesPeriod > 0));
 
     const elMonth = document.getElementById('expenses-summary-month');
     if (elMonth) elMonth.textContent = formatCurrency(totalPeriod, currency);
@@ -2572,33 +2570,17 @@ function updateExpensesSummaryCards() {
     const elOther = document.getElementById('expenses-summary-other');
     if (elOther) elOther.textContent = formatCurrency(otherExpensesPeriod, currency);
 
-    const elMonthIcon = document.getElementById('expenses-summary-month-icon');
-    if (elMonthIcon) {
-        const p = getPeriodTitleParts(period, now);
-        if (p.kind === 'month') {
-            elMonthIcon.title = `Cartão/empréstimo: parcelas com vencimento em ${p.label}; demais saídas pela data do lançamento`;
-        } else if (p.kind === 'year') {
-            elMonthIcon.title = `Ano calendário de 1/1 a 31/12 (cartão/empréstimo por vencimento; meses futuros ainda sem valor entram como 0); demais saídas pela data do lançamento`;
-        } else {
-            elMonthIcon.title = 'Total no período selecionado';
-        }
-    }
-
-    // Atualiza títulos (h3) conforme o período
     const tParts = getPeriodTitleParts(period, now);
-    const elMonthTitle = document.getElementById('expenses-summary-month-title');
-    const elTopTitle = document.getElementById('expenses-summary-top-cat-title');
-    const elProjTitle = document.getElementById('expenses-summary-projection-title');
-    const elOtherTitle = document.getElementById('expenses-summary-other-title');
+    setSummaryCardTooltip('expenses-summary-month', expensesMonthTooltip(tParts));
 
-    const label = tParts.label;
-    if (elMonthTitle) elMonthTitle.textContent = `Saídas de ${label}`;
-    if (elTopTitle) elTopTitle.textContent = `Cartão de Crédito (${label})`;
-    if (elProjTitle) elProjTitle.textContent = `Despesas essenciais (${label})`;
-    if (elOtherTitle) elOtherTitle.textContent = `Outras despesas (${label})`;
+    const titles = expensesSummaryTitles(tParts.label);
+    setSummaryCardTitle('expenses-summary-month', titles.month);
+    setSummaryCardTitle('expenses-summary-top-cat', titles.creditCard);
+    setSummaryCardTitle('expenses-summary-projection', titles.projection);
+    setSummaryCardTitle('expenses-summary-other', titles.other);
 
     // Atualiza o Mapa de Gastos (Treemap)
-    renderExpensesTreemap(sorted, currency, label);
+    renderExpensesTreemap(sorted, currency, tParts.label);
 
     syncExpensesFilterButtonHighlight();
 }
@@ -3040,15 +3022,12 @@ function updateGainsSummaryCards() {
     const isSingleMonth = /^month-\d+$/.test(period);
     const label = getPeriodTitleParts(period, now).label;
 
-    const dashHint =
-        '<span class="card-metric-hint" title="Marque Recebido ou Pendente nas tags ou no filtro para ver totais.">—</span>';
+    const dashHint = summaryFilterRequiredHintHtml(GAINS_SUMMARY_COPY.filterRequiredHint);
 
-    const elTotalTitle = document.getElementById('gains-summary-total-title');
-    const elProjTitle = document.getElementById('gains-summary-projection-title');
-    const elTopTitle = document.getElementById('gains-summary-top-cat-title');
-    if (elTotalTitle) elTotalTitle.textContent = `Entradas de ${label}`;
-    if (elProjTitle) elProjTitle.textContent = `A receber em ${label}`;
-    if (elTopTitle) elTopTitle.textContent = `Principal categoria de ${label}`;
+    const gainTitles = gainsSummaryTitles(label);
+    setSummaryCardTitle('gains-summary-total', gainTitles.total);
+    setSummaryCardTitle('gains-summary-projection', gainTitles.projection);
+    setSummaryCardTitle('gains-summary-top-cat', gainTitles.topCategory);
 
     if (!ps || ps.size === 0) {
         ['gains-summary-total', 'gains-summary-projection'].forEach((id) => {
@@ -3125,20 +3104,16 @@ function updateGainsSummaryCards() {
     const elTotal = document.getElementById('gains-summary-total');
     const elProjection = document.getElementById('gains-summary-projection');
     const elTop = document.getElementById('gains-summary-top-cat');
-    const elTopIcon = document.getElementById('gains-summary-top-cat-icon');
-
     if (elTotal) elTotal.textContent = formatCurrency(receivedTotal, currency);
     if (elProjection) elProjection.textContent = formatCurrency(pendingTotal, currency);
 
     if (elTop) {
         elTop.textContent = topCatAmt > 0 && topCat ? topCat : '—';
     }
-    if (elTopIcon) {
-        elTopIcon.title =
-            topCatAmt > 0 && topCat
-                ? `${topCat}: ${formatCurrency(topCatAmt, currency)}`
-                : 'Nenhuma entrada no período do filtro';
-    }
+    setSummaryCardTooltip(
+        'gains-summary-top-cat',
+        gainsTopCategoryTooltip(topCat, topCatAmt > 0 ? formatCurrency(topCatAmt, currency) : '')
+    );
 
     setMovementSummaryMomVariation(
         document.getElementById('gains-summary-variation'),
@@ -3164,11 +3139,7 @@ function updateGainsSummaryCards() {
 
     renderGainsTreemap(rowsForSummary, currency, label);
 
-    const projIcon = document.getElementById('gains-summary-projection-icon');
-    if (projIcon) {
-        projIcon.title =
-            'Soma das entradas do período ainda não marcadas como recebidas, incluindo expectativas de estorno de rateio';
-    }
+    setSummaryCardTooltip('gains-summary-projection', GAINS_SUMMARY_COPY.projection);
 
     syncGainsFilterButtonHighlight();
 }

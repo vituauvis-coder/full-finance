@@ -481,50 +481,8 @@
                             </button>
                         </div>
                     </div>
-                    <!-- Cards de Resumo -->
-                    <div class="summary-cards movements-summary" aria-label="Resumo do painel">
-                        <div class="card">
-                            <div class="card-icon balance"><i class="fas fa-wallet"></i></div>
-                            <div class="card-content">
-                                <h3 id="dashboard-balance-title">Saldo em conta</h3>
-                                <p id="dashboard-balance-total">—</p>
-                                <span id="dashboard-balance-variation" class="dashboard-card-scope"></span>
-                            </div>
-                        </div>
-                        <div class="card">
-                            <div class="card-icon income"><i class="fas fa-arrow-up"></i></div>
-                            <div class="card-content">
-                                <h3 id="monthly-income-title">Entradas</h3>
-                                <p id="monthly-income">R$ 0,00</p>
-                                <span id="monthly-income-variation" class="dashboard-card-scope"></span>
-                            </div>
-                        </div>
-                        <div class="card">
-                            <div class="card-icon expense"><i class="fas fa-arrow-down"></i></div>
-                            <div class="card-content">
-                                <h3 id="monthly-expenses-title">Saídas</h3>
-                                <p id="monthly-expenses">R$ 0,00</p>
-                                <span id="monthly-expenses-variation" class="dashboard-card-scope"></span>
-                            </div>
-                        </div>
-                        <!-- Card investimentos (oculto)
-                        <div class="card">
-                            <div class="card-icon investments"><i class="fas fa-chart-line"></i></div>
-                            <div class="card-content">
-                                <h3 id="dashboard-investments-title">Investimentos</h3>
-                                <p id="dashboard-investments-total">R$ 0,00</p>
-                            </div>
-                        </div>
-                        -->
-                        <div class="card">
-                            <div class="card-icon projection"><i class="fas fa-chart-area"></i></div>
-                            <div class="card-content">
-                                <h3 id="dashboard-projection-title">Balanço</h3>
-                                <p id="dashboard-projection-total">—</p>
-                                <span id="dashboard-projection-variation" class="dashboard-card-scope"></span>
-                            </div>
-                        </div>
-                    </div>
+                    <!-- Cards de Resumo (montados por movement-summary-cards.js) -->
+                    <div class="summary-cards movements-summary" data-summary-group="dashboard"></div>
 
                     <div id="dashboard-pending-cash-outs" class="dashboard-pending-cash-outs hidden" aria-live="polite">
                         <h3 class="dashboard-pending-title"><i class="fas fa-receipt"></i> Pagamentos a confirmar no saldo</h3>
@@ -640,40 +598,7 @@
                             </button>
                         </div>
                     </div>
-                    <div class="summary-cards movements-summary" aria-label="Resumo de saídas">
-                        <div class="card">
-                            <div class="card-icon expense movements-summary-card-icon" id="expenses-summary-month-icon"><i class="fas fa-calendar-day" aria-hidden="true"></i></div>
-                            <div class="card-content">
-                                <h3 id="expenses-summary-month-title">Saídas esse mês</h3>
-                                <p id="expenses-summary-month">—</p>
-                                <span id="expenses-summary-variation" class="dashboard-card-scope"></span>
-                            </div>
-                        </div>
-                        <div class="card">
-                            <div class="card-icon expense movements-summary-card-icon" id="expenses-summary-projection-icon" title="Soma das saídas marcadas como «Despesa essencial», com a mesma regra de período das saídas (cartão/parcelas por vencimento)."><i class="fas fa-anchor" aria-hidden="true"></i></div>
-                            <div class="card-content">
-                                <h3 id="expenses-summary-projection-title">Despesas essenciais no período</h3>
-                                <p id="expenses-summary-projection">—</p>
-                                <span id="expenses-summary-projection-variation" class="dashboard-card-scope"></span>
-                            </div>
-                        </div>
-                        <div class="card">
-                            <div class="card-icon expense movements-summary-card-icon" id="expenses-summary-top-cat-icon" title="Total no cartão de crédito no período (parcelas por vencimento)."><i class="fas fa-credit-card" aria-hidden="true"></i></div>
-                            <div class="card-content">
-                                <h3 id="expenses-summary-top-cat-title">Cartão de Crédito</h3>
-                                <p id="expenses-summary-top-cat">—</p>
-                                <span id="expenses-summary-top-cat-variation" class="dashboard-card-scope"></span>
-                            </div>
-                        </div>
-                        <div class="card">
-                            <div class="card-icon expense movements-summary-card-icon" id="expenses-summary-other-icon" title="Saídas que não estão marcadas como despesa essencial e não usam cartão de crédito (conta, débito, dinheiro etc.), mesma base de período das outras saídas."><i class="fas fa-wallet" aria-hidden="true"></i></div>
-                            <div class="card-content">
-                                <h3 id="expenses-summary-other-title">Outras despesas</h3>
-                                <p id="expenses-summary-other">—</p>
-                                <span id="expenses-summary-other-variation" class="dashboard-card-scope"></span>
-                            </div>
-                        </div>
-                    </div>
+                    <div class="summary-cards movements-summary" data-summary-group="expenses"></div>
                     <div id="expense-splits-outgoing-panel" class="expense-splits-panel expense-splits-panel--outgoing hidden" aria-live="polite"></div>
 
                     <!-- Mapa de Gastos (Treemap) -->
@@ -742,32 +667,7 @@
                             </button>
                         </div>
                     </div>
-                    <div class="summary-cards movements-summary" aria-label="Resumo de entradas">
-                        <div class="card">
-                            <div class="card-icon income movements-summary-card-icon" id="gains-summary-total-icon"><i class="fas fa-calendar-check" aria-hidden="true"></i></div>
-                            <div class="card-content">
-                                <h3 id="gains-summary-total-title">Entradas de …</h3>
-                                <p id="gains-summary-total">—</p>
-                                <span id="gains-summary-variation" class="dashboard-card-scope"></span>
-                            </div>
-                        </div>
-                        <div class="card">
-                            <div class="card-icon income movements-summary-card-icon" id="gains-summary-projection-icon" title="Entradas do período ainda não marcadas como recebidas"><i class="fas fa-clock" aria-hidden="true"></i></div>
-                            <div class="card-content">
-                                <h3 id="gains-summary-projection-title">A receber em …</h3>
-                                <p id="gains-summary-projection">—</p>
-                                <span id="gains-summary-projection-variation" class="dashboard-card-scope"></span>
-                            </div>
-                        </div>
-                        <div class="card">
-                            <div class="card-icon income movements-summary-card-icon" id="gains-summary-top-cat-icon"><i class="fas fa-tags" aria-hidden="true"></i></div>
-                            <div class="card-content">
-                                <h3 id="gains-summary-top-cat-title">Principal categoria</h3>
-                                <p id="gains-summary-top-cat">—</p>
-                                <span id="gains-summary-top-cat-variation" class="dashboard-card-scope"></span>
-                            </div>
-                        </div>
-                    </div>
+                    <div class="summary-cards movements-summary" data-summary-group="gains"></div>
                     <div id="gains-treemap-container" class="treemap-container treemap-container--income">
                         <div class="treemap-header">
                             <div>
@@ -865,33 +765,7 @@
                         <span class="zero-budget__timeline-sep" aria-hidden="true"></span>
                         <div class="zero-budget__timeline-chips" data-wallet-timeline></div>
                     </div>
-                    <div class="summary-cards movements-summary" aria-label="Resumo da carteira">
-                        <div class="card">
-                            <div class="card-icon balance movements-summary-card-icon wallet-summary-kpi-icon--limit" aria-hidden="true" title="Soma dos limites cadastrados em todos os cartões de crédito"><i class="fas fa-layer-group"></i></div>
-                            <div class="card-content">
-                                <h3 id="wallet-summary-limit-title">Limite total (crédito)</h3>
-                                <p id="wallet-summary-total-limit">—</p>
-                                <span id="wallet-summary-total-limit-hint" class="dashboard-card-scope">Soma dos limites de todos os cartões</span>
-                            </div>
-                        </div>
-                        <div class="card">
-                            <div class="card-icon expense movements-summary-card-icon" aria-hidden="true"><i class="fas fa-credit-card"></i></div>
-                            <div class="card-content">
-                                <h3 id="wallet-summary-invoices-title">Parcelas no crédito (mês)</h3>
-                                <p id="wallet-summary-invoices">—</p>
-                                <div id="wallet-summary-invoices-bar" class="wallet-kpi-progress" role="presentation" aria-hidden="true">
-                                    <span id="wallet-summary-invoices-bar-fill" class="wallet-kpi-progress__fill"></span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="card">
-                            <div class="card-icon balance movements-summary-card-icon" aria-hidden="true"><i class="fas fa-balance-scale"></i></div>
-                            <div class="card-content">
-                                <h3 id="wallet-summary-net-title">Poder de compra real</h3>
-                                <p id="wallet-summary-net">—</p>
-                            </div>
-                        </div>
-                    </div>
+                    <div class="summary-cards movements-summary" data-summary-group="wallet"></div>
                     <div class="wallet-page__layout">
                         <div class="wallet-page__main">
                             <div id="wallet-institutions-list" class="wallet-institutions-list" aria-live="polite">
@@ -927,40 +801,7 @@
                         <button type="button" id="add-investment-btn" class="btn-primary"><i class="fas fa-plus"></i>
                             Novo investimento</button>
                     </div>
-                    <div class="summary-cards movements-summary investments-summary" aria-label="Resumo de investimentos">
-                        <div class="card">
-                            <div class="card-icon investments"><i class="fas fa-calendar" aria-hidden="true"></i></div>
-                            <div class="card-content">
-                                <h3>Posição total</h3>
-                                <p id="investments-summary-total">—</p>
-                                <span class="card-metric-hint">Soma dos valores atuais das posições cadastradas</span>
-                            </div>
-                        </div>
-                        <div class="card">
-                            <div class="card-icon investments"><i class="fas fa-calendar-day" aria-hidden="true"></i></div>
-                            <div class="card-content">
-                                <h3>Ativos na carteira</h3>
-                                <p id="investments-summary-count">—</p>
-                                <span class="card-metric-hint">Quantidade de posições com valor cadastrado</span>
-                            </div>
-                        </div>
-                        <div class="card">
-                            <div class="card-icon investments"><i class="fas fa-chart-line" aria-hidden="true"></i></div>
-                            <div class="card-content">
-                                <h3>Média por ativo</h3>
-                                <p id="investments-summary-avg">—</p>
-                                <span class="card-metric-hint">Valor médio do valor atual entre os ativos</span>
-                            </div>
-                        </div>
-                        <div class="card">
-                            <div class="card-icon investments"><i class="fas fa-tags" aria-hidden="true"></i></div>
-                            <div class="card-content">
-                                <h3>Principal categoria</h3>
-                                <p id="investments-summary-top-cat">—</p>
-                                <span class="card-metric-hint" id="investments-summary-top-cat-hint"></span>
-                            </div>
-                        </div>
-                    </div>
+                    <div class="summary-cards movements-summary" data-summary-group="investments"></div>
                     <div id="investments-list" class="investments-grid">
                         <!-- Cards de posições ou estado vazio via JS -->
                     </div>
