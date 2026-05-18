@@ -6,6 +6,10 @@ import { referenceMonthToYearMonth, toYearMonthKey } from './pending-balance.js'
 /** Eixo do gráfico de aportes: sempre os 12 meses do ano civil atual (como no dashboard). */
 const INVESTMENTS_CHART_AXIS_PERIOD = 'current-year';
 
+function applicationBucketId(app) {
+    return app?.bucketId ?? app?.bucket_id ?? '';
+}
+
 export function getTotalApplicationsSum(applications, expenses, buckets) {
     if (Array.isArray(expenses) && Array.isArray(buckets) && buckets.length) {
         return buckets.reduce((s, b) => s + sumAllocatedByBucket(expenses, b, applications), 0);
@@ -21,8 +25,10 @@ export function getTotalApplicationsSum(applications, expenses, buckets) {
  * @param {object[]} [applications]
  */
 export function sumAllocatedByBucket(expenses, bucket, applications = []) {
+    const fromApps = sumApplicationsByBucket(applications, bucket?.id);
+    if (fromApps > 0) return fromApps;
     const name = bucket?.name || '';
-    const fromExpenses = (expenses || [])
+    return (expenses || [])
         .filter(
             (e) =>
                 String(e.category || '').trim() === EXPENSE_COFRINHO_CATEGORY &&
@@ -30,8 +36,6 @@ export function sumAllocatedByBucket(expenses, bucket, applications = []) {
                 e.isPaid !== false
         )
         .reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
-    if (fromExpenses > 0) return fromExpenses;
-    return sumApplicationsByBucket(applications, bucket?.id);
 }
 
 /**
@@ -40,8 +44,23 @@ export function sumAllocatedByBucket(expenses, bucket, applications = []) {
  */
 export function sumApplicationsByBucket(applications, bucketId) {
     return (applications || [])
-        .filter((a) => a.bucketId === bucketId)
+        .filter((a) => applicationBucketId(a) === bucketId)
         .reduce((s, a) => s + (parseFloat(a.amount) || 0), 0);
+}
+
+/** Total aportado nas caixinhas no mês de referência (só registros em cofrinho_applications). */
+export function sumAllocatedInMonth(applications, buckets, yearMonth) {
+    if (!yearMonth || !Array.isArray(buckets) || !buckets.length) return 0;
+    return buckets.reduce((sum, b) => {
+        const v = (applications || [])
+            .filter(
+                (a) =>
+                    applicationBucketId(a) === b.id &&
+                    referenceMonthToYearMonth(a.referenceMonth) === yearMonth
+            )
+            .reduce((s, a) => s + (parseFloat(a.amount) || 0), 0);
+        return sum + v;
+    }, 0);
 }
 
 /**
@@ -78,7 +97,7 @@ function collectMonthsFromData(applications, expenses, buckets) {
  * @param {object[]} buckets
  * @param {object[]} [expenses]
  */
-export function buildMonthlyStackedSeries(applications, buckets, expenses = []) {
+export function buildMonthlyStackedSeries(applications, buckets, _expenses = []) {
     const now = new Date();
     const { startDate, endDate } = getPeriodDateBounds(INVESTMENTS_CHART_AXIS_PERIOD, now);
     const calendarMonths = enumerateCalendarMonths(startDate, endDate);
@@ -87,23 +106,13 @@ export function buildMonthlyStackedSeries(applications, buckets, expenses = []) 
         const ym = `${mo.start.getFullYear()}-${String(mo.start.getMonth() + 1).padStart(2, '0')}`;
         const row = { yearMonth: ym, label: mo.label, total: 0 };
         buckets.forEach((b) => {
-            let v = (applications || [])
+            const v = (applications || [])
                 .filter(
                     (a) =>
-                        a.bucketId === b.id && referenceMonthToYearMonth(a.referenceMonth) === ym
+                        applicationBucketId(a) === b.id &&
+                        referenceMonthToYearMonth(a.referenceMonth) === ym
                 )
                 .reduce((s, a) => s + (parseFloat(a.amount) || 0), 0);
-            if (v <= 0 && expenses?.length) {
-                v = (expenses || [])
-                    .filter(
-                        (e) =>
-                            String(e.category || '').trim() === EXPENSE_COFRINHO_CATEGORY &&
-                            String(e.subcategory || '').trim() === b.name &&
-                            toYearMonthKey(e.date) === ym &&
-                            e.isPaid !== false
-                    )
-                    .reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
-            }
             row[b.id] = v;
             row.total += v;
         });
@@ -139,7 +148,7 @@ export function buildPerformanceByBucket(buckets, applications, expenses = []) {
 export function filterApplications(applications, filters = {}) {
     let list = [...(applications || [])];
     if (filters.bucketId) {
-        list = list.filter((a) => a.bucketId === filters.bucketId);
+        list = list.filter((a) => applicationBucketId(a) === filters.bucketId);
     }
     if (filters.yearMonth) {
         list = list.filter((a) => referenceMonthToYearMonth(a.referenceMonth) === filters.yearMonth);
@@ -196,14 +205,18 @@ export function countConsecutiveCofrinhoMonths(applications, expenses, buckets) 
     return count;
 }
 
-function formatMonthLabel(ym) {
-    const [y, m] = ym.split('-').map(Number);
-    const d = new Date(y, m - 1, 1);
-    const short = d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '');
-    const cap = short.charAt(0).toUpperCase() + short.slice(1);
-    return `${cap}/${String(y % 100).padStart(2, '0')}`;
+/** Nome do mês em português (ex.: «Maio»). Aceita `YYYY-MM` ou data ISO. */
+export function formatReferenceMonthName(ym) {
+    if (!ym) return '—';
+    const match = String(ym).trim().match(/^(\d{4})-(\d{2})/);
+    if (!match) return '—';
+    const y = Number(match[1]);
+    const m = Number(match[2]);
+    if (!m || m < 1 || m > 12) return '—';
+    const name = new Date(y, m - 1, 1).toLocaleDateString('pt-BR', { month: 'long' });
+    return name.charAt(0).toUpperCase() + name.slice(1);
 }
 
 export function formatYearMonthLabel(ym) {
-    return formatMonthLabel(ym);
+    return formatReferenceMonthName(ym);
 }

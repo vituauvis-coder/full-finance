@@ -224,9 +224,9 @@ async function consumePoolFifo(client, uid, ym, amount, preferredSourceId = null
     return { primarySourceId, slices };
 }
 
-async function insertAllocatedExpense(client, uid, poolRow, bucketName, amount, accountIdOverride) {
+async function insertAllocatedExpense(client, uid, poolRow, bucketName, amount, accountIdOverride, referenceMonth) {
     const accountId = accountIdOverride || poolRow.accountId;
-    const date = poolRow.date;
+    const date = referenceMonth || poolRow.date;
     const refOnly = await referenceOnlyForUserMovement(uid, date);
     const expenseId = crypto.randomUUID();
     const description = `Aporte — ${bucketName}`;
@@ -254,39 +254,6 @@ async function insertAllocatedExpense(client, uid, poolRow, bucketName, amount, 
             date,
             refOnly,
             poolRow?.id || null
-        ]
-    );
-    return expenseId;
-}
-
-async function insertDirectExpense(client, uid, { accountId, amount, bucketName, referenceMonth, description }) {
-    const refDate = new Date(referenceMonth);
-    const refOnly = await referenceOnlyForUserMovement(uid, refDate);
-    const expenseId = crypto.randomUUID();
-    const desc = description || `Aporte — ${bucketName}`;
-
-    await client.query(
-        `INSERT INTO expenses (
-            id, user_id, account_id, category, subcategory, amount, description,
-            date, is_paid, is_cofrinho, installment_count, recurring_monthly,
-            cash_out_confirmed_periods, recurrence_group_id, is_fixed, reference_only,
-            allocation_parent_id
-         ) VALUES (
-            $1,$2,$3,$4,$5,$6,$7,
-            $8,true,false,null,false,
-            null,null,false,$9,
-            null
-         )`,
-        [
-            expenseId,
-            uid,
-            accountId,
-            COFRINHO_CATEGORY,
-            bucketName,
-            amount,
-            desc,
-            refDate,
-            refOnly
         ]
     );
     return expenseId;
@@ -517,7 +484,6 @@ export function registerCofrinhoRoutes(app, requireAuth) {
         if (!refMonth) return res.status(400).json({ error: 'Mês de referência inválido' });
 
         const ym = refMonth.slice(0, 7);
-        const mode = String(req.body.mode || 'pool').toLowerCase() === 'direct' ? 'direct' : 'pool';
         const bucketId = String(req.body.bucketId || '').trim();
 
         const { rows: bucketRows } = await query(`${BUCKET_SELECT} WHERE id = $1 AND user_id = $2`, [
@@ -539,47 +505,26 @@ export function registerCofrinhoRoutes(app, requireAuth) {
             if (!acc[0]) accountId = null;
         }
 
-        const sourceExpenseId = req.body.sourceExpenseId
-            ? String(req.body.sourceExpenseId).trim()
-            : null;
-
         try {
             const application = await withTransaction(async (client) => {
-                let allocatedExpenseId;
-                let primarySourceId = null;
-                let poolTemplate = null;
-
-                if (mode === 'direct') {
-                    if (!accountId) {
-                        const err = new Error('Conta obrigatória para aporte direto.');
-                        err.status = 400;
-                        throw err;
-                    }
-                    allocatedExpenseId = await insertDirectExpense(client, uid, {
-                        accountId,
-                        amount,
-                        bucketName: bucket.name,
-                        referenceMonth: refMonth
-                    });
-                } else {
-                    const available = await sumPoolAvailable(uid, ym, client, sourceExpenseId);
-                    if (amount > available + 0.001) {
-                        const err = new Error('Valor maior que o saldo disponível para alocação.');
-                        err.status = 400;
-                        throw err;
-                    }
-                    const consumed = await consumePoolFifo(client, uid, ym, amount, sourceExpenseId);
-                    primarySourceId = consumed.primarySourceId;
-                    poolTemplate = consumed.slices[0]?.poolRow;
-                    allocatedExpenseId = await insertAllocatedExpense(
-                        client,
-                        uid,
-                        poolTemplate,
-                        bucket.name,
-                        amount,
-                        accountId
-                    );
+                const available = await sumPoolAvailable(uid, ym, client);
+                if (amount > available + 0.001) {
+                    const err = new Error('Valor maior que o saldo disponível para alocação.');
+                    err.status = 400;
+                    throw err;
                 }
+                const consumed = await consumePoolFifo(client, uid, ym, amount);
+                const primarySourceId = consumed.primarySourceId;
+                const poolTemplate = consumed.slices[0]?.poolRow;
+                const allocatedExpenseId = await insertAllocatedExpense(
+                    client,
+                    uid,
+                    poolTemplate,
+                    bucket.name,
+                    amount,
+                    accountId,
+                    refMonth
+                );
 
                 const appId = crypto.randomUUID();
                 const { rows } = await client.query(
@@ -617,10 +562,7 @@ export function registerCofrinhoRoutes(app, requireAuth) {
     };
 
     app.post('/api/cofrinho-allocations', requireAuth, handleCreateAllocation);
-    app.post('/api/cofrinho-applications', requireAuth, (req, res) => {
-        if (!req.body.mode) req.body.mode = 'pool';
-        return handleCreateAllocation(req, res);
-    });
+    app.post('/api/cofrinho-applications', requireAuth, handleCreateAllocation);
 
     const handleUpdateAllocation = async (req, res) => {
         const uid = req.session.userId;
@@ -725,6 +667,14 @@ export function registerCofrinhoRoutes(app, requireAuth) {
                     req.body.referenceMonth !== undefined
                         ? normalizeReferenceMonth(req.body.referenceMonth) || existing.referenceMonth
                         : existing.referenceMonth;
+
+                if (existing.allocatedExpenseId && refMonth) {
+                    await client.query(`UPDATE expenses SET date = $3::date WHERE id = $1 AND user_id = $2`, [
+                        existing.allocatedExpenseId,
+                        uid,
+                        refMonth
+                    ]);
+                }
 
                 const { rows } = await client.query(
                     `UPDATE cofrinho_applications

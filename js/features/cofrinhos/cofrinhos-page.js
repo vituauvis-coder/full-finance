@@ -19,7 +19,6 @@ import {
 } from './constants.js';
 import {
     computePendingBalance,
-    listPoolExpensesForMonth,
     toYearMonthKey,
     yearMonthToReferenceMonth,
     referenceMonthToYearMonth
@@ -31,6 +30,7 @@ import {
     buildPerformanceByBucket,
     countConsecutiveCofrinhoMonths,
     getTotalApplicationsSum,
+    sumAllocatedInMonth,
     formatYearMonthLabel
 } from './aggregations.js';
 import { destroyCofrinhoCharts, renderCofrinhoCharts } from './cofrinhos-charts.js';
@@ -49,7 +49,6 @@ let cache = {
     milestoneYear: new Date().getFullYear(),
     historyBucketId: null,
     editingBucketId: null,
-    allocationMode: 'pool',
 };
 
 const BUCKET_ICONS = {
@@ -124,7 +123,7 @@ export function initCofrinhos(_user, onUpdate) {
         const historyBtn = e.target.closest('[data-bucket-history]');
         const settingsBtn = e.target.closest('[data-bucket-settings]');
         if (allocateBtn?.dataset.bucketAllocate) {
-            openApplicationModal(null, { mode: 'direct', bucketId: allocateBtn.dataset.bucketAllocate });
+            openApplicationModal(null, { bucketId: allocateBtn.dataset.bucketAllocate });
         }
         if (historyBtn?.dataset.bucketHistory) openBucketHistoryModal(historyBtn.dataset.bucketHistory);
         if (settingsBtn?.dataset.bucketSettings) openBucketSettingsModal(settingsBtn.dataset.bucketSettings);
@@ -183,21 +182,20 @@ function clampReferenceToCurrentYear(ym) {
     return `${currentCalendarYear()}-${String(month).padStart(2, '0')}`;
 }
 
-function referenceMonthInputBounds() {
+function populateReferenceMonthSelect(select, selectedYm) {
+    if (!select) return;
     const year = currentCalendarYear();
-    const now = new Date();
-    const maxMonth = now.getMonth() + 1;
-    return {
-        min: `${year}-01`,
-        max: `${year}-${String(maxMonth).padStart(2, '0')}`
-    };
-}
+    const maxMonth = new Date().getMonth() + 1;
+    const ym = clampReferenceToCurrentYear(selectedYm || currentYearMonth());
+    const selected = parseInt(String(ym).split('-')[1], 10) || 1;
 
-function applyReferenceMonthInputBounds(input) {
-    if (!input) return;
-    const { min, max } = referenceMonthInputBounds();
-    input.min = min;
-    input.max = max;
+    select.innerHTML = Array.from({ length: maxMonth }, (_, i) => {
+        const m = i + 1;
+        const value = `${year}-${String(m).padStart(2, '0')}`;
+        const label = formatYearMonthLabel(value);
+        const isSelected = m === selected ? ' selected' : '';
+        return `<option value="${escapeAttr(value)}"${isSelected}>${escapeHtml(label)}</option>`;
+    }).join('');
 }
 
 function syncApplicationModalReferenceMonth(ym) {
@@ -208,40 +206,17 @@ function syncApplicationModalReferenceMonth(ym) {
     form.dataset.referenceMonth = ym;
 
     const monthInput = document.getElementById('cofrinho-application-month');
-    if (monthInput) monthInput.value = ym;
+    populateReferenceMonthSelect(monthInput, ym);
 
     const id = document.getElementById('cofrinho-application-id')?.value;
     const app = id ? cache.applications.find((a) => a.id === id) : null;
-    const mode = form.dataset.allocationMode || 'pool';
-    const isDirect = mode === 'direct' && !id;
 
     const hint = document.getElementById('cofrinho-application-pending-hint');
     if (hint) {
-        if (isDirect) {
-            hint.hidden = false;
-            hint.innerHTML = `<span class="cofrinho-modal__balance-label">Modo direto</span><span class="cofrinho-modal__balance-value">Cria saída já na subcategoria da caixinha (não usa saldo pool).</span>`;
-        } else {
-            const pending = computePendingBalance(cache.expenses, cache.applications, ym);
-            const avail = app ? pending + (parseFloat(app.amount) || 0) : pending;
-            hint.hidden = false;
-            hint.innerHTML = `<span class="cofrinho-modal__balance-label">Saldo pool (${formatYearMonthLabel(ym)})</span><span class="cofrinho-modal__balance-value">${formatCurrency(avail, cache.currency)}</span>`;
-        }
-    }
-
-    const poolSourceWrap = document.getElementById('cofrinho-application-pool-source-wrap');
-    const poolSourceSelect = document.getElementById('cofrinho-application-pool-source');
-    if (poolSourceWrap && poolSourceSelect) {
-        const poolList = listPoolExpensesForMonth(cache.expenses, ym);
-        const selectedId = poolSourceSelect.value || app?.sourceExpenseId || '';
-        poolSourceWrap.hidden = isDirect || Boolean(id);
-        poolSourceSelect.innerHTML =
-            '<option value="">Automático (mais antiga primeiro)</option>' +
-            poolList
-                .map((ex) => {
-                    const label = `${escapeHtml(ex.description || 'Saída')} — ${formatCurrency(ex.amount, cache.currency)}`;
-                    return `<option value="${escapeAttr(ex.id)}"${selectedId === ex.id ? ' selected' : ''}>${label}</option>`;
-                })
-                .join('');
+        const pending = computePendingBalance(cache.expenses, cache.applications, ym);
+        const avail = app ? pending + (parseFloat(app.amount) || 0) : pending;
+        hint.hidden = false;
+        hint.innerHTML = `<span class="cofrinho-modal__balance-label">Saldo disponível (${formatYearMonthLabel(ym)})</span><span class="cofrinho-modal__balance-value">${formatCurrency(avail, cache.currency)}</span>`;
     }
 }
 
@@ -280,17 +255,6 @@ function initCofrinhosPageUiOnce() {
         }
     });
 
-    document.querySelectorAll('input[name="cofrinho-allocation-mode"]').forEach((radio) => {
-        radio.addEventListener('change', () => {
-            const form = document.getElementById('cofrinho-application-form');
-            if (form) form.dataset.allocationMode = radio.value === 'direct' ? 'direct' : 'pool';
-            openApplicationModal(document.getElementById('cofrinho-application-id')?.value || null, {
-                mode: radio.value,
-                referenceMonth: document.getElementById('cofrinho-application-month')?.value
-            });
-        });
-    });
-
     document.getElementById('cofrinho-application-month')?.addEventListener('change', (e) => {
         const ym = clampReferenceToCurrentYear(e.target.value);
         e.target.value = ym;
@@ -327,33 +291,6 @@ function renderReferenceTimeline() {
     }).join('');
 }
 
-function sumAllocatedInMonth(expenses, applications, buckets, yearMonth) {
-    if (!yearMonth || !Array.isArray(buckets) || !buckets.length) return 0;
-    return buckets.reduce((sum, b) => {
-        let value = 0;
-        if (Array.isArray(expenses) && expenses.length) {
-            value = expenses
-                .filter(
-                    (e) =>
-                        String(e.category || '').trim() === EXPENSE_COFRINHO_CATEGORY &&
-                        String(e.subcategory || '').trim() === (b?.name || '') &&
-                        toYearMonthKey(e.date) === yearMonth &&
-                        e.isPaid !== false
-                )
-                .reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
-        }
-        if (value <= 0) {
-            value = (applications || [])
-                .filter(
-                    (a) =>
-                        a.bucketId === b.id && referenceMonthToYearMonth(a.referenceMonth) === yearMonth
-                )
-                .reduce((s, a) => s + (parseFloat(a.amount) || 0), 0);
-        }
-        return sum + value;
-    }, 0);
-}
-
 function renderSummaryCards() {
     const el = document.getElementById('cofrinhos-summary');
     if (!el) return;
@@ -361,12 +298,7 @@ function renderSummaryCards() {
     const ym = cache.referenceYearMonth || currentYearMonth();
     const monthLabel = formatYearMonthLabel(ym);
     const pending = computePendingBalance(cache.expenses, cache.applications, ym);
-    const monthAllocated = sumAllocatedInMonth(
-        cache.expenses,
-        cache.applications,
-        cache.buckets,
-        ym
-    );
+    const monthAllocated = sumAllocatedInMonth(cache.applications, cache.buckets, ym);
     const totalInBuckets = getTotalApplicationsSum(
         cache.applications,
         cache.expenses,
@@ -470,7 +402,7 @@ function renderGoalCards() {
                     </div>
                 </div>
                 <div class="cofrinhos-page__bucket-actions">
-                    <button type="button" class="btn-secondary btn-sm" data-bucket-allocate="${escapeAttr(b.id)}" title="Aporte direto na caixinha">
+                    <button type="button" class="btn-secondary btn-sm" data-bucket-allocate="${escapeAttr(b.id)}" title="Distribuir aporte do pool">
                         <i class="fas fa-plus" aria-hidden="true"></i> Aportar
                     </button>
                     <button type="button" class="btn-secondary btn-sm" data-bucket-history="${escapeAttr(b.id)}">
@@ -615,13 +547,9 @@ function renderApplicationRowHtml(a, accMap, { showBucket = true } = {}) {
 
 function renderApplicationsTable() {
     const tbody = document.getElementById('cofrinhos-applications-tbody');
-    const sumEl = document.getElementById('cofrinhos-applications-sum');
     if (!tbody) return;
 
     const list = filterApplications(cache.applications);
-
-    const sum = list.reduce((s, a) => s + (parseFloat(a.amount) || 0), 0);
-    if (sumEl) sumEl.textContent = `Total: ${formatCurrency(sum, cache.currency)}`;
 
     const accMap = new Map(cache.accounts.map((a) => [a.id, a]));
 
@@ -639,8 +567,6 @@ function openApplicationModal(id = null, options = {}) {
     if (!form) return;
 
     const app = id ? cache.applications.find((a) => a.id === id) : null;
-    const mode = options.mode || (app?.sourceExpenseId ? 'pool' : app ? 'pool' : cache.allocationMode) || 'pool';
-    cache.allocationMode = mode;
 
     const ym = clampReferenceToCurrentYear(
         options.referenceMonth ||
@@ -648,25 +574,18 @@ function openApplicationModal(id = null, options = {}) {
             cache.referenceYearMonth ||
             currentYearMonth()
     );
-    const isDirect = mode === 'direct' && !id;
 
     document.getElementById('cofrinho-application-id').value = app?.id || '';
     const titleEl = document.getElementById('cofrinho-application-modal-title');
-    let titleText = 'Distribuir aporte';
-    if (app) titleText = 'Editar aporte';
-    else if (isDirect) titleText = 'Aporte direto na caixinha';
+    const titleText = app ? 'Editar aporte' : 'Distribuir aporte';
     if (titleEl) {
         titleEl.innerHTML = `<i class="fas fa-coins" aria-hidden="true"></i> ${titleText}`;
     }
 
-    const modeRow = document.getElementById('cofrinho-application-mode-row');
-    if (modeRow) modeRow.hidden = Boolean(id);
-
     const monthInput = document.getElementById('cofrinho-application-month');
-    applyReferenceMonthInputBounds(monthInput);
     if (monthInput) {
         monthInput.disabled = false;
-        monthInput.value = ym;
+        populateReferenceMonthSelect(monthInput, ym);
     }
 
     document.getElementById('cofrinho-application-amount').value = app?.amount ?? '';
@@ -675,11 +594,6 @@ function openApplicationModal(id = null, options = {}) {
         options.bucketId || app?.bucketId
     );
     populateAccountSelect(document.getElementById('cofrinho-application-account'), app?.accountId);
-
-    form.dataset.allocationMode = isDirect ? 'direct' : 'pool';
-    document.querySelectorAll('input[name="cofrinho-allocation-mode"]').forEach((radio) => {
-        radio.checked = radio.value === (isDirect ? 'direct' : 'pool');
-    });
 
     const msgEl = document.getElementById('cofrinho-application-message');
     if (msgEl) {
@@ -698,9 +612,8 @@ async function handleApplicationSubmit(e) {
     const ym = clampReferenceToCurrentYear(
         monthInput?.value || form.dataset.referenceMonth || cache.referenceYearMonth
     );
-    if (monthInput) monthInput.value = ym;
+    if (monthInput) populateReferenceMonthSelect(monthInput, ym);
     form.dataset.referenceMonth = ym;
-    const mode = form.dataset.allocationMode || 'pool';
     const amount = parseFloat(document.getElementById('cofrinho-application-amount')?.value);
     const pending = computePendingBalance(cache.expenses, cache.applications, ym);
     const app = id ? cache.applications.find((a) => a.id === id) : null;
@@ -710,30 +623,18 @@ async function handleApplicationSubmit(e) {
         return;
     }
 
-    if (mode !== 'direct') {
-        const maxAvail = app ? pending + (parseFloat(app.amount) || 0) : pending;
-        if (amount > maxAvail + 0.001) {
-            showMessage('cofrinho-application-message', 'Valor maior que o saldo pool disponível.', 'error');
-            return;
-        }
-    } else if (!id) {
-        const accountId = document.getElementById('cofrinho-application-account')?.value;
-        if (!accountId) {
-            showMessage('cofrinho-application-message', 'Selecione a conta para o aporte direto.', 'error');
-            return;
-        }
+    const maxAvail = app ? pending + (parseFloat(app.amount) || 0) : pending;
+    if (amount > maxAvail + 0.001) {
+        showMessage('cofrinho-application-message', 'Valor maior que o saldo pool disponível.', 'error');
+        return;
     }
 
-    const sourceExpenseId = document.getElementById('cofrinho-application-pool-source')?.value || null;
-
     const data = {
-        mode: id ? 'pool' : mode,
         bucketId: document.getElementById('cofrinho-application-bucket')?.value,
         referenceMonth: yearMonthToReferenceMonth(ym),
         amount,
         accountId: document.getElementById('cofrinho-application-account')?.value || null,
-        status: 'Concluído',
-        sourceExpenseId: sourceExpenseId || undefined
+        status: 'Concluído'
     };
 
     setFormSubmittingState(form, true, 'Salvando...');

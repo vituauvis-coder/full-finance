@@ -820,11 +820,7 @@
 
                     <section id="cofrinhos-milestone" class="cofrinhos-page__milestone" aria-label="Progresso anual"></section>
 
-                    <section class="cofrinhos-page__apps-section" aria-labelledby="cofrinhos-apps-heading">
-                        <div class="cofrinhos-page__apps-head">
-                            <h3 id="cofrinhos-apps-heading">Histórico de aplicações</h3>
-                            <span id="cofrinhos-applications-sum" class="cofrinhos-page__apps-sum"></span>
-                        </div>
+                    <section class="cofrinhos-page__apps-section" aria-label="Aplicações">
                         <div class="table-container">
                             <table id="cofrinhos-applications-table">
                                 <thead>
@@ -2316,24 +2312,10 @@
                 <div id="cofrinho-application-message" class="form-message hidden" role="alert"></div>
                 <input type="hidden" id="cofrinho-application-id" value="">
                 <div id="cofrinho-application-pending-hint" class="form-message info cofrinho-modal__balance" hidden role="status"></div>
-                <div id="cofrinho-application-mode-row" class="cofrinho-modal__mode-row" hidden>
-                    <label class="cofrinho-modal__mode-option">
-                        <input type="radio" name="cofrinho-allocation-mode" value="pool" checked> Do saldo pool (saída sem subcategoria)
-                    </label>
-                    <label class="cofrinho-modal__mode-option">
-                        <input type="radio" name="cofrinho-allocation-mode" value="direct"> Aporte direto na caixinha
-                    </label>
-                </div>
-                <div id="cofrinho-application-pool-source-wrap" class="form-group" hidden>
-                    <label for="cofrinho-application-pool-source">Descontar de (opcional)</label>
-                    <select id="cofrinho-application-pool-source">
-                        <option value="">Automático (mais antiga primeiro)</option>
-                    </select>
-                </div>
                 <div class="cofrinho-modal__grid-2">
                     <div class="form-group">
                         <label for="cofrinho-application-month">Mês de referência</label>
-                        <input type="month" id="cofrinho-application-month" required>
+                        <select id="cofrinho-application-month" required></select>
                     </div>
                     <div class="form-group">
                         <label for="cofrinho-application-amount">Valor (R$)</label>

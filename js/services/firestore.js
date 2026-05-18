@@ -133,7 +133,7 @@ export const saveCofrinhoBucket = (data, docId, options) =>
 export const saveCofrinhoApplication = (data, docId, options) =>
     saveDocument('cofrinhoApplications', data, docId, options);
 
-/** Cria ou atualiza alocação (split pool + despesa ou aporte direto). */
+/** Cria ou atualiza alocação a partir do saldo pool. */
 export async function saveCofrinhoAllocation(data, docId, options) {
     const path = '/api/cofrinho-applications';
     if (docId) {

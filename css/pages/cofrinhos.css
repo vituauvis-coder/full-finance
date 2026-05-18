@@ -251,26 +251,6 @@
     margin-top: 0.85rem;
 }
 
-.cofrinho-modal__mode-row {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-    padding: 0.75rem;
-    border-radius: 10px;
-    background: var(--bg-color);
-    border: 1px solid var(--border-color);
-}
-
-.cofrinho-modal__mode-option {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.88rem;
-    color: var(--text-color);
-    cursor: pointer;
-}
-
 .modal-content.cofrinho-modal--history,
 .modal-content.cofrinho-modal--bucket {
     padding: 0;
@@ -783,29 +763,6 @@
     margin-bottom: 0;
 }
 
-.cofrinhos-page__apps-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    flex-wrap: wrap;
-}
-
-.cofrinhos-page__apps-head h3 {
-    margin: 0;
-    font-size: 1.125rem;
-    font-weight: 600;
-    letter-spacing: -0.02em;
-    color: var(--text-color);
-}
-
-.cofrinhos-page__apps-sum {
-    font-size: 0.88rem;
-    font-weight: 700;
-    color: var(--text-color);
-    white-space: nowrap;
-}
-
 #cofrinhos-page .table-container {
     margin-bottom: 0;
 }
@@ -852,10 +809,6 @@
     font-size: 1rem;
     font-weight: 800;
     color: var(--warning-color);
-}
-
-#cofrinho-application-modal .cofrinho-modal__mode-row {
-    margin-bottom: 0;
 }
 
 #cofrinho-application-modal .cofrinho-modal__grid-2 {
