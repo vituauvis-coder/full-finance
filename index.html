@@ -41,12 +41,11 @@
     <link rel="stylesheet" href="css/modal-forms.css">
     <link rel="stylesheet" href="css/dashboard.css">
     <link rel="stylesheet" href="css/pages/accounts.css">
-    <link rel="stylesheet" href="css/pages/goals.css">
     <link rel="stylesheet" href="css/pages/reports.css">
     <link rel="stylesheet" href="css/pages/tools.css">
     <link rel="stylesheet" href="css/pages/profile.css">
     <link rel="stylesheet" href="css/pages/support.css">
-    <link rel="stylesheet" href="css/pages/investments.css">
+    <link rel="stylesheet" href="css/pages/cofrinhos.css">
     <link rel="stylesheet" href="css/pages/debts.css">
     <link rel="stylesheet" href="css/pages/zero-budget.css">
     <link rel="stylesheet" href="css/responsive.css">
@@ -93,7 +92,7 @@
                     <div class="hero-content hero-content--left">
                         <div class="hero-intro">
                             <h1 class="hero-title"><span class="hero-title-gradient">Full Finanças</span></h1>
-                            <p class="hero-lead">Contas, metas, investimentos e relatórios no mesmo painel. Veja o fluxo do seu dinheiro e antecipe decisões — sem planilhas soltas nem lembretes espalhados.</p>
+                            <p class="hero-lead">Contas, metas, cofrinhos e relatórios no mesmo painel. Veja o fluxo do seu dinheiro e antecipe decisões — sem planilhas soltas nem lembretes espalhados.</p>
                         </div>
                         <ul class="hero-points" aria-label="Principais benefícios">
                             <li>
@@ -276,11 +275,8 @@
                                 class="fas fa-bullseye"></i><span class="sidebar-nav-label">Planejamento</span></a></li>
                     <li><a href="#" class="nav-link" data-page="wallet" title="Carteira"><i
                                 class="fas fa-wallet"></i><span class="sidebar-nav-label">Carteira</span></a></li>
-                    <li><a href="#" class="nav-link" data-page="investments" title="Investimentos"><i
-                                class="fas fa-chart-line"></i><span class="sidebar-nav-label">Investimentos</span></a>
-                    </li>
-                    <li><a href="#" class="nav-link" data-page="goals" title="Objetivos"><i
-                                class="fas fa-flag-checkered"></i><span class="sidebar-nav-label">Objetivos</span></a>
+                    <li><a href="#" class="nav-link" data-page="cofrinhos" title="Cofrinhos"><i
+                                class="fas fa-piggy-bank"></i><span class="sidebar-nav-label">Cofrinhos</span></a>
                     </li>
                     <li><a href="#" class="nav-link" data-page="debts" title="Dívidas"><i
                                 class="fas fa-triangle-exclamation"></i><span class="sidebar-nav-label">Dívidas</span></a></li>
@@ -411,8 +407,8 @@
                                 <i class="fas fa-plus" aria-hidden="true"></i> Nova
                             </button>
                         </div>
-                        <div id="investments-header-actions" class="header-page-actions hidden" aria-label="Ações de investimentos">
-                            <button type="button" id="investments-add-bucket-btn" class="btn-primary header-action-btn">
+                        <div id="cofrinhos-header-actions" class="header-page-actions hidden" aria-label="Ações de cofrinhos">
+                            <button type="button" id="cofrinhos-add-bucket-btn" class="btn-primary header-action-btn">
                                 <i class="fas fa-plus" aria-hidden="true"></i> Nova caixinha
                             </button>
                         </div>
@@ -426,7 +422,7 @@
                                 aria-label="Avisos do sininho">
                                 <div class="notifications-panel-head">
                                     <span class="notifications-panel-title">Avisos</span>
-                                    <span class="notifications-panel-hint">Faturas, investimentos e lançamentos</span>
+                                    <span class="notifications-panel-hint">Faturas, cofrinhos e lançamentos</span>
                                 </div>
                                 <ul id="notifications-list" class="notifications-list" role="none"></ul>
                                 <p id="notifications-empty" class="notifications-empty hidden" role="status">Nenhum aviso
@@ -790,72 +786,50 @@
                     </div>
                 </section>
 
-                <!-- Seção de Objetivos -->
-                <section id="goals-page" class="page hidden goals-page">
-                    <div class="actions-bar goals-page__actions">
-                        <button type="button" id="add-goal-btn" class="btn-primary"><i class="fas fa-plus"></i> Novo objetivo</button>
-                    </div>
-                    <div id="goals-list" class="goals-grid goals-page__grid">
-                        <!-- Cards de objetivos via JS -->
-                    </div>
-                </section>
-
-                <!-- Investimentos -->
-                <section id="investments-page" class="page hidden investments-page" aria-label="Investimentos">
-                    <div class="zero-budget__timeline investments-page__timeline" role="tablist" aria-label="Mês de referência">
+                <!-- Cofrinhos -->
+                <section id="cofrinhos-page" class="page hidden cofrinhos-page" aria-label="Cofrinhos">
+                    <div class="zero-budget__timeline cofrinhos-page__timeline" role="tablist" aria-label="Mês de referência">
                         <span class="zero-budget__timeline-hint">Mês</span>
                         <span class="zero-budget__timeline-sep" aria-hidden="true"></span>
-                        <div class="zero-budget__timeline-chips" data-investments-timeline></div>
+                        <div class="zero-budget__timeline-chips" data-cofrinhos-timeline></div>
                     </div>
 
-                    <div id="investments-summary" class="summary-cards movements-summary investments-page__summary" aria-label="Resumo do mês" hidden></div>
+                    <div id="cofrinhos-summary" class="summary-cards movements-summary cofrinhos-page__summary" aria-label="Resumo do mês" hidden></div>
 
-                    <div id="investments-pending-banner" class="investments-page__pending" aria-live="polite" hidden></div>
+                    <div id="cofrinhos-pending-banner" class="cofrinhos-page__pending" aria-live="polite" hidden></div>
 
-                    <section id="investments-milestone" class="investments-page__milestone" aria-label="Progresso anual"></section>
-
-                    <section class="investments-page__section" aria-labelledby="investments-goals-heading">
-                        <div class="reports-chart-header investments-page__section-head">
-                            <h3 id="investments-goals-heading">Metas por caixinha <span id="investments-goals-year-label" class="investments-page__year-label"></span></h3>
+                    <section class="cofrinhos-page__section" aria-labelledby="cofrinhos-goals-heading">
+                        <div class="reports-chart-header cofrinhos-page__section-head">
+                            <h3 id="cofrinhos-goals-heading">Metas por caixinha <span id="cofrinhos-goals-year-label" class="cofrinhos-page__year-label"></span></h3>
                         </div>
-                        <div id="investments-goal-cards" class="investments-page__goals-grid investments-page__goals-grid--cards"></div>
+                        <div id="cofrinhos-goal-cards" class="cofrinhos-page__goals-grid cofrinhos-page__goals-grid--cards"></div>
                     </section>
 
-                    <section class="dashboard-reports-section investments-page__charts-section" aria-label="Gráficos de investimentos">
-                    <div class="investments-page__charts dashboard-reports-charts-grid">
-                        <div class="reports-chart-container dashboard-flux-chart-card investments-page__chart-card">
+                    <section class="dashboard-reports-section cofrinhos-page__charts-section" aria-label="Gráficos de cofrinhos">
+                    <div class="cofrinhos-page__charts dashboard-reports-charts-grid dashboard-reports-charts-grid--single">
+                        <div class="reports-chart-container dashboard-flux-chart-card cofrinhos-page__chart-card">
                             <div class="reports-chart-header">
                                 <h3>Aportes por mês</h3>
                                 <p class="reports-chart-hint">Distribuição mensal nas caixinhas.</p>
                             </div>
-                            <div class="chart-wrapper investments-page__chart-wrapper">
-                                <canvas id="investments-monthly-chart"></canvas>
+                            <div class="chart-wrapper cofrinhos-page__chart-wrapper">
+                                <canvas id="cofrinhos-monthly-chart"></canvas>
                             </div>
-                            <div id="investments-monthly-legend" class="investments-page__chart-legend"></div>
-                        </div>
-                        <div class="reports-chart-container dashboard-flux-chart-card investments-page__chart-card">
-                            <div class="reports-chart-header">
-                                <h3>Investido vs rentabilidade <span class="investments-page__estimate-badge">Estimativa</span></h3>
-                                <p class="reports-chart-hint">Impacto simulado dos juros sobre o dinheiro.</p>
-                            </div>
-                            <div class="investments-page__performance-layout">
-                                <div class="chart-wrapper investments-page__chart-wrapper">
-                                    <canvas id="investments-performance-chart"></canvas>
-                                </div>
-                                <div id="investments-performance-kpis" class="investments-page__performance-kpis"></div>
-                            </div>
+                            <div id="cofrinhos-monthly-legend" class="cofrinhos-page__chart-legend"></div>
                         </div>
                     </div>
 
                     </section>
 
-                    <section class="reports-chart-container investments-page__apps-panel" aria-labelledby="investments-apps-heading">
-                        <div class="reports-chart-header investments-page__apps-panel-head">
-                            <h3 id="investments-apps-heading">Histórico de aplicações</h3>
-                            <span id="investments-applications-sum" class="investments-page__apps-panel-sum"></span>
+                    <section id="cofrinhos-milestone" class="cofrinhos-page__milestone" aria-label="Progresso anual"></section>
+
+                    <section class="reports-chart-container cofrinhos-page__apps-panel" aria-labelledby="cofrinhos-apps-heading">
+                        <div class="reports-chart-header cofrinhos-page__apps-panel-head">
+                            <h3 id="cofrinhos-apps-heading">Histórico de aplicações</h3>
+                            <span id="cofrinhos-applications-sum" class="cofrinhos-page__apps-panel-sum"></span>
                         </div>
-                        <div class="investments-page__apps-table-wrap">
-                            <table class="investments-page__apps-table">
+                        <div class="cofrinhos-page__apps-table-wrap">
+                            <table class="cofrinhos-page__apps-table">
                                 <thead>
                                     <tr>
                                         <th>Caixinha</th>
@@ -866,7 +840,7 @@
                                         <th class="text-center">Ações</th>
                                     </tr>
                                 </thead>
-                                <tbody id="investments-applications-tbody"></tbody>
+                                <tbody id="cofrinhos-applications-tbody"></tbody>
                             </table>
                         </div>
                     </section>
@@ -2004,11 +1978,11 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <label for="expense-batch-investment">Investimento</label>
-                    <select id="expense-batch-investment">
+                    <label for="expense-batch-cofrinho">Cofrinho</label>
+                    <select id="expense-batch-cofrinho">
                         <option value="">Manter</option>
-                        <option value="1">Marcar como investimento</option>
-                        <option value="0">Não é investimento</option>
+                        <option value="1">Marcar como cofrinho</option>
+                        <option value="0">Não é cofrinho</option>
                     </select>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
@@ -2170,7 +2144,7 @@
         <option value="Supermercado">
         <option value="Transporte">
         <option value="Viagens">
-        <option value="Investimentos e taxas">
+        <option value="Cofrinhos e taxas">
         <option value="Trabalho">
         <option value="Outros">
     </datalist>
@@ -2337,54 +2311,54 @@
     </div>
 
     <!-- Modal: distribuir / editar aporte -->
-    <div id="investment-application-modal" class="modal-container hidden">
-        <div class="modal-content investment-modal modal-content--investment-allocation">
-            <div class="investment-modal__header">
-                <h3 id="investment-application-modal-title" class="investment-modal__title">
+    <div id="cofrinho-application-modal" class="modal-container hidden">
+        <div class="modal-content cofrinho-modal modal-content--cofrinho-allocation">
+            <div class="cofrinho-modal__header">
+                <h3 id="cofrinho-application-modal-title" class="cofrinho-modal__title">
                     <i class="fas fa-coins" aria-hidden="true"></i> Distribuir aporte
                 </h3>
-                <button type="button" class="modal-close-btn investment-modal__close" aria-label="Fechar">&times;</button>
+                <button type="button" class="modal-close-btn cofrinho-modal__close" aria-label="Fechar">&times;</button>
             </div>
-            <div class="investment-modal__body">
-                <div id="investment-application-message" class="form-message hidden"></div>
-                <form id="investment-application-form">
-                    <input type="hidden" id="investment-application-id" value="">
-                    <div id="investment-application-pending-hint" class="investment-modal__balance" hidden></div>
-                    <div id="investment-application-mode-row" class="investment-modal__mode-row" hidden>
-                        <label class="investment-modal__mode-option">
-                            <input type="radio" name="investment-allocation-mode" value="pool" checked> Do saldo pool (saída sem subcategoria)
+            <div class="cofrinho-modal__body">
+                <div id="cofrinho-application-message" class="form-message hidden"></div>
+                <form id="cofrinho-application-form">
+                    <input type="hidden" id="cofrinho-application-id" value="">
+                    <div id="cofrinho-application-pending-hint" class="cofrinho-modal__balance" hidden></div>
+                    <div id="cofrinho-application-mode-row" class="cofrinho-modal__mode-row" hidden>
+                        <label class="cofrinho-modal__mode-option">
+                            <input type="radio" name="cofrinho-allocation-mode" value="pool" checked> Do saldo pool (saída sem subcategoria)
                         </label>
-                        <label class="investment-modal__mode-option">
-                            <input type="radio" name="investment-allocation-mode" value="direct"> Aporte direto na caixinha
+                        <label class="cofrinho-modal__mode-option">
+                            <input type="radio" name="cofrinho-allocation-mode" value="direct"> Aporte direto na caixinha
                         </label>
                     </div>
-                    <div id="investment-application-pool-source-wrap" class="form-group" hidden>
-                        <label for="investment-application-pool-source">Descontar de (opcional)</label>
-                        <select id="investment-application-pool-source" class="investment-modal__input">
+                    <div id="cofrinho-application-pool-source-wrap" class="form-group" hidden>
+                        <label for="cofrinho-application-pool-source">Descontar de (opcional)</label>
+                        <select id="cofrinho-application-pool-source" class="cofrinho-modal__input">
                             <option value="">Automático (mais antiga primeiro)</option>
                         </select>
                     </div>
-                    <div class="investment-modal__grid-2">
+                    <div class="cofrinho-modal__grid-2">
                         <div class="form-group">
-                            <label for="investment-application-month-display">Mês ref.</label>
-                            <input type="text" id="investment-application-month-display" class="investment-modal__input" readonly tabindex="-1" aria-readonly="true">
+                            <label for="cofrinho-application-month-display">Mês ref.</label>
+                            <input type="text" id="cofrinho-application-month-display" class="cofrinho-modal__input" readonly tabindex="-1" aria-readonly="true">
                         </div>
                         <div class="form-group">
-                            <label for="investment-application-amount">Valor (R$)</label>
-                            <input type="number" id="investment-application-amount" class="investment-modal__input investment-modal__input--amount" step="0.01" min="0.01" required inputmode="decimal" placeholder="0,00">
+                            <label for="cofrinho-application-amount">Valor (R$)</label>
+                            <input type="number" id="cofrinho-application-amount" class="cofrinho-modal__input cofrinho-modal__input--amount" step="0.01" min="0.01" required inputmode="decimal" placeholder="0,00">
                         </div>
                     </div>
                     <div class="form-group">
-                        <label for="investment-application-bucket">Para qual caixinha?</label>
-                        <select id="investment-application-bucket" class="investment-modal__input" required></select>
+                        <label for="cofrinho-application-bucket">Para qual caixinha?</label>
+                        <select id="cofrinho-application-bucket" class="cofrinho-modal__input" required></select>
                     </div>
                     <div class="form-group">
-                        <label for="investment-application-account">Banco / corretora</label>
-                        <select id="investment-application-account" class="investment-modal__input">
+                        <label for="cofrinho-application-account">Banco / corretora</label>
+                        <select id="cofrinho-application-account" class="cofrinho-modal__input">
                             <option value="">Nenhuma</option>
                         </select>
                     </div>
-                    <button type="submit" class="btn-primary investment-modal__submit">
+                    <button type="submit" class="btn-primary cofrinho-modal__submit">
                         <i class="fas fa-save" aria-hidden="true"></i> Salvar alterações
                     </button>
                 </form>
@@ -2393,169 +2367,59 @@
     </div>
 
     <!-- Modal: histórico de metas da caixinha -->
-    <div id="investment-bucket-history-modal" class="modal-container hidden">
-        <div class="modal-content investment-modal investment-modal--history">
-            <div class="investment-modal__header">
-                <h3 id="investment-bucket-history-title"><i class="fas fa-history" aria-hidden="true"></i> Histórico da caixinha</h3>
-                <button type="button" class="modal-close-btn investment-modal__close" aria-label="Fechar">&times;</button>
+    <div id="cofrinho-bucket-history-modal" class="modal-container hidden">
+        <div class="modal-content cofrinho-modal cofrinho-modal--history">
+            <div class="cofrinho-modal__header">
+                <h3 id="cofrinho-bucket-history-title"><i class="fas fa-history" aria-hidden="true"></i> Histórico da caixinha</h3>
+                <button type="button" class="modal-close-btn cofrinho-modal__close" aria-label="Fechar">&times;</button>
             </div>
-            <div id="investment-bucket-history-message" class="form-message hidden"></div>
-            <div class="investment-modal__body-scroll">
-                <p class="investment-modal__hint">Edite as metas passadas ou registe anos anteriores desta caixinha.</p>
-                <div id="investment-bucket-history-list" class="investment-bucket-history-list"></div>
-                <button type="button" id="investment-bucket-history-add-year" class="btn-secondary investment-modal__add-year">
+            <div id="cofrinho-bucket-history-message" class="form-message hidden"></div>
+            <div class="cofrinho-modal__body-scroll">
+                <p class="cofrinho-modal__hint">Edite as metas passadas ou registe anos anteriores desta caixinha.</p>
+                <div id="cofrinho-bucket-history-list" class="cofrinho-bucket-history-list"></div>
+                <button type="button" id="cofrinho-bucket-history-add-year" class="btn-secondary cofrinho-modal__add-year">
                     <i class="fas fa-plus" aria-hidden="true"></i> Registar novo ano
                 </button>
             </div>
-            <div class="investment-modal__footer">
-                <button type="button" id="investment-bucket-history-close" class="btn-primary investment-modal__footer-btn">Guardar e fechar</button>
+            <div class="cofrinho-modal__footer">
+                <button type="button" id="cofrinho-bucket-history-close" class="btn-primary cofrinho-modal__footer-btn">Guardar e fechar</button>
             </div>
         </div>
     </div>
 
     <!-- Modal: criar / editar caixinha -->
-    <div id="investment-buckets-modal" class="modal-container hidden">
-        <div class="modal-content investment-modal investment-modal--bucket">
-            <div class="investment-modal__header">
-                <h3 id="investment-buckets-modal-title"><i class="fas fa-piggy-bank" aria-hidden="true"></i> Nova caixinha</h3>
-                <button type="button" class="modal-close-btn investment-modal__close" aria-label="Fechar">&times;</button>
+    <div id="cofrinho-buckets-modal" class="modal-container hidden">
+        <div class="modal-content cofrinho-modal cofrinho-modal--bucket">
+            <div class="cofrinho-modal__header">
+                <h3 id="cofrinho-buckets-modal-title"><i class="fas fa-piggy-bank" aria-hidden="true"></i> Nova caixinha</h3>
+                <button type="button" class="modal-close-btn cofrinho-modal__close" aria-label="Fechar">&times;</button>
             </div>
-            <div class="investment-modal__body">
-            <div id="investment-buckets-message" class="form-message hidden"></div>
-            <div id="investment-buckets-list" class="investment-buckets-list hidden" hidden></div>
-            <form id="investment-bucket-form" class="investment-bucket-form">
+            <div class="cofrinho-modal__body">
+            <div id="cofrinho-buckets-message" class="form-message hidden"></div>
+            <div id="cofrinho-buckets-list" class="cofrinho-buckets-list hidden" hidden></div>
+            <form id="cofrinho-bucket-form" class="cofrinho-bucket-form">
                 <div class="form-group">
-                    <label for="investment-bucket-name">Nome</label>
-                    <input type="text" id="investment-bucket-name" maxlength="120" required placeholder="Ex.: Reserva">
+                    <label for="cofrinho-bucket-name">Nome</label>
+                    <input type="text" id="cofrinho-bucket-name" maxlength="120" required placeholder="Ex.: Reserva">
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="investment-bucket-color">Cor</label>
-                        <select id="investment-bucket-color"></select>
+                        <label for="cofrinho-bucket-color">Cor</label>
+                        <select id="cofrinho-bucket-color"></select>
                     </div>
                     <div class="form-group">
-                        <label for="investment-bucket-yield">Rentabilidade estimada (mult.)</label>
-                        <input type="number" id="investment-bucket-yield" step="0.001" min="1" max="2" value="1.02">
+                        <label for="cofrinho-bucket-yield">Rentabilidade estimada (mult.)</label>
+                        <input type="number" id="cofrinho-bucket-yield" step="0.001" min="1" max="2" value="1.02">
                     </div>
                 </div>
-                <div class="investment-bucket-form__actions">
-                    <button type="button" id="investment-bucket-delete" class="btn-secondary investment-bucket-form__delete hidden">Excluir caixinha</button>
-                    <button type="submit" id="investment-bucket-submit" class="btn-primary investment-modal__footer-btn">Adicionar caixinha</button>
+                <div class="cofrinho-bucket-form__actions">
+                    <button type="button" id="cofrinho-bucket-delete" class="btn-secondary cofrinho-bucket-form__delete hidden">Excluir caixinha</button>
+                    <button type="submit" id="cofrinho-bucket-submit" class="btn-primary cofrinho-modal__footer-btn">Adicionar caixinha</button>
                 </div>
             </form>
             </div>
         </div>
     </div>
-    <!-- Modal para Adicionar/Editar Objetivo -->
-    <div id="goal-modal" class="modal-container hidden">
-        <div class="modal-content goal-modal">
-            <button type="button" class="modal-close-btn" aria-label="Fechar">&times;</button>
-            <h3 class="goal-modal__heading">
-                <i class="fas fa-bullseye" aria-hidden="true"></i>
-                <span id="goal-modal-title">Novo objetivo</span>
-            </h3>
-            <p id="goal-modal-subtitle" class="goal-modal__subtitle">Nome, tipo, valores e, se quiser, uma conta só para referência.</p>
-            <div id="goal-message" class="form-message hidden"></div>
-            <form id="goal-form" class="goal-form">
-                <input type="hidden" id="goal-id">
-                <div class="goal-form-fields">
-                    <div class="form-group goal-form-group--tight">
-                        <label for="goal-name">Nome</label>
-                        <input type="text" id="goal-name" name="goal-name" placeholder="Ex.: Viagem Nordeste, Cofrinho reforma…" required maxlength="120" autocomplete="off">
-                    </div>
-                    <fieldset class="goal-type-fieldset goal-type-fieldset--in-modal">
-                        <legend class="goal-type-fieldset__legend">Tipo</legend>
-                        <p class="goal-type-fieldset__hint">Define o estilo colorido do card na lista.</p>
-                        <div class="goal-type-grid" role="radiogroup" aria-label="Tipo do objetivo">
-                            <label class="goal-type-option">
-                                <input type="radio" name="goal-type" value="viagem">
-                                <span class="goal-type-option__card">
-                                    <span class="goal-type-option__decor" aria-hidden="true">✈️</span>
-                                    <span class="goal-type-option__label">Viagem</span>
-                                </span>
-                            </label>
-                            <label class="goal-type-option">
-                                <input type="radio" name="goal-type" value="casa">
-                                <span class="goal-type-option__card">
-                                    <span class="goal-type-option__decor" aria-hidden="true">🏠</span>
-                                    <span class="goal-type-option__label">Casa / imóvel</span>
-                                </span>
-                            </label>
-                            <label class="goal-type-option">
-                                <input type="radio" name="goal-type" value="veiculo">
-                                <span class="goal-type-option__card">
-                                    <span class="goal-type-option__decor" aria-hidden="true">🚗</span>
-                                    <span class="goal-type-option__label">Veículo</span>
-                                </span>
-                            </label>
-                            <label class="goal-type-option">
-                                <input type="radio" name="goal-type" value="educacao">
-                                <span class="goal-type-option__card">
-                                    <span class="goal-type-option__decor" aria-hidden="true">📚</span>
-                                    <span class="goal-type-option__label">Educação</span>
-                                </span>
-                            </label>
-                            <label class="goal-type-option">
-                                <input type="radio" name="goal-type" value="saude">
-                                <span class="goal-type-option__card">
-                                    <span class="goal-type-option__decor" aria-hidden="true">💚</span>
-                                    <span class="goal-type-option__label">Saúde</span>
-                                </span>
-                            </label>
-                            <label class="goal-type-option">
-                                <input type="radio" name="goal-type" value="aposentadoria">
-                                <span class="goal-type-option__card">
-                                    <span class="goal-type-option__decor" aria-hidden="true">☀️</span>
-                                    <span class="goal-type-option__label">Aposentadoria</span>
-                                </span>
-                            </label>
-                            <label class="goal-type-option">
-                                <input type="radio" name="goal-type" value="emergencia">
-                                <span class="goal-type-option__card">
-                                    <span class="goal-type-option__decor" aria-hidden="true">🛡️</span>
-                                    <span class="goal-type-option__label">Reserva</span>
-                                </span>
-                            </label>
-                            <label class="goal-type-option">
-                                <input type="radio" name="goal-type" value="outro" checked required>
-                                <span class="goal-type-option__card">
-                                    <span class="goal-type-option__decor" aria-hidden="true">✨</span>
-                                    <span class="goal-type-option__label">Outro</span>
-                                </span>
-                            </label>
-                        </div>
-                    </fieldset>
-                    <div class="goal-form-row">
-                        <div class="form-group">
-                            <label for="goal-target-amount">Meta (R$)</label>
-                            <input type="number" step="0.01" min="0.01" id="goal-target-amount" name="goal-target-amount" placeholder="0,00" inputmode="decimal" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="goal-current-amount">Já guardado (R$)</label>
-                            <input type="number" step="0.01" min="0" id="goal-current-amount" name="goal-current-amount" placeholder="0,00" value="0" inputmode="decimal">
-                        </div>
-                    </div>
-                    <p class="goal-form-note" role="note">
-                        <i class="fas fa-info-circle" aria-hidden="true"></i>
-                        O progresso do objetivo usa só <strong>Já guardado</strong>. O saldo da conta não entra automaticamente.
-                    </p>
-                    <div class="form-group goal-form-group--account">
-                        <label for="goal-account">Conta para referência <span class="goal-form-optional">(opcional)</span></label>
-                        <select id="goal-account" name="goal-account">
-                            <option value="">Nenhuma</option>
-                        </select>
-                        <small>Apenas para lembrar onde você guarda esse dinheiro.</small>
-                    </div>
-                </div>
-                <div class="goal-form-actions">
-                    <button type="submit" class="btn-primary goal-form-submit-btn">
-                        <i class="fas fa-check" aria-hidden="true"></i> Salvar objetivo
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
     <!-- Compras e lançamentos do cartão -->
     <div id="card-purchases-modal" class="modal-container hidden">
         <div class="modal-content card-purchases-modal">

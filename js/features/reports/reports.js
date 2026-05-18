@@ -17,7 +17,7 @@ import {
     isLoanExpense,
     shouldDeferCashOutForMonthlyFixedSeries
 } from '../../core/credit-installments.js';
-import { getTotalApplicationsSum } from '../investments/investments-page.js';
+import { getTotalApplicationsSum } from '../cofrinhos/cofrinhos-page.js';
 import {
     getDefaultPeriodValue,
     getPeriodDateBounds
@@ -636,7 +636,7 @@ export async function loadReportsData(
     userGains,
     userAccounts,
     userCurrency,
-    investmentApplications,
+    cofrinhoApplications,
     userProfile = null,
     expenseSplitRequests = null
 ) {
@@ -646,7 +646,7 @@ export async function loadReportsData(
         userGains,
         userAccounts,
         userCurrency,
-        investmentApplications,
+        cofrinhoApplications,
         userProfile,
         expenseSplitRequests
     ];
@@ -739,7 +739,7 @@ export async function loadReportsData(
         categoryScopedExpenses,
         gainsForDashboard,
         userAccounts,
-        investmentApplications,
+        cofrinhoApplications,
         userCurrency,
         userProfile,
         outgoingAcceptedSplits,
@@ -2076,7 +2076,7 @@ function renderUnifiedFinancialChart(
     userExpenses,
     gainsForDashboard,
     userAccounts,
-    investmentApplications,
+    cofrinhoApplications,
     userCurrency,
     userProfile = null,
     splitRequests = null,
@@ -2097,7 +2097,7 @@ function renderUnifiedFinancialChart(
 
     const expenses = userExpenses || [];
     const gains = gainsForDashboard || [];
-    const investedTotal = getTotalApplicationsSum(investmentApplications);
+    const investedTotal = getTotalApplicationsSum(cofrinhoApplications);
 
     const labels = months.map((mo) => mo.label);
     const projectionFlags = months.map((mo) => isProjectionMonth(mo, now));

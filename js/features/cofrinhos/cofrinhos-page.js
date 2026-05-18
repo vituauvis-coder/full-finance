@@ -1,17 +1,17 @@
 import { formatCurrency, isCardAccountType } from '../../core/utils.js';
 import {
-    saveInvestmentAllocation,
-    deleteInvestmentAllocation,
-    saveInvestmentBucket,
-    deleteInvestmentBucket,
-    saveInvestmentBucketGoal,
-    deleteInvestmentBucketGoal
+    saveCofrinhoAllocation,
+    deleteCofrinhoAllocation,
+    saveCofrinhoBucket,
+    deleteCofrinhoBucket,
+    saveCofrinhoBucketGoal,
+    deleteCofrinhoBucketGoal
 } from '../../services/firestore.js';
 import { loadCategoriesFromDatabase } from '../finance/expense-categories.js';
 import { openModal, closeModal, showMessage } from '../../shell/app-shell.js';
 import { setFormSubmittingState } from '../../core/button-loading.js';
 import {
-    EXPENSE_INVESTMENT_CATEGORY,
+    EXPENSE_COFRINHO_CATEGORY,
     BUCKET_COLOR_KEYS,
     GOAL_STATUS_OPTIONS,
     bucketColorHex
@@ -28,11 +28,11 @@ import {
     getBucketGoalForYear,
     filterApplications,
     buildPerformanceByBucket,
-    countConsecutiveInvestmentMonths,
+    countConsecutiveCofrinhoMonths,
     getTotalApplicationsSum,
     formatYearMonthLabel
 } from './aggregations.js';
-import { destroyInvestmentCharts, renderInvestmentCharts } from './investments-charts.js';
+import { destroyCofrinhoCharts, renderCofrinhoCharts } from './cofrinhos-charts.js';
 
 export { getTotalApplicationsSum };
 
@@ -59,37 +59,37 @@ const BUCKET_ICONS = {
 
 const MONTH_NAMES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
-let initInvestmentsPageUiOnceRan = false;
+let initCofrinhosPageUiOnceRan = false;
 
-export function initInvestments(_user, onUpdate) {
+export function initCofrinhos(_user, onUpdate) {
     onUpdateCallback = onUpdate;
 
-    initInvestmentsPageUiOnce();
+    initCofrinhosPageUiOnce();
 
-    document.getElementById('investments-add-bucket-btn')?.addEventListener('click', () => {
+    document.getElementById('cofrinhos-add-bucket-btn')?.addEventListener('click', () => {
         openCreateBucketModal();
     });
 
-    document.getElementById('investment-bucket-delete')?.addEventListener('click', () => {
+    document.getElementById('cofrinho-bucket-delete')?.addEventListener('click', () => {
         void deleteEditingBucket();
     });
 
-    document.getElementById('investment-application-form')?.addEventListener('submit', handleApplicationSubmit);
-    document.getElementById('investment-bucket-form')?.addEventListener('submit', handleBucketFormSubmit);
-    document.getElementById('investment-bucket-history-close')?.addEventListener('click', () => {
-        closeModal('investment-bucket-history-modal');
+    document.getElementById('cofrinho-application-form')?.addEventListener('submit', handleApplicationSubmit);
+    document.getElementById('cofrinho-bucket-form')?.addEventListener('submit', handleBucketFormSubmit);
+    document.getElementById('cofrinho-bucket-history-close')?.addEventListener('click', () => {
+        closeModal('cofrinho-bucket-history-modal');
         cache.historyBucketId = null;
     });
-    document.getElementById('investment-bucket-history-add-year')?.addEventListener('click', addBucketGoalYear);
+    document.getElementById('cofrinho-bucket-history-add-year')?.addEventListener('click', addBucketGoalYear);
 
-    document.getElementById('investments-applications-tbody')?.addEventListener('click', (e) => {
-        const edit = e.target.closest('.inv-app-edit');
-        const del = e.target.closest('.inv-app-delete');
+    document.getElementById('cofrinhos-applications-tbody')?.addEventListener('click', (e) => {
+        const edit = e.target.closest('.cof-app-edit');
+        const del = e.target.closest('.cof-app-delete');
         if (edit?.dataset.id) openApplicationModal(edit.dataset.id);
         if (del?.dataset.id) void deleteApplication(del.dataset.id);
     });
 
-    document.getElementById('investments-goal-cards')?.addEventListener('click', (e) => {
+    document.getElementById('cofrinhos-goal-cards')?.addEventListener('click', (e) => {
         const allocateBtn = e.target.closest('[data-bucket-allocate]');
         const historyBtn = e.target.closest('[data-bucket-history]');
         const settingsBtn = e.target.closest('[data-bucket-settings]');
@@ -101,13 +101,13 @@ export function initInvestments(_user, onUpdate) {
     });
 
     window.addEventListener('fullfinan-themechange', () => {
-        if (document.getElementById('investments-page')?.classList.contains('active')) {
-            renderInvestmentCharts(cache.buckets, cache.applications, cache.currency, cache.expenses);
+        if (document.getElementById('cofrinhos-page')?.classList.contains('active')) {
+            renderCofrinhoCharts(cache.buckets, cache.applications, cache.currency, cache.expenses);
         }
     });
 }
 
-export function loadInvestmentsPage(
+export function loadCofrinhosPage(
     expenses,
     buckets,
     applications,
@@ -127,11 +127,11 @@ export function loadInvestmentsPage(
     }
     cache.referenceYearMonth = clampReferenceToCurrentYear(cache.referenceYearMonth);
 
-    refreshInvestmentsUI();
+    refreshCofrinhosUI();
 
     if (
         cache.historyBucketId &&
-        !document.getElementById('investment-bucket-history-modal')?.classList.contains('hidden')
+        !document.getElementById('cofrinho-bucket-history-modal')?.classList.contains('hidden')
     ) {
         renderBucketHistoryList();
     }
@@ -151,37 +151,37 @@ function clampReferenceToCurrentYear(ym) {
     return `${currentCalendarYear()}-${String(month).padStart(2, '0')}`;
 }
 
-function refreshInvestmentsUI() {
+function refreshCofrinhosUI() {
     renderReferenceTimeline();
     renderSummaryCards();
     renderPendingBanner();
     renderGoalCards();
     renderMilestonePanel();
     renderApplicationsTable();
-    renderInvestmentCharts(cache.buckets, cache.applications, cache.currency, cache.expenses);
+    renderCofrinhoCharts(cache.buckets, cache.applications, cache.currency, cache.expenses);
 }
 
-function initInvestmentsPageUiOnce() {
-    if (initInvestmentsPageUiOnceRan) return;
-    const page = document.getElementById('investments-page');
+function initCofrinhosPageUiOnce() {
+    if (initCofrinhosPageUiOnceRan) return;
+    const page = document.getElementById('cofrinhos-page');
     if (!page) return;
-    initInvestmentsPageUiOnceRan = true;
+    initCofrinhosPageUiOnceRan = true;
 
     page.addEventListener('click', (e) => {
-        const monthBtn = e.target.closest('[data-investments-month]');
+        const monthBtn = e.target.closest('[data-cofrinhos-month]');
         if (monthBtn && page.contains(monthBtn)) {
-            const month = parseInt(monthBtn.getAttribute('data-investments-month'), 10);
+            const month = parseInt(monthBtn.getAttribute('data-cofrinhos-month'), 10);
             if (!Number.isFinite(month) || month < 1 || month > 12) return;
             cache.referenceYearMonth = `${currentCalendarYear()}-${String(month).padStart(2, '0')}`;
-            refreshInvestmentsUI();
+            refreshCofrinhosUI();
         }
     });
 
-    document.querySelectorAll('input[name="investment-allocation-mode"]').forEach((radio) => {
+    document.querySelectorAll('input[name="cofrinho-allocation-mode"]').forEach((radio) => {
         radio.addEventListener('change', () => {
-            const form = document.getElementById('investment-application-form');
+            const form = document.getElementById('cofrinho-application-form');
             if (form) form.dataset.allocationMode = radio.value === 'direct' ? 'direct' : 'pool';
-            openApplicationModal(document.getElementById('investment-application-id')?.value || null, {
+            openApplicationModal(document.getElementById('cofrinho-application-id')?.value || null, {
                 mode: radio.value
             });
         });
@@ -197,7 +197,7 @@ function parseReferenceYearMonth(ym) {
 }
 
 function renderReferenceTimeline() {
-    const timeline = document.querySelector('[data-investments-timeline]');
+    const timeline = document.querySelector('[data-cofrinhos-timeline]');
     if (!timeline) return;
 
     const ym = clampReferenceToCurrentYear(cache.referenceYearMonth || currentYearMonth());
@@ -211,7 +211,7 @@ function renderReferenceTimeline() {
         const label = `${name}/${yShort}`;
         return `<button type="button"
             class="zero-budget__month-btn${isActive ? ' is-active' : ''}"
-            data-investments-month="${monthNum}"
+            data-cofrinhos-month="${monthNum}"
             role="tab"
             aria-selected="${isActive ? 'true' : 'false'}">${label}</button>`;
     }).join('');
@@ -225,7 +225,7 @@ function sumAllocatedInMonth(expenses, applications, buckets, yearMonth) {
             value = expenses
                 .filter(
                     (e) =>
-                        String(e.category || '').trim() === EXPENSE_INVESTMENT_CATEGORY &&
+                        String(e.category || '').trim() === EXPENSE_COFRINHO_CATEGORY &&
                         String(e.subcategory || '').trim() === (b?.name || '') &&
                         toYearMonthKey(e.date) === yearMonth &&
                         e.isPaid !== false
@@ -245,7 +245,7 @@ function sumAllocatedInMonth(expenses, applications, buckets, yearMonth) {
 }
 
 function renderSummaryCards() {
-    const el = document.getElementById('investments-summary');
+    const el = document.getElementById('cofrinhos-summary');
     if (!el) return;
 
     const ym = cache.referenceYearMonth || currentYearMonth();
@@ -274,7 +274,7 @@ function renderSummaryCards() {
             </div>
         </div>
         <div class="card">
-            <div class="card-icon investments" aria-hidden="true"><i class="fas fa-piggy-bank"></i></div>
+            <div class="card-icon cofrinhos" aria-hidden="true"><i class="fas fa-piggy-bank"></i></div>
             <div class="card-content">
                 <h3>Aportado no mês</h3>
                 <p>${formatCurrency(monthAllocated, cache.currency)}</p>
@@ -292,7 +292,7 @@ function renderSummaryCards() {
 }
 
 function renderPendingBanner() {
-    const el = document.getElementById('investments-pending-banner');
+    const el = document.getElementById('cofrinhos-pending-banner');
     if (!el) return;
 
     const ym = cache.referenceYearMonth || currentYearMonth();
@@ -300,10 +300,10 @@ function renderPendingBanner() {
 
     if (pending > 0) {
         el.hidden = false;
-        el.className = 'investments-page__pending dashboard-pending-cash-outs';
+        el.className = 'cofrinhos-page__pending dashboard-pending-cash-outs';
         el.innerHTML = `
             <h3 class="dashboard-pending-title"><i class="fas fa-piggy-bank" aria-hidden="true"></i> Aguardando alocação</h3>
-            <p class="dashboard-pending-hint">Saídas em «${escapeHtml(EXPENSE_INVESTMENT_CATEGORY)}» <strong>sem subcategoria</strong> em ${escapeHtml(formatYearMonthLabel(ym))} — distribua nas caixinhas.</p>
+            <p class="dashboard-pending-hint">Saídas em «${escapeHtml(EXPENSE_COFRINHO_CATEGORY)}» <strong>sem subcategoria</strong> em ${escapeHtml(formatYearMonthLabel(ym))} — distribua nas caixinhas.</p>
             <ul class="dashboard-pending-list">
                 <li class="dashboard-pending-item">
                     <div class="dashboard-pending-item__text">
@@ -311,22 +311,22 @@ function renderPendingBanner() {
                         <span class="dashboard-pending-item__detail">Valor ainda não distribuído</span>
                     </div>
                     <span class="dashboard-pending-item__amount">${formatCurrency(pending, cache.currency)}</span>
-                    <button type="button" class="btn-primary btn-sm dashboard-pending-confirm" id="investments-distribute-btn">
+                    <button type="button" class="btn-primary btn-sm dashboard-pending-confirm" id="cofrinhos-distribute-btn">
                         Distribuir aporte
                     </button>
                 </li>
             </ul>`;
-        el.querySelector('#investments-distribute-btn')?.addEventListener('click', () => openApplicationModal());
+        el.querySelector('#cofrinhos-distribute-btn')?.addEventListener('click', () => openApplicationModal());
     } else {
         el.hidden = true;
-        el.className = 'investments-page__pending';
+        el.className = 'cofrinhos-page__pending';
         el.innerHTML = '';
     }
 }
 
 function renderGoalCards() {
-    const grid = document.getElementById('investments-goal-cards');
-    const yearLabel = document.getElementById('investments-goals-year-label');
+    const grid = document.getElementById('cofrinhos-goal-cards');
+    const yearLabel = document.getElementById('cofrinhos-goals-year-label');
     if (!grid) return;
 
     const year = new Date().getFullYear();
@@ -334,7 +334,7 @@ function renderGoalCards() {
 
     if (!cache.buckets.length) {
         grid.innerHTML = `
-            <div class="goals-empty-state investments-page__empty">
+            <div class="goals-empty-state cofrinhos-page__empty">
                 <div class="goals-empty-state__icon" aria-hidden="true"><i class="fas fa-boxes-stacked"></i></div>
                 <p class="goals-empty-state__title">Nenhuma caixinha</p>
                 <p class="goals-empty-state__text">Use «Nova caixinha» no topo para criar a primeira caixinha.</p>
@@ -351,24 +351,24 @@ function renderGoalCards() {
             const done = meta > 0 && resultado >= meta;
             const hex = bucketColorHex(b.colorKey);
             return `
-            <article class="investments-page__goal-card" data-bucket-id="${escapeAttr(b.id)}" style="--goal-accent:${hex}">
-                <div class="investments-page__goal-card-head">
-                    <div class="investments-page__goal-card-name-row">
-                        <span class="investments-page__goal-card-dot" style="background-color:${hex}" aria-hidden="true"></span>
-                        <h4 class="investments-page__goal-card-title" title="${escapeAttr(b.name)}">${escapeHtml(b.name)}</h4>
+            <article class="cofrinhos-page__goal-card" data-bucket-id="${escapeAttr(b.id)}" style="--goal-accent:${hex}">
+                <div class="cofrinhos-page__goal-card-head">
+                    <div class="cofrinhos-page__goal-card-name-row">
+                        <span class="cofrinhos-page__goal-card-dot" style="background-color:${hex}" aria-hidden="true"></span>
+                        <h4 class="cofrinhos-page__goal-card-title" title="${escapeAttr(b.name)}">${escapeHtml(b.name)}</h4>
                     </div>
-                    ${done ? '<span class="investments-page__done-badge">Concluído</span>' : ''}
+                    ${done ? '<span class="cofrinhos-page__done-badge">Concluído</span>' : ''}
                 </div>
-                <div class="investments-page__goal-card-body">
-                    <div class="investments-page__goal-card-values">
-                        <span class="investments-page__goal-card-current">${formatCurrency(resultado, cache.currency)}</span>
-                        <span class="investments-page__goal-card-meta">de ${formatCurrency(meta, cache.currency)}</span>
+                <div class="cofrinhos-page__goal-card-body">
+                    <div class="cofrinhos-page__goal-card-values">
+                        <span class="cofrinhos-page__goal-card-current">${formatCurrency(resultado, cache.currency)}</span>
+                        <span class="cofrinhos-page__goal-card-meta">de ${formatCurrency(meta, cache.currency)}</span>
                     </div>
-                    <div class="investments-page__goal-card-bar" role="progressbar" aria-valuenow="${perc.toFixed(0)}" aria-valuemin="0" aria-valuemax="100" aria-label="Progresso da meta">
+                    <div class="cofrinhos-page__goal-card-bar" role="progressbar" aria-valuenow="${perc.toFixed(0)}" aria-valuemin="0" aria-valuemax="100" aria-label="Progresso da meta">
                         <span style="width:${perc.toFixed(1)}%"></span>
                     </div>
                 </div>
-                <div class="investments-page__bucket-actions">
+                <div class="cofrinhos-page__bucket-actions">
                     <button type="button" class="btn-secondary btn-sm" data-bucket-allocate="${escapeAttr(b.id)}" title="Aporte direto na caixinha">
                         <i class="fas fa-plus" aria-hidden="true"></i> Aportar
                     </button>
@@ -385,7 +385,7 @@ function renderGoalCards() {
 }
 
 function renderMilestonePanel() {
-    const el = document.getElementById('investments-milestone');
+    const el = document.getElementById('cofrinhos-milestone');
     if (!el) return;
 
     const year = cache.milestoneYear;
@@ -409,7 +409,7 @@ function renderMilestonePanel() {
     const perf = buildPerformanceByBucket(buckets, cache.applications, cache.expenses);
     const lucroTotal = perf.reduce((s, p) => s + p.lucro, 0);
     const totalAportado = getTotalApplicationsSum(cache.applications, cache.expenses, buckets);
-    const constancy = countConsecutiveInvestmentMonths(cache.applications, cache.expenses, buckets);
+    const constancy = countConsecutiveCofrinhoMonths(cache.applications, cache.expenses, buckets);
     const percGlobal = metaTotal > 0 ? Math.min((achievedTotal / metaTotal) * 100, 100) : 0;
 
     const years = [...new Set([new Date().getFullYear(), ...cache.bucketGoals.map((g) => g.year)])].sort(
@@ -426,75 +426,75 @@ function renderMilestonePanel() {
                 const width = metaTotal > 0 ? Math.max((s.val / metaTotal) * 100, 0) : 0;
                 const hex = bucketColorHex(s.b.colorKey);
                 if (width <= 0) return '';
-                return `<span class="investments-milestone__bar-seg" style="width:${width.toFixed(2)}%;background-color:${hex}" title="${escapeHtml(s.b.name)}: ${formatCurrency(s.val, cache.currency)} de ${formatCurrency(s.meta, cache.currency)}"></span>`;
+                return `<span class="cofrinhos-milestone__bar-seg" style="width:${width.toFixed(2)}%;background-color:${hex}" title="${escapeHtml(s.b.name)}: ${formatCurrency(s.val, cache.currency)} de ${formatCurrency(s.meta, cache.currency)}"></span>`;
             })
-            .join('') || '<span class="investments-milestone__bar-seg investments-milestone__bar-seg--empty"></span>';
+            .join('') || '<span class="cofrinhos-milestone__bar-seg cofrinhos-milestone__bar-seg--empty"></span>';
 
-    el.className = 'investments-milestone';
+    el.className = 'cofrinhos-milestone';
     el.innerHTML = `
-        <div class="investments-milestone__grid">
-            <div class="investments-milestone__main">
-                <div class="investments-milestone__head">
-                    <h3 class="investments-milestone__title">
+        <div class="cofrinhos-milestone__grid">
+            <div class="cofrinhos-milestone__main">
+                <div class="cofrinhos-milestone__head">
+                    <h3 class="cofrinhos-milestone__title">
                         <i class="fas fa-chart-pie" aria-hidden="true"></i> Progresso anual
                     </h3>
-                    <select id="investments-milestone-year" class="investments-milestone__year-select" aria-label="Ano">
+                    <select id="cofrinhos-milestone-year" class="cofrinhos-milestone__year-select" aria-label="Ano">
                         ${years.map((y) => `<option value="${y}"${y === year ? ' selected' : ''}>${y}</option>`).join('')}
                     </select>
                 </div>
-                <div class="investments-milestone__card">
-                    <div class="investments-milestone__totals-row">
+                <div class="cofrinhos-milestone__card">
+                    <div class="cofrinhos-milestone__totals-row">
                         <div>
-                            <span class="investments-milestone__kicker">Total alcançado (${year})</span>
-                            <span class="investments-milestone__achieved">${formatCurrency(achievedTotal, cache.currency)}</span>
+                            <span class="cofrinhos-milestone__kicker">Total alcançado (${year})</span>
+                            <span class="cofrinhos-milestone__achieved">${formatCurrency(achievedTotal, cache.currency)}</span>
                         </div>
-                        <div class="investments-milestone__meta-side">
-                            <span class="investments-milestone__kicker">Meta global ${year}</span>
-                            <span class="investments-milestone__meta-value">${formatCurrency(metaTotal, cache.currency)}</span>
+                        <div class="cofrinhos-milestone__meta-side">
+                            <span class="cofrinhos-milestone__kicker">Meta global ${year}</span>
+                            <span class="cofrinhos-milestone__meta-value">${formatCurrency(metaTotal, cache.currency)}</span>
                         </div>
                     </div>
-                    <div class="investments-milestone__bar" role="img" aria-label="Distribuição do progresso por caixinha">
+                    <div class="cofrinhos-milestone__bar" role="img" aria-label="Distribuição do progresso por caixinha">
                         ${barSegments}
                     </div>
-                    <div class="investments-milestone__bar-footer">
-                        <span class="investments-milestone__perc-badge">${percGlobal.toFixed(1)}% da meta</span>
-                        <span class="investments-milestone__remaining">${footerRight}</span>
+                    <div class="cofrinhos-milestone__bar-footer">
+                        <span class="cofrinhos-milestone__perc-badge">${percGlobal.toFixed(1)}% da meta</span>
+                        <span class="cofrinhos-milestone__remaining">${footerRight}</span>
                     </div>
                 </div>
             </div>
-            <div class="investments-milestone__kpis">
-                <div class="investments-milestone__kpi investments-milestone__kpi--indigo">
-                    <span class="investments-milestone__kpi-icon"><i class="fas fa-trophy" aria-hidden="true"></i></span>
+            <div class="cofrinhos-milestone__kpis">
+                <div class="cofrinhos-milestone__kpi cofrinhos-milestone__kpi--indigo">
+                    <span class="cofrinhos-milestone__kpi-icon"><i class="fas fa-trophy" aria-hidden="true"></i></span>
                     <div>
-                        <span class="investments-milestone__kpi-label">Patrimônio (est.)</span>
-                        <span class="investments-milestone__kpi-value">${formatCurrency(totalAportado + lucroTotal, cache.currency)}</span>
+                        <span class="cofrinhos-milestone__kpi-label">Patrimônio (est.)</span>
+                        <span class="cofrinhos-milestone__kpi-value">${formatCurrency(totalAportado + lucroTotal, cache.currency)}</span>
                     </div>
                 </div>
-                <div class="investments-milestone__kpi investments-milestone__kpi--emerald">
-                    <span class="investments-milestone__kpi-icon"><i class="fas fa-award" aria-hidden="true"></i></span>
+                <div class="cofrinhos-milestone__kpi cofrinhos-milestone__kpi--emerald">
+                    <span class="cofrinhos-milestone__kpi-icon"><i class="fas fa-award" aria-hidden="true"></i></span>
                     <div>
-                        <span class="investments-milestone__kpi-label">Bola de neve (est.)</span>
-                        <span class="investments-milestone__kpi-value">${formatCurrency(lucroTotal, cache.currency)}</span>
+                        <span class="cofrinhos-milestone__kpi-label">Bola de neve (est.)</span>
+                        <span class="cofrinhos-milestone__kpi-value">${formatCurrency(lucroTotal, cache.currency)}</span>
                     </div>
                 </div>
-                <div class="investments-milestone__kpi investments-milestone__kpi--amber">
-                    <span class="investments-milestone__kpi-icon"><i class="fas fa-fire" aria-hidden="true"></i></span>
+                <div class="cofrinhos-milestone__kpi cofrinhos-milestone__kpi--amber">
+                    <span class="cofrinhos-milestone__kpi-icon"><i class="fas fa-fire" aria-hidden="true"></i></span>
                     <div>
-                        <span class="investments-milestone__kpi-label">Constância</span>
-                        <span class="investments-milestone__kpi-value">${constancy} ${constancy === 1 ? 'mês' : 'meses'}</span>
+                        <span class="cofrinhos-milestone__kpi-label">Constância</span>
+                        <span class="cofrinhos-milestone__kpi-value">${constancy} ${constancy === 1 ? 'mês' : 'meses'}</span>
                     </div>
                 </div>
             </div>
         </div>`;
-    el.querySelector('#investments-milestone-year')?.addEventListener('change', (e) => {
+    el.querySelector('#cofrinhos-milestone-year')?.addEventListener('change', (e) => {
         cache.milestoneYear = parseInt(e.target.value, 10) || new Date().getFullYear();
         renderMilestonePanel();
     });
 }
 
 function renderApplicationsTable() {
-    const tbody = document.getElementById('investments-applications-tbody');
-    const sumEl = document.getElementById('investments-applications-sum');
+    const tbody = document.getElementById('cofrinhos-applications-tbody');
+    const sumEl = document.getElementById('cofrinhos-applications-sum');
     if (!tbody) return;
 
     const list = filterApplications(cache.applications);
@@ -522,8 +522,8 @@ function renderApplicationsTable() {
                 <td>${escapeHtml(acc?.name || '—')}</td>
                 <td class="text-center"><span class="expense-status-badge expense-status-badge--paid">${escapeHtml(a.status || 'Concluído')}</span></td>
                 <td class="text-center">
-                    <button type="button" class="btn-icon inv-app-edit" data-id="${escapeAttr(a.id)}" title="Editar"><i class="fas fa-pen"></i></button>
-                    <button type="button" class="btn-icon inv-app-delete" data-id="${escapeAttr(a.id)}" title="Excluir"><i class="fas fa-trash"></i></button>
+                    <button type="button" class="btn-icon cof-app-edit" data-id="${escapeAttr(a.id)}" title="Editar"><i class="fas fa-pen"></i></button>
+                    <button type="button" class="btn-icon cof-app-delete" data-id="${escapeAttr(a.id)}" title="Excluir"><i class="fas fa-trash"></i></button>
                 </td>
             </tr>`;
         })
@@ -531,7 +531,7 @@ function renderApplicationsTable() {
 }
 
 function openApplicationModal(id = null, options = {}) {
-    const form = document.getElementById('investment-application-form');
+    const form = document.getElementById('cofrinho-application-form');
     if (!form) return;
 
     const app = id ? cache.applications.find((a) => a.id === id) : null;
@@ -544,8 +544,8 @@ function openApplicationModal(id = null, options = {}) {
     const pending = computePendingBalance(cache.expenses, cache.applications, ym);
     const isDirect = mode === 'direct' && !id;
 
-    document.getElementById('investment-application-id').value = app?.id || '';
-    const titleEl = document.getElementById('investment-application-modal-title');
+    document.getElementById('cofrinho-application-id').value = app?.id || '';
+    const titleEl = document.getElementById('cofrinho-application-modal-title');
     let titleText = 'Distribuir aporte';
     if (app) titleText = 'Editar aporte';
     else if (isDirect) titleText = 'Aporte direto na caixinha';
@@ -553,23 +553,23 @@ function openApplicationModal(id = null, options = {}) {
         titleEl.innerHTML = `<i class="fas fa-coins" aria-hidden="true"></i> ${titleText}`;
     }
 
-    const hint = document.getElementById('investment-application-pending-hint');
+    const hint = document.getElementById('cofrinho-application-pending-hint');
     if (hint) {
         if (isDirect) {
             hint.hidden = false;
-            hint.innerHTML = `<span class="investment-modal__balance-label">Modo direto</span><span class="investment-modal__balance-value">Cria saída já na subcategoria da caixinha (não usa saldo pool).</span>`;
+            hint.innerHTML = `<span class="cofrinho-modal__balance-label">Modo direto</span><span class="cofrinho-modal__balance-value">Cria saída já na subcategoria da caixinha (não usa saldo pool).</span>`;
         } else {
             const avail = app ? pending + (parseFloat(app.amount) || 0) : pending;
             hint.hidden = false;
-            hint.innerHTML = `<span class="investment-modal__balance-label">Saldo pool (${formatYearMonthLabel(ym)})</span><span class="investment-modal__balance-value">${formatCurrency(avail, cache.currency)}</span>`;
+            hint.innerHTML = `<span class="cofrinho-modal__balance-label">Saldo pool (${formatYearMonthLabel(ym)})</span><span class="cofrinho-modal__balance-value">${formatCurrency(avail, cache.currency)}</span>`;
         }
     }
 
-    const modeRow = document.getElementById('investment-application-mode-row');
+    const modeRow = document.getElementById('cofrinho-application-mode-row');
     if (modeRow) modeRow.hidden = Boolean(id);
 
-    const poolSourceWrap = document.getElementById('investment-application-pool-source-wrap');
-    const poolSourceSelect = document.getElementById('investment-application-pool-source');
+    const poolSourceWrap = document.getElementById('cofrinho-application-pool-source-wrap');
+    const poolSourceSelect = document.getElementById('cofrinho-application-pool-source');
     if (poolSourceWrap && poolSourceSelect) {
         const poolList = listPoolExpensesForMonth(cache.expenses, ym);
         poolSourceWrap.hidden = isDirect || Boolean(id);
@@ -583,73 +583,73 @@ function openApplicationModal(id = null, options = {}) {
                 .join('');
     }
 
-    document.getElementById('investment-application-amount').value = app?.amount ?? '';
-    const monthDisplay = document.getElementById('investment-application-month-display');
+    document.getElementById('cofrinho-application-amount').value = app?.amount ?? '';
+    const monthDisplay = document.getElementById('cofrinho-application-month-display');
     if (monthDisplay) monthDisplay.value = formatYearMonthLabel(ym);
     populateBucketSelect(
-        document.getElementById('investment-application-bucket'),
+        document.getElementById('cofrinho-application-bucket'),
         options.bucketId || app?.bucketId
     );
-    populateAccountSelect(document.getElementById('investment-application-account'), app?.accountId);
+    populateAccountSelect(document.getElementById('cofrinho-application-account'), app?.accountId);
 
     form.dataset.referenceMonth = ym;
     form.dataset.allocationMode = isDirect ? 'direct' : 'pool';
-    document.querySelectorAll('input[name="investment-allocation-mode"]').forEach((radio) => {
+    document.querySelectorAll('input[name="cofrinho-allocation-mode"]').forEach((radio) => {
         radio.checked = radio.value === (isDirect ? 'direct' : 'pool');
     });
-    openModal('investment-application-modal');
+    openModal('cofrinho-application-modal');
 }
 
 async function handleApplicationSubmit(e) {
     e.preventDefault();
     const form = e.target;
-    const id = document.getElementById('investment-application-id')?.value;
+    const id = document.getElementById('cofrinho-application-id')?.value;
     const ym = form.dataset.referenceMonth || cache.referenceYearMonth;
     const mode = form.dataset.allocationMode || 'pool';
-    const amount = parseFloat(document.getElementById('investment-application-amount')?.value);
+    const amount = parseFloat(document.getElementById('cofrinho-application-amount')?.value);
     const pending = computePendingBalance(cache.expenses, cache.applications, ym);
     const app = id ? cache.applications.find((a) => a.id === id) : null;
 
     if (!Number.isFinite(amount) || amount <= 0) {
-        showMessage('investment-application-message', 'Informe um valor válido.', 'error');
+        showMessage('cofrinho-application-message', 'Informe um valor válido.', 'error');
         return;
     }
 
     if (mode !== 'direct') {
         const maxAvail = app ? pending + (parseFloat(app.amount) || 0) : pending;
         if (amount > maxAvail + 0.001) {
-            showMessage('investment-application-message', 'Valor maior que o saldo pool disponível.', 'error');
+            showMessage('cofrinho-application-message', 'Valor maior que o saldo pool disponível.', 'error');
             return;
         }
     } else if (!id) {
-        const accountId = document.getElementById('investment-application-account')?.value;
+        const accountId = document.getElementById('cofrinho-application-account')?.value;
         if (!accountId) {
-            showMessage('investment-application-message', 'Selecione a conta para o aporte direto.', 'error');
+            showMessage('cofrinho-application-message', 'Selecione a conta para o aporte direto.', 'error');
             return;
         }
     }
 
-    const sourceExpenseId = document.getElementById('investment-application-pool-source')?.value || null;
+    const sourceExpenseId = document.getElementById('cofrinho-application-pool-source')?.value || null;
 
     const data = {
         mode: id ? 'pool' : mode,
-        bucketId: document.getElementById('investment-application-bucket')?.value,
+        bucketId: document.getElementById('cofrinho-application-bucket')?.value,
         referenceMonth: yearMonthToReferenceMonth(ym),
         amount,
-        accountId: document.getElementById('investment-application-account')?.value || null,
+        accountId: document.getElementById('cofrinho-application-account')?.value || null,
         status: 'Concluído',
         sourceExpenseId: sourceExpenseId || undefined
     };
 
     setFormSubmittingState(form, true, 'Salvando...');
     try {
-        await saveInvestmentAllocation(data, id || null);
-        closeModal('investment-application-modal');
+        await saveCofrinhoAllocation(data, id || null);
+        closeModal('cofrinho-application-modal');
         await loadCategoriesFromDatabase(true);
         onUpdateCallback?.();
     } catch (err) {
         console.error(err);
-        showMessage('investment-application-message', err?.message || 'Não foi possível salvar.', 'error');
+        showMessage('cofrinho-application-message', err?.message || 'Não foi possível salvar.', 'error');
     } finally {
         setFormSubmittingState(form, false);
     }
@@ -658,7 +658,7 @@ async function handleApplicationSubmit(e) {
 async function deleteApplication(id) {
     if (!confirm('Excluir esta aplicação? O valor voltará ao saldo pool quando aplicável.')) return;
     try {
-        await deleteInvestmentAllocation(id);
+        await deleteCofrinhoAllocation(id);
         await loadCategoriesFromDatabase(true);
         onUpdateCallback?.();
     } catch (e) {
@@ -670,16 +670,16 @@ async function deleteApplication(id) {
 function openBucketHistoryModal(bucketId) {
     cache.historyBucketId = bucketId;
     const b = cache.buckets.find((x) => x.id === bucketId);
-    const titleEl = document.getElementById('investment-bucket-history-title');
+    const titleEl = document.getElementById('cofrinho-bucket-history-title');
     if (titleEl) {
         titleEl.innerHTML = `<i class="fas fa-history" aria-hidden="true"></i> Histórico: ${escapeHtml(b?.name || '')}`;
     }
     renderBucketHistoryList();
-    openModal('investment-bucket-history-modal');
+    openModal('cofrinho-bucket-history-modal');
 }
 
 function renderBucketHistoryList() {
-    const list = document.getElementById('investment-bucket-history-list');
+    const list = document.getElementById('cofrinho-bucket-history-list');
     if (!list || !cache.historyBucketId) return;
 
     const goals = cache.bucketGoals
@@ -690,7 +690,7 @@ function renderBucketHistoryList() {
     list.innerHTML = goals
         .map(
             (g) => `
-        <div class="investment-history-row" data-goal-id="${escapeAttr(g.id)}">
+        <div class="cofrinho-history-row" data-goal-id="${escapeAttr(g.id)}">
             <label>Ano
                 <select class="inv-goal-year">${yearOptions.map((y) => `<option value="${y}"${g.year === y ? ' selected' : ''}>${y}</option>`).join('')}</select>
             </label>
@@ -703,7 +703,7 @@ function renderBucketHistoryList() {
             <label>Alcançado (R$)
                 <input type="number" class="inv-goal-achieved" step="0.01" min="0" value="${g.achievedAmount}">
             </label>
-            <div class="investment-history-row__actions">
+            <div class="cofrinho-history-row__actions">
                 <button type="button" class="btn-icon inv-goal-save" title="Salvar"><i class="fas fa-check"></i></button>
                 <button type="button" class="btn-icon inv-goal-delete" title="Excluir"><i class="fas fa-trash"></i></button>
             </div>
@@ -713,13 +713,13 @@ function renderBucketHistoryList() {
 
     list.querySelectorAll('.inv-goal-save').forEach((btn) => {
         btn.addEventListener('click', () => {
-            const row = btn.closest('.investment-history-row');
+            const row = btn.closest('.cofrinho-history-row');
             void saveHistoryRow(row);
         });
     });
     list.querySelectorAll('.inv-goal-delete').forEach((btn) => {
         btn.addEventListener('click', () => {
-            const row = btn.closest('.investment-history-row');
+            const row = btn.closest('.cofrinho-history-row');
             void deleteHistoryRow(row?.dataset.goalId);
         });
     });
@@ -736,18 +736,18 @@ async function saveHistoryRow(row) {
         status: row.querySelector('.inv-goal-status')?.value || 'Em andamento'
     };
     try {
-        await saveInvestmentBucketGoal(data, id);
+        await saveCofrinhoBucketGoal(data, id);
         onUpdateCallback?.();
     } catch (e) {
         console.error(e);
-        showMessage('investment-bucket-history-message', 'Erro ao salvar meta.', 'error');
+        showMessage('cofrinho-bucket-history-message', 'Erro ao salvar meta.', 'error');
     }
 }
 
 async function deleteHistoryRow(id) {
     if (!id || !confirm('Excluir esta meta?')) return;
     try {
-        await deleteInvestmentBucketGoal(id);
+        await deleteCofrinhoBucketGoal(id);
         onUpdateCallback?.();
     } catch (e) {
         console.error(e);
@@ -758,7 +758,7 @@ async function addBucketGoalYear() {
     if (!cache.historyBucketId) return;
     const year = new Date().getFullYear();
     try {
-        await saveInvestmentBucketGoal({
+        await saveCofrinhoBucketGoal({
             bucketId: cache.historyBucketId,
             year,
             targetAmount: 0,
@@ -768,48 +768,48 @@ async function addBucketGoalYear() {
         onUpdateCallback?.();
     } catch (e) {
         if (String(e.message || '').includes('409') || e.status === 409) {
-            showMessage('investment-bucket-history-message', 'Meta deste ano já existe.', 'error');
+            showMessage('cofrinho-bucket-history-message', 'Meta deste ano já existe.', 'error');
         }
     }
 }
 
 function openCreateBucketModal() {
     cache.editingBucketId = null;
-    const title = document.getElementById('investment-buckets-modal-title');
-    const submit = document.getElementById('investment-bucket-submit');
-    const delBtn = document.getElementById('investment-bucket-delete');
-    const form = document.getElementById('investment-bucket-form');
+    const title = document.getElementById('cofrinho-buckets-modal-title');
+    const submit = document.getElementById('cofrinho-bucket-submit');
+    const delBtn = document.getElementById('cofrinho-bucket-delete');
+    const form = document.getElementById('cofrinho-bucket-form');
     if (title) title.innerHTML = '<i class="fas fa-piggy-bank" aria-hidden="true"></i> Nova caixinha';
     if (submit) submit.textContent = 'Adicionar caixinha';
     delBtn?.classList.add('hidden');
     form?.reset();
-    populateColorSelect(document.getElementById('investment-bucket-color'));
-    openModal('investment-buckets-modal');
-    requestAnimationFrame(() => document.getElementById('investment-bucket-name')?.focus());
+    populateColorSelect(document.getElementById('cofrinho-bucket-color'));
+    openModal('cofrinho-buckets-modal');
+    requestAnimationFrame(() => document.getElementById('cofrinho-bucket-name')?.focus());
 }
 
 function openBucketSettingsModal(bucketId) {
     const b = cache.buckets.find((x) => x.id === bucketId);
     if (!b) return;
     cache.editingBucketId = bucketId;
-    const title = document.getElementById('investment-buckets-modal-title');
-    const submit = document.getElementById('investment-bucket-submit');
-    const delBtn = document.getElementById('investment-bucket-delete');
+    const title = document.getElementById('cofrinho-buckets-modal-title');
+    const submit = document.getElementById('cofrinho-bucket-submit');
+    const delBtn = document.getElementById('cofrinho-bucket-delete');
     if (title) title.innerHTML = `<i class="fas fa-piggy-bank" aria-hidden="true"></i> Definições: ${escapeHtml(b.name)}`;
     if (submit) submit.textContent = 'Guardar alterações';
     delBtn?.classList.remove('hidden');
-    document.getElementById('investment-bucket-name').value = b.name || '';
-    document.getElementById('investment-bucket-yield').value = b.yieldMultiplier ?? 1.02;
-    populateColorSelect(document.getElementById('investment-bucket-color'), b.colorKey);
-    openModal('investment-buckets-modal');
-    requestAnimationFrame(() => document.getElementById('investment-bucket-name')?.focus());
+    document.getElementById('cofrinho-bucket-name').value = b.name || '';
+    document.getElementById('cofrinho-bucket-yield').value = b.yieldMultiplier ?? 1.02;
+    populateColorSelect(document.getElementById('cofrinho-bucket-color'), b.colorKey);
+    openModal('cofrinho-buckets-modal');
+    requestAnimationFrame(() => document.getElementById('cofrinho-bucket-name')?.focus());
 }
 
 async function deleteEditingBucket() {
     if (!cache.editingBucketId || !confirm('Excluir esta caixinha?')) return;
     try {
-        await deleteInvestmentBucket(cache.editingBucketId);
-        closeModal('investment-buckets-modal');
+        await deleteCofrinhoBucket(cache.editingBucketId);
+        closeModal('cofrinho-buckets-modal');
         cache.editingBucketId = null;
         onUpdateCallback?.();
     } catch (e) {
@@ -820,27 +820,27 @@ async function deleteEditingBucket() {
 async function handleBucketFormSubmit(e) {
     e.preventDefault();
     const form = e.target;
-    const name = (document.getElementById('investment-bucket-name')?.value || '').trim();
+    const name = (document.getElementById('cofrinho-bucket-name')?.value || '').trim();
     if (!name) return;
 
     const data = {
         name,
-        colorKey: document.getElementById('investment-bucket-color')?.value || 'violet',
+        colorKey: document.getElementById('cofrinho-bucket-color')?.value || 'violet',
         icon: 'fa-chart-line',
-        yieldMultiplier: parseFloat(document.getElementById('investment-bucket-yield')?.value) || 1.02
+        yieldMultiplier: parseFloat(document.getElementById('cofrinho-bucket-yield')?.value) || 1.02
     };
 
     setFormSubmittingState(form, true, cache.editingBucketId ? 'Guardando...' : 'Adicionando...');
     try {
-        await saveInvestmentBucket(data, cache.editingBucketId || null);
-        closeModal('investment-buckets-modal');
+        await saveCofrinhoBucket(data, cache.editingBucketId || null);
+        closeModal('cofrinho-buckets-modal');
         cache.editingBucketId = null;
         form.reset();
         await loadCategoriesFromDatabase(true);
         onUpdateCallback?.();
     } catch (err) {
         showMessage(
-            'investment-buckets-message',
+            'cofrinho-buckets-message',
             cache.editingBucketId ? 'Erro ao guardar caixinha.' : 'Erro ao criar caixinha.',
             'error'
         );

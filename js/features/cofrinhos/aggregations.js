@@ -1,5 +1,10 @@
-import { EXPENSE_INVESTMENT_CATEGORY } from './constants.js';
+import { getPeriodDateBounds } from '../../core/period-filters.js';
+import { enumerateCalendarMonths } from '../../core/projected-period-net.js';
+import { EXPENSE_COFRINHO_CATEGORY } from './constants.js';
 import { referenceMonthToYearMonth, toYearMonthKey } from './pending-balance.js';
+
+/** Eixo do gráfico de aportes: sempre os 12 meses do ano civil atual (como no dashboard). */
+const INVESTMENTS_CHART_AXIS_PERIOD = 'current-year';
 
 export function getTotalApplicationsSum(applications, expenses, buckets) {
     if (Array.isArray(expenses) && Array.isArray(buckets) && buckets.length) {
@@ -20,7 +25,7 @@ export function sumAllocatedByBucket(expenses, bucket, applications = []) {
     const fromExpenses = (expenses || [])
         .filter(
             (e) =>
-                String(e.category || '').trim() === EXPENSE_INVESTMENT_CATEGORY &&
+                String(e.category || '').trim() === EXPENSE_COFRINHO_CATEGORY &&
                 String(e.subcategory || '').trim() === name &&
                 e.isPaid !== false
         )
@@ -58,7 +63,7 @@ function collectMonthsFromData(applications, expenses, buckets) {
     });
     if (expenses && buckets?.length) {
         (expenses || []).forEach((e) => {
-            if (String(e.category || '').trim() !== EXPENSE_INVESTMENT_CATEGORY) return;
+            if (String(e.category || '').trim() !== EXPENSE_COFRINHO_CATEGORY) return;
             const sub = String(e.subcategory || '').trim();
             if (!sub || !buckets.some((b) => b.name === sub)) return;
             const ym = toYearMonthKey(e.date);
@@ -74,16 +79,20 @@ function collectMonthsFromData(applications, expenses, buckets) {
  * @param {object[]} [expenses]
  */
 export function buildMonthlyStackedSeries(applications, buckets, expenses = []) {
-    const months = collectMonthsFromData(applications, expenses, buckets);
-    return months.map((ym) => {
-        const row = { yearMonth: ym, label: formatMonthLabel(ym), total: 0 };
+    const now = new Date();
+    const { startDate, endDate } = getPeriodDateBounds(INVESTMENTS_CHART_AXIS_PERIOD, now);
+    const calendarMonths = enumerateCalendarMonths(startDate, endDate);
+
+    return calendarMonths.map((mo) => {
+        const ym = `${mo.start.getFullYear()}-${String(mo.start.getMonth() + 1).padStart(2, '0')}`;
+        const row = { yearMonth: ym, label: mo.label, total: 0 };
         buckets.forEach((b) => {
             let v = 0;
             if (expenses?.length) {
                 v = (expenses || [])
                     .filter(
                         (e) =>
-                            String(e.category || '').trim() === EXPENSE_INVESTMENT_CATEGORY &&
+                            String(e.category || '').trim() === EXPENSE_COFRINHO_CATEGORY &&
                             String(e.subcategory || '').trim() === b.name &&
                             toYearMonthKey(e.date) === ym &&
                             e.isPaid !== false
@@ -160,7 +169,7 @@ export function filterApplications(applications, filters = {}) {
 }
 
 /** Meses consecutivos (do mais recente) com aplicação > 0. */
-export function countConsecutiveInvestmentMonths(applications, expenses, buckets) {
+export function countConsecutiveCofrinhoMonths(applications, expenses, buckets) {
     const months = collectMonthsFromData(applications, expenses, buckets);
     if (months.length === 0) return 0;
 
@@ -179,7 +188,7 @@ export function countConsecutiveInvestmentMonths(applications, expenses, buckets
             buckets &&
             (expenses || []).some((e) => {
                 if (toYearMonthKey(e.date) !== ym || e.isPaid === false) return false;
-                if (String(e.category || '').trim() !== EXPENSE_INVESTMENT_CATEGORY) return false;
+                if (String(e.category || '').trim() !== EXPENSE_COFRINHO_CATEGORY) return false;
                 const sub = String(e.subcategory || '').trim();
                 return sub && buckets.some((b) => b.name === sub);
             });

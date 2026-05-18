@@ -29,7 +29,6 @@ model User {
   accounts         Account[]
   expenses         Expense[]
   gains            Gain[]
-  goals            Goal[]
   debts            Debt[]
   debtUpdates      DebtUpdate[]
   adminLogs        AdminLog[]
@@ -77,7 +76,7 @@ model Expense {
   /** Momento em que o lançamento foi salvo no app (parcelas de empréstimo anteriores a isso não entram como «pagas» no automático). */
   createdAt        DateTime @default(now())
   isPaid           Boolean  @default(true)
-  isInvestment     Boolean  @default(false)
+  isCofrinho       Boolean  @default(false) @map("is_cofrinho")
   /** Número de parcelas na compra (cartão de crédito); null se não aplicável. */
   installmentCount Int?
   /** JSON array de chaves de período (YYYY-MM-DD ou YYYY-MM) marcadas como pagas para débito no saldo. */
@@ -160,20 +159,6 @@ model ExpenseSplitRequest {
   @@index([sourceExpenseId, splitScope, targetInstallmentIndex])
 }
 
-model Goal {
-  id               String   @id @default(uuid())
-  userId           String
-  name             String
-  targetAmount     Float
-  currentAmount    Float    @default(0)
-  /** Tema visual e categoria (ex.: viagem, casa, educacao). */
-  goalType         String   @default("outro")
-  /** JSON: array de IDs de contas vinculadas, ex.: ["uuid1","uuid2"]. */
-  linkedAccountIds String?  @db.NVarChar(Max)
-
-  user             User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
-
 model Debt {
   id        String   @id @default(uuid())
   userId    String
@@ -250,10 +235,10 @@ model Subcategory {
 
   user        User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   category    Category @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  investmentBuckets InvestmentBucket[]
+  cofrinhoBuckets CofrinhoBucket[]
 }
 
-model InvestmentBucket {
+model CofrinhoBucket {
   id              String   @id @default(uuid())
   userId          String
   name            String   @db.NVarChar(200)
@@ -265,14 +250,14 @@ model InvestmentBucket {
   createdAt       DateTime @default(now()) @map("created_at")
 
   subcategory   Subcategory? @relation(fields: [subcategoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  applications  InvestmentApplication[]
-  goals         InvestmentBucketGoal[]
+  applications  CofrinhoApplication[]
+  yearGoals     CofrinhoBucketGoal[]
 
   @@index([userId])
-  @@map("investment_buckets")
+  @@map("cofrinho_buckets")
 }
 
-model InvestmentApplication {
+model CofrinhoApplication {
   id                 String   @id @default(uuid())
   userId             String   @map("user_id")
   bucketId           String   @map("bucket_id")
@@ -284,14 +269,14 @@ model InvestmentApplication {
   allocatedExpenseId String?  @map("allocated_expense_id")
   createdAt          DateTime @default(now()) @map("created_at")
 
-  bucket InvestmentBucket @relation(fields: [bucketId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  bucket CofrinhoBucket @relation(fields: [bucketId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([userId])
   @@index([userId, referenceMonth])
-  @@map("investment_applications")
+  @@map("cofrinho_applications")
 }
 
-model InvestmentBucketGoal {
+model CofrinhoBucketGoal {
   id             String   @id @default(uuid())
   userId         String   @map("user_id")
   bucketId       String   @map("bucket_id")
@@ -301,10 +286,10 @@ model InvestmentBucketGoal {
   status         String   @default("Em andamento") @db.NVarChar(50)
   createdAt      DateTime @default(now()) @map("created_at")
 
-  bucket InvestmentBucket @relation(fields: [bucketId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  bucket CofrinhoBucket @relation(fields: [bucketId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@unique([userId, bucketId, year])
-  @@map("investment_bucket_goals")
+  @@map("cofrinho_bucket_goals")
 }
 
 /** Saldo total (contas não-cartão + investimentos) por dia; um registro por usuário e data (upsert). */

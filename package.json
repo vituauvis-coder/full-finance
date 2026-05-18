@@ -22,7 +22,8 @@
     "backfill:ledger": "node scripts/backfill-balance-ledger.mjs",
     "db:zero-budget:category": "node scripts/pg-migrate-zero-budget-category.mjs",
     "db:investment-allocation": "node scripts/pg-migrate-investment-allocation.mjs",
-    "db:investment-expense-link": "node scripts/pg-migrate-investment-expense-link.mjs"
+    "db:investment-expense-link": "node scripts/pg-migrate-investment-expense-link.mjs",
+    "db:cofrinhos-rename": "node scripts/pg-migrate-cofrinhos-rename.mjs"
   },
   "keywords": [],
   "author": "Victor Alves",

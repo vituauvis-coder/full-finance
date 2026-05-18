@@ -91,7 +91,7 @@ export function movementAccountPaymentKindLabel(acc) {
 
 /**
  * Contas que entram no «Saldo total» do dashboard e gráficos: caixa (corrente, poupança, dinheiro, outros).
- * Exclui cartões e conta tipo investimento — posições em ativos usam o módulo Investimentos.
+ * Exclui cartões e conta tipo investimento — posições em ativos usam o módulo Cofrinhos.
  */
 export function isCashBalanceAccountType(type) {
     if (isCardAccountType(type)) return false;

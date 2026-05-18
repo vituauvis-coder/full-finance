@@ -24,13 +24,13 @@ let categoriesCacheTimestamp = 0;
 const CACHE_TTL = 60000; // 1 minuto
 
 const ADD_NEW_VALUE = '__add_new__';
-const EXPENSE_INVESTMENT_CATEGORY = 'Investimentos';
+const EXPENSE_COFRINHO_CATEGORY = 'Cofrinhos';
 
 /** Nomes de subcategorias = caixinhas (definido ao carregar Investimentos). */
-let investmentBucketSubcategoryNames = null;
+let cofrinhoBucketSubcategoryNames = null;
 
-export function setInvestmentBucketSubcategoryFilter(names) {
-    investmentBucketSubcategoryNames =
+export function setCofrinhoBucketSubcategoryFilter(names) {
+    cofrinhoBucketSubcategoryNames =
         Array.isArray(names) && names.length ? new Set(names.map((n) => String(n).trim())) : null;
 }
 
@@ -302,8 +302,8 @@ export async function populateExpenseSubcategorySelect(selectedValue = '', force
     const selectedCategory = catSel?.value || '';
     let subcats = selectedCategory ? await getSubcategoriesForCategory(selectedCategory) : [];
 
-    if (selectedCategory === EXPENSE_INVESTMENT_CATEGORY && investmentBucketSubcategoryNames) {
-        subcats = subcats.filter((s) => investmentBucketSubcategoryNames.has(s));
+    if (selectedCategory === EXPENSE_COFRINHO_CATEGORY && cofrinhoBucketSubcategoryNames) {
+        subcats = subcats.filter((s) => cofrinhoBucketSubcategoryNames.has(s));
     }
 
     subSel.innerHTML = '';
@@ -314,14 +314,14 @@ export async function populateExpenseSubcategorySelect(selectedValue = '', force
     ph.value = '';
     if (!selectedCategory) {
         ph.textContent = 'Selecione uma categoria primeiro';
-    } else if (selectedCategory === EXPENSE_INVESTMENT_CATEGORY) {
+    } else if (selectedCategory === EXPENSE_COFRINHO_CATEGORY) {
         ph.textContent = 'Pool — aguardar alocação (sem subcategoria)';
     } else {
         ph.textContent = 'Selecione uma subcategoria';
     }
     subSel.appendChild(ph);
 
-    const isInvestimentos = selectedCategory === EXPENSE_INVESTMENT_CATEGORY;
+    const isInvestimentos = selectedCategory === EXPENSE_COFRINHO_CATEGORY;
 
     subcats.forEach((sub) => {
         const opt = document.createElement('option');

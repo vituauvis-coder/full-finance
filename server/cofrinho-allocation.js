@@ -1,5 +1,5 @@
 /**
- * Meus Investimentos: caixinhas (↔ subcategorias), aplicações e metas.
+ * Cofrinhos: caixinhas (↔ subcategorias), aplicações e metas.
  * Alocação atómica: reduz saída pool e cria saída com subcategoria da caixinha.
  */
 import crypto from 'node:crypto';
@@ -7,9 +7,9 @@ import { query, withTransaction } from './db.js';
 import { referenceOnlyForUserMovement } from './reference-only.js';
 import { safeUpsertBalanceSnapshot } from './balance-snapshot.js';
 
-export const INVESTMENT_CATEGORY = 'Investimentos';
+export const COFRINHO_CATEGORY = 'Cofrinhos';
 
-export const DEFAULT_INVESTMENT_BUCKETS = [
+export const DEFAULT_COFRINHO_BUCKETS = [
     { name: 'Aspiração', colorKey: 'fuchsia', icon: 'fa-bullseye', sortOrder: 0, yieldMultiplier: 1.025 },
     { name: 'Rendimento', colorKey: 'violet', icon: 'fa-chart-line', sortOrder: 1, yieldMultiplier: 1.07 },
     { name: 'Fundo Emergência', colorKey: 'emerald', icon: 'fa-shield-halved', sortOrder: 2, yieldMultiplier: 1.015 }
@@ -25,7 +25,7 @@ const BUCKET_SELECT = `SELECT
     yield_multiplier AS "yieldMultiplier",
     subcategory_id AS "subcategoryId",
     created_at AS "createdAt"
- FROM investment_buckets`;
+ FROM cofrinho_buckets`;
 
 const APPLICATION_SELECT = `SELECT
     id,
@@ -38,7 +38,7 @@ const APPLICATION_SELECT = `SELECT
     source_expense_id AS "sourceExpenseId",
     allocated_expense_id AS "allocatedExpenseId",
     created_at AS "createdAt"
- FROM investment_applications`;
+ FROM cofrinho_applications`;
 
 const GOAL_SELECT = `SELECT
     id,
@@ -49,7 +49,7 @@ const GOAL_SELECT = `SELECT
     achieved_amount AS "achievedAmount",
     status,
     created_at AS "createdAt"
- FROM investment_bucket_goals`;
+ FROM cofrinho_bucket_goals`;
 
 function normalizeReferenceMonth(raw) {
     if (!raw) return null;
@@ -76,19 +76,19 @@ function yearMonthBounds(ym) {
     return { start, end };
 }
 
-async function getOrCreateInvestimentosCategory(uid, client) {
+async function getOrCreateCofrinhosCategory(uid, client) {
     const { rows } = await client.query(
         `SELECT id FROM categories
          WHERE user_id = $1 AND type = 'EXPENSE' AND LOWER(TRIM(name)) = LOWER(TRIM($2))
          LIMIT 1`,
-        [uid, INVESTMENT_CATEGORY]
+        [uid, COFRINHO_CATEGORY]
     );
     if (rows[0]) return rows[0].id;
     const id = crypto.randomUUID();
     await client.query(
         `INSERT INTO categories (id, user_id, name, type, is_default, created_at, updated_at)
          VALUES ($1, $2, $3, 'EXPENSE', false, NOW(), NOW())`,
-        [id, uid, INVESTMENT_CATEGORY]
+        [id, uid, COFRINHO_CATEGORY]
     );
     return id;
 }
@@ -120,10 +120,10 @@ async function ensureSubcategoryForBucketName(uid, categoryId, bucketName, clien
  * @param {import('pg').PoolClient} client
  */
 async function syncBucketSubcategory(userId, bucketId, bucketName, client) {
-    const categoryId = await getOrCreateInvestimentosCategory(userId, client);
+    const categoryId = await getOrCreateCofrinhosCategory(userId, client);
     const subcategoryId = await ensureSubcategoryForBucketName(userId, categoryId, bucketName, client);
     if (subcategoryId) {
-        await client.query(`UPDATE investment_buckets SET subcategory_id = $2 WHERE id = $1 AND user_id = $3`, [
+        await client.query(`UPDATE cofrinho_buckets SET subcategory_id = $2 WHERE id = $1 AND user_id = $3`, [
             bucketId,
             subcategoryId,
             userId
@@ -144,7 +144,7 @@ async function renameBucketSubcategory(userId, subcategoryId, newName, oldName, 
         await client.query(
             `UPDATE expenses SET subcategory = $4
              WHERE user_id = $1 AND category = $2 AND subcategory = $3`,
-            [userId, INVESTMENT_CATEGORY, oldName, name]
+            [userId, COFRINHO_CATEGORY, oldName, name]
         );
     }
 }
@@ -162,7 +162,7 @@ async function fetchPoolExpensesForMonth(uid, ym, client, sourceExpenseId = null
              FROM expenses
              WHERE id = $1 AND user_id = $2 AND category = $3 AND is_paid = true
                AND (subcategory IS NULL OR TRIM(subcategory) = '')`,
-            [sourceExpenseId, uid, INVESTMENT_CATEGORY]
+            [sourceExpenseId, uid, COFRINHO_CATEGORY]
         );
         return rows;
     }
@@ -175,7 +175,7 @@ async function fetchPoolExpensesForMonth(uid, ym, client, sourceExpenseId = null
            AND (subcategory IS NULL OR TRIM(subcategory) = '')
            AND date >= $3 AND date < $4
          ORDER BY date ASC, created_at ASC`,
-        [uid, INVESTMENT_CATEGORY, start, end]
+        [uid, COFRINHO_CATEGORY, start, end]
     );
     return rows;
 }
@@ -234,7 +234,7 @@ async function insertAllocatedExpense(client, uid, poolRow, bucketName, amount, 
     await client.query(
         `INSERT INTO expenses (
             id, user_id, account_id, category, subcategory, amount, description,
-            date, is_paid, is_investment, installment_count, recurring_monthly,
+            date, is_paid, is_cofrinho, installment_count, recurring_monthly,
             cash_out_confirmed_periods, recurrence_group_id, is_fixed, reference_only,
             allocation_parent_id
          ) VALUES (
@@ -247,7 +247,7 @@ async function insertAllocatedExpense(client, uid, poolRow, bucketName, amount, 
             expenseId,
             uid,
             accountId,
-            INVESTMENT_CATEGORY,
+            COFRINHO_CATEGORY,
             bucketName,
             amount,
             description,
@@ -268,7 +268,7 @@ async function insertDirectExpense(client, uid, { accountId, amount, bucketName,
     await client.query(
         `INSERT INTO expenses (
             id, user_id, account_id, category, subcategory, amount, description,
-            date, is_paid, is_investment, installment_count, recurring_monthly,
+            date, is_paid, is_cofrinho, installment_count, recurring_monthly,
             cash_out_confirmed_periods, recurrence_group_id, is_fixed, reference_only,
             allocation_parent_id
          ) VALUES (
@@ -281,7 +281,7 @@ async function insertDirectExpense(client, uid, { accountId, amount, bucketName,
             expenseId,
             uid,
             accountId,
-            INVESTMENT_CATEGORY,
+            COFRINHO_CATEGORY,
             bucketName,
             amount,
             desc,
@@ -314,7 +314,7 @@ async function restorePoolAmount(client, uid, sourceExpenseId, amount, fallbackP
     await client.query(
         `INSERT INTO expenses (
             id, user_id, account_id, category, subcategory, amount, description,
-            date, is_paid, is_investment, installment_count, recurring_monthly,
+            date, is_paid, is_cofrinho, installment_count, recurring_monthly,
             cash_out_confirmed_periods, recurrence_group_id, is_fixed, reference_only
          ) VALUES (
             $1,$2,$3,$4,null,$5,$6,
@@ -325,9 +325,9 @@ async function restorePoolAmount(client, uid, sourceExpenseId, amount, fallbackP
             id,
             uid,
             fallbackPoolRow.accountId,
-            INVESTMENT_CATEGORY,
+            COFRINHO_CATEGORY,
             amount,
-            fallbackPoolRow.description || 'Investimentos (pool)',
+            fallbackPoolRow.description || 'Cofrinhos (pool)',
             fallbackPoolRow.date,
             refOnly
         ]
@@ -338,15 +338,15 @@ async function restorePoolAmount(client, uid, sourceExpenseId, amount, fallbackP
 /**
  * @param {string} userId
  */
-export async function ensureDefaultInvestmentBuckets(userId) {
-    const { rows } = await query(`SELECT id FROM investment_buckets WHERE user_id = $1 LIMIT 1`, [userId]);
+export async function ensureDefaultCofrinhoBuckets(userId) {
+    const { rows } = await query(`SELECT id FROM cofrinho_buckets WHERE user_id = $1 LIMIT 1`, [userId]);
     if (rows.length > 0) return;
 
     await withTransaction(async (client) => {
-        for (const b of DEFAULT_INVESTMENT_BUCKETS) {
+        for (const b of DEFAULT_COFRINHO_BUCKETS) {
             const id = crypto.randomUUID();
             await client.query(
-                `INSERT INTO investment_buckets (id, user_id, name, color_key, icon, sort_order, yield_multiplier)
+                `INSERT INTO cofrinho_buckets (id, user_id, name, color_key, icon, sort_order, yield_multiplier)
                  VALUES ($1, $2, $3, $4, $5, $6, $7)`,
                 [id, userId, b.name, b.colorKey, b.icon, b.sortOrder, b.yieldMultiplier]
             );
@@ -358,8 +358,8 @@ export async function ensureDefaultInvestmentBuckets(userId) {
 /**
  * @param {string} userId
  */
-export async function fetchInvestmentAllocationBundle(userId) {
-    await ensureDefaultInvestmentBuckets(userId);
+export async function fetchCofrinhoBundle(userId) {
+    await ensureDefaultCofrinhoBuckets(userId);
     const [bucketsRes, appsRes, goalsRes] = await Promise.all([
         query(`${BUCKET_SELECT} WHERE user_id = $1 ORDER BY sort_order ASC, name ASC`, [userId]),
         query(`${APPLICATION_SELECT} WHERE user_id = $1 ORDER BY reference_month DESC, created_at DESC`, [
@@ -368,9 +368,9 @@ export async function fetchInvestmentAllocationBundle(userId) {
         query(`${GOAL_SELECT} WHERE user_id = $1 ORDER BY year DESC, bucket_id ASC`, [userId])
     ]);
     return {
-        investmentBuckets: bucketsRes.rows,
-        investmentApplications: appsRes.rows,
-        investmentBucketGoals: goalsRes.rows
+        cofrinhoBuckets: bucketsRes.rows,
+        cofrinhoApplications: appsRes.rows,
+        cofrinhoBucketGoals: goalsRes.rows
     };
 }
 
@@ -378,9 +378,9 @@ export async function fetchInvestmentAllocationBundle(userId) {
  * @param {import('express').Express} app
  * @param {import('express').RequestHandler} requireAuth
  */
-export function registerInvestmentAllocationRoutes(app, requireAuth) {
+export function registerCofrinhoRoutes(app, requireAuth) {
     // --- Buckets ---
-    app.post('/api/investment-buckets', requireAuth, async (req, res) => {
+    app.post('/api/cofrinho-buckets', requireAuth, async (req, res) => {
         const uid = req.session.userId;
         const name = String(req.body.name || '').trim();
         if (!name) return res.status(400).json({ error: 'Nome obrigatório' });
@@ -388,13 +388,13 @@ export function registerInvestmentAllocationRoutes(app, requireAuth) {
         try {
             const row = await withTransaction(async (client) => {
                 const { rows: maxSort } = await client.query(
-                    `SELECT COALESCE(MAX(sort_order), -1) + 1 AS n FROM investment_buckets WHERE user_id = $1`,
+                    `SELECT COALESCE(MAX(sort_order), -1) + 1 AS n FROM cofrinho_buckets WHERE user_id = $1`,
                     [uid]
                 );
                 const sortOrder = Number(req.body.sortOrder);
                 const id = crypto.randomUUID();
                 const { rows } = await client.query(
-                    `INSERT INTO investment_buckets (id, user_id, name, color_key, icon, sort_order, yield_multiplier)
+                    `INSERT INTO cofrinho_buckets (id, user_id, name, color_key, icon, sort_order, yield_multiplier)
                      VALUES ($1,$2,$3,$4,$5,$6,$7)
                      RETURNING
                         id, user_id AS "userId", name, color_key AS "colorKey", icon,
@@ -421,7 +421,7 @@ export function registerInvestmentAllocationRoutes(app, requireAuth) {
         }
     });
 
-    app.put('/api/investment-buckets/:id', requireAuth, async (req, res) => {
+    app.put('/api/cofrinho-buckets/:id', requireAuth, async (req, res) => {
         const uid = req.session.userId;
         const { rows: existingRows } = await query(`${BUCKET_SELECT} WHERE id = $1 AND user_id = $2`, [
             req.params.id,
@@ -450,7 +450,7 @@ export function registerInvestmentAllocationRoutes(app, requireAuth) {
         try {
             const row = await withTransaction(async (client) => {
                 await client.query(
-                    `UPDATE investment_buckets
+                    `UPDATE cofrinho_buckets
                      SET name = $3, color_key = $4, icon = $5, sort_order = $6, yield_multiplier = $7
                      WHERE id = $1 AND user_id = $2`,
                     [req.params.id, uid, name, colorKey, icon, sortOrder, yieldMultiplier]
@@ -475,7 +475,7 @@ export function registerInvestmentAllocationRoutes(app, requireAuth) {
         }
     });
 
-    app.delete('/api/investment-buckets/:id', requireAuth, async (req, res) => {
+    app.delete('/api/cofrinho-buckets/:id', requireAuth, async (req, res) => {
         const uid = req.session.userId;
         const { rows: existingRows } = await query(
             `${BUCKET_SELECT} WHERE id = $1 AND user_id = $2`,
@@ -485,7 +485,7 @@ export function registerInvestmentAllocationRoutes(app, requireAuth) {
         if (!existing) return res.status(404).json({ error: 'Não encontrado' });
 
         const { rows: appCount } = await query(
-            `SELECT COUNT(*)::int AS n FROM investment_applications WHERE bucket_id = $1 AND user_id = $2`,
+            `SELECT COUNT(*)::int AS n FROM cofrinho_applications WHERE bucket_id = $1 AND user_id = $2`,
             [req.params.id, uid]
         );
         if ((appCount[0]?.n || 0) > 0) {
@@ -493,11 +493,11 @@ export function registerInvestmentAllocationRoutes(app, requireAuth) {
         }
 
         await withTransaction(async (client) => {
-            await client.query(`DELETE FROM investment_bucket_goals WHERE bucket_id = $1 AND user_id = $2`, [
+            await client.query(`DELETE FROM cofrinho_bucket_goals WHERE bucket_id = $1 AND user_id = $2`, [
                 req.params.id,
                 uid
             ]);
-            await client.query(`DELETE FROM investment_buckets WHERE id = $1 AND user_id = $2`, [
+            await client.query(`DELETE FROM cofrinho_buckets WHERE id = $1 AND user_id = $2`, [
                 req.params.id,
                 uid
             ]);
@@ -583,7 +583,7 @@ export function registerInvestmentAllocationRoutes(app, requireAuth) {
 
                 const appId = crypto.randomUUID();
                 const { rows } = await client.query(
-                    `INSERT INTO investment_applications (
+                    `INSERT INTO cofrinho_applications (
                         id, user_id, bucket_id, reference_month, amount, account_id, status,
                         source_expense_id, allocated_expense_id
                      ) VALUES ($1,$2,$3,$4::date,$5,$6,$7,$8,$9)
@@ -616,8 +616,8 @@ export function registerInvestmentAllocationRoutes(app, requireAuth) {
         }
     };
 
-    app.post('/api/investment-allocations', requireAuth, handleCreateAllocation);
-    app.post('/api/investment-applications', requireAuth, (req, res) => {
+    app.post('/api/cofrinho-allocations', requireAuth, handleCreateAllocation);
+    app.post('/api/cofrinho-applications', requireAuth, (req, res) => {
         if (!req.body.mode) req.body.mode = 'pool';
         return handleCreateAllocation(req, res);
     });
@@ -727,7 +727,7 @@ export function registerInvestmentAllocationRoutes(app, requireAuth) {
                         : existing.referenceMonth;
 
                 const { rows } = await client.query(
-                    `UPDATE investment_applications
+                    `UPDATE cofrinho_applications
                      SET bucket_id = $3, reference_month = $4::date, amount = $5, account_id = $6,
                          status = COALESCE($7, status)
                      WHERE id = $1 AND user_id = $2
@@ -758,8 +758,8 @@ export function registerInvestmentAllocationRoutes(app, requireAuth) {
         }
     };
 
-    app.put('/api/investment-allocations/:id', requireAuth, handleUpdateAllocation);
-    app.put('/api/investment-applications/:id', requireAuth, handleUpdateAllocation);
+    app.put('/api/cofrinho-allocations/:id', requireAuth, handleUpdateAllocation);
+    app.put('/api/cofrinho-applications/:id', requireAuth, handleUpdateAllocation);
 
     const handleDeleteAllocation = async (req, res) => {
         const uid = req.session.userId;
@@ -789,7 +789,7 @@ export function registerInvestmentAllocationRoutes(app, requireAuth) {
                 if (existing.sourceExpenseId && amt > 0) {
                     await restorePoolAmount(client, uid, existing.sourceExpenseId, amt, poolTemplate);
                 }
-                await client.query(`DELETE FROM investment_applications WHERE id = $1 AND user_id = $2`, [
+                await client.query(`DELETE FROM cofrinho_applications WHERE id = $1 AND user_id = $2`, [
                     req.params.id,
                     uid
                 ]);
@@ -802,11 +802,11 @@ export function registerInvestmentAllocationRoutes(app, requireAuth) {
         }
     };
 
-    app.delete('/api/investment-allocations/:id', requireAuth, handleDeleteAllocation);
-    app.delete('/api/investment-applications/:id', requireAuth, handleDeleteAllocation);
+    app.delete('/api/cofrinho-allocations/:id', requireAuth, handleDeleteAllocation);
+    app.delete('/api/cofrinho-applications/:id', requireAuth, handleDeleteAllocation);
 
     // --- Bucket goals ---
-    app.post('/api/investment-bucket-goals', requireAuth, async (req, res) => {
+    app.post('/api/cofrinho-bucket-goals', requireAuth, async (req, res) => {
         const uid = req.session.userId;
         const bucketId = String(req.body.bucketId || '').trim();
         const year = parseInt(req.body.year, 10);
@@ -815,7 +815,7 @@ export function registerInvestmentAllocationRoutes(app, requireAuth) {
         }
 
         const { rows: bucketRows } = await query(
-            `SELECT id FROM investment_buckets WHERE id = $1 AND user_id = $2`,
+            `SELECT id FROM cofrinho_buckets WHERE id = $1 AND user_id = $2`,
             [bucketId, uid]
         );
         if (!bucketRows[0]) return res.status(400).json({ error: 'Caixinha inválida' });
@@ -823,7 +823,7 @@ export function registerInvestmentAllocationRoutes(app, requireAuth) {
         const id = crypto.randomUUID();
         try {
             const { rows } = await query(
-                `INSERT INTO investment_bucket_goals (id, user_id, bucket_id, year, target_amount, achieved_amount, status)
+                `INSERT INTO cofrinho_bucket_goals (id, user_id, bucket_id, year, target_amount, achieved_amount, status)
                  VALUES ($1,$2,$3,$4,$5,$6,$7)
                  RETURNING
                     id, user_id AS "userId", bucket_id AS "bucketId", year,
@@ -848,7 +848,7 @@ export function registerInvestmentAllocationRoutes(app, requireAuth) {
         }
     });
 
-    app.put('/api/investment-bucket-goals/:id', requireAuth, async (req, res) => {
+    app.put('/api/cofrinho-bucket-goals/:id', requireAuth, async (req, res) => {
         const uid = req.session.userId;
         const { rows: existingRows } = await query(`${GOAL_SELECT} WHERE id = $1 AND user_id = $2`, [
             req.params.id,
@@ -872,7 +872,7 @@ export function registerInvestmentAllocationRoutes(app, requireAuth) {
                 : existing.status;
 
         const { rows } = await query(
-            `UPDATE investment_bucket_goals
+            `UPDATE cofrinho_bucket_goals
              SET year = $3, target_amount = $4, achieved_amount = $5, status = $6
              WHERE id = $1 AND user_id = $2
              RETURNING
@@ -884,14 +884,14 @@ export function registerInvestmentAllocationRoutes(app, requireAuth) {
         res.json(rows[0]);
     });
 
-    app.delete('/api/investment-bucket-goals/:id', requireAuth, async (req, res) => {
+    app.delete('/api/cofrinho-bucket-goals/:id', requireAuth, async (req, res) => {
         const uid = req.session.userId;
-        const { rows } = await query(`SELECT id FROM investment_bucket_goals WHERE id = $1 AND user_id = $2`, [
+        const { rows } = await query(`SELECT id FROM cofrinho_bucket_goals WHERE id = $1 AND user_id = $2`, [
             req.params.id,
             uid
         ]);
         if (!rows[0]) return res.status(404).json({ error: 'Não encontrado' });
-        await query(`DELETE FROM investment_bucket_goals WHERE id = $1 AND user_id = $2`, [req.params.id, uid]);
+        await query(`DELETE FROM cofrinho_bucket_goals WHERE id = $1 AND user_id = $2`, [req.params.id, uid]);
         res.json({ ok: true });
     });
 }

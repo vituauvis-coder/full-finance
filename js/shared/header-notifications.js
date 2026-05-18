@@ -1,11 +1,11 @@
 /**
- * Lógica exclusiva do sininho do cabeçalho: faturas, investimentos no mês e gastos elevados.
- * Não acopla a outras features além dos dados passados (contas, despesas, investimentos).
+ * Lógica exclusiva do sininho do cabeçalho: faturas, cofrinhos no mês e gastos elevados.
+ * Não acopla a outras features além dos dados passados (contas, despesas, cofrinhos).
  */
 import { creditCardInvoiceTotalForCycle } from '../core/credit-installments.js';
 import { formatCurrency, movementDateToJsDate, isCreditCardType, getBillingCycle } from '../core/utils.js';
 import { api } from '../api-client.js';
-import { computePendingBalance } from '../features/investments/pending-balance.js';
+import { computePendingBalance } from '../features/cofrinhos/pending-balance.js';
 
 const MS_DAY = 86400000;
 
@@ -28,7 +28,7 @@ let getAppState = () => ({
     accounts: [],
     expenses: [],
     gains: [],
-    investmentApplications: [],
+    cofrinhoApplications: [],
     expenseSplitRequests: { incoming: [], outgoing: [] },
     userNotifications: [],
     currency: 'BRL'
@@ -43,7 +43,7 @@ function categorySumInMonth(expenses, categoryLabel, year, monthIndex) {
     return expenses
         .filter(
             (e) =>
-                !e.isInvestment &&
+                !e.isCofrinho &&
                 (e.category || 'Outros') === categoryLabel &&
                 dateInCalendarMonth(e.date, year, monthIndex)
         )
@@ -57,7 +57,7 @@ function categorySumInMonth(expenses, categoryLabel, year, monthIndex) {
 export function buildHeaderNotifications(state) {
     const accounts = state.accounts || [];
     const expenses = state.expenses || [];
-    const applications = state.investmentApplications || [];
+    const applications = state.cofrinhoApplications || [];
     const currency = state.currency || 'BRL';
 
     const items = [];
@@ -94,21 +94,21 @@ export function buildHeaderNotifications(state) {
         });
     });
 
-    // --- 2) Saldo pendente de alocação (saídas categoria Investimentos) ---
+    // --- 2) Saldo pendente de alocação (saídas categoria Cofrinhos) ---
     const ym = `${y}-${String(mo + 1).padStart(2, '0')}`;
     const pending = computePendingBalance(expenses, applications, ym);
     if (pending > 0) {
         items.push({
-            id: `investment-pending-${ym}`,
-            kind: 'investment',
-            title: 'Investimentos aguardando alocação',
+            id: `cofrinho-pending-${ym}`,
+            kind: 'cofrinho',
+            title: 'Cofrinhos aguardando alocação',
             detail: `${formatCurrency(pending, currency)} para distribuir nas caixinhas.`,
             priority: 2
         });
     }
 
     // --- 3) Gastos elevados por categoria ---
-    const monthExpenses = expenses.filter((e) => !e.isInvestment && dateInCalendarMonth(e.date, y, mo));
+    const monthExpenses = expenses.filter((e) => !e.isCofrinho && dateInCalendarMonth(e.date, y, mo));
     const totalMonth = monthExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
     const byCategory = {};
     monthExpenses.forEach((e) => {
@@ -202,7 +202,7 @@ export function buildHeaderNotifications(state) {
 
 function iconForKind(kind) {
     if (kind === 'invoice') return 'fa-file-invoice-dollar';
-    if (kind === 'investment') return 'fa-chart-line';
+    if (kind === 'cofrinho') return 'fa-piggy-bank';
     if (kind === 'split') return 'fa-users';
     if (kind === 'split-pay') return 'fa-money-bill-wave';
     return 'fa-chart-pie';

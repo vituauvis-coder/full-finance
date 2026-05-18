@@ -18,7 +18,7 @@ const DEFAULT_CATEGORIES = [
     'Roupas',
     'Pets',
     'Viagens',
-    'Investimentos',
+    'Cofrinhos',
     'Trabalho',
     'Seguros',
     'Empréstimo',
@@ -103,7 +103,7 @@ const DEFAULT_SUBCATEGORIES = {
         'Passeios',
         'Compras viaje'
     ],
-    'Investimentos': [
+    'Cofrinhos': [
         'Taxa corretora',
         'IOF',
         'Impostos',

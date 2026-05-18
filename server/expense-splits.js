@@ -46,7 +46,7 @@ const SOURCE_EXPENSE_API_SELECT = {
     date: true,
     category: true,
     subcategory: true,
-    isInvestment: true
+    isCofrinho: true
 };
 
 /** Saída pode ser origem de rateio: não recorrente/parcelada de forma ambígua. */
@@ -122,7 +122,7 @@ function baseSplitSelectSql(extraWhereSql = '') {
                 'date', se.date,
                 'category', se.category,
                 'subcategory', se.subcategory,
-                'isInvestment', se.is_investment,
+                'isCofrinho', se.is_cofrinho,
                 'installmentCount', se.installment_count,
                 'cashOutConfirmedPeriods', se.cash_out_confirmed_periods,
                 'recurringMonthly', se.recurring_monthly,
@@ -172,7 +172,7 @@ export function normalizeSplitRow(row) {
                   date: sourceExpense.date,
                   category: sourceExpense.category,
                   subcategory: sourceExpense.subcategory ?? null,
-                  isInvestment: Boolean(sourceExpense.isInvestment),
+                  isCofrinho: Boolean(sourceExpense.isCofrinho),
                   isFixed: Boolean(sourceExpense.isFixed),
                   installmentCount:
                       sourceExpense.installmentCount ??

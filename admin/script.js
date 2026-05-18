@@ -669,14 +669,14 @@ window.openUserDetails = async (userId) => {
 
     const lists = {
         accounts: document.querySelector('#details-accounts-section .details-list'),
-        goals: document.querySelector('#details-goals-section .details-list')
+        cofrinhos: document.querySelector('#details-cofrinhos-section .details-list')
     };
 
     Object.values(lists).forEach(l => l.innerHTML = '<li>Carregando...</li>');
 
     const details = await apiJson(`/api/admin/user/${userId}/details`);
     const accounts = details.accounts || [];
-    const goals = details.goals || [];
+    const cofrinhoBuckets = details.cofrinhoBuckets || [];
     const summary = details.summary || {};
     const sumEl = document.getElementById('user-details-summary');
     if (sumEl) {
@@ -702,16 +702,13 @@ window.openUserDetails = async (userId) => {
             lists.accounts.appendChild(li);
         });
 
-    lists.goals.innerHTML = '';
-    if (goals.length === 0) lists.goals.innerHTML = '<li>Nenhum objetivo.</li>';
+    lists.cofrinhos.innerHTML = '';
+    if (cofrinhoBuckets.length === 0) lists.cofrinhos.innerHTML = '<li>Nenhum cofrinho.</li>';
     else
-        goals.forEach((g) => {
-            const current = parseFloat(g.currentAmount) || 0;
-            const target = parseFloat(g.targetAmount) || 1;
-            const percent = Math.round((current / target) * 100);
+        cofrinhoBuckets.forEach((b) => {
             const li = document.createElement('li');
-            li.textContent = `${g.name || 'Objetivo'}: R$ ${current.toFixed(2)} / ${target.toFixed(2)} (${percent}%)`;
-            lists.goals.appendChild(li);
+            li.textContent = b.name || 'Cofrinho';
+            lists.cofrinhos.appendChild(li);
         });
 };
 

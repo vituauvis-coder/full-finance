@@ -37,6 +37,7 @@
 .card-icon.income { color: var(--gains-accent); }
 .card-icon.expense { color: var(--danger-color); }
 .card-icon.savings { color: var(--warning-color); }
+.card-icon.cofrinhos,
 .card-icon.investments { color: var(--primary-color); }
 .card-icon.projection { color: var(--warning-color); }
 
@@ -231,6 +232,7 @@
     color: var(--warning-color);
 }
 
+.movements-summary .card-icon.cofrinhos,
 .movements-summary .card-icon.investments {
     background: rgba(64, 64, 64, 0.06);
     color: var(--primary-color);
@@ -244,6 +246,7 @@
     background: rgba(251, 191, 36, 0.12);
 }
 
+[data-theme='dark'] .movements-summary .card-icon.cofrinhos,
 [data-theme='dark'] .movements-summary .card-icon.investments {
     background: rgba(248, 250, 252, 0.08);
 }
@@ -499,7 +502,7 @@
     font-size: 0.95rem;
 }
 
-#expenses-table td.investimento {
+#expenses-table td.cofrinho {
     color: var(--info-color);
     font-weight: 700;
     font-size: 0.95rem;
@@ -1376,7 +1379,7 @@ button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='
     border-color: rgba(5, 150, 105, 0.42);
 }
 
-.treemap-block--investimentos {
+.treemap-block--cofrinhos {
     background: linear-gradient(155deg, #fb7185 0%, #f43f5e 40%, #e11d48 100%);
     border-color: rgba(225, 29, 72, 0.42);
 }
@@ -1639,7 +1642,7 @@ button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='
     flex: 1 1 0%;
 }
 
-/* Faixas horizontais (Alimentação / Investimentos) */
+/* Faixas horizontais (Alimentação / Cofrinhos) */
 .treemap-expanded-wide {
     flex: 1;
     min-height: 0;

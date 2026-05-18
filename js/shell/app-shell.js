@@ -61,14 +61,12 @@ function applySidebarCollapsed(collapsed) {
     clearSidebarCollapseTabInlineStyles();
 }
 
-/** Aviso “em desenvolvimento” (Objetivos, Investimentos, Dívidas) — blur em tela cheia; dispensa até ao fim da sessão. */
+/** Aviso “em desenvolvimento” (Dívidas) — blur em tela cheia; dispensa até ao fim da sessão. */
 const FEATURE_PREVIEW_STORAGE = {
-    goals: 'ff_feature_preview_goals',
-    investments: 'ff_feature_preview_investments',
     debts: 'ff_feature_preview_debts'
 };
 
-const FEATURE_PREVIEW_PAGE_IDS = ['goals', 'debts'];
+const FEATURE_PREVIEW_PAGE_IDS = ['debts'];
 
 function updateFeaturePreviewGlobal(pageId) {
     const el = document.getElementById('feature-preview-global');
@@ -431,8 +429,7 @@ export function navigateTo(pageId) {
         gains: { icon: 'fa-arrow-up', title: 'Entradas' },
         'zero-budget': { icon: 'fa-bullseye', title: 'Planejamento' },
         wallet: { icon: 'fa-wallet', title: 'Carteira' },
-        goals: { icon: 'fa-flag-checkered', title: 'Objetivos' },
-        investments: { icon: 'fa-chart-line', title: 'Investimentos' },
+        cofrinhos: { icon: 'fa-piggy-bank', title: 'Cofrinhos' },
         debts: { icon: 'fa-triangle-exclamation', title: 'Dívidas' },
         tools: { icon: 'fa-tools', title: 'Ferramentas' },
         profile: { icon: 'fa-user', title: 'Meu Perfil' },
@@ -461,7 +458,7 @@ export function navigateTo(pageId) {
             'app-header--gains',
             'app-header--zero-budget',
             'app-header--wallet',
-            'app-header--investments'
+            'app-header--cofrinhos'
         );
         if (pageId === 'expenses') {
             appHeader.classList.add('app-header--expenses');
@@ -471,8 +468,8 @@ export function navigateTo(pageId) {
             appHeader.classList.add('app-header--zero-budget');
         } else if (pageId === 'wallet') {
             appHeader.classList.add('app-header--wallet');
-        } else if (pageId === 'investments') {
-            appHeader.classList.add('app-header--investments');
+        } else if (pageId === 'cofrinhos') {
+            appHeader.classList.add('app-header--cofrinhos');
         }
     }
 
@@ -481,7 +478,7 @@ export function navigateTo(pageId) {
     document.getElementById('dashboard-header-actions')?.classList.toggle('hidden', pageId !== 'dashboard');
     document.getElementById('zero-budget-header-actions')?.classList.toggle('hidden', pageId !== 'zero-budget');
     document.getElementById('wallet-header-actions')?.classList.toggle('hidden', pageId !== 'wallet');
-    document.getElementById('investments-header-actions')?.classList.toggle('hidden', pageId !== 'investments');
+    document.getElementById('cofrinhos-header-actions')?.classList.toggle('hidden', pageId !== 'cofrinhos');
 
     // Salva a última página visitada
     localStorage.setItem('lastVisitedPage', pageId);

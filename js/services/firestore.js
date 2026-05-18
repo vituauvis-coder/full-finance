@@ -28,10 +28,9 @@ export async function fetchAllData(userId) {
             userAccounts: data.userAccounts || [],
             userExpenses: data.userExpenses || [],
             userGains: data.userGains || [],
-            userGoals: data.userGoals || [],
-            investmentBuckets: data.investmentBuckets || [],
-            investmentApplications: data.investmentApplications || [],
-            investmentBucketGoals: data.investmentBucketGoals || [],
+            cofrinhoBuckets: data.cofrinhoBuckets || [],
+            cofrinhoApplications: data.cofrinhoApplications || [],
+            cofrinhoBucketGoals: data.cofrinhoBucketGoals || [],
             userDebts: data.userDebts || [],
             userDebtUpdates: data.userDebtUpdates || [],
             expenseSplitRequests: data.expenseSplitRequests || { incoming: [], outgoing: [] },
@@ -59,11 +58,10 @@ async function saveDocument(collectionName, data, docId, options = {}) {
         expenses: '/api/expenses',
         gains: '/api/gains',
         accounts: '/api/accounts',
-        goals: '/api/goals',
-        investmentBuckets: '/api/investment-buckets',
-        investmentApplications: '/api/investment-applications',
-        investmentAllocations: '/api/investment-applications',
-        investmentBucketGoals: '/api/investment-bucket-goals',
+        cofrinhoBuckets: '/api/cofrinho-buckets',
+        cofrinhoApplications: '/api/cofrinho-applications',
+        cofrinhoAllocations: '/api/cofrinho-applications',
+        cofrinhoBucketGoals: '/api/cofrinho-bucket-goals',
         debts: '/api/debts',
         debtUpdates: '/api/debt-updates'
     };
@@ -100,11 +98,10 @@ async function deleteDocument(collectionName, docId) {
         expenses: '/api/expenses',
         gains: '/api/gains',
         accounts: '/api/accounts',
-        goals: '/api/goals',
-        investmentBuckets: '/api/investment-buckets',
-        investmentApplications: '/api/investment-applications',
-        investmentAllocations: '/api/investment-applications',
-        investmentBucketGoals: '/api/investment-bucket-goals',
+        cofrinhoBuckets: '/api/cofrinho-buckets',
+        cofrinhoApplications: '/api/cofrinho-applications',
+        cofrinhoAllocations: '/api/cofrinho-applications',
+        cofrinhoBucketGoals: '/api/cofrinho-bucket-goals',
         debts: '/api/debts',
         debtUpdates: '/api/debt-updates'
     };
@@ -131,16 +128,14 @@ export async function patchGainsBatch(ids, patch) {
 }
 export const saveGain = (data, docId, options) => saveDocument('gains', data, docId, options);
 export const saveAccount = (data, docId, options) => saveDocument('accounts', data, docId, options);
-export const saveGoal = (data, docId, options) => saveDocument('goals', data, docId, options);
-export const saveInvestmentBucket = (data, docId, options) =>
-    saveDocument('investmentBuckets', data, docId, options);
-export const saveInvestmentApplication = (data, docId, options) =>
-    saveDocument('investmentApplications', data, docId, options);
+export const saveCofrinhoBucket = (data, docId, options) =>
+    saveDocument('cofrinhoBuckets', data, docId, options);
+export const saveCofrinhoApplication = (data, docId, options) =>
+    saveDocument('cofrinhoApplications', data, docId, options);
 
 /** Cria ou atualiza alocação (split pool + despesa ou aporte direto). */
-export async function saveInvestmentAllocation(data, docId, options) {
-    // Mesmo handler que /api/investment-allocations (alias no servidor).
-    const path = '/api/investment-applications';
+export async function saveCofrinhoAllocation(data, docId, options) {
+    const path = '/api/cofrinho-applications';
     if (docId) {
         return api(`${path}/${docId}`, {
             method: 'PUT',
@@ -153,20 +148,19 @@ export async function saveInvestmentAllocation(data, docId, options) {
     });
 }
 
-export const deleteInvestmentAllocation = (docId) => deleteDocument('investmentAllocations', docId);
-export const saveInvestmentBucketGoal = (data, docId, options) =>
-    saveDocument('investmentBucketGoals', data, docId, options);
+export const deleteCofrinhoAllocation = (docId) => deleteDocument('cofrinhoAllocations', docId);
+export const saveCofrinhoBucketGoal = (data, docId, options) =>
+    saveDocument('cofrinhoBucketGoals', data, docId, options);
 export const saveDebt = (data, docId, options) => saveDocument('debts', data, docId, options);
 export const saveDebtUpdate = (data, docId, options) => saveDocument('debtUpdates', data, docId, options);
 
 export const deleteAccount = (docId) => deleteDocument('accounts', docId);
 export const deleteExpense = (docId) => deleteDocument('expenses', docId);
 export const deleteGain = (docId) => deleteDocument('gains', docId);
-export const deleteGoal = (docId) => deleteDocument('goals', docId);
-export const deleteInvestmentBucket = (docId) => deleteDocument('investmentBuckets', docId);
-export const deleteInvestmentApplication = (docId) =>
-    deleteDocument('investmentApplications', docId);
-export const deleteInvestmentBucketGoal = (docId) => deleteDocument('investmentBucketGoals', docId);
+export const deleteCofrinhoBucket = (docId) => deleteDocument('cofrinhoBuckets', docId);
+export const deleteCofrinhoApplication = (docId) =>
+    deleteDocument('cofrinhoApplications', docId);
+export const deleteCofrinhoBucketGoal = (docId) => deleteDocument('cofrinhoBucketGoals', docId);
 export const deleteDebt = (docId) => deleteDocument('debts', docId);
 export const deleteDebtUpdate = (docId) => deleteDocument('debtUpdates', docId);
 

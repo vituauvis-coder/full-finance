@@ -15,9 +15,8 @@ import {
 import { initProfile, applyProfilePhotoFromUserProfile } from '../features/profile/profile.js';
 import { initTools } from '../features/tools/tools.js';
 import { initSupport } from '../features/support/support.js';
-import { initGoals, loadGoalsData } from '../features/goals/index.js';
-import { initInvestments, loadInvestmentsPage } from '../features/investments/investments-page.js';
-import { setInvestmentBucketSubcategoryFilter } from '../features/finance/expense-categories.js';
+import { initCofrinhos, loadCofrinhosPage } from '../features/cofrinhos/cofrinhos-page.js';
+import { setCofrinhoBucketSubcategoryFilter } from '../features/finance/expense-categories.js';
 import { initDebts, loadDebtsData } from '../features/debts/debts.js';
 import { initHeaderNotifications, refreshHeaderNotifications } from '../shared/header-notifications.js';
 import { setupGlobalErrorHandlers } from './error-handling.js';
@@ -33,10 +32,9 @@ export let AppState = {
     accounts: [],
     expenses: [],
     gains: [],
-    goals: [],
-    investmentBuckets: [],
-    investmentApplications: [],
-    investmentBucketGoals: [],
+    cofrinhoBuckets: [],
+    cofrinhoApplications: [],
+    cofrinhoBucketGoals: [],
     debts: [],
     debtUpdates: [],
     expenseSplitRequests: { incoming: [], outgoing: [] },
@@ -66,7 +64,6 @@ document.addEventListener('DOMContentLoaded', () => {
  * Callback executado quando o usuário é autenticado com sucesso.
  */
 async function onAuthenticated(user) {
-    // CORREÇÃO: Esconde o loader e mostra o container principal do app
     document.getElementById('loader').classList.add('hidden');
     document.getElementById('app').classList.remove('hidden');
 
@@ -77,13 +74,10 @@ async function onAuthenticated(user) {
     initUI(user, loadPageData);
     initHeaderNotifications(() => AppState, refreshAllData);
 
-    // Antes de carregar o dashboard: o <select> do período ainda está no 1º option (Janeiro).
-    // `initFinance` só sincroniza depois de `refreshAllData`, então o gráfico de saídas lia o mês errado até trocar o tipo de gráfico.
     syncPeriodFilterSelectsToCurrentMonth();
 
     await refreshAllData();
 
-    // Inicializa todos os módulos, passando as funções de que precisam
     initFinance(
         user,
         AppState.accounts,
@@ -96,8 +90,7 @@ async function onAuthenticated(user) {
     initProfile(user, refreshAllData);
     initTools();
     initSupport();
-    initInvestments(AppState.currentUser, refreshAllData);
-    initGoals(AppState.currentUser, AppState.accounts, refreshAllData);
+    initCofrinhos(AppState.currentUser, refreshAllData);
     initDebts(AppState.currentUser, refreshAllData);
     initZeroBudgetPage();
 
@@ -115,10 +108,16 @@ async function onAuthenticated(user) {
         lastPage === 'support' ||
         lastPage === 'transactions' ||
         lastPage === 'budgets' ||
-        lastPage === 'payables'
+        lastPage === 'payables' ||
+        lastPage === 'goals' ||
+        lastPage === 'investments'
     ) {
         lastPage =
-            lastPage === 'transactions' ? 'expenses' : lastPage === 'budgets' ? 'goals' : 'dashboard';
+            lastPage === 'transactions'
+                ? 'expenses'
+                : lastPage === 'budgets' || lastPage === 'goals' || lastPage === 'investments'
+                  ? 'cofrinhos'
+                  : 'dashboard';
         localStorage.setItem('lastVisitedPage', lastPage);
     }
     navigateTo(lastPage);
@@ -130,7 +129,6 @@ async function onAuthenticated(user) {
  * Callback para quando o usuário faz logout.
  */
 function onSignedOut() {
-    // CORREÇÃO: Esconde o loader e mostra o container principal do app
     document.getElementById('loader').classList.add('hidden');
     document.getElementById('app').classList.remove('hidden');
 
@@ -140,10 +138,9 @@ function onSignedOut() {
         accounts: [],
         expenses: [],
         gains: [],
-        goals: [],
-        investmentBuckets: [],
-    investmentApplications: [],
-    investmentBucketGoals: [],
+        cofrinhoBuckets: [],
+        cofrinhoApplications: [],
+        cofrinhoBucketGoals: [],
         debts: [],
         debtUpdates: [],
         expenseSplitRequests: { incoming: [], outgoing: [] },
@@ -152,7 +149,7 @@ function onSignedOut() {
     };
     document.getElementById('main-content').classList.add('hidden');
     document.getElementById('auth-container').classList.remove('hidden');
-    initAuthForms(); // Inicializa os formulários de autenticação
+    initAuthForms();
 }
 
 /**
@@ -163,13 +160,12 @@ async function refreshAllData() {
     AppState.expenses = data.userExpenses || [];
     AppState.gains = data.userGains || [];
     AppState.accounts = data.userAccounts || [];
-    AppState.goals = data.userGoals || [];
-    AppState.investmentBuckets = data.investmentBuckets || [];
-    setInvestmentBucketSubcategoryFilter(
-        AppState.investmentBuckets.map((b) => b.name).filter(Boolean)
+    AppState.cofrinhoBuckets = data.cofrinhoBuckets || [];
+    setCofrinhoBucketSubcategoryFilter(
+        AppState.cofrinhoBuckets.map((b) => b.name).filter(Boolean)
     );
-    AppState.investmentApplications = data.investmentApplications || [];
-    AppState.investmentBucketGoals = data.investmentBucketGoals || [];
+    AppState.cofrinhoApplications = data.cofrinhoApplications || [];
+    AppState.cofrinhoBucketGoals = data.cofrinhoBucketGoals || [];
     AppState.debts = data.userDebts || [];
     AppState.debtUpdates = data.userDebtUpdates || [];
     AppState.expenseSplitRequests = data.expenseSplitRequests || { incoming: [], outgoing: [] };
@@ -180,7 +176,6 @@ async function refreshAllData() {
     }
     applyProfilePhotoFromUserProfile(AppState.userProfile);
 
-    // Recalcula saldos das contas após buscar os dados
     AppState.accounts = calculateAllBalances(
         AppState.accounts,
         AppState.expenses,
@@ -196,7 +191,6 @@ async function refreshAllData() {
         AppState.expenseSplitRequests
     );
 
-    // Atualizar dados do Planejamento Base Zero quando mudarem
     updateZeroBudgetData(AppState.gains, AppState.expenses);
 
     for (const n of AppState.userNotifications) {
@@ -208,7 +202,6 @@ async function refreshAllData() {
         break;
     }
 
-    // Recarrega os dados da página ativa
     const activePageId = document.querySelector('.page:not(.hidden)')?.id;
     if (activePageId) {
         loadPageData(activePageId.replace('-page', ''));
@@ -236,7 +229,7 @@ function loadPageData(pageName) {
                 AppState.gains,
                 AppState.accounts,
                 AppState.currency,
-                AppState.investmentApplications,
+                AppState.cofrinhoApplications,
                 AppState.userProfile,
                 AppState.expenseSplitRequests
             );
@@ -263,22 +256,18 @@ function loadPageData(pageName) {
                 AppState.expenseSplitRequests
             );
             break;
-        case 'goals':
-            loadGoalsData(AppState.goals, AppState.accounts, AppState.currency);
-            break;
-        case 'investments':
-            setInvestmentBucketSubcategoryFilter(
-                (AppState.investmentBuckets || []).map((b) => b.name).filter(Boolean)
+        case 'cofrinhos':
+            setCofrinhoBucketSubcategoryFilter(
+                (AppState.cofrinhoBuckets || []).map((b) => b.name).filter(Boolean)
             );
-            loadInvestmentsPage(
+            loadCofrinhosPage(
                 AppState.expenses,
-                AppState.investmentBuckets,
-                AppState.investmentApplications,
-                AppState.investmentBucketGoals,
+                AppState.cofrinhoBuckets,
+                AppState.cofrinhoApplications,
+                AppState.cofrinhoBucketGoals,
                 AppState.accounts,
                 AppState.currency
             );
             break;
-        // Os casos de profile e tools são inicializados e não precisam de recarga de dados aqui.
     }
 }

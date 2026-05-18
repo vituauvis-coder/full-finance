@@ -1,5 +1,5 @@
-/** Categoria de saída que alimenta o saldo pendente de investimentos. */
-export const EXPENSE_INVESTMENT_CATEGORY = 'Investimentos';
+/** Categoria de saída que alimenta o saldo pendente de cofrinhos. */
+export const EXPENSE_COFRINHO_CATEGORY = 'Cofrinhos';
 
 export const GOAL_STATUS_OPTIONS = [
     'Em andamento',

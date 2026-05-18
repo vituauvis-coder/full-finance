@@ -21,9 +21,9 @@ import {
 } from './user-notifications.js';
 import { registerZeroBudgetRoutes } from './zero-budget.js';
 import {
-    fetchInvestmentAllocationBundle,
-    registerInvestmentAllocationRoutes
-} from './investment-allocation.js';
+    fetchCofrinhoBundle,
+    registerCofrinhoRoutes
+} from './cofrinho-allocation.js';
 import {
     backupContentType,
     backupFilename,
@@ -152,35 +152,6 @@ function userSafe(u) {
     if (!u) return null;
     const { passwordHash: _, ...rest } = u;
     return rest;
-}
-
-/** Objetivos: contas vinculadas como JSON no banco; API expõe array de ids. */
-function parseGoalLinkedAccountIds(raw) {
-    if (raw == null || raw === '') return [];
-    if (Array.isArray(raw)) return raw.map(String).filter(Boolean);
-    if (typeof raw === 'string') {
-        try {
-            const a = JSON.parse(raw);
-            return Array.isArray(a) ? a.map(String).filter(Boolean) : [];
-        } catch {
-            return [];
-        }
-    }
-    return [];
-}
-
-function serializeGoalLinkedAccountIds(ids) {
-    if (!ids || !Array.isArray(ids) || ids.length === 0) return null;
-    const uniq = [...new Set(ids.map(String).filter(Boolean))];
-    return uniq.length ? JSON.stringify(uniq) : null;
-}
-
-function normalizeGoalRow(g) {
-    if (!g) return g;
-    return {
-        ...g,
-        linkedAccountIds: parseGoalLinkedAccountIds(g.linkedAccountIds)
-    };
 }
 
 function toFirestoreLikeDate(isoOrObj) {
@@ -412,7 +383,7 @@ app.get('/api/auth/me', async (req, res) => {
 // --- User data bundle ---
 app.get('/api/data', requireAuth, async (req, res) => {
     const uid = req.session.userId;
-    const [userDocRes, accRes, expRes, gainRes, goalRes, debtRes, debtUpdRes, userNotifications, investmentBundle] =
+    const [userDocRes, accRes, expRes, gainRes, debtRes, debtUpdRes, userNotifications, cofrinhoBundle] =
         await Promise.all([
             query(
                 `SELECT
@@ -462,7 +433,7 @@ app.get('/api/data', requireAuth, async (req, res) => {
                     date,
                     created_at AS "createdAt",
                     is_paid AS "isPaid",
-                    is_investment AS "isInvestment",
+                    is_cofrinho AS "isCofrinho",
                     installment_count AS "installmentCount",
                     cash_out_confirmed_periods AS "cashOutConfirmedPeriods",
                     recurring_monthly AS "recurringMonthly",
@@ -496,19 +467,6 @@ app.get('/api/data', requireAuth, async (req, res) => {
                 `SELECT
                     id,
                     user_id AS "userId",
-                    name,
-                    target_amount AS "targetAmount",
-                    current_amount AS "currentAmount",
-                    goal_type AS "goalType",
-                    linked_account_ids AS "linkedAccountIds"
-                 FROM goals
-                 WHERE user_id = $1`,
-                [uid]
-            ),
-            query(
-                `SELECT
-                    id,
-                    user_id AS "userId",
                     company,
                     notes,
                     created_at AS "createdAt",
@@ -535,12 +493,12 @@ app.get('/api/data', requireAuth, async (req, res) => {
                 console.error('fetchNotificationsForUser', e);
                 return [];
             }),
-            fetchInvestmentAllocationBundle(uid).catch((e) => {
-                console.error('fetchInvestmentAllocationBundle', e);
+            fetchCofrinhoBundle(uid).catch((e) => {
+                console.error('fetchCofrinhoBundle', e);
                 return {
-                    investmentBuckets: [],
-                    investmentApplications: [],
-                    investmentBucketGoals: []
+                    cofrinhoBuckets: [],
+                    cofrinhoApplications: [],
+                    cofrinhoBucketGoals: []
                 };
             })
         ]);
@@ -548,8 +506,6 @@ app.get('/api/data', requireAuth, async (req, res) => {
     const userAccounts = accRes.rows;
     const userExpensesRaw = expRes.rows;
     const userGainsRaw = gainRes.rows;
-    const userGoalsRaw = goalRes.rows;
-    const userGoals = userGoalsRaw.map(normalizeGoalRow);
     const userDebts = debtRes.rows;
     const userDebtUpdatesRaw = debtUpdRes.rows;
     
@@ -564,10 +520,9 @@ app.get('/api/data', requireAuth, async (req, res) => {
         userAccounts,
         userExpenses,
         userGains,
-        userGoals,
-        investmentBuckets: investmentBundle.investmentBuckets || [],
-        investmentApplications: investmentBundle.investmentApplications || [],
-        investmentBucketGoals: investmentBundle.investmentBucketGoals || [],
+        cofrinhoBuckets: cofrinhoBundle.cofrinhoBuckets || [],
+        cofrinhoApplications: cofrinhoBundle.cofrinhoApplications || [],
+        cofrinhoBucketGoals: cofrinhoBundle.cofrinhoBucketGoals || [],
         userDebts,
         userDebtUpdates,
         expenseSplitRequests,
@@ -693,7 +648,7 @@ function expensePayloadFromBody(body, uid) {
         description,
         date,
         isPaid: Boolean(body.isPaid),
-        isInvestment: Boolean(body.isInvestment),
+        isCofrinho: Boolean(body.isCofrinho),
         installmentCount,
         recurringMonthly,
         isFixed
@@ -1091,7 +1046,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                 description: base.description,
                 date,
                 isPaid: false,
-                isInvestment: base.isInvestment,
+                isCofrinho: base.isCofrinho,
                 installmentCount: null,
                 recurringMonthly: false,
                 cashOutConfirmedPeriods: null,
@@ -1104,7 +1059,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                     await client.query(
                         `INSERT INTO expenses (
                             id, user_id, account_id, category, subcategory, amount, description,
-                            date, is_paid, is_investment, installment_count, recurring_monthly,
+                            date, is_paid, is_cofrinho, installment_count, recurring_monthly,
                             cash_out_confirmed_periods, recurrence_group_id, is_fixed, reference_only
                          ) VALUES (
                             $1,$2,$3,$4,$5,$6,$7,
@@ -1121,7 +1076,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                             r.description,
                             r.date,
                             r.isPaid,
-                            r.isInvestment,
+                            r.isCofrinho,
                             r.installmentCount,
                             r.recurringMonthly,
                             r.cashOutConfirmedPeriods,
@@ -1170,7 +1125,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                         const { rows: expRows } = await client.query(
                             `INSERT INTO expenses (
                                 id, user_id, account_id, category, subcategory, amount, description,
-                                date, created_at, is_paid, is_investment, installment_count,
+                                date, created_at, is_paid, is_cofrinho, installment_count,
                                 cash_out_confirmed_periods, recurring_monthly, recurrence_group_id,
                                 is_fixed, split_request_id, reference_only
                              ) VALUES (
@@ -1190,7 +1145,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                                 date,
                                 created_at AS "createdAt",
                                 is_paid AS "isPaid",
-                                is_investment AS "isInvestment",
+                                is_cofrinho AS "isCofrinho",
                                 installment_count AS "installmentCount",
                                 cash_out_confirmed_periods AS "cashOutConfirmedPeriods",
                                 recurring_monthly AS "recurringMonthly",
@@ -1208,7 +1163,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                                 createData.description,
                                 d,
                                 createData.isPaid,
-                                createData.isInvestment,
+                                createData.isCofrinho,
                                 null,
                                 createData.cashOutConfirmedPeriods ?? null,
                                 false,
@@ -1319,7 +1274,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                 const { rows: expRows } = await client.query(
                     `INSERT INTO expenses (
                         id, user_id, account_id, category, subcategory, amount, description,
-                        date, created_at, is_paid, is_investment, installment_count,
+                        date, created_at, is_paid, is_cofrinho, installment_count,
                         cash_out_confirmed_periods, recurring_monthly, recurrence_group_id,
                         is_fixed, split_request_id, reference_only
                      ) VALUES (
@@ -1339,7 +1294,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                         date,
                         created_at AS "createdAt",
                         is_paid AS "isPaid",
-                        is_investment AS "isInvestment",
+                        is_cofrinho AS "isCofrinho",
                         installment_count AS "installmentCount",
                         cash_out_confirmed_periods AS "cashOutConfirmedPeriods",
                         recurring_monthly AS "recurringMonthly",
@@ -1357,7 +1312,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                         createData.description,
                         createData.date,
                         createData.isPaid,
-                        createData.isInvestment,
+                        createData.isCofrinho,
                         createData.installmentCount,
                         createData.cashOutConfirmedPeriods ?? null,
                         createData.recurringMonthly ?? false,
@@ -1463,7 +1418,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
             const { rows: expRows } = await query(
                 `INSERT INTO expenses (
                     id, user_id, account_id, category, subcategory, amount, description,
-                    date, created_at, is_paid, is_investment, installment_count,
+                    date, created_at, is_paid, is_cofrinho, installment_count,
                     cash_out_confirmed_periods, recurring_monthly, recurrence_group_id,
                     is_fixed, split_request_id, reference_only
                  ) VALUES (
@@ -1483,7 +1438,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                     date,
                     created_at AS "createdAt",
                     is_paid AS "isPaid",
-                    is_investment AS "isInvestment",
+                    is_cofrinho AS "isCofrinho",
                     installment_count AS "installmentCount",
                     cash_out_confirmed_periods AS "cashOutConfirmedPeriods",
                     recurring_monthly AS "recurringMonthly",
@@ -1501,7 +1456,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                     createData.description,
                     createData.date,
                     createData.isPaid,
-                    createData.isInvestment,
+                    createData.isCofrinho,
                     createData.installmentCount,
                     createData.cashOutConfirmedPeriods ?? null,
                     createData.recurringMonthly ?? false,
@@ -1521,7 +1476,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
         const { rows: expRows } = await query(
             `INSERT INTO expenses (
                 id, user_id, account_id, category, subcategory, amount, description,
-                date, created_at, is_paid, is_investment, installment_count,
+                date, created_at, is_paid, is_cofrinho, installment_count,
                 cash_out_confirmed_periods, recurring_monthly, recurrence_group_id,
                 is_fixed, reference_only
              ) VALUES (
@@ -1541,7 +1496,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                 date,
                 created_at AS "createdAt",
                 is_paid AS "isPaid",
-                is_investment AS "isInvestment",
+                is_cofrinho AS "isCofrinho",
                 installment_count AS "installmentCount",
                 cash_out_confirmed_periods AS "cashOutConfirmedPeriods",
                 recurring_monthly AS "recurringMonthly",
@@ -1559,7 +1514,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                 createData.description,
                 createData.date,
                 createData.isPaid,
-                createData.isInvestment,
+                createData.isCofrinho,
                 createData.installmentCount,
                 createData.cashOutConfirmedPeriods ?? null,
                 createData.recurringMonthly ?? false,
@@ -1614,7 +1569,7 @@ app.put('/api/expenses/:id', requireAuth, async (req, res) => {
         addSet('description', data.description);
         addSet('date', data.date);
         addSet('is_paid', data.isPaid);
-        addSet('is_investment', data.isInvestment);
+        addSet('is_cofrinho', data.isCofrinho);
         addSet('installment_count', data.installmentCount);
         addSet('reference_only', refOnlyPut);
         if ('recurringMonthly' in data) addSet('recurring_monthly', data.recurringMonthly);
@@ -1638,7 +1593,7 @@ app.put('/api/expenses/:id', requireAuth, async (req, res) => {
                 date,
                 created_at AS "createdAt",
                 is_paid AS "isPaid",
-                is_investment AS "isInvestment",
+                is_cofrinho AS "isCofrinho",
                 installment_count AS "installmentCount",
                 cash_out_confirmed_periods AS "cashOutConfirmedPeriods",
                 recurring_monthly AS "recurringMonthly",
@@ -1661,7 +1616,7 @@ app.put('/api/expenses/:id', requireAuth, async (req, res) => {
 
 /**
  * Edição em lote: apenas campos listados em `patch` são alterados nas saídas cujos `ids`
- * pertencem ao utilizador ({ accountId?, isFixed?, isPaid?, isInvestment?, category?, subcategory? }).
+ * pertencem ao utilizador ({ accountId?, isFixed?, isPaid?, isCofrinho?, category?, subcategory? }).
  */
 app.patch('/api/expenses/batch', requireAuth, async (req, res) => {
     try {
@@ -1691,12 +1646,12 @@ app.patch('/api/expenses/batch', requireAuth, async (req, res) => {
                 patchRaw.isPaid === 'true' ||
                 patchRaw.isPaid === 1 ||
                 patchRaw.isPaid === '1';
-        if ('isInvestment' in patchRaw)
-            patchApplied.isInvestment =
-                patchRaw.isInvestment === true ||
-                patchRaw.isInvestment === 'true' ||
-                patchRaw.isInvestment === 1 ||
-                patchRaw.isInvestment === '1';
+        if ('isCofrinho' in patchRaw)
+            patchApplied.isCofrinho =
+                patchRaw.isCofrinho === true ||
+                patchRaw.isCofrinho === 'true' ||
+                patchRaw.isCofrinho === 1 ||
+                patchRaw.isCofrinho === '1';
         if ('category' in patchRaw && patchRaw.category != null) {
             const c = String(patchRaw.category).trim();
             if (c) patchApplied.category = c;
@@ -1731,7 +1686,7 @@ app.patch('/api/expenses/batch', requireAuth, async (req, res) => {
                     date,
                     created_at AS "createdAt",
                     is_paid AS "isPaid",
-                    is_investment AS "isInvestment",
+                    is_cofrinho AS "isCofrinho",
                     installment_count AS "installmentCount",
                     cash_out_confirmed_periods AS "cashOutConfirmedPeriods",
                     recurring_monthly AS "recurringMonthly",
@@ -1750,7 +1705,7 @@ app.patch('/api/expenses/batch', requireAuth, async (req, res) => {
             if ('accountId' in patchApplied) merged.accountId = patchApplied.accountId;
             if ('isFixed' in patchApplied) merged.isFixed = patchApplied.isFixed;
             if ('isPaid' in patchApplied) merged.isPaid = patchApplied.isPaid;
-            if ('isInvestment' in patchApplied) merged.isInvestment = patchApplied.isInvestment;
+            if ('isCofrinho' in patchApplied) merged.isCofrinho = patchApplied.isCofrinho;
             if ('category' in patchApplied) {
                 merged.category = patchApplied.category;
                 if (!('subcategory' in patchApplied)) merged.subcategory = null;
@@ -1769,7 +1724,7 @@ app.patch('/api/expenses/batch', requireAuth, async (req, res) => {
                     description = $7,
                     date = $8,
                     is_paid = $9,
-                    is_investment = $10,
+                    is_cofrinho = $10,
                     installment_count = $11,
                     reference_only = $12,
                     recurring_monthly = $13,
@@ -1786,7 +1741,7 @@ app.patch('/api/expenses/batch', requireAuth, async (req, res) => {
                     merged.description,
                     merged.date,
                     merged.isPaid,
-                    merged.isInvestment,
+                    merged.isCofrinho,
                     merged.installmentCount ?? null,
                     refOnlyPut,
                     merged.recurringMonthly ?? false,
@@ -1873,7 +1828,7 @@ app.post('/api/expenses/:id/confirm-cash-out', requireAuth, async (req, res) => 
                 date,
                 created_at AS "createdAt",
                 is_paid AS "isPaid",
-                is_investment AS "isInvestment",
+                is_cofrinho AS "isCofrinho",
                 installment_count AS "installmentCount",
                 cash_out_confirmed_periods AS "cashOutConfirmedPeriods",
                 recurring_monthly AS "recurringMonthly",
@@ -2881,25 +2836,8 @@ app.delete('/api/accounts/:id', requireAuth, async (req, res) => {
         ]);
         await client.query(`DELETE FROM gains WHERE account_id = $1 AND user_id = $2`, [req.params.id, uid]);
 
-        const { rows: goals } = await client.query(
-            `SELECT id, linked_account_ids AS "linkedAccountIds"
-             FROM goals
-             WHERE user_id = $1`,
-            [uid]
-        );
-        for (const g of goals) {
-            const ids = parseGoalLinkedAccountIds(g.linkedAccountIds);
-            if (!ids.includes(req.params.id)) continue;
-            const next = ids.filter((id) => id !== req.params.id);
-            await client.query(`UPDATE goals SET linked_account_ids = $2 WHERE id = $1 AND user_id = $3`, [
-                g.id,
-                serializeGoalLinkedAccountIds(next),
-                uid
-            ]);
-        }
-
         await client.query(
-            `UPDATE investment_applications SET account_id = NULL WHERE account_id = $1 AND user_id = $2`,
+            `UPDATE cofrinho_applications SET account_id = NULL WHERE account_id = $1 AND user_id = $2`,
             [req.params.id, uid]
         );
         await client.query(
@@ -2909,127 +2847,6 @@ app.delete('/api/accounts/:id', requireAuth, async (req, res) => {
         await client.query(`DELETE FROM accounts WHERE id = $1 AND user_id = $2`, [req.params.id, uid]);
     });
     await safeUpsertBalanceSnapshot(uid);
-    res.json({ ok: true });
-});
-
-// --- Goals ---
-app.post('/api/goals', requireAuth, async (req, res) => {
-    const uid = req.session.userId;
-    const rawIds = req.body.linkedAccountIds;
-    const ids = Array.isArray(rawIds) ? rawIds.map(String).filter(Boolean) : [];
-    const { rows: valid } = await query(
-        `SELECT id FROM accounts WHERE user_id = $1 AND id = ANY($2::uuid[])`,
-        [uid, ids.length ? ids : []]
-    );
-    const allowed = new Set(valid.map((v) => v.id));
-    const filtered = ids.filter((id) => allowed.has(id));
-
-    const name = String(req.body.name || '').trim();
-    const targetAmount = parseFloat(req.body.targetAmount);
-    if (!name) return res.status(400).json({ error: 'Nome obrigatório' });
-    if (Number.isNaN(targetAmount) || targetAmount <= 0) {
-        return res.status(400).json({ error: 'Valor da meta inválido' });
-    }
-
-    const id = crypto.randomUUID();
-    const { rows } = await query(
-        `INSERT INTO goals (
-            id, user_id, name, target_amount, current_amount, goal_type, linked_account_ids
-         ) VALUES ($1,$2,$3,$4,$5,$6,$7)
-         RETURNING
-            id,
-            user_id AS "userId",
-            name,
-            target_amount AS "targetAmount",
-            current_amount AS "currentAmount",
-            goal_type AS "goalType",
-            linked_account_ids AS "linkedAccountIds"`,
-        [
-            id,
-            uid,
-            name,
-            targetAmount,
-            parseFloat(req.body.currentAmount) || 0,
-            String(req.body.goalType || 'outro').slice(0, 100) || 'outro',
-            serializeGoalLinkedAccountIds(filtered)
-        ]
-    );
-    res.json(normalizeGoalRow(rows[0]));
-});
-
-app.put('/api/goals/:id', requireAuth, async (req, res) => {
-    const uid = req.session.userId;
-    const { rows: existingRows } = await query(
-        `SELECT
-            id,
-            name,
-            target_amount AS "targetAmount",
-            current_amount AS "currentAmount",
-            goal_type AS "goalType",
-            linked_account_ids AS "linkedAccountIds"
-         FROM goals
-         WHERE id = $1 AND user_id = $2`,
-        [req.params.id, uid]
-    );
-    const existing = existingRows[0] || null;
-    if (!existing) return res.status(404).json({ error: 'Não encontrado' });
-
-    let linkedPayload = existing.linkedAccountIds;
-    if (req.body.linkedAccountIds !== undefined) {
-        const rawIds = req.body.linkedAccountIds;
-        const ids = Array.isArray(rawIds) ? rawIds.map(String).filter(Boolean) : [];
-        const { rows: valid } = await query(
-            `SELECT id FROM accounts WHERE user_id = $1 AND id = ANY($2::uuid[])`,
-            [uid, ids.length ? ids : []]
-        );
-        const allowed = new Set(valid.map((v) => v.id));
-        const filtered = ids.filter((id) => allowed.has(id));
-        linkedPayload = serializeGoalLinkedAccountIds(filtered);
-    }
-
-    const nextName =
-        req.body.name !== undefined ? String(req.body.name || '').trim() || existing.name : existing.name;
-    const nextTarget =
-        req.body.targetAmount !== undefined ? parseFloat(req.body.targetAmount) : existing.targetAmount;
-    const nextCurrent =
-        req.body.currentAmount !== undefined
-            ? parseFloat(req.body.currentAmount) || 0
-            : existing.currentAmount;
-    const nextType =
-        req.body.goalType !== undefined
-            ? String(req.body.goalType || 'outro').slice(0, 100) || 'outro'
-            : existing.goalType;
-
-    const { rows: updatedRows } = await query(
-        `UPDATE goals
-         SET name = $3,
-             target_amount = $4,
-             current_amount = $5,
-             goal_type = $6,
-             linked_account_ids = $7
-         WHERE id = $1 AND user_id = $2
-         RETURNING
-            id,
-            user_id AS "userId",
-            name,
-            target_amount AS "targetAmount",
-            current_amount AS "currentAmount",
-            goal_type AS "goalType",
-            linked_account_ids AS "linkedAccountIds"`,
-        [req.params.id, uid, nextName, nextTarget, nextCurrent, nextType, linkedPayload]
-    );
-    res.json(normalizeGoalRow(updatedRows[0]));
-});
-
-app.delete('/api/goals/:id', requireAuth, async (req, res) => {
-    const uid = req.session.userId;
-    const { rows: existingRows } = await query(`SELECT id FROM goals WHERE id = $1 AND user_id = $2`, [
-        req.params.id,
-        uid
-    ]);
-    const existing = existingRows[0] || null;
-    if (!existing) return res.status(404).json({ error: 'Não encontrado' });
-    await query(`DELETE FROM goals WHERE id = $1 AND user_id = $2`, [req.params.id, uid]);
     res.json({ ok: true });
 });
 
@@ -3407,10 +3224,9 @@ app.delete('/api/user', requireAuth, async (req, res) => {
         );
         await client.query(`DELETE FROM expenses WHERE user_id = $1`, [uid]);
         await client.query(`DELETE FROM gains WHERE user_id = $1`, [uid]);
-        await client.query(`DELETE FROM goals WHERE user_id = $1`, [uid]);
-        await client.query(`DELETE FROM investment_applications WHERE user_id = $1`, [uid]);
-        await client.query(`DELETE FROM investment_bucket_goals WHERE user_id = $1`, [uid]);
-        await client.query(`DELETE FROM investment_buckets WHERE user_id = $1`, [uid]);
+        await client.query(`DELETE FROM cofrinho_applications WHERE user_id = $1`, [uid]);
+        await client.query(`DELETE FROM cofrinho_bucket_goals WHERE user_id = $1`, [uid]);
+        await client.query(`DELETE FROM cofrinho_buckets WHERE user_id = $1`, [uid]);
         await client.query(`DELETE FROM accounts WHERE user_id = $1`, [uid]);
         await client.query(`DELETE FROM admin_logs WHERE user_id = $1`, [uid]);
         await client.query(`DELETE FROM subcategories WHERE user_id = $1`, [uid]);
@@ -3890,10 +3706,9 @@ app.delete('/api/admin/users/:id', requireAdmin, async (req, res) => {
         );
         await client.query(`DELETE FROM expenses WHERE user_id = $1`, [userId]);
         await client.query(`DELETE FROM gains WHERE user_id = $1`, [userId]);
-        await client.query(`DELETE FROM goals WHERE user_id = $1`, [userId]);
-        await client.query(`DELETE FROM investment_applications WHERE user_id = $1`, [userId]);
-        await client.query(`DELETE FROM investment_bucket_goals WHERE user_id = $1`, [userId]);
-        await client.query(`DELETE FROM investment_buckets WHERE user_id = $1`, [userId]);
+        await client.query(`DELETE FROM cofrinho_applications WHERE user_id = $1`, [userId]);
+        await client.query(`DELETE FROM cofrinho_bucket_goals WHERE user_id = $1`, [userId]);
+        await client.query(`DELETE FROM cofrinho_buckets WHERE user_id = $1`, [userId]);
         await client.query(`DELETE FROM accounts WHERE user_id = $1`, [userId]);
         await client.query(`DELETE FROM admin_logs WHERE user_id = $1`, [userId]);
         await client.query(`DELETE FROM subcategories WHERE user_id = $1`, [userId]);
@@ -3956,7 +3771,7 @@ app.get('/api/admin/user/:id/details', requireAdmin, async (req, res) => {
     const userId = req.params.id;
     const [
         accRes,
-        goalsRes,
+        bucketsRes,
         appsCountRes,
         expCountRes,
         gainCountRes,
@@ -3982,27 +3797,21 @@ app.get('/api/admin/user/:id/details', requireAdmin, async (req, res) => {
             [userId]
         ),
         query(
-            `SELECT
-                id,
-                user_id AS "userId",
-                name,
-                target_amount AS "targetAmount",
-                current_amount AS "currentAmount",
-                goal_type AS "goalType",
-                linked_account_ids AS "linkedAccountIds"
-             FROM goals
-             WHERE user_id = $1`,
+            `SELECT id, user_id AS "userId", name, color_key AS "colorKey", icon
+             FROM cofrinho_buckets
+             WHERE user_id = $1
+             ORDER BY sort_order ASC, name ASC`,
             [userId]
         ),
-        query(`SELECT COUNT(*)::int AS n FROM investment_applications WHERE user_id = $1`, [userId]),
+        query(`SELECT COUNT(*)::int AS n FROM cofrinho_applications WHERE user_id = $1`, [userId]),
         query(`SELECT COUNT(*)::int AS n FROM expenses WHERE user_id = $1`, [userId]),
         query(`SELECT COUNT(*)::int AS n FROM gains WHERE user_id = $1`, [userId]),
         query(`SELECT date FROM expenses WHERE user_id = $1 ORDER BY date DESC LIMIT 1`, [userId]),
         query(`SELECT date FROM gains WHERE user_id = $1 ORDER BY date DESC LIMIT 1`, [userId])
     ]);
     const accounts = accRes.rows;
-    const goals = goalsRes.rows.map(normalizeGoalRow);
-    const investmentApplicationCount = appsCountRes.rows[0]?.n ?? 0;
+    const cofrinhoBuckets = bucketsRes.rows;
+    const cofrinhoApplicationCount = appsCountRes.rows[0]?.n ?? 0;
     const expenseCount = expCountRes.rows[0]?.n ?? 0;
     const gainCount = gainCountRes.rows[0]?.n ?? 0;
     const lastExpense = lastExpRes.rows[0] || null;
@@ -4017,8 +3826,8 @@ app.get('/api/admin/user/:id/details', requireAdmin, async (req, res) => {
 
     res.json({
         accounts,
-        goals,
-        investmentApplicationCount,
+        cofrinhoBuckets,
+        cofrinhoApplicationCount,
         summary: {
             expenseCount,
             gainCount,
@@ -4207,7 +4016,7 @@ app.delete('/api/kanban-cards/:id', requireAuth, async (req, res) => {
 
 registerExpenseSplitRoutes(app, { requireAuth });
 registerZeroBudgetRoutes(app, requireAuth);
-registerInvestmentAllocationRoutes(app, requireAuth);
+registerCofrinhoRoutes(app, requireAuth);
 
 /** Produção (Railway etc.): um único processo Node serve o build Vite (`dist`) e a API. */
 const distPath = path.join(ROOT, 'dist');

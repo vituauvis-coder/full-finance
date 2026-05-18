@@ -61,7 +61,7 @@
     border: 1px solid var(--border-color);
 }
 
-[data-theme="dark"] .app-header.app-header--investments {
+[data-theme="dark"] .app-header.app-header--cofrinhos {
     background: var(--bg-light);
     box-shadow: none;
     border: 1px solid var(--border-color);
@@ -83,7 +83,7 @@
     color: #60a5fa;
 }
 
-[data-theme="dark"] .app-header--investments .header-page-title {
+[data-theme="dark"] .app-header--cofrinhos .header-page-title {
     color: #a78bfa;
 }
 
@@ -103,7 +103,7 @@
     color: #60a5fa;
 }
 
-[data-theme="dark"] .app-header--investments .header-page-emoji i {
+[data-theme="dark"] .app-header--cofrinhos .header-page-emoji i {
     color: #a78bfa;
 }
 
@@ -127,7 +127,7 @@
     border-color: #2563eb;
 }
 
-[data-theme="dark"] .app-header--investments .header-page-actions .btn-primary.header-action-btn {
+[data-theme="dark"] .app-header--cofrinhos .header-page-actions .btn-primary.header-action-btn {
     background-color: #7c3aed;
     border-color: #7c3aed;
 }

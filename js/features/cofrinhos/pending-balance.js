@@ -1,4 +1,4 @@
-import { EXPENSE_INVESTMENT_CATEGORY } from './constants.js';
+import { EXPENSE_COFRINHO_CATEGORY } from './constants.js';
 import { movementDateToJsDate } from '../../core/utils.js';
 
 /** @returns {string} `YYYY-MM` */
@@ -22,8 +22,8 @@ export function referenceMonthToYearMonth(referenceMonth) {
     return toYearMonthKey(s);
 }
 
-export function isInvestmentPoolExpense(expense) {
-    if (String(expense?.category || '').trim() !== EXPENSE_INVESTMENT_CATEGORY) return false;
+export function isCofrinhoPoolExpense(expense) {
+    if (String(expense?.category || '').trim() !== EXPENSE_COFRINHO_CATEGORY) return false;
     const sub = expense.subcategory;
     return sub == null || String(sub).trim() === '';
 }
@@ -33,10 +33,10 @@ export function isInvestmentPoolExpense(expense) {
  * @param {object[]} expenses
  * @param {string} yearMonth `YYYY-MM`
  */
-export function sumInvestmentPoolForMonth(expenses, yearMonth) {
+export function sumCofrinhoPoolForMonth(expenses, yearMonth) {
     if (!yearMonth || !Array.isArray(expenses)) return 0;
     return expenses.reduce((sum, e) => {
-        if (!isInvestmentPoolExpense(e)) return sum;
+        if (!isCofrinhoPoolExpense(e)) return sum;
         if (e.isPaid === false) return sum;
         if (toYearMonthKey(e.date) !== yearMonth) return sum;
         return sum + (parseFloat(e.amount) || 0);
@@ -59,7 +59,7 @@ export function sumApplicationsForMonth(applications, yearMonth) {
  * @returns {number}
  */
 export function computePendingBalance(expenses, _applications, yearMonth) {
-    return Math.max(0, Math.round(sumInvestmentPoolForMonth(expenses, yearMonth) * 100) / 100);
+    return Math.max(0, Math.round(sumCofrinhoPoolForMonth(expenses, yearMonth) * 100) / 100);
 }
 
 /**
@@ -70,6 +70,6 @@ export function computePendingBalance(expenses, _applications, yearMonth) {
 export function listPoolExpensesForMonth(expenses, yearMonth) {
     if (!yearMonth || !Array.isArray(expenses)) return [];
     return expenses
-        .filter((e) => isInvestmentPoolExpense(e) && e.isPaid !== false && toYearMonthKey(e.date) === yearMonth)
+        .filter((e) => isCofrinhoPoolExpense(e) && e.isPaid !== false && toYearMonthKey(e.date) === yearMonth)
         .sort((a, b) => String(a.date).localeCompare(String(b.date)));
 }

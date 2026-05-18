@@ -1,12 +1,8 @@
 import { formatCurrency, getChartAxisColors, isDarkTheme } from '../../core/utils.js';
-import { buildMonthlyStackedSeries, buildPerformanceByBucket } from './aggregations.js';
+import { buildMonthlyStackedSeries } from './aggregations.js';
 import { bucketColorHex } from './constants.js';
 
 let monthlyChart = null;
-let performanceChart = null;
-
-const INVESTED_COLOR = '#3b82f6';
-const YIELD_COLOR = '#10b981';
 
 function bucketColor(bucket) {
     return bucketColorHex(bucket?.colorKey);
@@ -130,36 +126,31 @@ function baseChartOptions(currency, theme, { stacked = false, legend = false } =
     };
 }
 
-export function destroyInvestmentCharts() {
+export function destroyCofrinhoCharts() {
     if (monthlyChart) {
         monthlyChart.destroy();
         monthlyChart = null;
     }
-    if (performanceChart) {
-        performanceChart.destroy();
-        performanceChart = null;
-    }
 }
 
-export function renderInvestmentCharts(buckets, applications, currency, expenses = []) {
+export function renderCofrinhoCharts(buckets, applications, currency, expenses = []) {
     renderMonthlyChart(buckets, applications, currency, expenses);
-    renderPerformanceChart(buckets, applications, currency, expenses);
     renderMonthlyLegend(buckets);
 }
 
 function renderMonthlyLegend(buckets) {
-    const el = document.getElementById('investments-monthly-legend');
+    const el = document.getElementById('cofrinhos-monthly-legend');
     if (!el) return;
     el.innerHTML = (buckets || [])
         .map(
             (b) =>
-                `<span class="investments-page__legend-item"><span class="investments-page__legend-dot" style="background:${bucketColor(b)}"></span>${escapeHtml(b.name)}</span>`
+                `<span class="cofrinhos-page__legend-item"><span class="cofrinhos-page__legend-dot" style="background:${bucketColor(b)}"></span>${escapeHtml(b.name)}</span>`
         )
         .join('');
 }
 
 function renderMonthlyChart(buckets, applications, currency, expenses = []) {
-    const canvas = document.getElementById('investments-monthly-chart');
+    const canvas = document.getElementById('cofrinhos-monthly-chart');
     if (!canvas || typeof Chart === 'undefined') return;
 
     const series = buildMonthlyStackedSeries(applications, buckets, expenses);
@@ -185,63 +176,6 @@ function renderMonthlyChart(buckets, applications, currency, expenses = []) {
         data: { labels, datasets },
         options: baseChartOptions(currency, theme, { stacked: true })
     });
-}
-
-function renderPerformanceChart(buckets, applications, currency, expenses = []) {
-    const canvas = document.getElementById('investments-performance-chart');
-    if (!canvas || typeof Chart === 'undefined') return;
-
-    const perf = buildPerformanceByBucket(buckets, applications, expenses);
-    const labels = perf.map((p) => p.name);
-    const theme = getChartAxisColors();
-
-    if (performanceChart) performanceChart.destroy();
-    performanceChart = new Chart(canvas, {
-        type: 'bar',
-        data: {
-            labels,
-            datasets: [
-                {
-                    label: 'Investido',
-                    data: perf.map((p) => p.investido),
-                    backgroundColor: colorWithAlpha(INVESTED_COLOR, 0.92),
-                    borderColor: colorWithAlpha(INVESTED_COLOR, 0.92),
-                    borderWidth: 0,
-                    borderRadius: { bottomLeft: 6, bottomRight: 6, topLeft: 0, topRight: 0 },
-                    borderSkipped: false,
-                    stack: 'p'
-                },
-                {
-                    label: 'Lucro (est.)',
-                    data: perf.map((p) => p.lucro),
-                    backgroundColor: colorWithAlpha(YIELD_COLOR, 0.92),
-                    borderColor: colorWithAlpha(YIELD_COLOR, 0.92),
-                    borderWidth: 0,
-                    borderRadius: { topLeft: 6, topRight: 6, bottomLeft: 0, bottomRight: 0 },
-                    borderSkipped: false,
-                    stack: 'p'
-                }
-            ]
-        },
-        options: baseChartOptions(currency, theme, { stacked: true, legend: true })
-    });
-
-    const kpiEl = document.getElementById('investments-performance-kpis');
-    if (kpiEl) {
-        const lucroTotal = perf.reduce((s, p) => s + p.lucro, 0);
-        const totalAportado = perf.reduce((s, p) => s + p.investido, 0);
-        const lucroMensal = (totalAportado + lucroTotal) * 0.009;
-        const lucroDiario = lucroMensal / 22;
-        kpiEl.innerHTML = `
-            <div>
-                <span class="investments-page__kpi-label">Rende por dia (est.)</span>
-                <span class="investments-page__kpi-value investments-page__kpi-value--up">${formatCurrency(lucroDiario, currency)}</span>
-            </div>
-            <div>
-                <span class="investments-page__kpi-label">Rende por mês (est.)</span>
-                <span class="investments-page__kpi-value investments-page__kpi-value--up">${formatCurrency(lucroMensal, currency)}</span>
-            </div>`;
-    }
 }
 
 function escapeHtml(s) {

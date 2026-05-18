@@ -52,9 +52,9 @@ export const DASHBOARD_SUMMARY_COPY = {
     balanceVariationHint: 'Não foi possível calcular a variação do saldo neste momento.'
 };
 
-export const INVESTMENTS_SUMMARY_COPY = {
+export const COFRINHOS_SUMMARY_COPY = {
     total: 'Valor total das suas aplicações com preço cadastrado.',
-    count: 'Quantos investimentos você tem com valor informado.',
+    count: 'Quantos cofrinhos você tem com valor informado.',
     average: 'Valor médio de cada posição na sua carteira.',
     topCategory: 'Categoria com maior valor na carteira'
 };
@@ -286,40 +286,40 @@ export const MOVEMENT_SUMMARY_CARD_GROUPS = {
             }
         ]
     },
-    investments: {
-        ariaLabel: 'Resumo de investimentos',
-        containerClass: 'investments-summary',
+    cofrinhos: {
+        ariaLabel: 'Resumo de cofrinhos',
+        containerClass: 'cofrinhos-summary',
         cards: [
             {
-                id: 'investments-summary-total',
-                tone: 'investments',
+                id: 'cofrinhos-summary-total',
+                tone: 'cofrinhos',
                 icon: 'fa-calendar',
                 title: 'Posição total',
-                hint: INVESTMENTS_SUMMARY_COPY.total,
+                hint: COFRINHOS_SUMMARY_COPY.total,
                 iconTooltip: false
             },
             {
-                id: 'investments-summary-count',
-                tone: 'investments',
+                id: 'cofrinhos-summary-count',
+                tone: 'cofrinhos',
                 icon: 'fa-calendar-day',
                 title: 'Ativos na carteira',
-                hint: INVESTMENTS_SUMMARY_COPY.count,
+                hint: COFRINHOS_SUMMARY_COPY.count,
                 iconTooltip: false
             },
             {
-                id: 'investments-summary-avg',
-                tone: 'investments',
+                id: 'cofrinhos-summary-avg',
+                tone: 'cofrinhos',
                 icon: 'fa-chart-line',
                 title: 'Média por ativo',
-                hint: INVESTMENTS_SUMMARY_COPY.average,
+                hint: COFRINHOS_SUMMARY_COPY.average,
                 iconTooltip: false
             },
             {
-                id: 'investments-summary-top-cat',
-                tone: 'investments',
+                id: 'cofrinhos-summary-top-cat',
+                tone: 'cofrinhos',
                 icon: 'fa-tags',
                 title: 'Principal categoria',
-                hintId: 'investments-summary-top-cat-hint',
+                hintId: 'cofrinhos-summary-top-cat-hint',
                 hint: '',
                 iconTooltip: false
             }

@@ -82,6 +82,7 @@
     color: var(--info-color);
 }
 
+.notifications-item--cofrinho .notifications-item-icon,
 .notifications-item--investment .notifications-item-icon {
     background: rgba(0, 0, 0, 0.15);
     color: var(--primary-color);

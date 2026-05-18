@@ -104,7 +104,7 @@ export function loadDashboardData(
         const li = document.createElement('li');
         li.className = 'recent-activity-item';
         const isGain = t._kind === 'gain';
-        const isInv = !isGain && t.isInvestment;
+        const isInv = !isGain && t.isCofrinho;
         const iconClass = isGain ? 'fa-arrow-up' : isInv ? 'fa-chart-line' : 'fa-arrow-down';
         const iconColor = isGain
             ? 'var(--secondary-color)'

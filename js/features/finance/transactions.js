@@ -1666,7 +1666,7 @@ async function openExpenseBatchModal() {
 
     document.getElementById('expense-batch-fixed').value = '';
     document.getElementById('expense-batch-paid').value = '';
-    document.getElementById('expense-batch-investment').value = '';
+    document.getElementById('expense-batch-cofrinho').value = '';
 
     const sum = document.getElementById('expense-batch-modal-summary');
     if (sum) {
@@ -1696,8 +1696,8 @@ async function handleExpenseBatchFormSubmit(e) {
     const pd = document.getElementById('expense-batch-paid')?.value;
     if (pd === '1' || pd === '0') patch.isPaid = pd === '1';
 
-    const inv = document.getElementById('expense-batch-investment')?.value;
-    if (inv === '1' || inv === '0') patch.isInvestment = inv === '1';
+    const inv = document.getElementById('expense-batch-cofrinho')?.value;
+    if (inv === '1' || inv === '0') patch.isCofrinho = inv === '1';
 
     const cat = document.getElementById('expense-batch-category')?.value?.trim() || '';
     if (cat) patch.category = cat;
@@ -2351,7 +2351,7 @@ function expensePutPayloadFromRow(exp, overrides = {}) {
                 : null,
         isPaid:
             'isPaid' in overrides ? Boolean(overrides.isPaid) : expense.isPaid !== false,
-        isInvestment: Boolean(expense.isInvestment),
+        isCofrinho: Boolean(expense.isCofrinho),
         installmentCount,
         recurringMonthly: Boolean(expense.recurringMonthly),
         isFixed: expenseIsMarkedFixed(expense),
@@ -3258,7 +3258,7 @@ function getFilteredExpensesList() {
                 String(acc?.name ?? ''),
                 formatCurrency(t.amount, currency),
                 formatCurrency(displayAmt, currency),
-                t.isInvestment ? 'investimento' : '',
+                t.isCofrinho ? 'cofrinho' : '',
                 t.isPaid ? 'pago' : 'parcelado',
                 parcelasLbl,
                 statusTxt,
@@ -3400,7 +3400,7 @@ function renderExpensesBodySliceWithList(list) {
         const account = accounts.find((acc) => acc.id === t.accountId);
         const tr = document.createElement('tr');
         if (t.__instRow) tr.classList.add('expense-tr-installment');
-        const rowCls = t.isInvestment ? 'investimento' : 'despesa';
+        const rowCls = t.isCofrinho ? 'cofrinho' : 'despesa';
         const splitRidForRow =
             t.splitRequestId ||
             (t.recurrenceGroupId
@@ -4882,7 +4882,7 @@ function openExpenseModal(forEdit, options = null) {
         if (isFixedSel) isFixedSel.value = '0';
         delete form.dataset.splitRequestId;
         delete form.dataset.splitFromRateio;
-        delete form.dataset.splitSourceIsInvestment;
+        delete form.dataset.splitSourceIsCofrinho;
         delete form.dataset.splitSourceInstallmentCount;
         const dateInpUnlock = form['expense-date'];
         if (dateInpUnlock) {
@@ -4902,7 +4902,7 @@ function openExpenseModal(forEdit, options = null) {
         if (splitOpts) {
             form.dataset.splitRequestId = String(splitOpts.splitRequestId);
             form.dataset.splitFromRateio = '1';
-            if (src?.isInvestment) form.dataset.splitSourceIsInvestment = '1';
+            if (src?.isCofrinho) form.dataset.splitSourceIsCofrinho = '1';
             const splitScope = normalizeSplitScope(splitOpts.splitScope || 'FULL_EXPENSE');
             const rawIc =
                 splitOpts.sourceInstallmentCount ??
@@ -5215,7 +5215,7 @@ async function handleExpenseFormSubmit(e) {
         category,
         subcategory: subcategory || null,
         isPaid: isPaidFinal,
-        isInvestment: isSplitRateio && form.dataset.splitSourceIsInvestment === '1',
+        isCofrinho: isSplitRateio && form.dataset.splitSourceIsCofrinho === '1',
         installmentCount: installmentCount ?? null,
         recurringMonthly,
         isFixed: isFixedExpense
@@ -5281,7 +5281,7 @@ async function handleExpenseFormSubmit(e) {
                         category: e.category,
                         subcategory: e.subcategory,
                         isPaid: paid,
-                        isInvestment: e.isInvestment ?? false,
+                        isCofrinho: e.isCofrinho ?? false,
                         installmentCount: e.installmentCount ?? null,
                         recurringMonthly: false,
                         isFixed: Boolean(e.isFixed),
@@ -5308,7 +5308,7 @@ async function handleExpenseFormSubmit(e) {
         closeModal('expense-modal');
         delete form.dataset.splitRequestId;
         delete form.dataset.splitFromRateio;
-        delete form.dataset.splitSourceIsInvestment;
+        delete form.dataset.splitSourceIsCofrinho;
         delete form.dataset.splitSourceInstallmentCount;
         onUpdateCallback();
     } catch (error) {
@@ -5807,7 +5807,7 @@ const ACCOUNT_TYPE_LABELS = {
     conta_corrente: 'Conta corrente',
     poupanca: 'Poupança',
     dinheiro: 'Dinheiro',
-    investimento: 'Investimento',
+    cofrinho: 'Cofrinho',
     outros: 'Outros'
 };
 
@@ -5815,7 +5815,7 @@ const ACCOUNT_TYPE_ICONS = {
     conta_corrente: 'fa-building-columns',
     poupanca: 'fa-piggy-bank',
     dinheiro: 'fa-money-bill-wave',
-    investimento: 'fa-chart-line',
+    cofrinho: 'fa-chart-line',
     outros: 'fa-wallet'
 };
 
@@ -5836,7 +5836,7 @@ function accountTypeVisualKey(type) {
     if (t === 'conta_corrente') return 'cc';
     if (t === 'poupanca') return 'poup';
     if (t === 'dinheiro') return 'din';
-    if (t === 'investimento') return 'inv';
+    if (t === 'cofrinho') return 'inv';
     return 'out';
 }
 
