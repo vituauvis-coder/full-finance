@@ -777,49 +777,67 @@
     color: var(--text-light);
 }
 
-/* Modal distribuir aporte — alinhado a modal-forms (ex.: Dividir saída) */
+/* Modal distribuir aporte */
 .modal-content.modal-content--cofrinho-allocation {
-    max-width: min(28rem, 96vw);
+    max-width: min(26rem, 96vw);
 }
 
 #cofrinho-application-modal .modal-content > h3 i {
     color: var(--warning-color);
 }
 
-#cofrinho-application-modal .modal-content form .form-message.info.cofrinho-modal__balance {
-    margin: 0;
+.cofrinho-allocation-form {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-    padding: 0.75rem 0.9rem;
+    flex-direction: column;
+    gap: 1.1rem;
+}
+
+.cofrinho-allocation-form__balance {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+    margin: 0;
+    padding: 0.85rem 1rem;
     border-radius: 10px;
     background: color-mix(in srgb, var(--warning-color) 10%, var(--bg-light));
     border: 1px solid color-mix(in srgb, var(--warning-color) 28%, var(--border-color));
 }
 
-#cofrinho-application-modal .cofrinho-modal__balance-label {
-    font-size: 0.82rem;
+.cofrinho-allocation-form__balance-kicker {
+    font-size: 0.78rem;
     font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
     color: var(--text-light);
 }
 
-#cofrinho-application-modal .cofrinho-modal__balance-value {
-    font-size: 1rem;
+.cofrinho-allocation-form__balance-amount {
+    font-size: 1.35rem;
     font-weight: 800;
+    line-height: 1.15;
     color: var(--warning-color);
 }
 
-#cofrinho-application-modal .cofrinho-modal__grid-2 {
+.cofrinho-allocation-form__bucket {
+    margin-bottom: 0;
+}
+
+.cofrinho-allocation-form__row {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1rem;
     align-items: start;
 }
 
-#cofrinho-application-modal .cofrinho-modal__grid-2 .form-group {
+.cofrinho-allocation-form__row .form-group {
     margin-bottom: 0;
+}
+
+.cofrinho-allocation-form__actions {
+    margin-top: 0.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
 }
 
 #cofrinho-application-modal #cofrinho-application-amount {
@@ -889,7 +907,7 @@
 }
 
 @media (max-width: 768px) {
-    #cofrinho-application-modal .cofrinho-modal__grid-2 {
+    #cofrinho-application-modal .cofrinho-allocation-form__row {
         grid-template-columns: 1fr;
     }
 

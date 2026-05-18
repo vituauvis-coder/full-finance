@@ -1,4 +1,4 @@
-import { formatCurrency, isCardAccountType } from '../../core/utils.js';
+import { formatCurrency } from '../../core/utils.js';
 import {
     saveCofrinhoAllocation,
     deleteCofrinhoAllocation,
@@ -216,7 +216,7 @@ function syncApplicationModalReferenceMonth(ym) {
         const pending = computePendingBalance(cache.expenses, cache.applications, ym);
         const avail = app ? pending + (parseFloat(app.amount) || 0) : pending;
         hint.hidden = false;
-        hint.innerHTML = `<span class="cofrinho-modal__balance-label">Saldo disponível (${formatYearMonthLabel(ym)})</span><span class="cofrinho-modal__balance-value">${formatCurrency(avail, cache.currency)}</span>`;
+        hint.innerHTML = `<span class="cofrinho-allocation-form__balance-kicker">Saldo disponível · ${escapeHtml(formatYearMonthLabel(ym))}</span><span class="cofrinho-allocation-form__balance-amount">${formatCurrency(avail, cache.currency)}</span>`;
     }
 }
 
@@ -593,8 +593,6 @@ function openApplicationModal(id = null, options = {}) {
         document.getElementById('cofrinho-application-bucket'),
         options.bucketId || app?.bucketId
     );
-    populateAccountSelect(document.getElementById('cofrinho-application-account'), app?.accountId);
-
     const msgEl = document.getElementById('cofrinho-application-message');
     if (msgEl) {
         msgEl.classList.add('hidden');
@@ -633,7 +631,6 @@ async function handleApplicationSubmit(e) {
         bucketId: document.getElementById('cofrinho-application-bucket')?.value,
         referenceMonth: yearMonthToReferenceMonth(ym),
         amount,
-        accountId: document.getElementById('cofrinho-application-account')?.value || null,
         status: 'Concluído'
     };
 
@@ -891,19 +888,6 @@ function populateBucketSelect(select, selectedId = '') {
     select.innerHTML = cache.buckets
         .map((b) => `<option value="${escapeAttr(b.id)}"${b.id === selectedId ? ' selected' : ''}>${escapeHtml(b.name)}</option>`)
         .join('');
-}
-
-function populateAccountSelect(select, selectedId = '') {
-    if (!select) return;
-    const accounts = cache.accounts.filter((a) => !isCardAccountType(a.type));
-    select.innerHTML =
-        '<option value="">Nenhuma</option>' +
-        accounts
-            .map(
-                (a) =>
-                    `<option value="${escapeAttr(a.id)}"${a.id === selectedId ? ' selected' : ''}>${escapeHtml(a.name)}</option>`
-            )
-            .join('');
 }
 
 function buildBucketColorSwatchesHtml(selectedKey, { bucketId = null, formMode = false } = {}) {

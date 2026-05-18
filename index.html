@@ -2308,11 +2308,15 @@
         <div class="modal-content modal-content--cofrinho-allocation">
             <button type="button" class="modal-close-btn" data-close-modal="cofrinho-application-modal" aria-label="Fechar">&times;</button>
             <h3 id="cofrinho-application-modal-title"><i class="fas fa-coins" aria-hidden="true"></i> Distribuir aporte</h3>
-            <form id="cofrinho-application-form">
+            <form id="cofrinho-application-form" class="cofrinho-allocation-form">
                 <div id="cofrinho-application-message" class="form-message hidden" role="alert"></div>
                 <input type="hidden" id="cofrinho-application-id" value="">
-                <div id="cofrinho-application-pending-hint" class="form-message info cofrinho-modal__balance" hidden role="status"></div>
-                <div class="cofrinho-modal__grid-2">
+                <div id="cofrinho-application-pending-hint" class="cofrinho-allocation-form__balance" hidden role="status"></div>
+                <div class="form-group cofrinho-allocation-form__bucket">
+                    <label for="cofrinho-application-bucket">Para qual caixinha?</label>
+                    <select id="cofrinho-application-bucket" required></select>
+                </div>
+                <div class="cofrinho-modal__grid-2 cofrinho-allocation-form__row">
                     <div class="form-group">
                         <label for="cofrinho-application-month">Mês de referência</label>
                         <select id="cofrinho-application-month" required></select>
@@ -2322,17 +2326,7 @@
                         <input type="number" id="cofrinho-application-amount" step="0.01" min="0.01" required inputmode="decimal" placeholder="0,00">
                     </div>
                 </div>
-                <div class="form-group">
-                    <label for="cofrinho-application-bucket">Para qual caixinha?</label>
-                    <select id="cofrinho-application-bucket" required></select>
-                </div>
-                <div class="form-group">
-                    <label for="cofrinho-application-account">Banco / corretora</label>
-                    <select id="cofrinho-application-account">
-                        <option value="">Nenhuma</option>
-                    </select>
-                </div>
-                <div class="form-actions">
+                <div class="form-actions cofrinho-allocation-form__actions">
                     <button type="button" class="btn-secondary" data-close-modal="cofrinho-application-modal">Cancelar</button>
                     <button type="submit" class="btn-primary">Salvar</button>
                 </div>
