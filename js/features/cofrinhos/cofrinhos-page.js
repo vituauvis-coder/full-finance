@@ -326,11 +326,9 @@ function renderPendingBanner() {
 
 function renderGoalCards() {
     const grid = document.getElementById('cofrinhos-goal-cards');
-    const yearLabel = document.getElementById('cofrinhos-goals-year-label');
     if (!grid) return;
 
     const year = new Date().getFullYear();
-    if (yearLabel) yearLabel.textContent = `· ${year}`;
 
     if (!cache.buckets.length) {
         grid.innerHTML = `
