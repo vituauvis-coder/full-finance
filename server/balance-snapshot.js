@@ -20,7 +20,7 @@ export function startOfTodayDate() {
 
 export async function upsertBalanceSnapshotForUser(userId) {
     // O snapshot diário continua existindo para o gráfico de evolução de patrimônio
-    const [userRes, accRes, expRes, gainRes, invRes] = await Promise.all([
+    const [userRes, accRes, expRes, gainRes] = await Promise.all([
         query(
             `SELECT finance_preferences AS "financePreferences", balance_offset AS "balanceOffset"
              FROM users WHERE id = $1`,
@@ -40,11 +40,6 @@ export async function upsertBalanceSnapshotForUser(userId) {
             `SELECT id, amount, date, is_paid AS "isPaid", reference_only AS "referenceOnly"
              FROM gains WHERE user_id = $1`,
             [userId]
-        ),
-        query(
-            `SELECT id, current_value AS "currentValue"
-             FROM investments WHERE user_id = $1`,
-            [userId]
         )
     ]);
 
@@ -52,10 +47,8 @@ export async function upsertBalanceSnapshotForUser(userId) {
     const userAccounts = accRes.rows;
     const userExpenses = expRes.rows.filter((e) => !e.referenceOnly);
     const userGains = gainRes.rows.filter((g) => !g.referenceOnly);
-    const userInvestments = invRes.rows;
-
     const userProfile = user ? { financePreferences: user.financePreferences, balanceOffset: Number(user.balanceOffset) || 0 } : null;
-    const total = computeTotalBalance(userAccounts, userExpenses, userGains, userInvestments, userProfile);
+    const total = computeTotalBalance(userAccounts, userExpenses, userGains, null, userProfile);
     const date = startOfTodayDate();
 
     await query(

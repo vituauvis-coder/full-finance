@@ -16,7 +16,8 @@ import { initProfile, applyProfilePhotoFromUserProfile } from '../features/profi
 import { initTools } from '../features/tools/tools.js';
 import { initSupport } from '../features/support/support.js';
 import { initGoals, loadGoalsData } from '../features/goals/index.js';
-import { initInvestments, loadInvestmentsData } from '../features/investments/investments.js';
+import { initInvestments, loadInvestmentsPage } from '../features/investments/investments-page.js';
+import { setInvestmentBucketSubcategoryFilter } from '../features/finance/expense-categories.js';
 import { initDebts, loadDebtsData } from '../features/debts/debts.js';
 import { initHeaderNotifications, refreshHeaderNotifications } from '../shared/header-notifications.js';
 import { setupGlobalErrorHandlers } from './error-handling.js';
@@ -33,7 +34,9 @@ export let AppState = {
     expenses: [],
     gains: [],
     goals: [],
-    investments: [],
+    investmentBuckets: [],
+    investmentApplications: [],
+    investmentBucketGoals: [],
     debts: [],
     debtUpdates: [],
     expenseSplitRequests: { incoming: [], outgoing: [] },
@@ -138,7 +141,9 @@ function onSignedOut() {
         expenses: [],
         gains: [],
         goals: [],
-        investments: [],
+        investmentBuckets: [],
+    investmentApplications: [],
+    investmentBucketGoals: [],
         debts: [],
         debtUpdates: [],
         expenseSplitRequests: { incoming: [], outgoing: [] },
@@ -159,7 +164,12 @@ async function refreshAllData() {
     AppState.gains = data.userGains || [];
     AppState.accounts = data.userAccounts || [];
     AppState.goals = data.userGoals || [];
-    AppState.investments = data.userInvestments || [];
+    AppState.investmentBuckets = data.investmentBuckets || [];
+    setInvestmentBucketSubcategoryFilter(
+        AppState.investmentBuckets.map((b) => b.name).filter(Boolean)
+    );
+    AppState.investmentApplications = data.investmentApplications || [];
+    AppState.investmentBucketGoals = data.investmentBucketGoals || [];
     AppState.debts = data.userDebts || [];
     AppState.debtUpdates = data.userDebtUpdates || [];
     AppState.expenseSplitRequests = data.expenseSplitRequests || { incoming: [], outgoing: [] };
@@ -226,7 +236,7 @@ function loadPageData(pageName) {
                 AppState.gains,
                 AppState.accounts,
                 AppState.currency,
-                AppState.investments,
+                AppState.investmentApplications,
                 AppState.userProfile,
                 AppState.expenseSplitRequests
             );
@@ -257,7 +267,17 @@ function loadPageData(pageName) {
             loadGoalsData(AppState.goals, AppState.accounts, AppState.currency);
             break;
         case 'investments':
-            loadInvestmentsData(AppState.investments, AppState.accounts, AppState.currency);
+            setInvestmentBucketSubcategoryFilter(
+                (AppState.investmentBuckets || []).map((b) => b.name).filter(Boolean)
+            );
+            loadInvestmentsPage(
+                AppState.expenses,
+                AppState.investmentBuckets,
+                AppState.investmentApplications,
+                AppState.investmentBucketGoals,
+                AppState.accounts,
+                AppState.currency
+            );
             break;
         // Os casos de profile e tools são inicializados e não precisam de recarga de dados aqui.
     }

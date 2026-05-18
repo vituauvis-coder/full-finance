@@ -24,6 +24,15 @@ let categoriesCacheTimestamp = 0;
 const CACHE_TTL = 60000; // 1 minuto
 
 const ADD_NEW_VALUE = '__add_new__';
+const EXPENSE_INVESTMENT_CATEGORY = 'Investimentos';
+
+/** Nomes de subcategorias = caixinhas (definido ao carregar Investimentos). */
+let investmentBucketSubcategoryNames = null;
+
+export function setInvestmentBucketSubcategoryFilter(names) {
+    investmentBucketSubcategoryNames =
+        Array.isArray(names) && names.length ? new Set(names.map((n) => String(n).trim())) : null;
+}
 
 /** Placeholder da descrição conforme a categoria (exemplos em pt-BR). */
 export const EXPENSE_DESCRIPTION_PLACEHOLDERS = {
@@ -38,7 +47,7 @@ export const EXPENSE_DESCRIPTION_PLACEHOLDERS = {
     Roupas: 'Ex.: tênis na loja X, camisa social outlet…',
     Pets: 'Ex.: ração Golden, consulta vet Dr. Silva, remédio antipulgas…',
     Viagens: 'Ex.: hotel em Floripa, passagem aérea LATAM…',
-    Investimentos: 'Ex.: taxa corretora, IOF câmbio, custódia B3…',
+    Investimentos: 'Ex.: aporte mensal, transferência para corretora…',
     Trabalho: 'Ex.: licença software, coworking, material de escritório…',
     Seguros: 'Ex.: seguro auto parcela 3, seguro residencial anual…',
     Empréstimo: 'Ex.: empréstimo pessoal banco X, refinanciamento, consignado…',
@@ -291,23 +300,29 @@ export async function populateExpenseSubcategorySelect(selectedValue = '', force
     await loadCategoriesFromDatabase(forceRefresh);
     
     const selectedCategory = catSel?.value || '';
-    const subcats = selectedCategory ? await getSubcategoriesForCategory(selectedCategory) : [];
-    
+    let subcats = selectedCategory ? await getSubcategoriesForCategory(selectedCategory) : [];
+
+    if (selectedCategory === EXPENSE_INVESTMENT_CATEGORY && investmentBucketSubcategoryNames) {
+        subcats = subcats.filter((s) => investmentBucketSubcategoryNames.has(s));
+    }
+
     subSel.innerHTML = '';
-    
-    // Desabilita se não houver categoria selecionada
+
     subSel.disabled = !selectedCategory;
-    
-    // Placeholder informativo
+
     const ph = document.createElement('option');
     ph.value = '';
     if (!selectedCategory) {
         ph.textContent = 'Selecione uma categoria primeiro';
+    } else if (selectedCategory === EXPENSE_INVESTMENT_CATEGORY) {
+        ph.textContent = 'Pool — aguardar alocação (sem subcategoria)';
     } else {
         ph.textContent = 'Selecione uma subcategoria';
     }
     subSel.appendChild(ph);
-    
+
+    const isInvestimentos = selectedCategory === EXPENSE_INVESTMENT_CATEGORY;
+
     subcats.forEach((sub) => {
         const opt = document.createElement('option');
         opt.value = sub;
@@ -315,8 +330,7 @@ export async function populateExpenseSubcategorySelect(selectedValue = '', force
         subSel.appendChild(opt);
     });
     
-    if (selectedCategory) {
-        // Adiciona espaçador
+    if (selectedCategory && !isInvestimentos) {
         const spacerOpt = document.createElement('option');
         spacerOpt.value = '';
         spacerOpt.textContent = '─────────────────';
@@ -324,14 +338,12 @@ export async function populateExpenseSubcategorySelect(selectedValue = '', force
         spacerOpt.style.color = '#e5e7eb';
         spacerOpt.style.fontSize = '0.8rem';
         subSel.appendChild(spacerOpt);
-        
-        // Adiciona opção de gerenciar subcategorias
+
         const manageOpt = document.createElement('option');
         manageOpt.value = '__manage_subcategories__';
         manageOpt.textContent = '⚙️ Gerenciar subcategorias...';
         subSel.appendChild(manageOpt);
-        
-        // Adiciona opção de adicionar nova subcategoria
+
         const addOpt = document.createElement('option');
         addOpt.value = ADD_NEW_VALUE;
         addOpt.textContent = '➕ Adicionar nova subcategoria...';

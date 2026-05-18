@@ -5,6 +5,7 @@
 import { creditCardInvoiceTotalForCycle } from '../core/credit-installments.js';
 import { formatCurrency, movementDateToJsDate, isCreditCardType, getBillingCycle } from '../core/utils.js';
 import { api } from '../api-client.js';
+import { computePendingBalance } from '../features/investments/pending-balance.js';
 
 const MS_DAY = 86400000;
 
@@ -27,7 +28,7 @@ let getAppState = () => ({
     accounts: [],
     expenses: [],
     gains: [],
-    investments: [],
+    investmentApplications: [],
     expenseSplitRequests: { incoming: [], outgoing: [] },
     userNotifications: [],
     currency: 'BRL'
@@ -56,7 +57,7 @@ function categorySumInMonth(expenses, categoryLabel, year, monthIndex) {
 export function buildHeaderNotifications(state) {
     const accounts = state.accounts || [];
     const expenses = state.expenses || [];
-    const investments = state.investments || [];
+    const applications = state.investmentApplications || [];
     const currency = state.currency || 'BRL';
 
     const items = [];
@@ -93,21 +94,17 @@ export function buildHeaderNotifications(state) {
         });
     });
 
-    // --- 2) Registro de investimento no mês (aportes / compras isInvestment) ---
-    if (investments.length > 0) {
-        const invThisMonth = expenses.filter(
-            (e) => e.isInvestment && dateInCalendarMonth(e.date, y, mo)
-        );
-        const invSum = invThisMonth.reduce((sum, e) => sum + (e.amount || 0), 0);
-        if (invSum <= 0) {
-            items.push({
-                id: 'investment-monthly-habit',
-                kind: 'investment',
-                title: 'Investimentos no mês',
-                detail: 'Você tem posições cadastradas, mas ainda não registrou aportes ou compras marcadas como investimento neste mês.',
-                priority: 2
-            });
-        }
+    // --- 2) Saldo pendente de alocação (saídas categoria Investimentos) ---
+    const ym = `${y}-${String(mo + 1).padStart(2, '0')}`;
+    const pending = computePendingBalance(expenses, applications, ym);
+    if (pending > 0) {
+        items.push({
+            id: `investment-pending-${ym}`,
+            kind: 'investment',
+            title: 'Investimentos aguardando alocação',
+            detail: `${formatCurrency(pending, currency)} para distribuir nas caixinhas.`,
+            priority: 2
+        });
     }
 
     // --- 3) Gastos elevados por categoria ---

@@ -17,7 +17,7 @@ import {
     isLoanExpense,
     shouldDeferCashOutForMonthlyFixedSeries
 } from '../../core/credit-installments.js';
-import { getTotalInvestedSum } from '../investments/investments.js';
+import { getTotalApplicationsSum } from '../investments/investments-page.js';
 import {
     getDefaultPeriodValue,
     getPeriodDateBounds
@@ -636,7 +636,7 @@ export async function loadReportsData(
     userGains,
     userAccounts,
     userCurrency,
-    userInvestments,
+    investmentApplications,
     userProfile = null,
     expenseSplitRequests = null
 ) {
@@ -646,7 +646,7 @@ export async function loadReportsData(
         userGains,
         userAccounts,
         userCurrency,
-        userInvestments,
+        investmentApplications,
         userProfile,
         expenseSplitRequests
     ];
@@ -739,7 +739,7 @@ export async function loadReportsData(
         categoryScopedExpenses,
         gainsForDashboard,
         userAccounts,
-        userInvestments,
+        investmentApplications,
         userCurrency,
         userProfile,
         outgoingAcceptedSplits,
@@ -2076,7 +2076,7 @@ function renderUnifiedFinancialChart(
     userExpenses,
     gainsForDashboard,
     userAccounts,
-    userInvestments,
+    investmentApplications,
     userCurrency,
     userProfile = null,
     splitRequests = null,
@@ -2097,7 +2097,7 @@ function renderUnifiedFinancialChart(
 
     const expenses = userExpenses || [];
     const gains = gainsForDashboard || [];
-    const investedTotal = getTotalInvestedSum(userInvestments);
+    const investedTotal = getTotalApplicationsSum(investmentApplications);
 
     const labels = months.map((mo) => mo.label);
     const projectionFlags = months.map((mo) => isProjectionMonth(mo, now));

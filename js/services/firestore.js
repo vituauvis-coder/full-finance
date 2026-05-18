@@ -29,7 +29,9 @@ export async function fetchAllData(userId) {
             userExpenses: data.userExpenses || [],
             userGains: data.userGains || [],
             userGoals: data.userGoals || [],
-            userInvestments: data.userInvestments || [],
+            investmentBuckets: data.investmentBuckets || [],
+            investmentApplications: data.investmentApplications || [],
+            investmentBucketGoals: data.investmentBucketGoals || [],
             userDebts: data.userDebts || [],
             userDebtUpdates: data.userDebtUpdates || [],
             expenseSplitRequests: data.expenseSplitRequests || { incoming: [], outgoing: [] },
@@ -58,7 +60,10 @@ async function saveDocument(collectionName, data, docId, options = {}) {
         gains: '/api/gains',
         accounts: '/api/accounts',
         goals: '/api/goals',
-        investments: '/api/investments',
+        investmentBuckets: '/api/investment-buckets',
+        investmentApplications: '/api/investment-applications',
+        investmentAllocations: '/api/investment-applications',
+        investmentBucketGoals: '/api/investment-bucket-goals',
         debts: '/api/debts',
         debtUpdates: '/api/debt-updates'
     };
@@ -96,7 +101,10 @@ async function deleteDocument(collectionName, docId) {
         gains: '/api/gains',
         accounts: '/api/accounts',
         goals: '/api/goals',
-        investments: '/api/investments',
+        investmentBuckets: '/api/investment-buckets',
+        investmentApplications: '/api/investment-applications',
+        investmentAllocations: '/api/investment-applications',
+        investmentBucketGoals: '/api/investment-bucket-goals',
         debts: '/api/debts',
         debtUpdates: '/api/debt-updates'
     };
@@ -124,7 +132,30 @@ export async function patchGainsBatch(ids, patch) {
 export const saveGain = (data, docId, options) => saveDocument('gains', data, docId, options);
 export const saveAccount = (data, docId, options) => saveDocument('accounts', data, docId, options);
 export const saveGoal = (data, docId, options) => saveDocument('goals', data, docId, options);
-export const saveInvestment = (data, docId, options) => saveDocument('investments', data, docId, options);
+export const saveInvestmentBucket = (data, docId, options) =>
+    saveDocument('investmentBuckets', data, docId, options);
+export const saveInvestmentApplication = (data, docId, options) =>
+    saveDocument('investmentApplications', data, docId, options);
+
+/** Cria ou atualiza alocação (split pool + despesa ou aporte direto). */
+export async function saveInvestmentAllocation(data, docId, options) {
+    // Mesmo handler que /api/investment-allocations (alias no servidor).
+    const path = '/api/investment-applications';
+    if (docId) {
+        return api(`${path}/${docId}`, {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        });
+    }
+    return api(path, {
+        method: 'POST',
+        body: JSON.stringify(data)
+    });
+}
+
+export const deleteInvestmentAllocation = (docId) => deleteDocument('investmentAllocations', docId);
+export const saveInvestmentBucketGoal = (data, docId, options) =>
+    saveDocument('investmentBucketGoals', data, docId, options);
 export const saveDebt = (data, docId, options) => saveDocument('debts', data, docId, options);
 export const saveDebtUpdate = (data, docId, options) => saveDocument('debtUpdates', data, docId, options);
 
@@ -132,7 +163,10 @@ export const deleteAccount = (docId) => deleteDocument('accounts', docId);
 export const deleteExpense = (docId) => deleteDocument('expenses', docId);
 export const deleteGain = (docId) => deleteDocument('gains', docId);
 export const deleteGoal = (docId) => deleteDocument('goals', docId);
-export const deleteInvestment = (docId) => deleteDocument('investments', docId);
+export const deleteInvestmentBucket = (docId) => deleteDocument('investmentBuckets', docId);
+export const deleteInvestmentApplication = (docId) =>
+    deleteDocument('investmentApplications', docId);
+export const deleteInvestmentBucketGoal = (docId) => deleteDocument('investmentBucketGoals', docId);
 export const deleteDebt = (docId) => deleteDocument('debts', docId);
 export const deleteDebtUpdate = (docId) => deleteDocument('debtUpdates', docId);
 

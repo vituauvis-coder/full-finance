@@ -21,6 +21,10 @@ import {
 } from './user-notifications.js';
 import { registerZeroBudgetRoutes } from './zero-budget.js';
 import {
+    fetchInvestmentAllocationBundle,
+    registerInvestmentAllocationRoutes
+} from './investment-allocation.js';
+import {
     backupContentType,
     backupFilename,
     checkBackupRateLimit,
@@ -408,7 +412,7 @@ app.get('/api/auth/me', async (req, res) => {
 // --- User data bundle ---
 app.get('/api/data', requireAuth, async (req, res) => {
     const uid = req.session.userId;
-    const [userDocRes, accRes, expRes, gainRes, goalRes, invRes, debtRes, debtUpdRes, userNotifications] =
+    const [userDocRes, accRes, expRes, gainRes, goalRes, debtRes, debtUpdRes, userNotifications, investmentBundle] =
         await Promise.all([
             query(
                 `SELECT
@@ -505,20 +509,6 @@ app.get('/api/data', requireAuth, async (req, res) => {
                 `SELECT
                     id,
                     user_id AS "userId",
-                    name,
-                    category,
-                    institution,
-                    current_value AS "currentValue",
-                    notes,
-                    linked_account_id AS "linkedAccountId"
-                 FROM investments
-                 WHERE user_id = $1`,
-                [uid]
-            ),
-            query(
-                `SELECT
-                    id,
-                    user_id AS "userId",
                     company,
                     notes,
                     created_at AS "createdAt",
@@ -544,6 +534,14 @@ app.get('/api/data', requireAuth, async (req, res) => {
             fetchNotificationsForUser(uid).catch((e) => {
                 console.error('fetchNotificationsForUser', e);
                 return [];
+            }),
+            fetchInvestmentAllocationBundle(uid).catch((e) => {
+                console.error('fetchInvestmentAllocationBundle', e);
+                return {
+                    investmentBuckets: [],
+                    investmentApplications: [],
+                    investmentBucketGoals: []
+                };
             })
         ]);
     const userDoc = userDocRes.rows[0] || null;
@@ -552,7 +550,6 @@ app.get('/api/data', requireAuth, async (req, res) => {
     const userGainsRaw = gainRes.rows;
     const userGoalsRaw = goalRes.rows;
     const userGoals = userGoalsRaw.map(normalizeGoalRow);
-    const userInvestments = invRes.rows;
     const userDebts = debtRes.rows;
     const userDebtUpdatesRaw = debtUpdRes.rows;
     
@@ -568,7 +565,9 @@ app.get('/api/data', requireAuth, async (req, res) => {
         userExpenses,
         userGains,
         userGoals,
-        userInvestments,
+        investmentBuckets: investmentBundle.investmentBuckets || [],
+        investmentApplications: investmentBundle.investmentApplications || [],
+        investmentBucketGoals: investmentBundle.investmentBucketGoals || [],
         userDebts,
         userDebtUpdates,
         expenseSplitRequests,
@@ -2900,7 +2899,7 @@ app.delete('/api/accounts/:id', requireAuth, async (req, res) => {
         }
 
         await client.query(
-            `UPDATE investments SET linked_account_id = NULL WHERE linked_account_id = $1 AND user_id = $2`,
+            `UPDATE investment_applications SET account_id = NULL WHERE account_id = $1 AND user_id = $2`,
             [req.params.id, uid]
         );
         await client.query(
@@ -3031,106 +3030,6 @@ app.delete('/api/goals/:id', requireAuth, async (req, res) => {
     const existing = existingRows[0] || null;
     if (!existing) return res.status(404).json({ error: 'Não encontrado' });
     await query(`DELETE FROM goals WHERE id = $1 AND user_id = $2`, [req.params.id, uid]);
-    res.json({ ok: true });
-});
-
-// --- Investments ---
-app.post('/api/investments', requireAuth, async (req, res) => {
-    const uid = req.session.userId;
-    const data = { ...req.body, userId: uid };
-    delete data.id;
-    if (!data.linkedAccountId) data.linkedAccountId = null;
-    const row = {
-        ...data,
-        currentValue: parseFloat(data.currentValue) || 0
-    };
-    const id = crypto.randomUUID();
-    const { rows } = await query(
-        `INSERT INTO investments (
-            id, user_id, name, category, institution, current_value, notes, linked_account_id
-         ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-         RETURNING
-            id,
-            user_id AS "userId",
-            name,
-            category,
-            institution,
-            current_value AS "currentValue",
-            notes,
-            linked_account_id AS "linkedAccountId"`,
-        [
-            id,
-            uid,
-            row.name,
-            row.category,
-            row.institution ?? null,
-            row.currentValue ?? 0,
-            row.notes ?? null,
-            row.linkedAccountId ?? null
-        ]
-    );
-    const inv = rows[0];
-    await safeUpsertBalanceSnapshot(uid);
-    res.json(inv);
-});
-
-app.put('/api/investments/:id', requireAuth, async (req, res) => {
-    const uid = req.session.userId;
-    const { rows: existingRows } = await query(
-        `SELECT current_value AS "currentValue" FROM investments WHERE id = $1 AND user_id = $2`,
-        [req.params.id, uid]
-    );
-    const existing = existingRows[0] || null;
-    if (!existing) return res.status(404).json({ error: 'Não encontrado' });
-    const data = { ...req.body, userId: uid };
-    delete data.id;
-    if (!data.linkedAccountId) data.linkedAccountId = null;
-    const nextCurrent = parseFloat(data.currentValue);
-    const currentValue = Number.isFinite(nextCurrent) ? nextCurrent : existing.currentValue ?? 0;
-    const { rows: updatedRows } = await query(
-        `UPDATE investments
-         SET name = COALESCE($3, name),
-             category = COALESCE($4, category),
-             institution = $5,
-             current_value = $6,
-             notes = $7,
-             linked_account_id = $8
-         WHERE id = $1 AND user_id = $2
-         RETURNING
-            id,
-            user_id AS "userId",
-            name,
-            category,
-            institution,
-            current_value AS "currentValue",
-            notes,
-            linked_account_id AS "linkedAccountId"`,
-        [
-            req.params.id,
-            uid,
-            data.name !== undefined ? String(data.name) : null,
-            data.category !== undefined ? String(data.category) : null,
-            data.institution !== undefined ? (data.institution === '' ? null : data.institution) : null,
-            currentValue,
-            data.notes !== undefined ? (data.notes === '' ? null : data.notes) : null,
-            data.linkedAccountId
-        ]
-    );
-    const updated = updatedRows[0];
-    await safeUpsertBalanceSnapshot(uid);
-    res.json(updated);
-});
-
-app.delete('/api/investments/:id', requireAuth, async (req, res) => {
-    const uid = req.session.userId;
-    const { rows: existingRows } = await query(
-        `SELECT id FROM investments WHERE id = $1 AND user_id = $2`,
-        [req.params.id, uid]
-    );
-    const existing = existingRows[0] || null;
-    if (!existing) return res.status(404).json({ error: 'Não encontrado' });
-    await query(`DELETE FROM investments WHERE id = $1 AND user_id = $2`, [req.params.id, uid]);
-    await safeUpsertBalanceSnapshot(uid);
     res.json({ ok: true });
 });
 
@@ -3509,7 +3408,9 @@ app.delete('/api/user', requireAuth, async (req, res) => {
         await client.query(`DELETE FROM expenses WHERE user_id = $1`, [uid]);
         await client.query(`DELETE FROM gains WHERE user_id = $1`, [uid]);
         await client.query(`DELETE FROM goals WHERE user_id = $1`, [uid]);
-        await client.query(`DELETE FROM investments WHERE user_id = $1`, [uid]);
+        await client.query(`DELETE FROM investment_applications WHERE user_id = $1`, [uid]);
+        await client.query(`DELETE FROM investment_bucket_goals WHERE user_id = $1`, [uid]);
+        await client.query(`DELETE FROM investment_buckets WHERE user_id = $1`, [uid]);
         await client.query(`DELETE FROM accounts WHERE user_id = $1`, [uid]);
         await client.query(`DELETE FROM admin_logs WHERE user_id = $1`, [uid]);
         await client.query(`DELETE FROM subcategories WHERE user_id = $1`, [uid]);
@@ -3990,7 +3891,9 @@ app.delete('/api/admin/users/:id', requireAdmin, async (req, res) => {
         await client.query(`DELETE FROM expenses WHERE user_id = $1`, [userId]);
         await client.query(`DELETE FROM gains WHERE user_id = $1`, [userId]);
         await client.query(`DELETE FROM goals WHERE user_id = $1`, [userId]);
-        await client.query(`DELETE FROM investments WHERE user_id = $1`, [userId]);
+        await client.query(`DELETE FROM investment_applications WHERE user_id = $1`, [userId]);
+        await client.query(`DELETE FROM investment_bucket_goals WHERE user_id = $1`, [userId]);
+        await client.query(`DELETE FROM investment_buckets WHERE user_id = $1`, [userId]);
         await client.query(`DELETE FROM accounts WHERE user_id = $1`, [userId]);
         await client.query(`DELETE FROM admin_logs WHERE user_id = $1`, [userId]);
         await client.query(`DELETE FROM subcategories WHERE user_id = $1`, [userId]);
@@ -4054,7 +3957,7 @@ app.get('/api/admin/user/:id/details', requireAdmin, async (req, res) => {
     const [
         accRes,
         goalsRes,
-        invRes,
+        appsCountRes,
         expCountRes,
         gainCountRes,
         lastExpRes,
@@ -4091,20 +3994,7 @@ app.get('/api/admin/user/:id/details', requireAdmin, async (req, res) => {
              WHERE user_id = $1`,
             [userId]
         ),
-        query(
-            `SELECT
-                id,
-                user_id AS "userId",
-                name,
-                category,
-                institution,
-                current_value AS "currentValue",
-                notes,
-                linked_account_id AS "linkedAccountId"
-             FROM investments
-             WHERE user_id = $1`,
-            [userId]
-        ),
+        query(`SELECT COUNT(*)::int AS n FROM investment_applications WHERE user_id = $1`, [userId]),
         query(`SELECT COUNT(*)::int AS n FROM expenses WHERE user_id = $1`, [userId]),
         query(`SELECT COUNT(*)::int AS n FROM gains WHERE user_id = $1`, [userId]),
         query(`SELECT date FROM expenses WHERE user_id = $1 ORDER BY date DESC LIMIT 1`, [userId]),
@@ -4112,7 +4002,7 @@ app.get('/api/admin/user/:id/details', requireAdmin, async (req, res) => {
     ]);
     const accounts = accRes.rows;
     const goals = goalsRes.rows.map(normalizeGoalRow);
-    const investments = invRes.rows;
+    const investmentApplicationCount = appsCountRes.rows[0]?.n ?? 0;
     const expenseCount = expCountRes.rows[0]?.n ?? 0;
     const gainCount = gainCountRes.rows[0]?.n ?? 0;
     const lastExpense = lastExpRes.rows[0] || null;
@@ -4128,7 +4018,7 @@ app.get('/api/admin/user/:id/details', requireAdmin, async (req, res) => {
     res.json({
         accounts,
         goals,
-        investments,
+        investmentApplicationCount,
         summary: {
             expenseCount,
             gainCount,
@@ -4317,6 +4207,7 @@ app.delete('/api/kanban-cards/:id', requireAuth, async (req, res) => {
 
 registerExpenseSplitRoutes(app, { requireAuth });
 registerZeroBudgetRoutes(app, requireAuth);
+registerInvestmentAllocationRoutes(app, requireAuth);
 
 /** Produção (Railway etc.): um único processo Node serve o build Vite (`dist`) e a API. */
 const distPath = path.join(ROOT, 'dist');

@@ -30,7 +30,6 @@ model User {
   expenses         Expense[]
   gains            Gain[]
   goals            Goal[]
-  investments      Investment[]
   debts            Debt[]
   debtUpdates      DebtUpdate[]
   adminLogs        AdminLog[]
@@ -64,7 +63,6 @@ model Account {
   user           User         @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   expenses       Expense[]
   gains          Gain[]
-  investments    Investment[]
 }
 
 model Expense {
@@ -92,6 +90,8 @@ model Expense {
   recurrenceGroupId String? @db.NVarChar(36)
   /** ID da solicitação de rateio quando esta saída é a parte do destinatário. */
   splitRequestId    String? @unique @db.NVarChar(36)
+  /** Saída pool de origem quando esta linha é aporte alocado a uma caixinha. */
+  allocationParentId String? @db.NVarChar(36)
 
   user             User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   account          Account  @relation(fields: [accountId], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -174,20 +174,6 @@ model Goal {
   user             User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
-model Investment {
-  id              String   @id @default(uuid())
-  userId          String
-  name            String
-  category        String
-  institution     String?
-  currentValue    Float    @default(0)
-  notes           String?
-  linkedAccountId String?
-
-  user            User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  linkedAccount   Account? @relation(fields: [linkedAccountId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
-
 model Debt {
   id        String   @id @default(uuid())
   userId    String
@@ -264,6 +250,61 @@ model Subcategory {
 
   user        User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   category    Category @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  investmentBuckets InvestmentBucket[]
+}
+
+model InvestmentBucket {
+  id              String   @id @default(uuid())
+  userId          String
+  name            String   @db.NVarChar(200)
+  colorKey        String   @default("violet") @map("color_key") @db.NVarChar(50)
+  icon            String   @default("fa-chart-line") @db.NVarChar(80)
+  sortOrder       Int      @default(0) @map("sort_order")
+  yieldMultiplier Float    @default(1) @map("yield_multiplier")
+  subcategoryId   String?  @map("subcategory_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  subcategory   Subcategory? @relation(fields: [subcategoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  applications  InvestmentApplication[]
+  goals         InvestmentBucketGoal[]
+
+  @@index([userId])
+  @@map("investment_buckets")
+}
+
+model InvestmentApplication {
+  id                 String   @id @default(uuid())
+  userId             String   @map("user_id")
+  bucketId           String   @map("bucket_id")
+  referenceMonth     DateTime @map("reference_month") @db.Date
+  amount             Float
+  accountId          String?  @map("account_id")
+  status             String   @default("Concluído") @db.NVarChar(50)
+  sourceExpenseId    String?  @map("source_expense_id")
+  allocatedExpenseId String?  @map("allocated_expense_id")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  bucket InvestmentBucket @relation(fields: [bucketId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([userId])
+  @@index([userId, referenceMonth])
+  @@map("investment_applications")
+}
+
+model InvestmentBucketGoal {
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  bucketId       String   @map("bucket_id")
+  year           Int
+  targetAmount   Float    @default(0) @map("target_amount")
+  achievedAmount Float    @default(0) @map("achieved_amount")
+  status         String   @default("Em andamento") @db.NVarChar(50)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  bucket InvestmentBucket @relation(fields: [bucketId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([userId, bucketId, year])
+  @@map("investment_bucket_goals")
 }
 
 /** Saldo total (contas não-cartão + investimentos) por dia; um registro por usuário e data (upsert). */

@@ -20,7 +20,9 @@
     "seed:expenses": "node scripts/seed-expenses.mjs",
     "debug:month-expenses": "node scripts/debug-monthly-expenses.mjs",
     "backfill:ledger": "node scripts/backfill-balance-ledger.mjs",
-    "db:zero-budget:category": "node scripts/pg-migrate-zero-budget-category.mjs"
+    "db:zero-budget:category": "node scripts/pg-migrate-zero-budget-category.mjs",
+    "db:investment-allocation": "node scripts/pg-migrate-investment-allocation.mjs",
+    "db:investment-expense-link": "node scripts/pg-migrate-investment-expense-link.mjs"
   },
   "keywords": [],
   "author": "Victor Alves",

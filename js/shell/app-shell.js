@@ -68,7 +68,7 @@ const FEATURE_PREVIEW_STORAGE = {
     debts: 'ff_feature_preview_debts'
 };
 
-const FEATURE_PREVIEW_PAGE_IDS = ['goals', 'investments', 'debts'];
+const FEATURE_PREVIEW_PAGE_IDS = ['goals', 'debts'];
 
 function updateFeaturePreviewGlobal(pageId) {
     const el = document.getElementById('feature-preview-global');
@@ -456,7 +456,13 @@ export function navigateTo(pageId) {
     // Atualiza a cor de fundo do header baseado na página
     const appHeader = document.querySelector('.app-header');
     if (appHeader) {
-        appHeader.classList.remove('app-header--expenses', 'app-header--gains', 'app-header--zero-budget', 'app-header--wallet');
+        appHeader.classList.remove(
+            'app-header--expenses',
+            'app-header--gains',
+            'app-header--zero-budget',
+            'app-header--wallet',
+            'app-header--investments'
+        );
         if (pageId === 'expenses') {
             appHeader.classList.add('app-header--expenses');
         } else if (pageId === 'gains') {
@@ -465,6 +471,8 @@ export function navigateTo(pageId) {
             appHeader.classList.add('app-header--zero-budget');
         } else if (pageId === 'wallet') {
             appHeader.classList.add('app-header--wallet');
+        } else if (pageId === 'investments') {
+            appHeader.classList.add('app-header--investments');
         }
     }
 
@@ -473,6 +481,7 @@ export function navigateTo(pageId) {
     document.getElementById('dashboard-header-actions')?.classList.toggle('hidden', pageId !== 'dashboard');
     document.getElementById('zero-budget-header-actions')?.classList.toggle('hidden', pageId !== 'zero-budget');
     document.getElementById('wallet-header-actions')?.classList.toggle('hidden', pageId !== 'wallet');
+    document.getElementById('investments-header-actions')?.classList.toggle('hidden', pageId !== 'investments');
 
     // Salva a última página visitada
     localStorage.setItem('lastVisitedPage', pageId);
