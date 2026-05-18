@@ -87,8 +87,13 @@ export function buildMonthlyStackedSeries(applications, buckets, expenses = []) 
         const ym = `${mo.start.getFullYear()}-${String(mo.start.getMonth() + 1).padStart(2, '0')}`;
         const row = { yearMonth: ym, label: mo.label, total: 0 };
         buckets.forEach((b) => {
-            let v = 0;
-            if (expenses?.length) {
+            let v = (applications || [])
+                .filter(
+                    (a) =>
+                        a.bucketId === b.id && referenceMonthToYearMonth(a.referenceMonth) === ym
+                )
+                .reduce((s, a) => s + (parseFloat(a.amount) || 0), 0);
+            if (v <= 0 && expenses?.length) {
                 v = (expenses || [])
                     .filter(
                         (e) =>
@@ -98,14 +103,6 @@ export function buildMonthlyStackedSeries(applications, buckets, expenses = []) 
                             e.isPaid !== false
                     )
                     .reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
-            }
-            if (v <= 0) {
-                v = (applications || [])
-                    .filter(
-                        (a) =>
-                            a.bucketId === b.id && referenceMonthToYearMonth(a.referenceMonth) === ym
-                    )
-                    .reduce((s, a) => s + (parseFloat(a.amount) || 0), 0);
             }
             row[b.id] = v;
             row.total += v;

@@ -324,6 +324,10 @@
     box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.22);
 }
 
+.movements-summary .movements-summary-card-icon.cofrinhos.portal-tooltip-active {
+    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.22);
+}
+
 .dashboard-grid {
     display: grid;
     grid-template-columns: 1fr;
@@ -449,7 +453,8 @@
 #transactions-table,
 #expenses-table,
 #gains-table,
-#debt-updates-table {
+#debt-updates-table,
+#cofrinhos-applications-table {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
@@ -463,7 +468,9 @@
 #gains-table th,
 #gains-table td,
 #debt-updates-table th,
-#debt-updates-table td {
+#debt-updates-table td,
+#cofrinhos-applications-table th,
+#cofrinhos-applications-table td {
     padding: 0.875rem 1rem;
     text-align: left;
     border-bottom: 1px solid var(--border-color);
@@ -475,7 +482,8 @@
 #expenses-table th,
 #gains-table th,
 #transactions-table th,
-#debt-updates-table th {
+#debt-updates-table th,
+#cofrinhos-applications-table th {
     font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -485,8 +493,28 @@
 }
 
 #expenses-table tbody tr:hover,
-#gains-table tbody tr:hover {
+#gains-table tbody tr:hover,
+#cofrinhos-applications-table tbody tr:hover {
     background: var(--bg-color);
+}
+
+#cofrinhos-applications-table td.cofrinho {
+    color: var(--info-color);
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+#cofrinhos-applications-table th:nth-child(3),
+#cofrinhos-applications-table td:nth-child(3) {
+    text-align: right;
+}
+
+#cofrinhos-applications-table td.cofrinhos-td-status {
+    text-align: center;
+}
+
+#cofrinhos-applications-table thead th:last-child {
+    text-align: center;
 }
 
 /* Cores para valores de ganho e despesa - estilo verde/vermelho vibrante */

@@ -10,6 +10,16 @@ export const GOAL_STATUS_OPTIONS = [
 
 export const BUCKET_COLOR_KEYS = ['fuchsia', 'violet', 'emerald', 'cyan', 'amber', 'rose', 'indigo'];
 
+export const BUCKET_COLOR_LABELS = {
+    fuchsia: 'Fúcsia',
+    violet: 'Violeta',
+    emerald: 'Esmeralda',
+    cyan: 'Ciano',
+    amber: 'Âmbar',
+    rose: 'Rosa',
+    indigo: 'Índigo'
+};
+
 export const BUCKET_COLOR_HEX = {
     fuchsia: '#d946ef',
     violet: '#8b5cf6',

@@ -112,7 +112,8 @@
     #transactions-table,
     #expenses-table,
     #gains-table,
-    #debt-updates-table {
+    #debt-updates-table,
+    #cofrinhos-applications-table {
         min-width: 600px;
     }
     #transactions-table th,
@@ -122,7 +123,9 @@
     #gains-table th,
     #gains-table td,
     #debt-updates-table th,
-    #debt-updates-table td {
+    #debt-updates-table td,
+    #cofrinhos-applications-table th,
+    #cofrinhos-applications-table td {
         padding: 0.5rem;
         font-size: 0.9rem;
     }

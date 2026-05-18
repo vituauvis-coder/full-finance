@@ -3,7 +3,7 @@
 const CARD_ICON_SELECTOR = '.movements-summary-card-icon';
 const SHOW_DELAY_MS = 220;
 const HIDE_DELAY_MS = 100;
-const TONE_CLASSES = ['expense', 'income', 'balance', 'projection', 'investments', 'savings'];
+const TONE_CLASSES = ['expense', 'income', 'balance', 'projection', 'investments', 'savings', 'cofrinhos'];
 
 let tipEl = null;
 let kickerEl = null;

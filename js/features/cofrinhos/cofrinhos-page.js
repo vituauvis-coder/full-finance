@@ -9,10 +9,11 @@ import {
 } from '../../services/firestore.js';
 import { loadCategoriesFromDatabase } from '../finance/expense-categories.js';
 import { openModal, closeModal, showMessage } from '../../shell/app-shell.js';
-import { setFormSubmittingState } from '../../core/button-loading.js';
+import { setFormSubmittingState, runWithButtonLoading } from '../../core/button-loading.js';
 import {
     EXPENSE_COFRINHO_CATEGORY,
     BUCKET_COLOR_KEYS,
+    BUCKET_COLOR_LABELS,
     GOAL_STATUS_OPTIONS,
     bucketColorHex
 } from './constants.js';
@@ -75,12 +76,31 @@ export function initCofrinhos(_user, onUpdate) {
     });
 
     document.getElementById('cofrinho-application-form')?.addEventListener('submit', handleApplicationSubmit);
+    document.querySelectorAll('[data-close-modal="cofrinho-application-modal"]').forEach((btn) => {
+        btn.addEventListener('click', () => closeModal('cofrinho-application-modal'));
+    });
     document.getElementById('cofrinho-bucket-form')?.addEventListener('submit', handleBucketFormSubmit);
+    document.getElementById('cofrinho-bucket-form')?.addEventListener('click', handleBucketFormClick);
+    document.querySelectorAll('[data-close-modal="cofrinho-buckets-modal"]').forEach((btn) => {
+        btn.addEventListener('click', () => closeModal('cofrinho-buckets-modal'));
+    });
     document.getElementById('cofrinho-bucket-history-close')?.addEventListener('click', () => {
         closeModal('cofrinho-bucket-history-modal');
         cache.historyBucketId = null;
     });
     document.getElementById('cofrinho-bucket-history-add-year')?.addEventListener('click', addBucketGoalYear);
+    document.querySelectorAll('[data-close-modal="cofrinho-bucket-history-modal"]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            closeModal('cofrinho-bucket-history-modal');
+            cache.historyBucketId = null;
+        });
+    });
+    document.getElementById('cofrinho-bucket-history-apps-tbody')?.addEventListener('click', (e) => {
+        const edit = e.target.closest('.cof-app-edit');
+        const del = e.target.closest('.cof-app-delete');
+        if (edit?.dataset.id) openApplicationModal(edit.dataset.id);
+        if (del?.dataset.id) void deleteApplication(del.dataset.id);
+    });
 
     document.getElementById('cofrinhos-applications-tbody')?.addEventListener('click', (e) => {
         const edit = e.target.closest('.cof-app-edit');
@@ -90,6 +110,16 @@ export function initCofrinhos(_user, onUpdate) {
     });
 
     document.getElementById('cofrinhos-goal-cards')?.addEventListener('click', (e) => {
+        const colorBtn = e.target.closest('[data-bucket-set-color]');
+        if (colorBtn?.dataset.bucketSetColor) {
+            e.preventDefault();
+            void updateBucketColor(
+                colorBtn.dataset.bucketSetColor,
+                colorBtn.dataset.colorKey,
+                colorBtn
+            );
+            return;
+        }
         const allocateBtn = e.target.closest('[data-bucket-allocate]');
         const historyBtn = e.target.closest('[data-bucket-history]');
         const settingsBtn = e.target.closest('[data-bucket-settings]');
@@ -102,7 +132,9 @@ export function initCofrinhos(_user, onUpdate) {
 
     window.addEventListener('fullfinan-themechange', () => {
         if (document.getElementById('cofrinhos-page')?.classList.contains('active')) {
-            renderCofrinhoCharts(cache.buckets, cache.applications, cache.currency, cache.expenses);
+            renderCofrinhoCharts(cache.buckets, cache.applications, cache.currency, cache.expenses, {
+                onMonthSelect: applyCofrinhosMonthFromChart
+            });
         }
     });
 }
@@ -133,7 +165,7 @@ export function loadCofrinhosPage(
         cache.historyBucketId &&
         !document.getElementById('cofrinho-bucket-history-modal')?.classList.contains('hidden')
     ) {
-        renderBucketHistoryList();
+        renderBucketHistoryModal();
     }
 }
 
@@ -151,6 +183,75 @@ function clampReferenceToCurrentYear(ym) {
     return `${currentCalendarYear()}-${String(month).padStart(2, '0')}`;
 }
 
+function referenceMonthInputBounds() {
+    const year = currentCalendarYear();
+    const now = new Date();
+    const maxMonth = now.getMonth() + 1;
+    return {
+        min: `${year}-01`,
+        max: `${year}-${String(maxMonth).padStart(2, '0')}`
+    };
+}
+
+function applyReferenceMonthInputBounds(input) {
+    if (!input) return;
+    const { min, max } = referenceMonthInputBounds();
+    input.min = min;
+    input.max = max;
+}
+
+function syncApplicationModalReferenceMonth(ym) {
+    const form = document.getElementById('cofrinho-application-form');
+    if (!form) return;
+
+    ym = clampReferenceToCurrentYear(ym);
+    form.dataset.referenceMonth = ym;
+
+    const monthInput = document.getElementById('cofrinho-application-month');
+    if (monthInput) monthInput.value = ym;
+
+    const id = document.getElementById('cofrinho-application-id')?.value;
+    const app = id ? cache.applications.find((a) => a.id === id) : null;
+    const mode = form.dataset.allocationMode || 'pool';
+    const isDirect = mode === 'direct' && !id;
+
+    const hint = document.getElementById('cofrinho-application-pending-hint');
+    if (hint) {
+        if (isDirect) {
+            hint.hidden = false;
+            hint.innerHTML = `<span class="cofrinho-modal__balance-label">Modo direto</span><span class="cofrinho-modal__balance-value">Cria saída já na subcategoria da caixinha (não usa saldo pool).</span>`;
+        } else {
+            const pending = computePendingBalance(cache.expenses, cache.applications, ym);
+            const avail = app ? pending + (parseFloat(app.amount) || 0) : pending;
+            hint.hidden = false;
+            hint.innerHTML = `<span class="cofrinho-modal__balance-label">Saldo pool (${formatYearMonthLabel(ym)})</span><span class="cofrinho-modal__balance-value">${formatCurrency(avail, cache.currency)}</span>`;
+        }
+    }
+
+    const poolSourceWrap = document.getElementById('cofrinho-application-pool-source-wrap');
+    const poolSourceSelect = document.getElementById('cofrinho-application-pool-source');
+    if (poolSourceWrap && poolSourceSelect) {
+        const poolList = listPoolExpensesForMonth(cache.expenses, ym);
+        const selectedId = poolSourceSelect.value || app?.sourceExpenseId || '';
+        poolSourceWrap.hidden = isDirect || Boolean(id);
+        poolSourceSelect.innerHTML =
+            '<option value="">Automático (mais antiga primeiro)</option>' +
+            poolList
+                .map((ex) => {
+                    const label = `${escapeHtml(ex.description || 'Saída')} — ${formatCurrency(ex.amount, cache.currency)}`;
+                    return `<option value="${escapeAttr(ex.id)}"${selectedId === ex.id ? ' selected' : ''}>${label}</option>`;
+                })
+                .join('');
+    }
+}
+
+function applyCofrinhosMonthFromChart(yearMonth) {
+    const ym = clampReferenceToCurrentYear(yearMonth);
+    if (!ym || ym === cache.referenceYearMonth) return;
+    cache.referenceYearMonth = ym;
+    refreshCofrinhosUI();
+}
+
 function refreshCofrinhosUI() {
     renderReferenceTimeline();
     renderSummaryCards();
@@ -158,7 +259,9 @@ function refreshCofrinhosUI() {
     renderGoalCards();
     renderMilestonePanel();
     renderApplicationsTable();
-    renderCofrinhoCharts(cache.buckets, cache.applications, cache.currency, cache.expenses);
+    renderCofrinhoCharts(cache.buckets, cache.applications, cache.currency, cache.expenses, {
+        onMonthSelect: applyCofrinhosMonthFromChart
+    });
 }
 
 function initCofrinhosPageUiOnce() {
@@ -182,9 +285,16 @@ function initCofrinhosPageUiOnce() {
             const form = document.getElementById('cofrinho-application-form');
             if (form) form.dataset.allocationMode = radio.value === 'direct' ? 'direct' : 'pool';
             openApplicationModal(document.getElementById('cofrinho-application-id')?.value || null, {
-                mode: radio.value
+                mode: radio.value,
+                referenceMonth: document.getElementById('cofrinho-application-month')?.value
             });
         });
+    });
+
+    document.getElementById('cofrinho-application-month')?.addEventListener('change', (e) => {
+        const ym = clampReferenceToCurrentYear(e.target.value);
+        e.target.value = ym;
+        syncApplicationModalReferenceMonth(ym);
     });
 }
 
@@ -264,31 +374,18 @@ function renderSummaryCards() {
     );
 
     el.hidden = false;
-    el.innerHTML = `
-        <div class="card">
-            <div class="card-icon projection" aria-hidden="true"><i class="fas fa-hourglass-half"></i></div>
-            <div class="card-content">
-                <h3>Pendente de alocar</h3>
-                <p>${formatCurrency(pending, cache.currency)}</p>
-                <span class="dashboard-card-scope">${escapeHtml(monthLabel)}</span>
-            </div>
-        </div>
-        <div class="card">
-            <div class="card-icon cofrinhos" aria-hidden="true"><i class="fas fa-piggy-bank"></i></div>
-            <div class="card-content">
-                <h3>Aportado no mês</h3>
-                <p>${formatCurrency(monthAllocated, cache.currency)}</p>
-                <span class="dashboard-card-scope">Distribuído nas caixinhas</span>
-            </div>
-        </div>
-        <div class="card">
-            <div class="card-icon balance" aria-hidden="true"><i class="fas fa-chart-line"></i></div>
-            <div class="card-content">
-                <h3>Total nas caixinhas</h3>
-                <p>${formatCurrency(totalInBuckets, cache.currency)}</p>
-                <span class="dashboard-card-scope">Patrimônio alocado</span>
-            </div>
-        </div>`;
+
+    const pendingEl = document.getElementById('cofrinhos-summary-pending');
+    if (pendingEl) pendingEl.textContent = formatCurrency(pending, cache.currency);
+
+    const pendingScope = document.getElementById('cofrinhos-summary-pending-scope');
+    if (pendingScope) pendingScope.textContent = monthLabel;
+
+    const monthEl = document.getElementById('cofrinhos-summary-month');
+    if (monthEl) monthEl.textContent = formatCurrency(monthAllocated, cache.currency);
+
+    const totalEl = document.getElementById('cofrinhos-summary-total');
+    if (totalEl) totalEl.textContent = formatCurrency(totalInBuckets, cache.currency);
 }
 
 function renderPendingBanner() {
@@ -364,6 +461,12 @@ function renderGoalCards() {
                     </div>
                     <div class="cofrinhos-page__goal-card-bar" role="progressbar" aria-valuenow="${perc.toFixed(0)}" aria-valuemin="0" aria-valuemax="100" aria-label="Progresso da meta">
                         <span style="width:${perc.toFixed(1)}%"></span>
+                    </div>
+                </div>
+                <div class="zero-budget__block-colors cofrinhos-page__goal-card-colors">
+                    <span class="zero-budget__colors-label">Cor da caixinha</span>
+                    <div class="zero-budget__colors-list" role="group" aria-label="Cor da caixinha ${escapeAttr(b.name)}">
+                        ${buildBucketColorSwatchesHtml(b.colorKey, { bucketId: b.id })}
                     </div>
                 </div>
                 <div class="cofrinhos-page__bucket-actions">
@@ -490,6 +593,26 @@ function renderMilestonePanel() {
     });
 }
 
+function renderApplicationRowHtml(a, accMap, { showBucket = true } = {}) {
+    const bucketMap = new Map(cache.buckets.map((b) => [b.id, b]));
+    const b = bucketMap.get(a.bucketId);
+    const acc = a.accountId ? accMap.get(a.accountId) : null;
+    const ym = referenceMonthToYearMonth(a.referenceMonth);
+    return `<tr>
+                ${showBucket ? `<td>${escapeHtml(b?.name || '—')}</td>` : ''}
+                <td>${escapeHtml(formatYearMonthLabel(ym))}</td>
+                <td class="cofrinho">${formatCurrency(a.amount, cache.currency)}</td>
+                <td>${escapeHtml(acc?.name || '—')}</td>
+                <td class="cofrinhos-td-status"><span class="expense-status-badge expense-status-badge--paid">${escapeHtml(a.status || 'Concluído')}</span></td>
+                <td class="transaction-actions">
+                    <div class="transaction-actions__inner">
+                        <button type="button" class="btn-action btn-edit cof-app-edit" data-id="${escapeAttr(a.id)}" title="Editar"><i class="fas fa-pencil-alt"></i></button>
+                        <button type="button" class="btn-action btn-delete cof-app-delete" data-id="${escapeAttr(a.id)}" title="Excluir"><i class="fas fa-trash-alt"></i></button>
+                    </div>
+                </td>
+            </tr>`;
+}
+
 function renderApplicationsTable() {
     const tbody = document.getElementById('cofrinhos-applications-tbody');
     const sumEl = document.getElementById('cofrinhos-applications-sum');
@@ -500,32 +623,15 @@ function renderApplicationsTable() {
     const sum = list.reduce((s, a) => s + (parseFloat(a.amount) || 0), 0);
     if (sumEl) sumEl.textContent = `Total: ${formatCurrency(sum, cache.currency)}`;
 
-    const bucketMap = new Map(cache.buckets.map((b) => [b.id, b]));
     const accMap = new Map(cache.accounts.map((a) => [a.id, a]));
 
     if (!list.length) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhuma aplicação encontrada.</td></tr>';
+        tbody.innerHTML =
+            '<tr><td colspan="6" style="text-align:center; opacity:0.8;">Nenhuma aplicação encontrada.</td></tr>';
         return;
     }
 
-    tbody.innerHTML = list
-        .map((a) => {
-            const b = bucketMap.get(a.bucketId);
-            const acc = a.accountId ? accMap.get(a.accountId) : null;
-            const ym = referenceMonthToYearMonth(a.referenceMonth);
-            return `<tr>
-                <td><strong>${escapeHtml(b?.name || '—')}</strong></td>
-                <td>${escapeHtml(formatYearMonthLabel(ym))}</td>
-                <td class="text-right">${formatCurrency(a.amount, cache.currency)}</td>
-                <td>${escapeHtml(acc?.name || '—')}</td>
-                <td class="text-center"><span class="expense-status-badge expense-status-badge--paid">${escapeHtml(a.status || 'Concluído')}</span></td>
-                <td class="text-center">
-                    <button type="button" class="btn-icon cof-app-edit" data-id="${escapeAttr(a.id)}" title="Editar"><i class="fas fa-pen"></i></button>
-                    <button type="button" class="btn-icon cof-app-delete" data-id="${escapeAttr(a.id)}" title="Excluir"><i class="fas fa-trash"></i></button>
-                </td>
-            </tr>`;
-        })
-        .join('');
+    tbody.innerHTML = list.map((a) => renderApplicationRowHtml(a, accMap, { showBucket: true })).join('');
 }
 
 function openApplicationModal(id = null, options = {}) {
@@ -536,10 +642,12 @@ function openApplicationModal(id = null, options = {}) {
     const mode = options.mode || (app?.sourceExpenseId ? 'pool' : app ? 'pool' : cache.allocationMode) || 'pool';
     cache.allocationMode = mode;
 
-    const ym = app
-        ? referenceMonthToYearMonth(app.referenceMonth)
-        : cache.referenceYearMonth || currentYearMonth();
-    const pending = computePendingBalance(cache.expenses, cache.applications, ym);
+    const ym = clampReferenceToCurrentYear(
+        options.referenceMonth ||
+            (app ? referenceMonthToYearMonth(app.referenceMonth) : null) ||
+            cache.referenceYearMonth ||
+            currentYearMonth()
+    );
     const isDirect = mode === 'direct' && !id;
 
     document.getElementById('cofrinho-application-id').value = app?.id || '';
@@ -551,50 +659,34 @@ function openApplicationModal(id = null, options = {}) {
         titleEl.innerHTML = `<i class="fas fa-coins" aria-hidden="true"></i> ${titleText}`;
     }
 
-    const hint = document.getElementById('cofrinho-application-pending-hint');
-    if (hint) {
-        if (isDirect) {
-            hint.hidden = false;
-            hint.innerHTML = `<span class="cofrinho-modal__balance-label">Modo direto</span><span class="cofrinho-modal__balance-value">Cria saída já na subcategoria da caixinha (não usa saldo pool).</span>`;
-        } else {
-            const avail = app ? pending + (parseFloat(app.amount) || 0) : pending;
-            hint.hidden = false;
-            hint.innerHTML = `<span class="cofrinho-modal__balance-label">Saldo pool (${formatYearMonthLabel(ym)})</span><span class="cofrinho-modal__balance-value">${formatCurrency(avail, cache.currency)}</span>`;
-        }
-    }
-
     const modeRow = document.getElementById('cofrinho-application-mode-row');
     if (modeRow) modeRow.hidden = Boolean(id);
 
-    const poolSourceWrap = document.getElementById('cofrinho-application-pool-source-wrap');
-    const poolSourceSelect = document.getElementById('cofrinho-application-pool-source');
-    if (poolSourceWrap && poolSourceSelect) {
-        const poolList = listPoolExpensesForMonth(cache.expenses, ym);
-        poolSourceWrap.hidden = isDirect || Boolean(id);
-        poolSourceSelect.innerHTML =
-            '<option value="">Automático (mais antiga primeiro)</option>' +
-            poolList
-                .map((ex) => {
-                    const label = `${escapeHtml(ex.description || 'Saída')} — ${formatCurrency(ex.amount, cache.currency)}`;
-                    return `<option value="${escapeAttr(ex.id)}"${app?.sourceExpenseId === ex.id ? ' selected' : ''}>${label}</option>`;
-                })
-                .join('');
+    const monthInput = document.getElementById('cofrinho-application-month');
+    applyReferenceMonthInputBounds(monthInput);
+    if (monthInput) {
+        monthInput.disabled = false;
+        monthInput.value = ym;
     }
 
     document.getElementById('cofrinho-application-amount').value = app?.amount ?? '';
-    const monthDisplay = document.getElementById('cofrinho-application-month-display');
-    if (monthDisplay) monthDisplay.value = formatYearMonthLabel(ym);
     populateBucketSelect(
         document.getElementById('cofrinho-application-bucket'),
         options.bucketId || app?.bucketId
     );
     populateAccountSelect(document.getElementById('cofrinho-application-account'), app?.accountId);
 
-    form.dataset.referenceMonth = ym;
     form.dataset.allocationMode = isDirect ? 'direct' : 'pool';
     document.querySelectorAll('input[name="cofrinho-allocation-mode"]').forEach((radio) => {
         radio.checked = radio.value === (isDirect ? 'direct' : 'pool');
     });
+
+    const msgEl = document.getElementById('cofrinho-application-message');
+    if (msgEl) {
+        msgEl.classList.add('hidden');
+        msgEl.textContent = '';
+    }
+    syncApplicationModalReferenceMonth(ym);
     openModal('cofrinho-application-modal');
 }
 
@@ -602,7 +694,12 @@ async function handleApplicationSubmit(e) {
     e.preventDefault();
     const form = e.target;
     const id = document.getElementById('cofrinho-application-id')?.value;
-    const ym = form.dataset.referenceMonth || cache.referenceYearMonth;
+    const monthInput = document.getElementById('cofrinho-application-month');
+    const ym = clampReferenceToCurrentYear(
+        monthInput?.value || form.dataset.referenceMonth || cache.referenceYearMonth
+    );
+    if (monthInput) monthInput.value = ym;
+    form.dataset.referenceMonth = ym;
     const mode = form.dataset.allocationMode || 'pool';
     const amount = parseFloat(document.getElementById('cofrinho-application-amount')?.value);
     const pending = computePendingBalance(cache.expenses, cache.applications, ym);
@@ -672,11 +769,37 @@ function openBucketHistoryModal(bucketId) {
     if (titleEl) {
         titleEl.innerHTML = `<i class="fas fa-history" aria-hidden="true"></i> Histórico: ${escapeHtml(b?.name || '')}`;
     }
-    renderBucketHistoryList();
+    renderBucketHistoryModal();
     openModal('cofrinho-bucket-history-modal');
 }
 
-function renderBucketHistoryList() {
+function renderBucketHistoryModal() {
+    renderBucketHistoryApplications();
+    renderBucketHistoryGoals();
+}
+
+function renderBucketHistoryApplications() {
+    const tbody = document.getElementById('cofrinho-bucket-history-apps-tbody');
+    const sumEl = document.getElementById('cofrinho-bucket-history-apps-sum');
+    if (!tbody || !cache.historyBucketId) return;
+
+    const list = filterApplications(cache.applications, { bucketId: cache.historyBucketId });
+    const accMap = new Map(cache.accounts.map((a) => [a.id, a]));
+    const sum = list.reduce((s, a) => s + (parseFloat(a.amount) || 0), 0);
+    if (sumEl) sumEl.textContent = `Total nesta caixinha: ${formatCurrency(sum, cache.currency)}`;
+
+    if (!list.length) {
+        tbody.innerHTML =
+            '<tr><td colspan="5" style="text-align:center; opacity:0.8;">Nenhum aporte registado nesta caixinha.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = list
+        .map((a) => renderApplicationRowHtml(a, accMap, { showBucket: false }))
+        .join('');
+}
+
+function renderBucketHistoryGoals() {
     const list = document.getElementById('cofrinho-bucket-history-list');
     if (!list || !cache.historyBucketId) return;
 
@@ -685,6 +808,10 @@ function renderBucketHistoryList() {
         .sort((a, b) => b.year - a.year);
 
     const yearOptions = [2024, 2025, 2026, 2027, 2028, 2029];
+    if (!goals.length) {
+        list.innerHTML =
+            '<p class="cofrinho-history-modal__empty">Nenhuma meta anual registada. Use «Registar novo ano» para criar.</p>';
+    } else {
     list.innerHTML = goals
         .map(
             (g) => `
@@ -709,18 +836,19 @@ function renderBucketHistoryList() {
         )
         .join('');
 
-    list.querySelectorAll('.inv-goal-save').forEach((btn) => {
-        btn.addEventListener('click', () => {
-            const row = btn.closest('.cofrinho-history-row');
-            void saveHistoryRow(row);
+        list.querySelectorAll('.inv-goal-save').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const row = btn.closest('.cofrinho-history-row');
+                void saveHistoryRow(row);
+            });
         });
-    });
-    list.querySelectorAll('.inv-goal-delete').forEach((btn) => {
-        btn.addEventListener('click', () => {
-            const row = btn.closest('.cofrinho-history-row');
-            void deleteHistoryRow(row?.dataset.goalId);
+        list.querySelectorAll('.inv-goal-delete').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const row = btn.closest('.cofrinho-history-row');
+                void deleteHistoryRow(row?.dataset.goalId);
+            });
         });
-    });
+    }
 }
 
 async function saveHistoryRow(row) {
@@ -781,7 +909,12 @@ function openCreateBucketModal() {
     if (submit) submit.textContent = 'Adicionar caixinha';
     delBtn?.classList.add('hidden');
     form?.reset();
-    populateColorSelect(document.getElementById('cofrinho-bucket-color'));
+    const msgEl = document.getElementById('cofrinho-buckets-message');
+    if (msgEl) {
+        msgEl.classList.add('hidden');
+        msgEl.textContent = '';
+    }
+    mountBucketColorSwatchesInForm('violet');
     openModal('cofrinho-buckets-modal');
     requestAnimationFrame(() => document.getElementById('cofrinho-bucket-name')?.focus());
 }
@@ -798,7 +931,12 @@ function openBucketSettingsModal(bucketId) {
     delBtn?.classList.remove('hidden');
     document.getElementById('cofrinho-bucket-name').value = b.name || '';
     document.getElementById('cofrinho-bucket-yield').value = b.yieldMultiplier ?? 1.02;
-    populateColorSelect(document.getElementById('cofrinho-bucket-color'), b.colorKey);
+    const msgEl = document.getElementById('cofrinho-buckets-message');
+    if (msgEl) {
+        msgEl.classList.add('hidden');
+        msgEl.textContent = '';
+    }
+    mountBucketColorSwatchesInForm(b.colorKey || 'violet');
     openModal('cofrinho-buckets-modal');
     requestAnimationFrame(() => document.getElementById('cofrinho-bucket-name')?.focus());
 }
@@ -867,11 +1005,71 @@ function populateAccountSelect(select, selectedId = '') {
             .join('');
 }
 
-function populateColorSelect(select, selectedKey = '') {
-    if (!select) return;
-    select.innerHTML = BUCKET_COLOR_KEYS.map(
-        (c) => `<option value="${c}"${c === selectedKey ? ' selected' : ''}>${c}</option>`
-    ).join('');
+function buildBucketColorSwatchesHtml(selectedKey, { bucketId = null, formMode = false } = {}) {
+    return BUCKET_COLOR_KEYS.map((key) => {
+        const hex = bucketColorHex(key);
+        const selected = key === selectedKey;
+        const label = BUCKET_COLOR_LABELS[key] || key;
+        const attrs = formMode
+            ? `data-bucket-form-color="${escapeAttr(key)}"`
+            : `data-bucket-set-color="${escapeAttr(bucketId)}" data-color-key="${escapeAttr(key)}"`;
+        return `<button type="button"
+            class="zero-budget__color-swatch${selected ? ' is-selected' : ''}"
+            style="background-color:${hex}"
+            ${attrs}
+            title="${escapeAttr(label)}"
+            aria-label="Cor ${escapeAttr(label)}"
+            aria-pressed="${selected ? 'true' : 'false'}"></button>`;
+    }).join('');
+}
+
+function mountBucketColorSwatchesInForm(selectedKey = 'violet') {
+    const hidden = document.getElementById('cofrinho-bucket-color');
+    const container = document.getElementById('cofrinho-bucket-color-swatches');
+    const key = selectedKey || hidden?.value || 'violet';
+    if (hidden) hidden.value = key;
+    if (container) {
+        container.innerHTML = buildBucketColorSwatchesHtml(key, { formMode: true });
+    }
+}
+
+function setBucketFormColor(colorKey) {
+    const hidden = document.getElementById('cofrinho-bucket-color');
+    if (hidden) hidden.value = colorKey;
+    document
+        .querySelectorAll('#cofrinho-bucket-color-swatches .zero-budget__color-swatch')
+        .forEach((btn) => {
+            const key = btn.getAttribute('data-bucket-form-color');
+            const selected = key === colorKey;
+            btn.classList.toggle('is-selected', selected);
+            btn.setAttribute('aria-pressed', selected ? 'true' : 'false');
+        });
+}
+
+function handleBucketFormClick(e) {
+    const colorBtn = e.target.closest('[data-bucket-form-color]');
+    if (colorBtn) {
+        setBucketFormColor(colorBtn.getAttribute('data-bucket-form-color'));
+    }
+}
+
+async function updateBucketColor(bucketId, colorKey, triggerEl) {
+    const b = cache.buckets.find((x) => x.id === bucketId);
+    if (!b || !colorKey || b.colorKey === colorKey) return;
+
+    const save = async () => {
+        await saveCofrinhoBucket({ colorKey }, bucketId);
+        await loadCategoriesFromDatabase(true);
+        onUpdateCallback?.();
+    };
+
+    try {
+        if (triggerEl) await runWithButtonLoading(triggerEl, save);
+        else await save();
+    } catch (err) {
+        console.error(err);
+        alert(err?.message || 'Não foi possível atualizar a cor.');
+    }
 }
 
 function escapeHtml(s) {

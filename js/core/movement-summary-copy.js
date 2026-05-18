@@ -53,10 +53,11 @@ export const DASHBOARD_SUMMARY_COPY = {
 };
 
 export const COFRINHOS_SUMMARY_COPY = {
-    total: 'Valor total das suas aplicações com preço cadastrado.',
-    count: 'Quantos cofrinhos você tem com valor informado.',
-    average: 'Valor médio de cada posição na sua carteira.',
-    topCategory: 'Categoria com maior valor na carteira'
+    pending:
+        'Saldo de saídas em «Cofrinhos» sem subcategoria no mês selecionado, ainda não distribuído nas caixinhas.',
+    monthAllocated:
+        'Total já distribuído nas caixinhas no mês de referência (aportes e alocações do pool).',
+    totalInBuckets: 'Soma de todo o patrimônio alocado nas caixinhas, em todos os meses.'
 };
 
 /** Textos da linha de variação % nos cards (quando o filtro não é um mês único, etc.). */
@@ -287,41 +288,34 @@ export const MOVEMENT_SUMMARY_CARD_GROUPS = {
         ]
     },
     cofrinhos: {
-        ariaLabel: 'Resumo de cofrinhos',
-        containerClass: 'cofrinhos-summary',
+        ariaLabel: 'Resumo do mês',
+        containerClass: 'cofrinhos-page__summary',
         cards: [
             {
+                id: 'cofrinhos-summary-pending',
+                tone: 'projection',
+                icon: 'fa-hourglass-half',
+                title: 'Pendente de alocar',
+                description: COFRINHOS_SUMMARY_COPY.pending,
+                scopeId: 'cofrinhos-summary-pending-scope'
+            },
+            {
+                id: 'cofrinhos-summary-month',
+                tone: 'cofrinhos',
+                icon: 'fa-piggy-bank',
+                title: 'Aportado no mês',
+                description: COFRINHOS_SUMMARY_COPY.monthAllocated,
+                scopeId: 'cofrinhos-summary-month-scope',
+                scopeText: 'Distribuído nas caixinhas'
+            },
+            {
                 id: 'cofrinhos-summary-total',
-                tone: 'cofrinhos',
-                icon: 'fa-calendar',
-                title: 'Posição total',
-                hint: COFRINHOS_SUMMARY_COPY.total,
-                iconTooltip: false
-            },
-            {
-                id: 'cofrinhos-summary-count',
-                tone: 'cofrinhos',
-                icon: 'fa-calendar-day',
-                title: 'Ativos na carteira',
-                hint: COFRINHOS_SUMMARY_COPY.count,
-                iconTooltip: false
-            },
-            {
-                id: 'cofrinhos-summary-avg',
-                tone: 'cofrinhos',
+                tone: 'balance',
                 icon: 'fa-chart-line',
-                title: 'Média por ativo',
-                hint: COFRINHOS_SUMMARY_COPY.average,
-                iconTooltip: false
-            },
-            {
-                id: 'cofrinhos-summary-top-cat',
-                tone: 'cofrinhos',
-                icon: 'fa-tags',
-                title: 'Principal categoria',
-                hintId: 'cofrinhos-summary-top-cat-hint',
-                hint: '',
-                iconTooltip: false
+                title: 'Total nas caixinhas',
+                description: COFRINHOS_SUMMARY_COPY.totalInBuckets,
+                scopeId: 'cofrinhos-summary-total-scope',
+                scopeText: 'Patrimônio alocado'
             }
         ]
     }

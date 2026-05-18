@@ -794,7 +794,7 @@
                         <div class="zero-budget__timeline-chips" data-cofrinhos-timeline></div>
                     </div>
 
-                    <div id="cofrinhos-summary" class="summary-cards movements-summary cofrinhos-page__summary" aria-label="Resumo do mês" hidden></div>
+                    <div id="cofrinhos-summary" class="summary-cards movements-summary cofrinhos-page__summary" data-summary-group="cofrinhos" hidden></div>
 
                     <div id="cofrinhos-pending-banner" class="cofrinhos-page__pending" aria-live="polite" hidden></div>
 
@@ -820,21 +820,21 @@
 
                     <section id="cofrinhos-milestone" class="cofrinhos-page__milestone" aria-label="Progresso anual"></section>
 
-                    <section class="reports-chart-container cofrinhos-page__apps-panel" aria-labelledby="cofrinhos-apps-heading">
-                        <div class="reports-chart-header cofrinhos-page__apps-panel-head">
+                    <section class="cofrinhos-page__apps-section" aria-labelledby="cofrinhos-apps-heading">
+                        <div class="cofrinhos-page__apps-head">
                             <h3 id="cofrinhos-apps-heading">Histórico de aplicações</h3>
-                            <span id="cofrinhos-applications-sum" class="cofrinhos-page__apps-panel-sum"></span>
+                            <span id="cofrinhos-applications-sum" class="cofrinhos-page__apps-sum"></span>
                         </div>
-                        <div class="cofrinhos-page__apps-table-wrap">
-                            <table class="cofrinhos-page__apps-table">
+                        <div class="table-container">
+                            <table id="cofrinhos-applications-table">
                                 <thead>
                                     <tr>
-                                        <th>Caixinha</th>
-                                        <th>Mês</th>
-                                        <th class="text-right">Valor</th>
-                                        <th>Conta</th>
-                                        <th class="text-center">Status</th>
-                                        <th class="text-center">Ações</th>
+                                        <th scope="col">Caixinha</th>
+                                        <th scope="col">Mês</th>
+                                        <th scope="col">Valor</th>
+                                        <th scope="col">Conta</th>
+                                        <th scope="col">Status</th>
+                                        <th scope="col">Ações</th>
                                     </tr>
                                 </thead>
                                 <tbody id="cofrinhos-applications-tbody"></tbody>
@@ -2308,115 +2308,128 @@
     </div>
 
     <!-- Modal: distribuir / editar aporte -->
-    <div id="cofrinho-application-modal" class="modal-container hidden">
-        <div class="modal-content cofrinho-modal modal-content--cofrinho-allocation">
-            <div class="cofrinho-modal__header">
-                <h3 id="cofrinho-application-modal-title" class="cofrinho-modal__title">
-                    <i class="fas fa-coins" aria-hidden="true"></i> Distribuir aporte
-                </h3>
-                <button type="button" class="modal-close-btn cofrinho-modal__close" aria-label="Fechar">&times;</button>
-            </div>
-            <div class="cofrinho-modal__body">
-                <div id="cofrinho-application-message" class="form-message hidden"></div>
-                <form id="cofrinho-application-form">
-                    <input type="hidden" id="cofrinho-application-id" value="">
-                    <div id="cofrinho-application-pending-hint" class="cofrinho-modal__balance" hidden></div>
-                    <div id="cofrinho-application-mode-row" class="cofrinho-modal__mode-row" hidden>
-                        <label class="cofrinho-modal__mode-option">
-                            <input type="radio" name="cofrinho-allocation-mode" value="pool" checked> Do saldo pool (saída sem subcategoria)
-                        </label>
-                        <label class="cofrinho-modal__mode-option">
-                            <input type="radio" name="cofrinho-allocation-mode" value="direct"> Aporte direto na caixinha
-                        </label>
-                    </div>
-                    <div id="cofrinho-application-pool-source-wrap" class="form-group" hidden>
-                        <label for="cofrinho-application-pool-source">Descontar de (opcional)</label>
-                        <select id="cofrinho-application-pool-source" class="cofrinho-modal__input">
-                            <option value="">Automático (mais antiga primeiro)</option>
-                        </select>
-                    </div>
-                    <div class="cofrinho-modal__grid-2">
-                        <div class="form-group">
-                            <label for="cofrinho-application-month-display">Mês ref.</label>
-                            <input type="text" id="cofrinho-application-month-display" class="cofrinho-modal__input" readonly tabindex="-1" aria-readonly="true">
-                        </div>
-                        <div class="form-group">
-                            <label for="cofrinho-application-amount">Valor (R$)</label>
-                            <input type="number" id="cofrinho-application-amount" class="cofrinho-modal__input cofrinho-modal__input--amount" step="0.01" min="0.01" required inputmode="decimal" placeholder="0,00">
-                        </div>
+    <div id="cofrinho-application-modal" class="modal-container hidden" role="dialog" aria-modal="true" aria-labelledby="cofrinho-application-modal-title">
+        <div class="modal-content modal-content--cofrinho-allocation">
+            <button type="button" class="modal-close-btn" data-close-modal="cofrinho-application-modal" aria-label="Fechar">&times;</button>
+            <h3 id="cofrinho-application-modal-title"><i class="fas fa-coins" aria-hidden="true"></i> Distribuir aporte</h3>
+            <form id="cofrinho-application-form">
+                <div id="cofrinho-application-message" class="form-message hidden" role="alert"></div>
+                <input type="hidden" id="cofrinho-application-id" value="">
+                <div id="cofrinho-application-pending-hint" class="form-message info cofrinho-modal__balance" hidden role="status"></div>
+                <div id="cofrinho-application-mode-row" class="cofrinho-modal__mode-row" hidden>
+                    <label class="cofrinho-modal__mode-option">
+                        <input type="radio" name="cofrinho-allocation-mode" value="pool" checked> Do saldo pool (saída sem subcategoria)
+                    </label>
+                    <label class="cofrinho-modal__mode-option">
+                        <input type="radio" name="cofrinho-allocation-mode" value="direct"> Aporte direto na caixinha
+                    </label>
+                </div>
+                <div id="cofrinho-application-pool-source-wrap" class="form-group" hidden>
+                    <label for="cofrinho-application-pool-source">Descontar de (opcional)</label>
+                    <select id="cofrinho-application-pool-source">
+                        <option value="">Automático (mais antiga primeiro)</option>
+                    </select>
+                </div>
+                <div class="cofrinho-modal__grid-2">
+                    <div class="form-group">
+                        <label for="cofrinho-application-month">Mês de referência</label>
+                        <input type="month" id="cofrinho-application-month" required>
                     </div>
                     <div class="form-group">
-                        <label for="cofrinho-application-bucket">Para qual caixinha?</label>
-                        <select id="cofrinho-application-bucket" class="cofrinho-modal__input" required></select>
+                        <label for="cofrinho-application-amount">Valor (R$)</label>
+                        <input type="number" id="cofrinho-application-amount" step="0.01" min="0.01" required inputmode="decimal" placeholder="0,00">
                     </div>
-                    <div class="form-group">
-                        <label for="cofrinho-application-account">Banco / corretora</label>
-                        <select id="cofrinho-application-account" class="cofrinho-modal__input">
-                            <option value="">Nenhuma</option>
-                        </select>
-                    </div>
-                    <button type="submit" class="btn-primary cofrinho-modal__submit">
-                        <i class="fas fa-save" aria-hidden="true"></i> Salvar alterações
-                    </button>
-                </form>
-            </div>
+                </div>
+                <div class="form-group">
+                    <label for="cofrinho-application-bucket">Para qual caixinha?</label>
+                    <select id="cofrinho-application-bucket" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="cofrinho-application-account">Banco / corretora</label>
+                    <select id="cofrinho-application-account">
+                        <option value="">Nenhuma</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" data-close-modal="cofrinho-application-modal">Cancelar</button>
+                    <button type="submit" class="btn-primary">Salvar</button>
+                </div>
+            </form>
         </div>
     </div>
 
-    <!-- Modal: histórico de metas da caixinha -->
-    <div id="cofrinho-bucket-history-modal" class="modal-container hidden">
+    <!-- Modal: histórico da caixinha (aportes + metas) -->
+    <div id="cofrinho-bucket-history-modal" class="modal-container hidden" role="dialog" aria-modal="true" aria-labelledby="cofrinho-bucket-history-title">
         <div class="modal-content cofrinho-modal cofrinho-modal--history">
             <div class="cofrinho-modal__header">
                 <h3 id="cofrinho-bucket-history-title"><i class="fas fa-history" aria-hidden="true"></i> Histórico da caixinha</h3>
-                <button type="button" class="modal-close-btn cofrinho-modal__close" aria-label="Fechar">&times;</button>
+                <button type="button" class="modal-close-btn cofrinho-modal__close" data-close-modal="cofrinho-bucket-history-modal" aria-label="Fechar">&times;</button>
             </div>
-            <div id="cofrinho-bucket-history-message" class="form-message hidden"></div>
+            <div id="cofrinho-bucket-history-message" class="form-message hidden" role="alert"></div>
             <div class="cofrinho-modal__body-scroll">
-                <p class="cofrinho-modal__hint">Edite as metas passadas ou registe anos anteriores desta caixinha.</p>
-                <div id="cofrinho-bucket-history-list" class="cofrinho-bucket-history-list"></div>
-                <button type="button" id="cofrinho-bucket-history-add-year" class="btn-secondary cofrinho-modal__add-year">
-                    <i class="fas fa-plus" aria-hidden="true"></i> Registar novo ano
-                </button>
+                <section class="cofrinho-history-modal__section">
+                    <h4 class="cofrinho-history-modal__section-title">Aportes</h4>
+                    <p class="cofrinho-modal__hint">Todos os aportes registados nesta caixinha.</p>
+                    <p id="cofrinho-bucket-history-apps-sum" class="cofrinho-history-modal__sum"></p>
+                    <div class="table-container cofrinho-history-modal__table">
+                        <table id="cofrinho-bucket-history-apps-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Mês</th>
+                                    <th scope="col">Valor</th>
+                                    <th scope="col">Conta</th>
+                                    <th scope="col">Status</th>
+                                    <th scope="col">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cofrinho-bucket-history-apps-tbody"></tbody>
+                        </table>
+                    </div>
+                </section>
+                <section class="cofrinho-history-modal__section">
+                    <h4 class="cofrinho-history-modal__section-title">Metas anuais</h4>
+                    <p class="cofrinho-modal__hint">Edite as metas passadas ou registe anos anteriores desta caixinha.</p>
+                    <div id="cofrinho-bucket-history-list" class="cofrinho-bucket-history-list"></div>
+                    <button type="button" id="cofrinho-bucket-history-add-year" class="btn-secondary cofrinho-modal__add-year">
+                        <i class="fas fa-plus" aria-hidden="true"></i> Registar novo ano
+                    </button>
+                </section>
             </div>
             <div class="cofrinho-modal__footer">
-                <button type="button" id="cofrinho-bucket-history-close" class="btn-primary cofrinho-modal__footer-btn">Guardar e fechar</button>
+                <button type="button" id="cofrinho-bucket-history-close" class="btn-primary cofrinho-modal__footer-btn">Fechar</button>
             </div>
         </div>
     </div>
 
     <!-- Modal: criar / editar caixinha -->
-    <div id="cofrinho-buckets-modal" class="modal-container hidden">
-        <div class="modal-content cofrinho-modal cofrinho-modal--bucket">
-            <div class="cofrinho-modal__header">
-                <h3 id="cofrinho-buckets-modal-title"><i class="fas fa-piggy-bank" aria-hidden="true"></i> Nova caixinha</h3>
-                <button type="button" class="modal-close-btn cofrinho-modal__close" aria-label="Fechar">&times;</button>
-            </div>
-            <div class="cofrinho-modal__body">
-            <div id="cofrinho-buckets-message" class="form-message hidden"></div>
-            <div id="cofrinho-buckets-list" class="cofrinho-buckets-list hidden" hidden></div>
+    <div id="cofrinho-buckets-modal" class="modal-container hidden" role="dialog" aria-modal="true" aria-labelledby="cofrinho-buckets-modal-title">
+        <div class="modal-content modal-content--cofrinho-bucket">
+            <button type="button" class="modal-close-btn" data-close-modal="cofrinho-buckets-modal" aria-label="Fechar">&times;</button>
+            <h3 id="cofrinho-buckets-modal-title"><i class="fas fa-piggy-bank" aria-hidden="true"></i> Nova caixinha</h3>
             <form id="cofrinho-bucket-form" class="cofrinho-bucket-form">
+                <div id="cofrinho-buckets-message" class="form-message hidden" role="alert"></div>
+                <input type="hidden" id="cofrinho-bucket-color" name="colorKey" value="violet">
                 <div class="form-group">
                     <label for="cofrinho-bucket-name">Nome</label>
                     <input type="text" id="cofrinho-bucket-name" maxlength="120" required placeholder="Ex.: Reserva">
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="cofrinho-bucket-color">Cor</label>
-                        <select id="cofrinho-bucket-color"></select>
-                    </div>
-                    <div class="form-group">
-                        <label for="cofrinho-bucket-yield">Rentabilidade estimada (mult.)</label>
-                        <input type="number" id="cofrinho-bucket-yield" step="0.001" min="1" max="2" value="1.02">
-                    </div>
+                <div class="form-group">
+                    <span class="cofrinho-bucket-form__color-label">Cor da caixinha</span>
+                    <div id="cofrinho-bucket-color-swatches" class="zero-budget__colors-list cofrinho-bucket-form__colors" role="radiogroup" aria-label="Cor da caixinha"></div>
                 </div>
-                <div class="cofrinho-bucket-form__actions">
+                <div class="form-group">
+                    <label for="cofrinho-bucket-yield">Rentabilidade estimada (mult.)</label>
+                    <input type="number" id="cofrinho-bucket-yield" step="0.001" min="1" max="2" value="1.02">
+                </div>
+                <div class="form-actions cofrinho-bucket-form__actions">
                     <button type="button" id="cofrinho-bucket-delete" class="btn-secondary cofrinho-bucket-form__delete hidden">Excluir caixinha</button>
-                    <button type="submit" id="cofrinho-bucket-submit" class="btn-primary cofrinho-modal__footer-btn">Adicionar caixinha</button>
+                    <button type="button" class="btn-secondary" data-close-modal="cofrinho-buckets-modal">Cancelar</button>
+                    <button type="submit" id="cofrinho-bucket-submit" class="btn-primary">Adicionar caixinha</button>
                 </div>
             </form>
-            </div>
         </div>
     </div>
+
     <!-- Compras e lançamentos do cartão -->
     <div id="card-purchases-modal" class="modal-container hidden">
         <div class="modal-content card-purchases-modal">

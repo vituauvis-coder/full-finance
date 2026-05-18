@@ -596,14 +596,16 @@ button[aria-busy="true"] {
 /* Em tabelas, evite `display:flex` direto no `<td>` (quebra alinhamento quando outra coluna tem 2 linhas). */
 #expenses-table td.transaction-actions,
 #gains-table td.transaction-actions,
-#transactions-table td.transaction-actions {
+#transactions-table td.transaction-actions,
+#cofrinhos-applications-table td.transaction-actions {
     display: table-cell;
     vertical-align: top;
 }
 
 #expenses-table td.transaction-actions .transaction-actions__inner,
 #gains-table td.transaction-actions .transaction-actions__inner,
-#transactions-table td.transaction-actions .transaction-actions__inner {
+#transactions-table td.transaction-actions .transaction-actions__inner,
+#cofrinhos-applications-table td.transaction-actions .transaction-actions__inner {
     display: flex;
     flex-wrap: nowrap;
     align-items: flex-start;

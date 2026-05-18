@@ -17,9 +17,9 @@ export function yearMonthToReferenceMonth(ym) {
 /** @param {string} referenceMonth ISO date ou YYYY-MM */
 export function referenceMonthToYearMonth(referenceMonth) {
     if (!referenceMonth) return '';
-    const s = String(referenceMonth);
-    if (/^\d{4}-\d{2}$/.test(s)) return s;
-    return toYearMonthKey(s);
+    const m = String(referenceMonth).trim().match(/^(\d{4})-(\d{2})/);
+    if (m) return `${m[1]}-${m[2]}`;
+    return toYearMonthKey(referenceMonth);
 }
 
 export function isCofrinhoPoolExpense(expense) {
