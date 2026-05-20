@@ -9,6 +9,7 @@
  * Restaurar: pg_restore --clean --if-exists -d "$DATABASE_URL" backup.dump
  */
 import './load-env.js';
+import { brandBackupFilename } from '../js/core/app-brand.js';
 import { spawn } from 'node:child_process';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -103,10 +104,7 @@ export function spawnPgDump(opts = {}) {
  * @param {'custom' | 'sql'} format
  */
 export function backupFilename(format = 'custom') {
-    const now = new Date();
-    const stamp = now.toISOString().replace(/[-:]/g, '').replace(/\..+/, '').replace('T', '-').slice(0, 13);
-    const ext = format === 'sql' ? 'sql' : 'dump';
-    return `full-finance-backup-${stamp}.${ext}`;
+    return brandBackupFilename(format);
 }
 
 export function backupContentType(format = 'custom') {

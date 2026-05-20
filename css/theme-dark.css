@@ -522,3 +522,26 @@
     border-top-color: rgba(163, 163, 163, 0.18);
 }
 
+[data-theme="dark"] .dashboard-cash-heatmap {
+    --heatmap-cell-bg: #1f1f1f;
+    --heatmap-cell-border: #383838;
+    --heatmap-cell-text: #a3a3a3;
+    --heatmap-muted-bg: #1f1f1f;
+    --heatmap-muted-border: transparent;
+    --heatmap-muted-text: #525252;
+}
+
+[data-theme="dark"] .cash-heatmap-day-btn--out-heavy {
+    background: color-mix(in srgb, var(--danger-color) 38%, var(--heatmap-cell-bg));
+    border-color: color-mix(in srgb, var(--danger-color) 50%, var(--heatmap-cell-border));
+}
+
+[data-theme="dark"] .cash-heatmap-day-btn--in {
+    background: color-mix(in srgb, var(--gains-accent) 28%, var(--heatmap-cell-bg));
+    border-color: color-mix(in srgb, var(--gains-accent) 42%, var(--heatmap-cell-border));
+}
+
+[data-theme="dark"] .cash-heatmap-day-btn--muted {
+    opacity: 0.28;
+}
+

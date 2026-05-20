@@ -1,6 +1,13 @@
 // ==========================================================================
 // CONFIGURAÇÕES E ESTADO GLOBAL
 // ==========================================================================
+import {
+    AppBrandKey,
+    applyBrandToDocument,
+    brandBackupFilename,
+    removeBrandStorage,
+    writeBrandStorage
+} from '../js/core/app-brand.js';
 import { TablePaginationController } from '../js/shared/table-pagination.js';
 import { runWithButtonLoading } from '../js/core/button-loading.js';
 
@@ -115,6 +122,7 @@ const elements = {
 // INICIALIZAÇÃO
 // ==========================================================================
 document.addEventListener('DOMContentLoaded', () => {
+    applyBrandToDocument();
     syncThemeToggleIcon();
     initAuthListener();
     initEventListeners();
@@ -163,14 +171,14 @@ function toggleAdminTheme() {
     if (dark) {
         html.removeAttribute('data-theme');
         try {
-            localStorage.removeItem('fullfinan-theme');
+            removeBrandStorage(AppBrandKey.theme);
         } catch {
             /* ignore */
         }
     } else {
         html.setAttribute('data-theme', 'dark');
         try {
-            localStorage.setItem('fullfinan-theme', 'dark');
+            writeBrandStorage(AppBrandKey.theme, 'dark');
         } catch {
             /* ignore */
         }
@@ -932,7 +940,7 @@ async function downloadDatabaseBackup(format = 'custom') {
         const generatedAt = res.headers.get('X-Backup-Generated-At');
         const filename =
             parseContentDispositionFilename(res.headers.get('Content-Disposition')) ||
-            `full-finance-backup.${format === 'sql' ? 'sql' : 'dump'}`;
+            brandBackupFilename(format);
 
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');

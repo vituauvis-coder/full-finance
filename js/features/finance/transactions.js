@@ -4827,6 +4827,11 @@ function handleLoanMonthTagClick(e) {
     updateExpenseInstallmentPreview();
 }
 
+/** Abre «Nova saída» com data pré-preenchida (Date, ISO string ou valor Firestore). */
+export function openNewExpenseWithPrefillDate(date) {
+    openExpenseModal(false, { sourceExpense: { date } });
+}
+
 function openExpenseModal(forEdit, options = null) {
     const form = document.getElementById('expense-form');
     const newRow = document.getElementById('expense-category-new-row');

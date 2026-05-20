@@ -5,6 +5,7 @@ import {
     runWithButtonLoading,
     setFormSubmittingState
 } from '../core/button-loading.js';
+import { AppBrand, AppBrandKey, readBrandStorage, writeBrandStorage } from '../core/app-brand.js';
 
 // --- Estado e Callbacks do Módulo ---
 let currentUser = null;
@@ -23,7 +24,7 @@ const authContainer = document.getElementById('auth-container');
 /** O container principal usa id="app" (classe app-container), não id="app-container". */
 const appContainer = document.getElementById('app');
 
-const SIDEBAR_COLLAPSE_KEY = 'fullfinan-sidebar-collapsed';
+const SIDEBAR_COLLAPSE_KEY = AppBrandKey.sidebarCollapsed;
 
 function isDesktopSidebarViewport() {
     return window.matchMedia('(min-width: 769px)').matches;
@@ -53,11 +54,7 @@ function applySidebarCollapsed(collapsed) {
             icon.className = collapsed ? 'fas fa-chevron-right' : 'fas fa-chevron-left';
         }
     }
-    try {
-        localStorage.setItem(SIDEBAR_COLLAPSE_KEY, collapsed ? '1' : '0');
-    } catch {
-        /* ignore */
-    }
+    writeBrandStorage(SIDEBAR_COLLAPSE_KEY, collapsed ? '1' : '0');
     clearSidebarCollapseTabInlineStyles();
 }
 
@@ -137,7 +134,7 @@ function initSidebarCollapse() {
 
     let initialCollapsed = false;
     try {
-        initialCollapsed = localStorage.getItem(SIDEBAR_COLLAPSE_KEY) === '1';
+        initialCollapsed = readBrandStorage(SIDEBAR_COLLAPSE_KEY) === '1';
     } catch {
         /* ignore */
     }
@@ -157,7 +154,7 @@ function initSidebarCollapse() {
                 return;
             }
             try {
-                applySidebarCollapsed(localStorage.getItem(SIDEBAR_COLLAPSE_KEY) === '1');
+                applySidebarCollapsed(readBrandStorage(SIDEBAR_COLLAPSE_KEY) === '1');
             } catch {
                 /* ignore */
             }
@@ -438,7 +435,7 @@ export function navigateTo(pageId) {
     const headerHeading = document.getElementById('header-page-heading');
     const headerEmoji = document.getElementById('current-page-emoji');
     const headerTitle = document.getElementById('current-page-title');
-    const resolved = pageHeaderById[pageId] || { icon: 'fa-chart-pie', title: 'Full Finanças' };
+    const resolved = pageHeaderById[pageId] || { icon: 'fa-chart-pie', title: AppBrand.NAME };
     if (headerEmoji) {
         const ic = resolved.icon || 'fa-chart-pie';
         headerEmoji.innerHTML = `<i class="fas ${ic}" aria-hidden="true"></i>`;

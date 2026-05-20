@@ -3,7 +3,11 @@
  * Estado do tamanho de página persiste em localStorage por `storageKey`.
  */
 
-const STORAGE_PREFIX = 'fullfinan-table-pageSize-';
+import {
+    AppBrandKey,
+    readBrandTablePageSize,
+    writeBrandTablePageSize
+} from '../core/app-brand.js';
 export const TABLE_PAGE_SIZES = [10, 25, 100];
 
 export class TablePaginationController {
@@ -24,7 +28,7 @@ export class TablePaginationController {
 
     _readStoredSize() {
         try {
-            const v = parseInt(localStorage.getItem(STORAGE_PREFIX + this.storageKey), 10);
+            const v = parseInt(readBrandTablePageSize(this.storageKey), 10);
             if (TABLE_PAGE_SIZES.includes(v)) return v;
         } catch {
             /* ignore */
@@ -33,11 +37,7 @@ export class TablePaginationController {
     }
 
     _writeStoredSize() {
-        try {
-            localStorage.setItem(STORAGE_PREFIX + this.storageKey, String(this.pageSize));
-        } catch {
-            /* ignore */
-        }
+        writeBrandTablePageSize(this.storageKey, String(this.pageSize));
     }
 
     /**

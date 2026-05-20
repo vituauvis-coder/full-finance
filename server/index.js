@@ -33,6 +33,7 @@ import {
     recordBackupAttempt,
     spawnPgDump
 } from './db-backup.js';
+import { AppBrand, AppBrandKey } from '../js/core/app-brand.js';
 import { isLoanExpense } from '../js/core/credit-installments.js';
 import { getInstallmentDueDates } from '../js/core/credit-installments.js';
 
@@ -44,7 +45,7 @@ const UPLOAD_DIR = path.join(DATA_DIR, 'uploads');
 const PORT = Number(process.env.PORT || 3001);
 /** `0.0.0.0` = API acessível na rede local; `127.0.0.1` = só neste PC */
 const HOST = process.env.HOST || '0.0.0.0';
-const SESSION_SECRET = process.env.SESSION_SECRET || 'full-finan-local-dev-change-me';
+const SESSION_SECRET = process.env.SESSION_SECRET || `${AppBrand.STORAGE_PREFIX}-local-dev-change-me`;
 
 /** Origens extras para CORS (ex.: https://seu-app.vercel.app). Vírgula = várias. */
 function parseExtraCorsOrigins() {
@@ -230,7 +231,7 @@ app.use(express.json({ limit: '10mb' }));
 
 app.use(
     session({
-        name: 'fullfinan.sid',
+        name: AppBrandKey.sessionCookie,
         secret: SESSION_SECRET,
         resave: false,
         saveUninitialized: false,
@@ -4173,7 +4174,7 @@ if (fs.existsSync(distPath)) {
 }
 
 const server = app.listen(PORT, HOST, () => {
-    console.log(`API Full Finanças em http://localhost:${PORT}`);
+    console.log(`API ${AppBrand.NAME} em http://localhost:${PORT}`);
     logLanUrls(PORT);
 });
 server.on('error', (err) => {

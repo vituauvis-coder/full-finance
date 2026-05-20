@@ -1,8 +1,8 @@
 {
-  "name": "full-finan-as",
+  "name": "meu-malote",
   "version": "1.0.0",
   "type": "module",
-  "description": "Transforme suas finanças com o sistema de controle financeiro mais completo e intuitivo da web! Gerencie suas rendas, despesas, cartões de crédito, orçamentos e objetivos em um só lugar, com uma interface moderna e responsiva.",
+  "description": "Meu Malote — controle financeiro pessoal: rendas, despesas, carteira, cofrinhos, dívidas e planejamento em um só lugar.",
   "main": "server/index.js",
   "scripts": {
     "start": "node scripts/run-with-pg-tools.mjs server/index.js",

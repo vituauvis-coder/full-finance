@@ -8,6 +8,7 @@ import {
     setButtonLoading,
     setFormSubmittingState
 } from '../../core/button-loading.js';
+import { AppBrandKey } from '../../core/app-brand.js';
 import { playPingSound, isUiSoundEnabled, setUiSoundEnabled } from '../../core/ui-sounds.js';
 
 let currentUser = null;
@@ -56,7 +57,7 @@ export function initProfile(user, onRefreshAllData) {
     initUiSoundsCheckbox();
 
     document.getElementById('default-currency')?.addEventListener('change', syncAccountSnapshot);
-    window.addEventListener('fullfinan-themechange', syncAccountSnapshot);
+    window.addEventListener(AppBrandKey.themeChangeEvent, syncAccountSnapshot);
 }
 
 /**

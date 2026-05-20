@@ -1,8 +1,12 @@
-const THEME_KEY = 'fullfinan-theme';
+import {
+    AppBrandKey,
+    readBrandStorage,
+    writeBrandStorage
+} from '../core/app-brand.js';
 
 function getStoredTheme() {
     try {
-        return localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light';
+        return readBrandStorage(AppBrandKey.theme) === 'dark' ? 'dark' : 'light';
     } catch {
         return 'light';
     }
@@ -33,7 +37,7 @@ function syncToggle(isDark) {
 /**
  * Aplica o tema e persiste em localStorage.
  * @param {'light'|'dark'} theme
- * @param {{ silent?: boolean }} [opts] — se silent, não dispara fullfinan-themechange (carga inicial).
+ * @param {{ silent?: boolean }} [opts] — se silent, não dispara o evento de troca de tema (carga inicial).
  */
 export function applyTheme(theme, opts = {}) {
     const isDark = theme === 'dark';
@@ -42,15 +46,11 @@ export function applyTheme(theme, opts = {}) {
     } else {
         document.documentElement.removeAttribute('data-theme');
     }
-    try {
-        localStorage.setItem(THEME_KEY, isDark ? 'dark' : 'light');
-    } catch {
-        /* ignore */
-    }
+    writeBrandStorage(AppBrandKey.theme, isDark ? 'dark' : 'light');
     updateMetaThemeColor(isDark);
     syncToggle(isDark);
     if (!opts.silent) {
-        window.dispatchEvent(new CustomEvent('fullfinan-themechange'));
+        window.dispatchEvent(new CustomEvent(AppBrandKey.themeChangeEvent));
     }
 }
 

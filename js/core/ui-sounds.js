@@ -6,7 +6,7 @@
  *   - `save.mp3` — guardar / pagar (opcional; há fallback sintético se falhar).
  */
 
-const STORAGE_KEY = 'fullfinan-ui-sounds';
+import { AppBrandKey, readBrandStorage, writeBrandStorage } from './app-brand.js';
 const VOLUME = 0.4;
 const DELETE_SOUND_URL = '/sounds/delete.mp3';
 const SAVE_SOUND_URL = '/sounds/save.mp3';
@@ -22,7 +22,7 @@ function prefersReducedMotion() {
 /** @returns {boolean} */
 export function isUiSoundEnabled() {
     try {
-        const v = localStorage.getItem(STORAGE_KEY);
+        const v = readBrandStorage(AppBrandKey.uiSounds);
         if (v === null || v === '') return true;
         return v === '1';
     } catch {
@@ -32,11 +32,7 @@ export function isUiSoundEnabled() {
 
 /** @param {boolean} on */
 export function setUiSoundEnabled(on) {
-    try {
-        localStorage.setItem(STORAGE_KEY, on ? '1' : '0');
-    } catch {
-        /* ignore */
-    }
+    writeBrandStorage(AppBrandKey.uiSounds, on ? '1' : '0');
 }
 
 function canPlay() {

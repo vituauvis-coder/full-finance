@@ -7,13 +7,13 @@
     <script>
         (function () {
             try {
-                if (localStorage.getItem('fullfinan-theme') === 'dark') {
+                if (localStorage.getItem('meumalote-theme') === 'dark' || localStorage.getItem('fullfinan-theme') === 'dark') {
                     document.documentElement.setAttribute('data-theme', 'dark');
                 }
             } catch (e) { /* ignore */ }
         })();
     </script>
-    <title>Painel administrativo — Full Finanças</title>
+    <title data-app-brand="admin-title">Painel administrativo — Meu Malote</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="../css/main.css">
@@ -41,7 +41,7 @@
             <header class="auth-form-header">
                 <i class="fas fa-shield-alt" aria-hidden="true"></i>
                 <h2>Acesso administrativo</h2>
-                <p>Full Finanças</p>
+                <p data-app-brand="name">Meu Malote</p>
             </header>
             <form id="admin-login-form" class="admin-login-form">
                 <div class="input-group">

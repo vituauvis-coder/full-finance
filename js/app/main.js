@@ -3,6 +3,7 @@ import { initUI, navigateTo, initAuthForms, showToast } from '../shell/app-shell
 import { fetchAllData, calculateAllBalances } from '../services/firestore.js';
 import { loadDashboardData } from '../features/dashboard/dashboard.js';
 import { refreshReportsChartsForTheme, loadReportsData } from '../features/reports/reports.js';
+import { AppBrandKey, applyBrandToDocument } from '../core/app-brand.js';
 import { initThemeFromStorage, initThemeToggle } from '../shell/theme.js';
 import {
     initFinance,
@@ -51,12 +52,13 @@ function onThemeChange() {
 
 // --- Ponto de Entrada Principal ---
 document.addEventListener('DOMContentLoaded', () => {
+    applyBrandToDocument();
     setupGlobalErrorHandlers();
     initThemeFromStorage();
     initThemeToggle();
     mountMovementSummaryCards();
     initPortalTooltips();
-    window.addEventListener('fullfinan-themechange', onThemeChange);
+    window.addEventListener(AppBrandKey.themeChangeEvent, onThemeChange);
     initAuth(onAuthenticated, onSignedOut);
 });
 

@@ -7,13 +7,13 @@
     <script>
         (function () {
             try {
-                if (localStorage.getItem('fullfinan-theme') === 'dark') {
+                if (localStorage.getItem('meumalote-theme') === 'dark' || localStorage.getItem('fullfinan-theme') === 'dark') {
                     document.documentElement.setAttribute('data-theme', 'dark');
                 }
             } catch (e) { /* ignore */ }
         })();
     </script>
-    <title>Full Finanças - Controle Financeiro Completo</title>
+    <title>Meu Malote — Controle financeiro completo</title>
 
     <!-- Favicon -->
     <link rel="icon"
@@ -91,7 +91,7 @@
                 <div class="landing-hero-inner">
                     <div class="hero-content hero-content--left">
                         <div class="hero-intro">
-                            <h1 class="hero-title"><span class="hero-title-gradient">Full Finanças</span></h1>
+                            <h1 class="hero-title"><span class="hero-title-gradient" data-app-brand="name">Meu Malote</span></h1>
                             <p class="hero-lead">Contas, metas, cofrinhos e relatórios no mesmo painel. Veja o fluxo do seu dinheiro e antecipe decisões — sem planilhas soltas nem lembretes espalhados.</p>
                         </div>
                         <ul class="hero-points" aria-label="Principais benefícios">
@@ -201,7 +201,7 @@
 
             <!-- Features Section -->
             <section id="features-section" class="landing-features">
-                <h2>Por que usar Full Finanças?</h2>
+                <h2 data-app-brand="why-heading">Por que usar Meu Malote?</h2>
                 <div class="features-grid">
                     <div class="feature-card">
                         <div class="feature-icon"><i class="fas fa-chart-pie"></i></div>
@@ -239,7 +239,7 @@
             <!-- Footer -->
             <footer class="landing-footer">
                 <p>Criado por <strong>Victor Alves</strong></p>
-                <p class="footer-version">Full Finanças v1.0</p>
+                <p class="footer-version" data-app-brand="footer-version">Meu Malote v1.0</p>
             </footer>
         </div>
 
@@ -559,24 +559,16 @@
                         </div>
                     </div>
 
-                    <!-- Listas -->
-                    <div class="dashboard-grid">
-                        <div class="list-container">
-                            <h3>Última atividade</h3>
-                            <ul id="recent-activity-list">
-                                <!-- Saídas e entradas recentes via JS -->
-                            </ul>
-                        </div>
-                        <div class="list-container">
-                            <h3>Faturas Próximas</h3>
-                            <ul id="upcoming-invoices-list">
-                                <!-- Faturas serão inseridas via JS -->
-                            </ul>
+                    <div id="dashboard-cash-heatmap" class="dashboard-cash-heatmap list-container" aria-label="Heatmap de caixa">
+                        <div class="dashboard-cash-heatmap__layout">
+                            <div id="cash-heatmap-calendar-root" class="cash-heatmap-calendar" aria-live="polite"></div>
+                            <div class="dashboard-cash-heatmap__divider" aria-hidden="true"></div>
+                            <div id="cash-heatmap-day-panel-root" class="cash-heatmap-day-panel" aria-live="polite"></div>
                         </div>
                     </div>
                     <!-- Rodapé BETA -->
                     <footer class="beta-footer">
-                        <span>Full Finanças - Projeto em Desenvolvimento (BETA 2)</span>
+                        <span data-app-brand="beta-footer">Meu Malote - Projeto em Desenvolvimento (BETA 2)</span>
                     </footer>
                 </section>
 
@@ -1446,7 +1438,7 @@
                 <section id="support-page" class="page hidden">
                     <div class="support-card">
                         <div class="support-header">
-                            <h3>❤️ Obrigado por usar o Full Finanças!</h3>
+                            <h3 data-app-brand="thanks">❤️ Obrigado por usar o Meu Malote!</h3>
                             <p>Este projeto é desenvolvido com muito amor e dedicação para ajudar você a ter controle
                                 total das suas finanças. Se você gostou do projeto e quer apoiar seu desenvolvimento
                                 contínuo, considere fazer uma doação.</p>

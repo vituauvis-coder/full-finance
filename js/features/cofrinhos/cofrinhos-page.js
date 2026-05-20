@@ -1,3 +1,4 @@
+import { AppBrandKey } from '../../core/app-brand.js';
 import { formatCurrency } from '../../core/utils.js';
 import { setMovementSummaryMomVariation } from '../../core/movement-summary-variation.js';
 import {
@@ -144,7 +145,7 @@ export function initCofrinhos(_user, onUpdate) {
         if (settingsBtn?.dataset.bucketSettings) openBucketSettingsModal(settingsBtn.dataset.bucketSettings);
     });
 
-    window.addEventListener('fullfinan-themechange', () => {
+    window.addEventListener(AppBrandKey.themeChangeEvent, () => {
         if (document.getElementById('cofrinhos-page')?.classList.contains('active')) {
             renderCofrinhoCharts(cache.buckets, cache.applications, cache.currency, cache.expenses);
         }

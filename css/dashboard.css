@@ -362,99 +362,6 @@
     font-weight: 600;
 }
 
-#recent-transactions-list, #upcoming-invoices-list, #recent-activity-list {
-    list-style: none;
-}
-
-#recent-activity-list li.recent-activity-item {
-    display: flex;
-    flex-direction: row;
-    align-items: flex-start;
-    gap: 0.65rem;
-    padding: 0.5rem 0;
-    line-height: 1.45;
-    min-width: 0;
-    border-bottom: 1px solid var(--border-color);
-}
-
-#recent-activity-list li.recent-activity-item:last-child {
-    border-bottom: none;
-}
-
-#recent-activity-list li.recent-activity-item .recent-activity-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.25rem;
-    flex-shrink: 0;
-    font-size: 0.85rem;
-    margin-top: 0.1rem;
-}
-
-/* Valor | data | título — grid com colunas fixas: alinha títulos e separa visivelmente da data */
-#recent-activity-list li.recent-activity-item .recent-activity-main {
-    display: grid;
-    grid-template-columns: minmax(8.25rem, 9.75rem) 6.125rem minmax(0, 1fr);
-    column-gap: 0.75rem;
-    row-gap: 0;
-    align-items: baseline;
-    min-width: 0;
-    flex: 1;
-}
-
-#recent-activity-list li.recent-activity-item .recent-activity-amount {
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-    text-align: right;
-    justify-self: end;
-    min-width: 0;
-    padding-right: 0.125rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-#recent-activity-list li.recent-activity-item .recent-activity-date {
-    font-weight: 500;
-    color: var(--text-light);
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-    justify-self: start;
-    padding-right: 0.125rem;
-}
-
-#recent-activity-list li.recent-activity-item .recent-activity-desc {
-    grid-column: 3;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    padding-left: 0.0625rem;
-}
-
-@media (max-width: 520px) {
-    #recent-activity-list li.recent-activity-item .recent-activity-main {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: baseline;
-        row-gap: 0.35rem;
-        column-gap: 0.65rem;
-    }
-    #recent-activity-list li.recent-activity-item .recent-activity-amount {
-        flex: 0 1 auto;
-        min-width: 0;
-    }
-    #recent-activity-list li.recent-activity-item .recent-activity-desc {
-        flex-basis: 100%;
-        white-space: normal;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-        padding-left: 0;
-    }
-}
-
 /* --- Tabelas de despesas / ganhos (e legado transações) - Estilo flat --- */
 .table-container {
     background: var(--bg-light);
@@ -1862,4 +1769,376 @@ button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='
         padding: 0.45rem 0.6rem;
         font-size: 0.78rem;
     }
+}
+
+/* --- Heatmap de Caixa --- */
+.dashboard-cash-heatmap {
+    /* Cinzas neutros (sem matiz azul/slate) só no heatmap */
+    --heatmap-cell-bg: #f5f5f5;
+    --heatmap-cell-border: #e0e0e0;
+    --heatmap-cell-text: #737373;
+    --heatmap-muted-bg: #f5f5f5;
+    --heatmap-muted-border: transparent;
+    --heatmap-muted-text: #d4d4d4;
+}
+
+.dashboard-cash-heatmap__layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+}
+
+.dashboard-cash-heatmap__divider {
+    display: block;
+    height: 1px;
+    width: 100%;
+    background: var(--border-color);
+    margin: 0;
+}
+
+@media (min-width: 1024px) {
+    .dashboard-cash-heatmap__layout {
+        grid-template-columns: 2fr auto 1fr;
+        gap: 0 1.25rem;
+        align-items: stretch;
+    }
+
+    .dashboard-cash-heatmap__divider {
+        width: 1px;
+        height: auto;
+        min-height: 100%;
+        margin: 0;
+    }
+}
+
+.cash-heatmap-day-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.cash-heatmap-calendar__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.cash-heatmap-calendar__title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.cash-heatmap-calendar__title i {
+    margin-right: 0.35rem;
+    color: var(--primary-color);
+}
+
+.cash-heatmap-calendar__subtitle {
+    font-size: 0.75rem;
+    color: var(--text-light);
+    margin: 0.25rem 0 0;
+}
+
+.cash-heatmap-calendar__month-badge {
+    font-size: 0.875rem;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+
+.cash-heatmap-calendar__month-badge i {
+    margin-right: 0.35rem;
+    color: var(--primary-color);
+}
+
+.cash-heatmap-calendar__weekdays,
+.cash-heatmap-calendar__grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.5rem;
+}
+
+.cash-heatmap-calendar__weekday {
+    text-align: center;
+    font-size: 0.625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-light);
+    padding-bottom: 0.25rem;
+}
+
+.cash-heatmap-day-btn {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-height: 4rem;
+    padding: 0.5rem;
+    border-radius: 10px;
+    border: 1px solid var(--heatmap-cell-border);
+    background: var(--heatmap-cell-bg);
+    color: var(--heatmap-cell-text);
+    cursor: pointer;
+    font: inherit;
+    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+}
+
+.cash-heatmap-day-btn:hover {
+    transform: scale(1.03);
+    z-index: 2;
+}
+
+.cash-heatmap-day-btn[aria-pressed="true"] {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 35%, transparent);
+    color: var(--text-color);
+}
+
+.cash-heatmap-day-btn--muted {
+    pointer-events: none;
+    cursor: default;
+    opacity: 0.38;
+    background: var(--heatmap-muted-bg);
+    border-color: var(--heatmap-muted-border);
+    color: var(--heatmap-muted-text);
+}
+
+.cash-heatmap-day-btn--muted:hover {
+    transform: none;
+}
+
+.cash-heatmap-day-btn--muted .cash-heatmap-day-btn__num {
+    font-weight: 400;
+    font-size: 0.7rem;
+}
+
+.cash-heatmap-day-btn--empty {
+    background: var(--heatmap-cell-bg);
+    border-color: var(--heatmap-cell-border);
+    color: var(--heatmap-cell-text);
+}
+
+.cash-heatmap-day-btn--out-light {
+    background: color-mix(in srgb, var(--danger-color) 12%, var(--heatmap-cell-bg));
+    border-color: color-mix(in srgb, var(--danger-color) 25%, var(--heatmap-cell-border));
+    color: color-mix(in srgb, var(--danger-color) 80%, var(--text-color));
+}
+
+.cash-heatmap-day-btn--out-mid {
+    background: color-mix(in srgb, var(--danger-color) 28%, var(--heatmap-cell-bg));
+    border-color: color-mix(in srgb, var(--danger-color) 40%, var(--heatmap-cell-border));
+    color: var(--text-color);
+}
+
+.cash-heatmap-day-btn--out-heavy {
+    background: color-mix(in srgb, var(--danger-color) 45%, var(--heatmap-cell-bg));
+    border-color: color-mix(in srgb, var(--danger-color) 55%, var(--heatmap-cell-border));
+    color: var(--text-color);
+}
+
+.cash-heatmap-day-btn--in {
+    background: color-mix(in srgb, var(--gains-accent, #10b981) 40%, var(--heatmap-cell-bg));
+    border-color: color-mix(in srgb, var(--gains-accent, #10b981) 55%, var(--heatmap-cell-border));
+    color: color-mix(in srgb, var(--gains-accent, #10b981) 92%, var(--text-color));
+}
+
+.cash-heatmap-day-btn__num {
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.cash-heatmap-day-btn__dot {
+    position: absolute;
+    right: 0.35rem;
+    bottom: 0.35rem;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--warning-color);
+    border: 1px solid color-mix(in srgb, #000 25%, transparent);
+}
+
+.cash-heatmap-calendar__legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1rem;
+    align-items: center;
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-light);
+}
+
+.cash-heatmap-legend-swatch {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 4px;
+    vertical-align: middle;
+    margin-right: 0.25rem;
+    border: 1px solid var(--heatmap-cell-border);
+}
+
+.cash-heatmap-legend-swatch--dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--warning-color);
+    border: 1px solid color-mix(in srgb, #000 20%, transparent);
+    vertical-align: middle;
+}
+
+.cash-heatmap-day-panel__label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-light);
+    margin: 0 0 0.25rem;
+}
+
+.cash-heatmap-day-panel__date {
+    font-size: 1.35rem;
+    font-weight: 800;
+    margin: 0 0 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    line-height: 1.25;
+}
+
+.cash-heatmap-day-panel__year {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.cash-heatmap-day-panel__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    flex: 1;
+    min-height: 10rem;
+    max-height: 22rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.cash-heatmap-day-item--compact {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 0.5rem 0.65rem;
+    padding: 0.45rem 0.55rem;
+    border-radius: 8px;
+    background: var(--heatmap-cell-bg);
+    border: 1px solid var(--heatmap-cell-border);
+}
+
+.cash-heatmap-day-item__icon {
+    flex-shrink: 0;
+    width: 1.65rem;
+    height: 1.65rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-size: 0.7rem;
+}
+
+.cash-heatmap-day-item__icon--gain {
+    background: color-mix(in srgb, var(--gains-accent, #10b981) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--gains-accent, #10b981) 28%, transparent);
+    color: var(--gains-accent, #10b981);
+}
+
+.cash-heatmap-day-item__icon--expense {
+    background: color-mix(in srgb, var(--danger-color) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--danger-color) 25%, transparent);
+    color: var(--danger-color);
+}
+
+.cash-heatmap-day-item__icon--pending {
+    background: color-mix(in srgb, var(--warning-color) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--warning-color) 25%, transparent);
+    color: var(--warning-color);
+}
+
+.cash-heatmap-day-item__icon--invoice {
+    background: color-mix(in srgb, var(--warning-color) 18%, transparent);
+    border: 1px solid color-mix(in srgb, var(--warning-color) 35%, transparent);
+    color: var(--warning-color);
+}
+
+.cash-heatmap-day-item__body {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.cash-heatmap-day-item__title {
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cash-heatmap-day-item__meta {
+    font-size: 0.625rem;
+    font-weight: 500;
+    color: var(--text-light);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cash-heatmap-day-item__amount {
+    font-size: 0.78rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    text-align: right;
+}
+
+.cash-heatmap-day-item__amount--gain {
+    color: var(--gains-accent, #10b981);
+}
+
+.cash-heatmap-day-item__amount--expense,
+.cash-heatmap-day-item__amount--pending {
+    color: var(--danger-color);
+}
+
+.cash-heatmap-day-item__amount--invoice {
+    color: var(--warning-color);
+}
+
+.cash-heatmap-day-panel__empty {
+    text-align: center;
+    padding: 1.5rem 0.75rem;
+    color: var(--text-light);
+    flex: 1;
+    font-size: 0.85rem;
+}
+
+.cash-heatmap-day-panel__empty i {
+    font-size: 1.25rem;
+    margin-bottom: 0.4rem;
+    opacity: 0.6;
 }
