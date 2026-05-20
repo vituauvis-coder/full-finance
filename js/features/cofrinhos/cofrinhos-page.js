@@ -43,6 +43,7 @@ import { destroyCofrinhoCharts, renderCofrinhoCharts } from './cofrinhos-charts.
 import { MOVEMENT_SUMMARY_CARD_GROUPS } from '../../core/movement-summary-copy.js';
 import { renderMovementSummaryCard } from '../../components/movement-summary-cards.js';
 
+
 export { getTotalApplicationsSum };
 
 let onUpdateCallback = null;
