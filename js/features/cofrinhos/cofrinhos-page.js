@@ -1,4 +1,5 @@
 import { formatCurrency } from '../../core/utils.js';
+import { setMovementSummaryMomVariation } from '../../core/movement-summary-variation.js';
 import {
     saveCofrinhoAllocation,
     fetchCofrinhoPoolAvailable,
@@ -21,6 +22,7 @@ import {
 } from './constants.js';
 import {
     computePendingBalance,
+    sumCofrinhoPoolForMonth,
     toYearMonthKey,
     yearMonthToReferenceMonth,
     referenceMonthToYearMonth
@@ -32,10 +34,14 @@ import {
     buildPerformanceByBucket,
     countConsecutiveCofrinhoMonths,
     getTotalApplicationsSum,
+    sumAllocatedInMonth,
+    sumApplicationsThroughYearMonth,
     formatYearMonthLabel,
     formatApplicationCreatedAt
 } from './aggregations.js';
 import { destroyCofrinhoCharts, renderCofrinhoCharts } from './cofrinhos-charts.js';
+import { MOVEMENT_SUMMARY_CARD_GROUPS } from '../../core/movement-summary-copy.js';
+import { renderMovementSummaryCard } from '../../components/movement-summary-cards.js';
 
 export { getTotalApplicationsSum };
 
@@ -66,6 +72,7 @@ export function initCofrinhos(_user, onUpdate) {
     onUpdateCallback = onUpdate;
 
     initCofrinhosPageUiOnce();
+    ensureCofrinhosSummaryCardsMounted();
 
     document.getElementById('cofrinhos-add-bucket-btn')?.addEventListener('click', () => {
         openCreateBucketModal();
@@ -176,6 +183,17 @@ export function loadCofrinhosPage(
 function currentYearMonth() {
     const n = new Date();
     return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/** Mês civil anterior a `YYYY-MM`. */
+function previousYearMonth(ym) {
+    const match = String(ym || '').match(/^(\d{4})-(\d{2})$/);
+    if (!match) return '';
+    const y = parseInt(match[1], 10);
+    const m = parseInt(match[2], 10);
+    const d = new Date(y, m - 1, 1);
+    d.setMonth(d.getMonth() - 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
 function currentCalendarYear() {
@@ -308,10 +326,18 @@ function refreshCofrinhosUI() {
     renderCofrinhoCharts(cache.buckets, cache.applications, cache.currency, cache.expenses);
 }
 
+function ensureCofrinhosSummaryCardsMounted() {
+    const container = document.querySelector('[data-summary-group="cofrinhos"]');
+    const group = MOVEMENT_SUMMARY_CARD_GROUPS.cofrinhos;
+    if (!container || !group || document.getElementById('cofrinhos-summary-month')) return;
+    container.innerHTML = group.cards.map((card) => renderMovementSummaryCard(card)).join('');
+}
+
 function initCofrinhosPageUiOnce() {
     if (initCofrinhosPageUiOnceRan) return;
     if (!document.getElementById('cofrinhos-page')) return;
     initCofrinhosPageUiOnceRan = true;
+    ensureCofrinhosSummaryCardsMounted();
 }
 
 function parseReferenceYearMonth(ym) {
@@ -323,37 +349,72 @@ function parseReferenceYearMonth(ym) {
 }
 
 function renderSummaryCards() {
+    ensureCofrinhosSummaryCardsMounted();
     const el = document.getElementById('cofrinhos-summary');
     if (!el) return;
 
-    const pending = computePendingBalance(cache.expenses, cache.applications);
+    const ym = currentYearMonth();
+    const prevYm = previousYearMonth(ym);
+
     const totalInBuckets = getTotalApplicationsSum(
         cache.applications,
         cache.expenses,
         cache.buckets
     );
+    const totalThroughPrev = sumApplicationsThroughYearMonth(cache.applications, prevYm);
+
+    const monthAllocated = sumAllocatedInMonth(cache.applications, cache.buckets, ym);
+    const monthAllocatedPrev = sumAllocatedInMonth(cache.applications, cache.buckets, prevYm);
+
+    const pending = sumCofrinhoPoolForMonth(cache.expenses, ym);
+    const pendingPrev = sumCofrinhoPoolForMonth(cache.expenses, prevYm);
 
     el.hidden = false;
 
-    const pendingEl = document.getElementById('cofrinhos-summary-pending');
-    if (pendingEl) pendingEl.textContent = formatCurrency(pending, cache.currency);
-
     const totalEl = document.getElementById('cofrinhos-summary-total');
     if (totalEl) totalEl.textContent = formatCurrency(totalInBuckets, cache.currency);
+    setMovementSummaryMomVariation(
+        document.getElementById('cofrinhos-summary-total-variation'),
+        totalInBuckets,
+        totalThroughPrev,
+        true,
+        false
+    );
+
+    const monthEl = document.getElementById('cofrinhos-summary-month');
+    if (monthEl) monthEl.textContent = formatCurrency(monthAllocated, cache.currency);
+    setMovementSummaryMomVariation(
+        document.getElementById('cofrinhos-summary-month-variation'),
+        monthAllocated,
+        monthAllocatedPrev,
+        true,
+        false
+    );
+
+    const pendingEl = document.getElementById('cofrinhos-summary-pending');
+    if (pendingEl) pendingEl.textContent = formatCurrency(pending, cache.currency);
+    setMovementSummaryMomVariation(
+        document.getElementById('cofrinhos-summary-pending-variation'),
+        pending,
+        pendingPrev,
+        true,
+        true
+    );
 }
 
 function renderPendingBanner() {
     const el = document.getElementById('cofrinhos-pending-banner');
     if (!el) return;
 
-    const pending = computePendingBalance(cache.expenses, cache.applications);
+    const ym = currentYearMonth();
+    const pending = sumCofrinhoPoolForMonth(cache.expenses, ym);
 
     if (pending > 0) {
         el.hidden = false;
         el.className = 'cofrinhos-page__pending dashboard-pending-cash-outs';
         el.innerHTML = `
             <h3 class="dashboard-pending-title"><i class="fas fa-piggy-bank" aria-hidden="true"></i> Aguardando alocação</h3>
-            <p class="dashboard-pending-hint">Saídas em «${escapeHtml(EXPENSE_COFRINHO_CATEGORY)}» na subcategoria <strong>${escapeHtml(COFRINHO_POOL_SUBCATEGORY)}</strong> — distribua nas caixinhas.</p>
+            <p class="dashboard-pending-hint">Saídas em «${escapeHtml(EXPENSE_COFRINHO_CATEGORY)}» na subcategoria <strong>${escapeHtml(COFRINHO_POOL_SUBCATEGORY)}</strong> em ${escapeHtml(formatYearMonthLabel(ym))} — distribua nas caixinhas.</p>
             <ul class="dashboard-pending-list">
                 <li class="dashboard-pending-item">
                     <div class="dashboard-pending-item__text">

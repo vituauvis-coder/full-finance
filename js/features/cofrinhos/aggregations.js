@@ -49,6 +49,16 @@ export function sumApplicationsByBucket(applications, bucketId) {
         .reduce((s, a) => s + (parseFloat(a.amount) || 0), 0);
 }
 
+/** Soma aplicações com mês de referência até `yearMonth` inclusive (`YYYY-MM`). */
+export function sumApplicationsThroughYearMonth(applications, yearMonth) {
+    if (!yearMonth || !Array.isArray(applications)) return 0;
+    return applications.reduce((sum, a) => {
+        const ym = referenceMonthToYearMonth(a.referenceMonth);
+        if (!ym || ym > yearMonth) return sum;
+        return sum + (parseFloat(a.amount) || 0);
+    }, 0);
+}
+
 /** Total aportado nas caixinhas no mês de referência (só registros em cofrinho_applications). */
 export function sumAllocatedInMonth(applications, buckets, yearMonth) {
     if (!yearMonth || !Array.isArray(buckets) || !buckets.length) return 0;

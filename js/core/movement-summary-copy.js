@@ -56,7 +56,7 @@ export const COFRINHOS_SUMMARY_COPY = {
     pending:
         'Saldo de saídas em «Cofrinhos» na subcategoria Pool, ainda não distribuído nas caixinhas.',
     monthAllocated:
-        'Total já distribuído nas caixinhas (aportes e alocações do pool).',
+        'Total distribuído nas caixinhas no mês civil atual (aportes registados).',
     totalInBuckets: 'Soma de todo o patrimônio alocado nas caixinhas, em todos os meses.'
 };
 
@@ -292,18 +292,28 @@ export const MOVEMENT_SUMMARY_CARD_GROUPS = {
         containerClass: 'cofrinhos-page__summary',
         cards: [
             {
-                id: 'cofrinhos-summary-pending',
-                tone: 'projection',
-                icon: 'fa-hourglass-half',
-                title: 'Pendente de alocar',
-                description: COFRINHOS_SUMMARY_COPY.pending
-            },
-            {
                 id: 'cofrinhos-summary-total',
                 tone: 'balance',
                 icon: 'fa-chart-line',
                 title: 'Total nas caixinhas',
-                description: COFRINHOS_SUMMARY_COPY.totalInBuckets
+                description: COFRINHOS_SUMMARY_COPY.totalInBuckets,
+                variationId: 'cofrinhos-summary-total-variation'
+            },
+            {
+                id: 'cofrinhos-summary-month',
+                tone: 'cofrinhos',
+                icon: 'fa-piggy-bank',
+                title: 'Total alocado no mês',
+                description: COFRINHOS_SUMMARY_COPY.monthAllocated,
+                variationId: 'cofrinhos-summary-month-variation'
+            },
+            {
+                id: 'cofrinhos-summary-pending',
+                tone: 'projection',
+                icon: 'fa-hourglass-half',
+                title: 'Pendente de alocar',
+                description: COFRINHOS_SUMMARY_COPY.pending,
+                variationId: 'cofrinhos-summary-pending-variation'
             }
         ]
     }
