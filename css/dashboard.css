@@ -1780,12 +1780,16 @@ button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='
     --heatmap-muted-bg: #f5f5f5;
     --heatmap-muted-border: transparent;
     --heatmap-muted-text: #d4d4d4;
+    /* Mesmos tons das telas Saídas (#e11d48) e Entradas (#10b981) */
+    --heatmap-expense-accent: var(--expenses-accent, #e11d48);
+    --heatmap-gain-accent: #10b981;
 }
 
 .dashboard-cash-heatmap__layout {
     display: grid;
     grid-template-columns: 1fr;
     gap: 1.25rem;
+    align-items: stretch;
 }
 
 .dashboard-cash-heatmap__divider {
@@ -1811,10 +1815,23 @@ button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='
     }
 }
 
+.cash-heatmap-calendar {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
 .cash-heatmap-day-panel {
     display: flex;
     flex-direction: column;
     min-height: 0;
+    flex: 1;
+}
+
+@media (min-width: 1024px) {
+    .cash-heatmap-day-panel {
+        height: 100%;
+    }
 }
 
 .cash-heatmap-calendar__header {
@@ -1927,27 +1944,27 @@ button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='
 }
 
 .cash-heatmap-day-btn--out-light {
-    background: color-mix(in srgb, var(--danger-color) 12%, var(--heatmap-cell-bg));
-    border-color: color-mix(in srgb, var(--danger-color) 25%, var(--heatmap-cell-border));
-    color: color-mix(in srgb, var(--danger-color) 80%, var(--text-color));
+    background: color-mix(in srgb, var(--heatmap-expense-accent) 14%, var(--heatmap-cell-bg));
+    border-color: color-mix(in srgb, var(--heatmap-expense-accent) 28%, var(--heatmap-cell-border));
+    color: color-mix(in srgb, var(--heatmap-expense-accent) 85%, var(--text-color));
 }
 
 .cash-heatmap-day-btn--out-mid {
-    background: color-mix(in srgb, var(--danger-color) 28%, var(--heatmap-cell-bg));
-    border-color: color-mix(in srgb, var(--danger-color) 40%, var(--heatmap-cell-border));
+    background: color-mix(in srgb, var(--heatmap-expense-accent) 32%, var(--heatmap-cell-bg));
+    border-color: color-mix(in srgb, var(--heatmap-expense-accent) 48%, var(--heatmap-cell-border));
     color: var(--text-color);
 }
 
 .cash-heatmap-day-btn--out-heavy {
-    background: color-mix(in srgb, var(--danger-color) 45%, var(--heatmap-cell-bg));
-    border-color: color-mix(in srgb, var(--danger-color) 55%, var(--heatmap-cell-border));
+    background: color-mix(in srgb, var(--heatmap-expense-accent) 52%, var(--heatmap-cell-bg));
+    border-color: color-mix(in srgb, var(--heatmap-expense-accent) 72%, var(--heatmap-cell-border));
     color: var(--text-color);
 }
 
 .cash-heatmap-day-btn--in {
-    background: color-mix(in srgb, var(--gains-accent, #10b981) 40%, var(--heatmap-cell-bg));
-    border-color: color-mix(in srgb, var(--gains-accent, #10b981) 55%, var(--heatmap-cell-border));
-    color: color-mix(in srgb, var(--gains-accent, #10b981) 92%, var(--text-color));
+    background: color-mix(in srgb, var(--heatmap-gain-accent) 40%, var(--heatmap-cell-bg));
+    border-color: color-mix(in srgb, var(--heatmap-gain-accent) 55%, var(--heatmap-cell-border));
+    color: color-mix(in srgb, var(--heatmap-gain-accent) 92%, var(--text-color));
 }
 
 .cash-heatmap-day-btn__num {
@@ -2000,6 +2017,10 @@ button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='
     vertical-align: middle;
 }
 
+.cash-heatmap-day-panel__head {
+    flex-shrink: 0;
+}
+
 .cash-heatmap-day-panel__label {
     font-size: 0.7rem;
     font-weight: 700;
@@ -2012,10 +2033,49 @@ button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='
 .cash-heatmap-day-panel__date {
     font-size: 1.35rem;
     font-weight: 800;
-    margin: 0 0 1rem;
+    margin: 0;
     padding-bottom: 1rem;
     border-bottom: 1px solid var(--border-color);
     line-height: 1.25;
+}
+
+.cash-heatmap-day-panel__list-wrap {
+    position: relative;
+    flex: 1;
+    min-height: 12rem;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    margin-top: 1rem;
+}
+
+.cash-heatmap-day-panel__list-wrap::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3rem;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 0.28s ease;
+    background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        color-mix(in srgb, var(--bg-light) 55%, transparent) 45%,
+        var(--bg-light) 100%
+    );
+}
+
+.cash-heatmap-day-panel__list-wrap--fade-bottom::after {
+    opacity: 1;
+}
+
+@media (min-width: 1024px) {
+    .cash-heatmap-day-panel__list-wrap {
+        min-height: 0;
+    }
 }
 
 .cash-heatmap-day-panel__year {
@@ -2027,14 +2087,27 @@ button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='
 .cash-heatmap-day-panel__list {
     list-style: none;
     margin: 0;
-    padding: 0;
+    padding: 0 0 0.35rem;
     flex: 1;
-    min-height: 10rem;
-    max-height: 22rem;
+    min-height: 0;
+    overflow-x: hidden;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--text-light) 35%, transparent) transparent;
+}
+
+.cash-heatmap-day-panel__list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.cash-heatmap-day-panel__list::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--text-light) 30%, transparent);
 }
 
 .cash-heatmap-day-item--compact {
@@ -2060,15 +2133,15 @@ button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='
 }
 
 .cash-heatmap-day-item__icon--gain {
-    background: color-mix(in srgb, var(--gains-accent, #10b981) 14%, transparent);
-    border: 1px solid color-mix(in srgb, var(--gains-accent, #10b981) 28%, transparent);
-    color: var(--gains-accent, #10b981);
+    background: color-mix(in srgb, var(--heatmap-gain-accent, #10b981) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--heatmap-gain-accent, #10b981) 28%, transparent);
+    color: var(--heatmap-gain-accent, #10b981);
 }
 
 .cash-heatmap-day-item__icon--expense {
-    background: color-mix(in srgb, var(--danger-color) 12%, transparent);
-    border: 1px solid color-mix(in srgb, var(--danger-color) 25%, transparent);
-    color: var(--danger-color);
+    background: color-mix(in srgb, var(--heatmap-expense-accent, #e11d48) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--heatmap-expense-accent, #e11d48) 25%, transparent);
+    color: var(--heatmap-expense-accent, #e11d48);
 }
 
 .cash-heatmap-day-item__icon--pending {
@@ -2117,12 +2190,12 @@ button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='
 }
 
 .cash-heatmap-day-item__amount--gain {
-    color: var(--gains-accent, #10b981);
+    color: var(--heatmap-gain-accent, #10b981);
 }
 
 .cash-heatmap-day-item__amount--expense,
 .cash-heatmap-day-item__amount--pending {
-    color: var(--danger-color);
+    color: var(--heatmap-expense-accent, #e11d48);
 }
 
 .cash-heatmap-day-item__amount--invoice {
@@ -2134,6 +2207,11 @@ button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='
     padding: 1.5rem 0.75rem;
     color: var(--text-light);
     flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     font-size: 0.85rem;
 }
 

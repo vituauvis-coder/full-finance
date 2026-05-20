@@ -3,13 +3,17 @@ import { formatCurrency } from '../../core/utils.js';
 
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
+/** Vermelho só se saídas > entradas; verde se entradas > saídas. */
 function heatmapToneClass(agg) {
-    if (agg.totalSaida > 0) {
+    const entrada = agg.totalEntrada || 0;
+    const saida = agg.totalSaida || 0;
+    if (entrada === 0 && saida === 0) return 'cash-heatmap-day-btn--empty';
+    if (saida > entrada) {
         if (agg.nivelSaida >= 3) return 'cash-heatmap-day-btn--out-heavy';
         if (agg.nivelSaida >= 2) return 'cash-heatmap-day-btn--out-mid';
         return 'cash-heatmap-day-btn--out-light';
     }
-    if (agg.totalEntrada > 0) return 'cash-heatmap-day-btn--in';
+    if (entrada > saida) return 'cash-heatmap-day-btn--in';
     return 'cash-heatmap-day-btn--empty';
 }
 
@@ -77,19 +81,19 @@ export function renderCashHeatmapCalendar(
         <header class="cash-heatmap-calendar__header">
             <div>
                 <h3 class="cash-heatmap-calendar__title"><i class="fas fa-calendar-days" aria-hidden="true"></i> Heatmap de Caixa</h3>
-                <p class="cash-heatmap-calendar__subtitle">A intensidade da cor reflete o volume de entradas e saídas.</p>
+                <p class="cash-heatmap-calendar__subtitle">Verde quando entradas superam saídas; vermelho quando saídas superam entradas (intensidade pelo volume).</p>
             </div>
             <div class="cash-heatmap-calendar__month-badge"><i class="fas fa-calendar" aria-hidden="true"></i> ${label}</div>
         </header>
         <div class="cash-heatmap-calendar__weekdays" aria-hidden="true">${WEEKDAYS.map((d) => `<span class="cash-heatmap-calendar__weekday">${d}</span>`).join('')}</div>
         <div class="cash-heatmap-calendar__grid" role="grid" aria-label="Calendário ${label}">${cells}</div>
         <footer class="cash-heatmap-calendar__legend" aria-hidden="true">
-            <span>Nível de gastos:</span>
-            <span><span class="cash-heatmap-legend-swatch cash-heatmap-day-btn--empty"></span> Vazio</span>
-            <span><span class="cash-heatmap-legend-swatch cash-heatmap-day-btn--out-light"></span> Leve</span>
+            <span>Saldo do dia:</span>
+            <span><span class="cash-heatmap-legend-swatch cash-heatmap-day-btn--empty"></span> Neutro</span>
+            <span><span class="cash-heatmap-legend-swatch cash-heatmap-day-btn--in"></span> Entradas &gt; saídas</span>
+            <span><span class="cash-heatmap-legend-swatch cash-heatmap-day-btn--out-light"></span> Saídas &gt; entradas (leve)</span>
             <span><span class="cash-heatmap-legend-swatch cash-heatmap-day-btn--out-mid"></span> Médio</span>
-            <span><span class="cash-heatmap-legend-swatch cash-heatmap-day-btn--out-heavy"></span> Pesado</span>
-            <span><span class="cash-heatmap-legend-swatch cash-heatmap-day-btn--in"></span> Entradas</span>
+            <span><span class="cash-heatmap-legend-swatch cash-heatmap-day-btn--out-heavy"></span> Forte</span>
             <span><span class="cash-heatmap-legend-swatch cash-heatmap-legend-swatch--dot"></span> Vencimento fatura</span>
         </footer>`;
 

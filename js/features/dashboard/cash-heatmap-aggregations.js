@@ -49,10 +49,12 @@ function sameCalendarDay(a, b) {
 function assignOutLevel(dayMap) {
     let max = 0;
     for (const agg of dayMap.values()) {
-        if (agg.totalSaida > max) max = agg.totalSaida;
+        if (agg.totalSaida > agg.totalEntrada && agg.totalSaida > max) {
+            max = agg.totalSaida;
+        }
     }
     for (const agg of dayMap.values()) {
-        if (agg.totalSaida <= 0 || max <= 0) {
+        if (agg.totalSaida <= agg.totalEntrada || agg.totalSaida <= 0 || max <= 0) {
             agg.nivelSaida = 0;
             continue;
         }

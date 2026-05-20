@@ -6,6 +6,7 @@
     --primary-color-dark: #e5e5e5;
     --secondary-color: #a3a3a3;
     --gains-accent: #34d399;
+    --expenses-accent: #f43f5e;
     --danger-color: #f87171;
     --warning-color: #fbbf24;
     --info-color: #60a5fa;
@@ -529,16 +530,18 @@
     --heatmap-muted-bg: #1f1f1f;
     --heatmap-muted-border: transparent;
     --heatmap-muted-text: #525252;
+    --heatmap-expense-accent: var(--expenses-accent, #f43f5e);
+    --heatmap-gain-accent: #10b981;
 }
 
 [data-theme="dark"] .cash-heatmap-day-btn--out-heavy {
-    background: color-mix(in srgb, var(--danger-color) 38%, var(--heatmap-cell-bg));
-    border-color: color-mix(in srgb, var(--danger-color) 50%, var(--heatmap-cell-border));
+    background: color-mix(in srgb, var(--heatmap-expense-accent) 48%, var(--heatmap-cell-bg));
+    border-color: color-mix(in srgb, var(--heatmap-expense-accent) 68%, var(--heatmap-cell-border));
 }
 
 [data-theme="dark"] .cash-heatmap-day-btn--in {
-    background: color-mix(in srgb, var(--gains-accent) 28%, var(--heatmap-cell-bg));
-    border-color: color-mix(in srgb, var(--gains-accent) 42%, var(--heatmap-cell-border));
+    background: color-mix(in srgb, var(--heatmap-gain-accent) 32%, var(--heatmap-cell-bg));
+    border-color: color-mix(in srgb, var(--heatmap-gain-accent) 48%, var(--heatmap-cell-border));
 }
 
 [data-theme="dark"] .cash-heatmap-day-btn--muted {

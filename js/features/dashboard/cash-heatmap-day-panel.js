@@ -39,9 +39,13 @@ export function renderCashHeatmapDayPanel(root, { year, monthIndex, selectedDay,
                   .join('')}</ul>`;
 
     root.innerHTML = `
-        <p class="cash-heatmap-day-panel__label">Detalhes do dia</p>
-        <h3 class="cash-heatmap-day-panel__date">${dateTitle}</h3>
-        ${listHtml}`;
+        <header class="cash-heatmap-day-panel__head">
+            <p class="cash-heatmap-day-panel__label">Detalhes do dia</p>
+            <h3 class="cash-heatmap-day-panel__date">${dateTitle}</h3>
+        </header>
+        <div class="cash-heatmap-day-panel__list-wrap">${listHtml}</div>`;
+
+    bindDayPanelListFade(root);
 
     const lis = root.querySelectorAll('.cash-heatmap-day-item');
     items.forEach((it, i) => {
@@ -59,5 +63,39 @@ export function renderCashHeatmapDayPanel(root, { year, monthIndex, selectedDay,
         li.querySelector('.cash-heatmap-day-item__amount').classList.add(
             `cash-heatmap-day-item__amount--${itemTone(it)}`
         );
+    });
+}
+
+const dayPanelFadeCleanups = new WeakMap();
+
+/** Fade inferior quando a lista ultrapassa a altura do painel. */
+function bindDayPanelListFade(root) {
+    const prev = dayPanelFadeCleanups.get(root);
+    if (prev) prev();
+
+    const wrap = root.querySelector('.cash-heatmap-day-panel__list-wrap');
+    const list = wrap?.querySelector('.cash-heatmap-day-panel__list');
+    if (!wrap || !list) {
+        wrap?.classList.remove('cash-heatmap-day-panel__list-wrap--fade-bottom');
+        return;
+    }
+
+    const sync = () => {
+        const overflow = list.scrollHeight > list.clientHeight + 2;
+        const atBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 6;
+        wrap.classList.toggle('cash-heatmap-day-panel__list-wrap--fade-bottom', overflow && !atBottom);
+    };
+
+    list.addEventListener('scroll', sync, { passive: true });
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(sync) : null;
+    ro?.observe(list);
+    ro?.observe(wrap);
+    window.addEventListener('resize', sync);
+    sync();
+
+    dayPanelFadeCleanups.set(root, () => {
+        list.removeEventListener('scroll', sync);
+        ro?.disconnect();
+        window.removeEventListener('resize', sync);
     });
 }
