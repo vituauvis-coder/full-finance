@@ -1,8 +1,11 @@
-import { EXPENSE_COFRINHO_CATEGORY } from './constants.js';
+import { EXPENSE_COFRINHO_CATEGORY, isCofrinhoPoolSubcategoryName } from './constants.js';
 import { movementDateToJsDate } from '../../core/utils.js';
 
 /** @returns {string} `YYYY-MM` */
 export function toYearMonthKey(dateLike) {
+    const s = String(dateLike ?? '').trim();
+    const prefix = s.match(/^(\d{4})-(\d{2})/);
+    if (prefix) return `${prefix[1]}-${prefix[2]}`;
     const d = movementDateToJsDate(dateLike);
     if (Number.isNaN(d.getTime())) return '';
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -24,12 +27,12 @@ export function referenceMonthToYearMonth(referenceMonth) {
 
 export function isCofrinhoPoolExpense(expense) {
     if (String(expense?.category || '').trim() !== EXPENSE_COFRINHO_CATEGORY) return false;
-    const sub = expense.subcategory;
-    return sub == null || String(sub).trim() === '';
+    if (expense?.allocationParentId) return false;
+    return isCofrinhoPoolSubcategoryName(expense?.subcategory);
 }
 
 /**
- * Soma saídas pool (Investimentos sem subcategoria, pagas) do mês M.
+ * Soma saídas pool (Cofrinhos / subcategoria Pool, pagas) do mês M.
  * @param {object[]} expenses
  * @param {string} yearMonth `YYYY-MM`
  */
@@ -55,7 +58,7 @@ export function sumApplicationsForMonth(applications, yearMonth) {
 }
 
 /**
- * Saldo aguardando alocação no mês (= saídas pool sem subcategoria).
+ * Saldo aguardando alocação no mês (= saídas na subcategoria Pool).
  * @returns {number}
  */
 export function computePendingBalance(expenses, _applications, yearMonth) {

@@ -84,8 +84,14 @@
 
 .notifications-item--cofrinho .notifications-item-icon,
 .notifications-item--investment .notifications-item-icon {
-    background: rgba(0, 0, 0, 0.15);
-    color: var(--primary-color);
+    background: color-mix(in srgb, var(--cofrinhos-accent) 14%, transparent);
+    color: var(--cofrinhos-accent);
+}
+
+[data-theme='dark'] .notifications-item--cofrinho .notifications-item-icon,
+[data-theme='dark'] .notifications-item--investment .notifications-item-icon {
+    background: color-mix(in srgb, var(--cofrinhos-accent) 18%, transparent);
+    color: var(--cofrinhos-accent-muted);
 }
 
 .notifications-item--spending .notifications-item-icon {

@@ -825,8 +825,9 @@
                             <table id="cofrinhos-applications-table">
                                 <thead>
                                     <tr>
+                                        <th scope="col">Data</th>
                                         <th scope="col">Caixinha</th>
-                                        <th scope="col">Mês</th>
+                                        <th scope="col">Mês ref.</th>
                                         <th scope="col">Valor</th>
                                         <th scope="col">Conta</th>
                                         <th scope="col">Status</th>
@@ -2311,17 +2312,36 @@
             <form id="cofrinho-application-form" class="cofrinho-allocation-form">
                 <div id="cofrinho-application-message" class="form-message hidden" role="alert"></div>
                 <input type="hidden" id="cofrinho-application-id" value="">
-                <div id="cofrinho-application-pending-hint" class="cofrinho-allocation-form__balance" hidden role="status"></div>
-                <div class="form-group cofrinho-allocation-form__bucket">
-                    <label for="cofrinho-application-bucket">Para qual caixinha?</label>
-                    <select id="cofrinho-application-bucket" required></select>
-                </div>
-                <div class="cofrinho-modal__grid-2 cofrinho-allocation-form__row">
-                    <div class="form-group">
-                        <label for="cofrinho-application-month">Mês de referência</label>
-                        <select id="cofrinho-application-month" required></select>
+                <section class="cofrinho-allocation-form__slider-block" aria-labelledby="cofrinho-application-slider-label">
+                    <div class="cofrinho-allocation-form__slider-top">
+                        <span id="cofrinho-application-slider-label" class="cofrinho-allocation-form__slider-label">Valor do aporte</span>
+                        <strong id="cofrinho-application-amount-display" class="cofrinho-allocation-form__slider-value" aria-live="polite">—</strong>
                     </div>
-                    <div class="form-group">
+                    <p class="cofrinho-allocation-form__slider-meta">
+                        <span id="cofrinho-application-pool-scope">—</span>
+                        <span class="cofrinho-allocation-form__slider-meta-sep" aria-hidden="true">·</span>
+                        <span>até <span id="cofrinho-application-pool-max">—</span></span>
+                    </p>
+                    <div class="zero-budget__block-slider-wrap cofrinho-allocation-form__slider-wrap">
+                        <input type="range"
+                            id="cofrinho-application-slider"
+                            class="zero-budget__block-slider cofrinho-allocation-form__slider"
+                            min="0"
+                            max="0"
+                            step="0.01"
+                            value="0"
+                            aria-valuemin="0"
+                            aria-valuemax="0"
+                            aria-valuenow="0"
+                            aria-labelledby="cofrinho-application-slider-label cofrinho-application-amount-display">
+                    </div>
+                </section>
+                <div class="cofrinho-allocation-form__fields">
+                    <div class="form-group cofrinho-allocation-form__bucket">
+                        <label for="cofrinho-application-bucket">Aporte em qual cofrinho?</label>
+                        <select id="cofrinho-application-bucket" required></select>
+                    </div>
+                    <div class="form-group cofrinho-allocation-form__amount">
                         <label for="cofrinho-application-amount">Valor (R$)</label>
                         <input type="number" id="cofrinho-application-amount" step="0.01" min="0.01" required inputmode="decimal" placeholder="0,00">
                     </div>
@@ -2351,7 +2371,8 @@
                         <table id="cofrinho-bucket-history-apps-table">
                             <thead>
                                 <tr>
-                                    <th scope="col">Mês</th>
+                                    <th scope="col">Data</th>
+                                    <th scope="col">Mês ref.</th>
                                     <th scope="col">Valor</th>
                                     <th scope="col">Conta</th>
                                     <th scope="col">Status</th>
@@ -2379,28 +2400,54 @@
 
     <!-- Modal: criar / editar caixinha -->
     <div id="cofrinho-buckets-modal" class="modal-container hidden" role="dialog" aria-modal="true" aria-labelledby="cofrinho-buckets-modal-title">
-        <div class="modal-content modal-content--cofrinho-bucket">
-            <button type="button" class="modal-close-btn" data-close-modal="cofrinho-buckets-modal" aria-label="Fechar">&times;</button>
-            <h3 id="cofrinho-buckets-modal-title"><i class="fas fa-piggy-bank" aria-hidden="true"></i> Nova caixinha</h3>
+        <div class="modal-content cofrinho-modal cofrinho-modal--bucket modal-content--cofrinho-bucket">
+            <div class="cofrinho-modal__header">
+                <h3 id="cofrinho-buckets-modal-title"><i class="fas fa-piggy-bank" aria-hidden="true"></i> Nova caixinha</h3>
+                <button type="button" class="modal-close-btn cofrinho-modal__close" data-close-modal="cofrinho-buckets-modal" aria-label="Fechar">&times;</button>
+            </div>
             <form id="cofrinho-bucket-form" class="cofrinho-bucket-form">
-                <div id="cofrinho-buckets-message" class="form-message hidden" role="alert"></div>
-                <input type="hidden" id="cofrinho-bucket-color" name="colorKey" value="violet">
-                <div class="form-group">
-                    <label for="cofrinho-bucket-name">Nome</label>
-                    <input type="text" id="cofrinho-bucket-name" maxlength="120" required placeholder="Ex.: Reserva">
+                <div class="cofrinho-modal__body">
+                    <div id="cofrinho-buckets-message" class="form-message hidden" role="alert"></div>
+                    <input type="hidden" id="cofrinho-bucket-color" name="colorKey" value="violet">
+                    <input type="hidden" id="cofrinho-bucket-goal-id" value="">
+
+                    <div class="form-group cofrinho-bucket-form__name">
+                        <label for="cofrinho-bucket-name">Nome</label>
+                        <input type="text" id="cofrinho-bucket-name" maxlength="120" required placeholder="Ex.: Reserva de emergência">
+                    </div>
+
+                    <div class="cofrinho-bucket-form__panel" aria-labelledby="cofrinho-bucket-goal-label">
+                        <p id="cofrinho-bucket-goal-label" class="cofrinho-bucket-form__panel-title">Meta anual</p>
+                        <div class="cofrinho-bucket-form__goal-grid">
+                            <div class="form-group cofrinho-bucket-form__field--year">
+                                <label for="cofrinho-bucket-goal-year">Ano</label>
+                                <select id="cofrinho-bucket-goal-year" aria-label="Ano da meta"></select>
+                            </div>
+                            <div class="form-group cofrinho-bucket-form__field--target">
+                                <label for="cofrinho-bucket-goal-target">Valor (R$)</label>
+                                <input type="number" id="cofrinho-bucket-goal-target" step="0.01" min="0" placeholder="5000" inputmode="decimal">
+                            </div>
+                        </div>
+                        <p class="cofrinho-bucket-form__panel-hint">Aparece nos cartões como «de R$ …» no ano escolhido.</p>
+                    </div>
+
+                    <div class="form-group cofrinho-bucket-form__colors-wrap">
+                        <span class="cofrinho-bucket-form__panel-title" id="cofrinho-bucket-color-label">Cor</span>
+                        <div id="cofrinho-bucket-color-swatches" class="zero-budget__colors-list cofrinho-bucket-form__colors" role="radiogroup" aria-labelledby="cofrinho-bucket-color-label"></div>
+                    </div>
+
+                    <div class="form-group cofrinho-bucket-form__yield">
+                        <label for="cofrinho-bucket-yield">Rentabilidade mensal (mult.)</label>
+                        <input type="number" id="cofrinho-bucket-yield" step="0.001" min="1" max="2" value="1.02" aria-describedby="cofrinho-bucket-yield-hint">
+                        <p id="cofrinho-bucket-yield-hint" class="cofrinho-bucket-form__field-hint">Ex.: 1,07 ≈ 7% ao mês nos gráficos.</p>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <span class="cofrinho-bucket-form__color-label">Cor da caixinha</span>
-                    <div id="cofrinho-bucket-color-swatches" class="zero-budget__colors-list cofrinho-bucket-form__colors" role="radiogroup" aria-label="Cor da caixinha"></div>
-                </div>
-                <div class="form-group">
-                    <label for="cofrinho-bucket-yield">Rentabilidade estimada (mult.)</label>
-                    <input type="number" id="cofrinho-bucket-yield" step="0.001" min="1" max="2" value="1.02">
-                </div>
-                <div class="form-actions cofrinho-bucket-form__actions">
-                    <button type="button" id="cofrinho-bucket-delete" class="btn-secondary cofrinho-bucket-form__delete hidden">Excluir caixinha</button>
-                    <button type="button" class="btn-secondary" data-close-modal="cofrinho-buckets-modal">Cancelar</button>
-                    <button type="submit" id="cofrinho-bucket-submit" class="btn-primary">Adicionar caixinha</button>
+                <div class="cofrinho-modal__footer cofrinho-bucket-form__footer">
+                    <button type="button" id="cofrinho-bucket-delete" class="cofrinho-bucket-form__delete hidden">Excluir caixinha</button>
+                    <div class="cofrinho-bucket-form__footer-actions">
+                        <button type="button" class="btn-secondary" data-close-modal="cofrinho-buckets-modal">Cancelar</button>
+                        <button type="submit" id="cofrinho-bucket-submit" class="btn-primary">Adicionar caixinha</button>
+                    </div>
                 </div>
             </form>
         </div>

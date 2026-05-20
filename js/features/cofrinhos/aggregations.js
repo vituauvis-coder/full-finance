@@ -1,6 +1,7 @@
 import { getPeriodDateBounds } from '../../core/period-filters.js';
 import { enumerateCalendarMonths } from '../../core/projected-period-net.js';
 import { EXPENSE_COFRINHO_CATEGORY } from './constants.js';
+import { movementDateToJsDate } from '../../core/utils.js';
 import { referenceMonthToYearMonth, toYearMonthKey } from './pending-balance.js';
 
 /** Eixo do gráfico de aportes: sempre os 12 meses do ano civil atual (como no dashboard). */
@@ -219,4 +220,11 @@ export function formatReferenceMonthName(ym) {
 
 export function formatYearMonthLabel(ym) {
     return formatReferenceMonthName(ym);
+}
+
+/** Data de cadastro do aporte (`createdAt` da aplicação). */
+export function formatApplicationCreatedAt(createdAt) {
+    const d = movementDateToJsDate(createdAt);
+    if (Number.isNaN(d.getTime())) return '—';
+    return d.toLocaleDateString('pt-BR');
 }

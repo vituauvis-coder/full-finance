@@ -9,6 +9,9 @@ import { safeUpsertBalanceSnapshot } from './balance-snapshot.js';
 
 export const COFRINHO_CATEGORY = 'Cofrinhos';
 
+/** Subcategoria da reserva antes de distribuir nas caixinhas. */
+export const COFRINHO_POOL_SUBCATEGORY = 'Pool';
+
 export const DEFAULT_COFRINHO_BUCKETS = [
     { name: 'Aspiração', colorKey: 'fuchsia', icon: 'fa-bullseye', sortOrder: 0, yieldMultiplier: 1.025 },
     { name: 'Rendimento', colorKey: 'violet', icon: 'fa-chart-line', sortOrder: 1, yieldMultiplier: 1.07 },
@@ -52,14 +55,20 @@ const GOAL_SELECT = `SELECT
  FROM cofrinho_bucket_goals`;
 
 function normalizeReferenceMonth(raw) {
-    if (!raw) return null;
-    if (typeof raw === 'string' && /^\d{4}-\d{2}$/.test(raw.trim())) {
-        return `${raw.trim()}-01`;
+    if (raw == null || raw === '') return null;
+    const s = String(raw).trim();
+    const ym = s.match(/^(\d{4})-(\d{2})/);
+    if (ym) {
+        const y = parseInt(ym[1], 10);
+        const m = parseInt(ym[2], 10);
+        if (Number.isFinite(y) && m >= 1 && m <= 12) {
+            return `${y}-${String(m).padStart(2, '0')}-01`;
+        }
     }
-    const d = new Date(raw);
+    const d = new Date(s);
     if (Number.isNaN(d.getTime())) return null;
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
     return `${y}-${m}-01`;
 }
 
@@ -69,11 +78,25 @@ function parseAmount(v) {
     return Math.round(n * 100) / 100;
 }
 
+/** Data civil de hoje (`YYYY-MM-DD`) para lançamento do aporte. */
+function todayLocalDateString() {
+    const n = new Date();
+    return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
+}
+
+/** Limites do mês civil em ISO date (evita desvio por fuso ao comparar com `expenses.date`). */
 function yearMonthBounds(ym) {
     const [y, m] = String(ym).split('-').map(Number);
-    const start = new Date(y, m - 1, 1, 0, 0, 0, 0);
-    const end = new Date(y, m, 1, 0, 0, 0, 0);
-    return { start, end };
+    if (!Number.isFinite(y) || !Number.isFinite(m) || m < 1 || m > 12) {
+        return { start: null, end: null };
+    }
+    const mm = String(m).padStart(2, '0');
+    const nextM = m === 12 ? 1 : m + 1;
+    const nextY = m === 12 ? y + 1 : y;
+    return {
+        start: `${y}-${mm}-01`,
+        end: `${nextY}-${String(nextM).padStart(2, '0')}-01`
+    };
 }
 
 async function getOrCreateCofrinhosCategory(uid, client) {
@@ -89,6 +112,25 @@ async function getOrCreateCofrinhosCategory(uid, client) {
         `INSERT INTO categories (id, user_id, name, type, is_default, created_at, updated_at)
          VALUES ($1, $2, $3, 'EXPENSE', false, NOW(), NOW())`,
         [id, uid, COFRINHO_CATEGORY]
+    );
+    return id;
+}
+
+async function ensurePoolSubcategory(uid, client) {
+    const categoryId = await getOrCreateCofrinhosCategory(uid, client);
+    const { rows: existing } = await client.query(
+        `SELECT id FROM subcategories
+         WHERE user_id = $1 AND category_id = $2 AND LOWER(TRIM(name)) = LOWER($3)
+         LIMIT 1`,
+        [uid, categoryId, COFRINHO_POOL_SUBCATEGORY]
+    );
+    if (existing[0]) return existing[0].id;
+
+    const id = crypto.randomUUID();
+    await client.query(
+        `INSERT INTO subcategories (id, user_id, category_id, name, is_default, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, true, NOW(), NOW())`,
+        [id, uid, categoryId, COFRINHO_POOL_SUBCATEGORY]
     );
     return id;
 }
@@ -154,35 +196,46 @@ async function deleteBucketSubcategory(userId, subcategoryId, client) {
     await client.query(`DELETE FROM subcategories WHERE id = $1 AND user_id = $2`, [subcategoryId, userId]);
 }
 
-async function fetchPoolExpensesForMonth(uid, ym, client, sourceExpenseId = null) {
+const POOL_EXPENSE_CORE_SQL = `
+    LOWER(TRIM(category)) = LOWER(TRIM($2))
+    AND is_paid IS NOT FALSE
+    AND allocation_parent_id IS NULL
+    AND COALESCE(amount, 0) > 0.001
+    AND (
+        subcategory IS NULL OR TRIM(subcategory) = ''
+        OR LOWER(TRIM(subcategory)) = LOWER('${COFRINHO_POOL_SUBCATEGORY}')
+    )
+`;
+
+async function fetchPoolExpensesForMonth(uid, ym, client = null, sourceExpenseId = null) {
+    const db = client || { query };
     const { start, end } = yearMonthBounds(ym);
+    if (!start || !end) return [];
     if (sourceExpenseId) {
-        const { rows } = await client.query(
+        const { rows } = await db.query(
             `SELECT id, account_id AS "accountId", amount, description, date, category, subcategory
              FROM expenses
-             WHERE id = $1 AND user_id = $2 AND category = $3 AND is_paid = true
-               AND (subcategory IS NULL OR TRIM(subcategory) = '')`,
-            [sourceExpenseId, uid, COFRINHO_CATEGORY]
+             WHERE id = $3 AND user_id = $1 AND ${POOL_EXPENSE_CORE_SQL}`,
+            [uid, COFRINHO_CATEGORY, sourceExpenseId]
         );
         return rows;
     }
-    const { rows } = await client.query(
+    const { rows } = await db.query(
         `SELECT id, account_id AS "accountId", amount, description, date, category, subcategory
          FROM expenses
          WHERE user_id = $1
-           AND category = $2
-           AND is_paid = true
-           AND (subcategory IS NULL OR TRIM(subcategory) = '')
-           AND date >= $3 AND date < $4
+           AND ${POOL_EXPENSE_CORE_SQL}
+           AND date >= $3::date AND date < $4::date
          ORDER BY date ASC, created_at ASC`,
         [uid, COFRINHO_CATEGORY, start, end]
     );
     return rows;
 }
 
-async function sumPoolAvailable(uid, ym, client, sourceExpenseId = null) {
+async function sumPoolAvailable(uid, ym, client = null, sourceExpenseId = null) {
     const rows = await fetchPoolExpensesForMonth(uid, ym, client, sourceExpenseId);
-    return rows.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
+    const sum = rows.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
+    return Math.max(0, Math.round(sum * 100) / 100);
 }
 
 /**
@@ -204,15 +257,12 @@ async function consumePoolFifo(client, uid, ym, amount, preferredSourceId = null
         if (avail <= 0.001) continue;
         const take = Math.min(avail, remaining);
         const newAmt = Math.round((avail - take) * 100) / 100;
-        if (newAmt <= 0.001) {
-            await client.query(`DELETE FROM expenses WHERE id = $1 AND user_id = $2`, [row.id, uid]);
-        } else {
-            await client.query(`UPDATE expenses SET amount = $3 WHERE id = $1 AND user_id = $2`, [
-                row.id,
-                uid,
-                newAmt
-            ]);
-        }
+        // Zerar em vez de apagar: a saída alocada referencia allocation_parent_id → FK em expenses.
+        await client.query(`UPDATE expenses SET amount = $3 WHERE id = $1 AND user_id = $2`, [
+            row.id,
+            uid,
+            newAmt <= 0.001 ? 0 : newAmt
+        ]);
         if (!primarySourceId) primarySourceId = row.id;
         slices.push({ poolRow: row, take });
         remaining = Math.round((remaining - take) * 100) / 100;
@@ -224,9 +274,9 @@ async function consumePoolFifo(client, uid, ym, amount, preferredSourceId = null
     return { primarySourceId, slices };
 }
 
-async function insertAllocatedExpense(client, uid, poolRow, bucketName, amount, accountIdOverride, referenceMonth) {
+async function insertAllocatedExpense(client, uid, poolRow, bucketName, amount, accountIdOverride) {
     const accountId = accountIdOverride || poolRow.accountId;
-    const date = referenceMonth || poolRow.date;
+    const date = todayLocalDateString();
     const refOnly = await referenceOnlyForUserMovement(uid, date);
     const expenseId = crypto.randomUUID();
     const description = `Aporte — ${bucketName}`;
@@ -284,15 +334,16 @@ async function restorePoolAmount(client, uid, sourceExpenseId, amount, fallbackP
             date, is_paid, is_cofrinho, installment_count, recurring_monthly,
             cash_out_confirmed_periods, recurrence_group_id, is_fixed, reference_only
          ) VALUES (
-            $1,$2,$3,$4,null,$5,$6,
-            $7,true,false,null,false,
-            null,null,false,$8
+            $1,$2,$3,$4,$5,$6,$7,
+            $8,true,false,null,false,
+            null,null,false,$9
          )`,
         [
             id,
             uid,
             fallbackPoolRow.accountId,
             COFRINHO_CATEGORY,
+            COFRINHO_POOL_SUBCATEGORY,
             amount,
             fallbackPoolRow.description || 'Cofrinhos (pool)',
             fallbackPoolRow.date,
@@ -310,6 +361,7 @@ export async function ensureDefaultCofrinhoBuckets(userId) {
     if (rows.length > 0) return;
 
     await withTransaction(async (client) => {
+        await ensurePoolSubcategory(userId, client);
         for (const b of DEFAULT_COFRINHO_BUCKETS) {
             const id = crypto.randomUUID();
             await client.query(
@@ -327,6 +379,7 @@ export async function ensureDefaultCofrinhoBuckets(userId) {
  */
 export async function fetchCofrinhoBundle(userId) {
     await ensureDefaultCofrinhoBuckets(userId);
+    await withTransaction((client) => ensurePoolSubcategory(userId, client));
     const [bucketsRes, appsRes, goalsRes] = await Promise.all([
         query(`${BUCKET_SELECT} WHERE user_id = $1 ORDER BY sort_order ASC, name ASC`, [userId]),
         query(`${APPLICATION_SELECT} WHERE user_id = $1 ORDER BY reference_month DESC, created_at DESC`, [
@@ -522,8 +575,7 @@ export function registerCofrinhoRoutes(app, requireAuth) {
                     poolTemplate,
                     bucket.name,
                     amount,
-                    accountId,
-                    refMonth
+                    accountId
                 );
 
                 const appId = crypto.randomUUID();
@@ -560,6 +612,21 @@ export function registerCofrinhoRoutes(app, requireAuth) {
             res.status(status).json({ error: e.message || 'Não foi possível alocar.' });
         }
     };
+
+    app.get('/api/cofrinho-pool-available', requireAuth, async (req, res) => {
+        const uid = req.session.userId;
+        const ym = String(req.query.yearMonth || req.query.month || '').trim();
+        if (!/^\d{4}-\d{2}$/.test(ym)) {
+            return res.status(400).json({ error: 'Mês inválido (use YYYY-MM)' });
+        }
+        try {
+            const available = await sumPoolAvailable(uid, ym);
+            res.json({ yearMonth: ym, available });
+        } catch (e) {
+            console.error(e);
+            res.status(500).json({ error: 'Não foi possível calcular o saldo pool.' });
+        }
+    });
 
     app.post('/api/cofrinho-allocations', requireAuth, handleCreateAllocation);
     app.post('/api/cofrinho-applications', requireAuth, handleCreateAllocation);
@@ -663,23 +730,10 @@ export function registerCofrinhoRoutes(app, requireAuth) {
                     }
                 }
 
-                const refMonth =
-                    req.body.referenceMonth !== undefined
-                        ? normalizeReferenceMonth(req.body.referenceMonth) || existing.referenceMonth
-                        : existing.referenceMonth;
-
-                if (existing.allocatedExpenseId && refMonth) {
-                    await client.query(`UPDATE expenses SET date = $3::date WHERE id = $1 AND user_id = $2`, [
-                        existing.allocatedExpenseId,
-                        uid,
-                        refMonth
-                    ]);
-                }
-
                 const { rows } = await client.query(
                     `UPDATE cofrinho_applications
-                     SET bucket_id = $3, reference_month = $4::date, amount = $5, account_id = $6,
-                         status = COALESCE($7, status)
+                     SET bucket_id = $3, amount = $4, account_id = $5,
+                         status = COALESCE($6, status)
                      WHERE id = $1 AND user_id = $2
                      RETURNING
                         id, user_id AS "userId", bucket_id AS "bucketId", reference_month AS "referenceMonth",
@@ -691,7 +745,6 @@ export function registerCofrinhoRoutes(app, requireAuth) {
                         req.params.id,
                         uid,
                         bucketId,
-                        refMonth,
                         newAmount,
                         accountId,
                         req.body.status != null ? String(req.body.status).slice(0, 50) : null

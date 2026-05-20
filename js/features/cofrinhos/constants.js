@@ -1,6 +1,15 @@
 /** Categoria de saída que alimenta o saldo pendente de cofrinhos. */
 export const EXPENSE_COFRINHO_CATEGORY = 'Cofrinhos';
 
+/** Subcategoria da saída “reserva” antes de distribuir nas caixinhas. */
+export const COFRINHO_POOL_SUBCATEGORY = 'Pool';
+
+/** @param {string|null|undefined} subcategory */
+export function isCofrinhoPoolSubcategoryName(subcategory) {
+    const s = String(subcategory ?? '').trim();
+    return !s || s.toLowerCase() === COFRINHO_POOL_SUBCATEGORY.toLowerCase();
+}
+
 export const GOAL_STATUS_OPTIONS = [
     'Em andamento',
     'Concluído',

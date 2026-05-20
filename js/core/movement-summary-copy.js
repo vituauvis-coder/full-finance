@@ -54,7 +54,7 @@ export const DASHBOARD_SUMMARY_COPY = {
 
 export const COFRINHOS_SUMMARY_COPY = {
     pending:
-        'Saldo de saídas em «Cofrinhos» sem subcategoria no mês selecionado, ainda não distribuído nas caixinhas.',
+        'Saldo de saídas em «Cofrinhos» na subcategoria Pool no mês selecionado, ainda não distribuído nas caixinhas.',
     monthAllocated:
         'Total já distribuído nas caixinhas no mês de referência (aportes e alocações do pool).',
     totalInBuckets: 'Soma de todo o patrimônio alocado nas caixinhas, em todos os meses.'

@@ -11,6 +11,11 @@
     /* Amarelo para alertas */
     --info-color: #3b82f6;
     /* Azul só para informação pontual */
+    /* Cofrinhos — acento roxo (header, cards, modal de alocação) */
+    --cofrinhos-accent: #7c3aed;
+    --cofrinhos-accent-strong: #6d28d9;
+    --cofrinhos-accent-muted: #a78bfa;
+    --cofrinhos-accent-soft: #c4b5fd;
     --bg-color: #fafafa;
     /* Fundo app: branco levemente térmico */
     --bg-light: #ffffff;

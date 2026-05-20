@@ -133,6 +133,12 @@ export const saveCofrinhoBucket = (data, docId, options) =>
 export const saveCofrinhoApplication = (data, docId, options) =>
     saveDocument('cofrinhoApplications', data, docId, options);
 
+/** Saldo pool disponível no mês (mesma regra do servidor ao alocar). */
+export async function fetchCofrinhoPoolAvailable(yearMonth) {
+    const ym = encodeURIComponent(String(yearMonth || '').trim());
+    return api(`/api/cofrinho-pool-available?yearMonth=${ym}`);
+}
+
 /** Cria ou atualiza alocação a partir do saldo pool. */
 export async function saveCofrinhoAllocation(data, docId, options) {
     const path = '/api/cofrinho-applications';

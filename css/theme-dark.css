@@ -84,7 +84,7 @@
 }
 
 [data-theme="dark"] .app-header--cofrinhos .header-page-title {
-    color: #a78bfa;
+    color: var(--cofrinhos-accent-muted);
 }
 
 [data-theme="dark"] .app-header--expenses .header-page-emoji i {
@@ -104,7 +104,7 @@
 }
 
 [data-theme="dark"] .app-header--cofrinhos .header-page-emoji i {
-    color: #a78bfa;
+    color: var(--cofrinhos-accent-muted);
 }
 
 [data-theme="dark"] .app-header--expenses .header-page-actions .btn-primary.header-action-btn {
@@ -128,8 +128,8 @@
 }
 
 [data-theme="dark"] .app-header--cofrinhos .header-page-actions .btn-primary.header-action-btn {
-    background-color: #7c3aed;
-    border-color: #7c3aed;
+    background-color: var(--cofrinhos-accent);
+    border-color: var(--cofrinhos-accent);
 }
 
 [data-theme="dark"] .quick-filter-btn.active,

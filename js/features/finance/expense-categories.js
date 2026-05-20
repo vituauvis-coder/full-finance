@@ -24,7 +24,11 @@ let categoriesCacheTimestamp = 0;
 const CACHE_TTL = 60000; // 1 minuto
 
 const ADD_NEW_VALUE = '__add_new__';
-const EXPENSE_COFRINHO_CATEGORY = 'Cofrinhos';
+import {
+    EXPENSE_COFRINHO_CATEGORY,
+    COFRINHO_POOL_SUBCATEGORY,
+    isCofrinhoPoolSubcategoryName
+} from '../cofrinhos/constants.js';
 
 /** Nomes de subcategorias = caixinhas (definido ao carregar Investimentos). */
 let cofrinhoBucketSubcategoryNames = null;
@@ -303,7 +307,11 @@ export async function populateExpenseSubcategorySelect(selectedValue = '', force
     let subcats = selectedCategory ? await getSubcategoriesForCategory(selectedCategory) : [];
 
     if (selectedCategory === EXPENSE_COFRINHO_CATEGORY && cofrinhoBucketSubcategoryNames) {
-        subcats = subcats.filter((s) => cofrinhoBucketSubcategoryNames.has(s));
+        subcats = subcats.filter(
+            (s) =>
+                cofrinhoBucketSubcategoryNames.has(s) &&
+                s.toLowerCase() !== COFRINHO_POOL_SUBCATEGORY.toLowerCase()
+        );
     }
 
     subSel.innerHTML = '';
@@ -314,14 +322,19 @@ export async function populateExpenseSubcategorySelect(selectedValue = '', force
     ph.value = '';
     if (!selectedCategory) {
         ph.textContent = 'Selecione uma categoria primeiro';
-    } else if (selectedCategory === EXPENSE_COFRINHO_CATEGORY) {
-        ph.textContent = 'Pool — aguardar alocação (sem subcategoria)';
     } else {
         ph.textContent = 'Selecione uma subcategoria';
     }
     subSel.appendChild(ph);
 
     const isInvestimentos = selectedCategory === EXPENSE_COFRINHO_CATEGORY;
+
+    if (isInvestimentos) {
+        const poolOpt = document.createElement('option');
+        poolOpt.value = COFRINHO_POOL_SUBCATEGORY;
+        poolOpt.textContent = 'Pool — aguardar alocação';
+        subSel.appendChild(poolOpt);
+    }
 
     subcats.forEach((sub) => {
         const opt = document.createElement('option');
@@ -350,7 +363,9 @@ export async function populateExpenseSubcategorySelect(selectedValue = '', force
         subSel.appendChild(addOpt);
     }
     
-    if (selectedValue && subcats.includes(selectedValue)) {
+    if (isInvestimentos && isCofrinhoPoolSubcategoryName(selectedValue)) {
+        subSel.value = COFRINHO_POOL_SUBCATEGORY;
+    } else if (selectedValue && subcats.includes(selectedValue)) {
         subSel.value = selectedValue;
     }
 }
