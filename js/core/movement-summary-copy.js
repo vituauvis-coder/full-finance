@@ -54,9 +54,9 @@ export const DASHBOARD_SUMMARY_COPY = {
 
 export const COFRINHOS_SUMMARY_COPY = {
     pending:
-        'Saldo de saídas em «Cofrinhos» na subcategoria Pool no mês selecionado, ainda não distribuído nas caixinhas.',
+        'Saldo de saídas em «Cofrinhos» na subcategoria Pool, ainda não distribuído nas caixinhas.',
     monthAllocated:
-        'Total já distribuído nas caixinhas no mês de referência (aportes e alocações do pool).',
+        'Total já distribuído nas caixinhas (aportes e alocações do pool).',
     totalInBuckets: 'Soma de todo o patrimônio alocado nas caixinhas, em todos os meses.'
 };
 
@@ -288,7 +288,7 @@ export const MOVEMENT_SUMMARY_CARD_GROUPS = {
         ]
     },
     cofrinhos: {
-        ariaLabel: 'Resumo do mês',
+        ariaLabel: 'Resumo dos cofrinhos',
         containerClass: 'cofrinhos-page__summary',
         cards: [
             {
@@ -296,26 +296,14 @@ export const MOVEMENT_SUMMARY_CARD_GROUPS = {
                 tone: 'projection',
                 icon: 'fa-hourglass-half',
                 title: 'Pendente de alocar',
-                description: COFRINHOS_SUMMARY_COPY.pending,
-                scopeId: 'cofrinhos-summary-pending-scope'
-            },
-            {
-                id: 'cofrinhos-summary-month',
-                tone: 'cofrinhos',
-                icon: 'fa-piggy-bank',
-                title: 'Aportado no mês',
-                description: COFRINHOS_SUMMARY_COPY.monthAllocated,
-                scopeId: 'cofrinhos-summary-month-scope',
-                scopeText: 'Distribuído nas caixinhas'
+                description: COFRINHOS_SUMMARY_COPY.pending
             },
             {
                 id: 'cofrinhos-summary-total',
                 tone: 'balance',
                 icon: 'fa-chart-line',
                 title: 'Total nas caixinhas',
-                description: COFRINHOS_SUMMARY_COPY.totalInBuckets,
-                scopeId: 'cofrinhos-summary-total-scope',
-                scopeText: 'Patrimônio alocado'
+                description: COFRINHOS_SUMMARY_COPY.totalInBuckets
             }
         ]
     }

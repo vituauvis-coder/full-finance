@@ -32,7 +32,6 @@ import {
     buildPerformanceByBucket,
     countConsecutiveCofrinhoMonths,
     getTotalApplicationsSum,
-    sumAllocatedInMonth,
     formatYearMonthLabel,
     formatApplicationCreatedAt
 } from './aggregations.js';
@@ -60,8 +59,6 @@ const BUCKET_ICONS = {
     'fa-chart-line': 'fa-chart-line',
     'fa-shield-halved': 'fa-shield-halved'
 };
-
-const MONTH_NAMES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
 let initCofrinhosPageUiOnceRan = false;
 
@@ -141,9 +138,7 @@ export function initCofrinhos(_user, onUpdate) {
 
     window.addEventListener('fullfinan-themechange', () => {
         if (document.getElementById('cofrinhos-page')?.classList.contains('active')) {
-            renderCofrinhoCharts(cache.buckets, cache.applications, cache.currency, cache.expenses, {
-                onMonthSelect: applyCofrinhosMonthFromChart
-            });
+            renderCofrinhoCharts(cache.buckets, cache.applications, cache.currency, cache.expenses);
         }
     });
 }
@@ -304,41 +299,19 @@ function handleApplicationFormInput(e) {
     }
 }
 
-function applyCofrinhosMonthFromChart(yearMonth) {
-    const ym = clampReferenceToCurrentYear(yearMonth);
-    if (!ym || ym === cache.referenceYearMonth) return;
-    cache.referenceYearMonth = ym;
-    refreshCofrinhosUI();
-}
-
 function refreshCofrinhosUI() {
-    renderReferenceTimeline();
     renderSummaryCards();
     renderPendingBanner();
     renderGoalCards();
     renderMilestonePanel();
     renderApplicationsTable();
-    renderCofrinhoCharts(cache.buckets, cache.applications, cache.currency, cache.expenses, {
-        onMonthSelect: applyCofrinhosMonthFromChart
-    });
+    renderCofrinhoCharts(cache.buckets, cache.applications, cache.currency, cache.expenses);
 }
 
 function initCofrinhosPageUiOnce() {
     if (initCofrinhosPageUiOnceRan) return;
-    const page = document.getElementById('cofrinhos-page');
-    if (!page) return;
+    if (!document.getElementById('cofrinhos-page')) return;
     initCofrinhosPageUiOnceRan = true;
-
-    page.addEventListener('click', (e) => {
-        const monthBtn = e.target.closest('[data-cofrinhos-month]');
-        if (monthBtn && page.contains(monthBtn)) {
-            const month = parseInt(monthBtn.getAttribute('data-cofrinhos-month'), 10);
-            if (!Number.isFinite(month) || month < 1 || month > 12) return;
-            cache.referenceYearMonth = `${currentCalendarYear()}-${String(month).padStart(2, '0')}`;
-            refreshCofrinhosUI();
-        }
-    });
-
 }
 
 function parseReferenceYearMonth(ym) {
@@ -349,35 +322,11 @@ function parseReferenceYearMonth(ym) {
     };
 }
 
-function renderReferenceTimeline() {
-    const timeline = document.querySelector('[data-cofrinhos-timeline]');
-    if (!timeline) return;
-
-    const ym = clampReferenceToCurrentYear(cache.referenceYearMonth || currentYearMonth());
-    cache.referenceYearMonth = ym;
-    const { month } = parseReferenceYearMonth(ym);
-    const yShort = String(currentCalendarYear()).slice(-2);
-
-    timeline.innerHTML = MONTH_NAMES.map((name, index) => {
-        const monthNum = index + 1;
-        const isActive = monthNum === month;
-        const label = `${name}/${yShort}`;
-        return `<button type="button"
-            class="zero-budget__month-btn${isActive ? ' is-active' : ''}"
-            data-cofrinhos-month="${monthNum}"
-            role="tab"
-            aria-selected="${isActive ? 'true' : 'false'}">${label}</button>`;
-    }).join('');
-}
-
 function renderSummaryCards() {
     const el = document.getElementById('cofrinhos-summary');
     if (!el) return;
 
-    const ym = cache.referenceYearMonth || currentYearMonth();
-    const monthLabel = formatYearMonthLabel(ym);
-    const pending = computePendingBalance(cache.expenses, cache.applications, ym);
-    const monthAllocated = sumAllocatedInMonth(cache.applications, cache.buckets, ym);
+    const pending = computePendingBalance(cache.expenses, cache.applications);
     const totalInBuckets = getTotalApplicationsSum(
         cache.applications,
         cache.expenses,
@@ -389,12 +338,6 @@ function renderSummaryCards() {
     const pendingEl = document.getElementById('cofrinhos-summary-pending');
     if (pendingEl) pendingEl.textContent = formatCurrency(pending, cache.currency);
 
-    const pendingScope = document.getElementById('cofrinhos-summary-pending-scope');
-    if (pendingScope) pendingScope.textContent = monthLabel;
-
-    const monthEl = document.getElementById('cofrinhos-summary-month');
-    if (monthEl) monthEl.textContent = formatCurrency(monthAllocated, cache.currency);
-
     const totalEl = document.getElementById('cofrinhos-summary-total');
     if (totalEl) totalEl.textContent = formatCurrency(totalInBuckets, cache.currency);
 }
@@ -403,15 +346,14 @@ function renderPendingBanner() {
     const el = document.getElementById('cofrinhos-pending-banner');
     if (!el) return;
 
-    const ym = cache.referenceYearMonth || currentYearMonth();
-    const pending = computePendingBalance(cache.expenses, cache.applications, ym);
+    const pending = computePendingBalance(cache.expenses, cache.applications);
 
     if (pending > 0) {
         el.hidden = false;
         el.className = 'cofrinhos-page__pending dashboard-pending-cash-outs';
         el.innerHTML = `
             <h3 class="dashboard-pending-title"><i class="fas fa-piggy-bank" aria-hidden="true"></i> Aguardando alocação</h3>
-            <p class="dashboard-pending-hint">Saídas em «${escapeHtml(EXPENSE_COFRINHO_CATEGORY)}» na subcategoria <strong>${escapeHtml(COFRINHO_POOL_SUBCATEGORY)}</strong> em ${escapeHtml(formatYearMonthLabel(ym))} — distribua nas caixinhas.</p>
+            <p class="dashboard-pending-hint">Saídas em «${escapeHtml(EXPENSE_COFRINHO_CATEGORY)}» na subcategoria <strong>${escapeHtml(COFRINHO_POOL_SUBCATEGORY)}</strong> — distribua nas caixinhas.</p>
             <ul class="dashboard-pending-list">
                 <li class="dashboard-pending-item">
                     <div class="dashboard-pending-item__text">

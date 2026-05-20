@@ -57,12 +57,26 @@ export function sumApplicationsForMonth(applications, yearMonth) {
     }, 0);
 }
 
+/** Soma saldo pool em todas as saídas (sem filtro de mês). */
+export function sumCofrinhoPoolTotal(expenses) {
+    if (!Array.isArray(expenses)) return 0;
+    return expenses.reduce((sum, e) => {
+        if (!isCofrinhoPoolExpense(e)) return sum;
+        if (e.isPaid === false) return sum;
+        return sum + (parseFloat(e.amount) || 0);
+    }, 0);
+}
+
 /**
- * Saldo aguardando alocação no mês (= saídas na subcategoria Pool).
+ * Saldo aguardando alocação (= saídas na subcategoria Pool).
+ * Com `yearMonth`, limita ao mês; sem mês, soma todo o período.
  * @returns {number}
  */
 export function computePendingBalance(expenses, _applications, yearMonth) {
-    return Math.max(0, Math.round(sumCofrinhoPoolForMonth(expenses, yearMonth) * 100) / 100);
+    const raw = yearMonth
+        ? sumCofrinhoPoolForMonth(expenses, yearMonth)
+        : sumCofrinhoPoolTotal(expenses);
+    return Math.max(0, Math.round(raw * 100) / 100);
 }
 
 /**
