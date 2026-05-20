@@ -412,6 +412,11 @@
                                 <i class="fas fa-plus" aria-hidden="true"></i> Nova caixinha
                             </button>
                         </div>
+                        <div id="debts-header-actions" class="header-page-actions hidden" aria-label="Ações de dívidas">
+                            <button type="button" id="add-debt-update-btn" class="btn-primary header-action-btn">
+                                <i class="fas fa-plus" aria-hidden="true"></i> Nova dívida
+                            </button>
+                        </div>
                         <div class="header-notifications">
                             <button type="button" class="header-btn" id="notifications-btn" title="Avisos"
                                 aria-expanded="false" aria-haspopup="true" aria-controls="notifications-panel">
@@ -834,39 +839,26 @@
                     </section>
                 </section>
                 <!-- Dívidas -->
-                <section id="debts-page" class="page hidden">
-                    <div class="actions-bar">
-                        <h2>Dívidas</h2>
-                        <button id="add-debt-update-btn" class="btn-primary" type="button">
-                            <i class="fas fa-plus"></i> Nova dívida
-                        </button>
-                    </div>
+                <section id="debts-page" class="page hidden debts-page" aria-label="Dívidas">
+                    <div id="debts-summary" class="summary-cards movements-summary debts-page__summary" data-summary-group="debts" hidden></div>
 
-                    <div class="reports-chart-container">
-                        <div class="reports-chart-header">
-                            <h3>Evolução das dívidas (mês a mês)</h3>
+                    <section class="dashboard-reports-section debts-page__charts-section" aria-label="Gráfico de dívidas">
+                        <div class="debts-page__charts dashboard-reports-charts-grid dashboard-reports-charts-grid--single">
+                            <div class="reports-chart-container dashboard-flux-chart-card debts-page__chart-card">
+                                <div class="reports-chart-header">
+                                    <h3>Evolução por banco</h3>
+                                    <p class="reports-chart-hint">Colunas: total das dívidas · Linhas: saldo por banco — meses do ano atual.</p>
+                                </div>
+                                <div class="chart-wrapper debts-page__chart-wrapper">
+                                    <canvas id="debts-balance-chart"></canvas>
+                                </div>
+                            </div>
                         </div>
-                        <p class="reports-chart-hint">Cada linha representa uma empresa. O ponto do mês mostra o último valor registrado naquele mês (quando houver).</p>
-                        <div class="chart-wrapper chart-wrapper--tall">
-                            <canvas id="debts-chart"></canvas>
-                        </div>
-                    </div>
+                    </section>
 
-                    <div class="table-container">
-                        <table id="debt-updates-table">
-                            <thead>
-                                <tr>
-                                    <th>Data</th>
-                                    <th>Empresa</th>
-                                    <th>Valor</th>
-                                    <th>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody id="debt-updates-tbody">
-                                <!-- Inserido via JS -->
-                            </tbody>
-                        </table>
-                    </div>
+                    <section class="debts-page__section" aria-label="Dívidas por banco">
+                        <div id="debts-goal-cards" class="debts-page__goals-grid debts-page__goals-grid--cards"></div>
+                    </section>
                 </section>
 
                 <section id="tools-page" class="page hidden">
@@ -1717,6 +1709,35 @@
         </div>
     </div>
 
+    <!-- Modal: definições da dívida (card) -->
+    <div id="debt-settings-modal" class="modal-container hidden" role="dialog" aria-modal="true" aria-labelledby="debt-settings-modal-title">
+        <div class="modal-content modal-content--debt-settings">
+            <button type="button" class="modal-close-btn" data-close-modal="debt-settings-modal" aria-label="Fechar">&times;</button>
+            <h3 id="debt-settings-modal-title">Definições da dívida</h3>
+            <form id="debt-settings-form">
+                <input type="hidden" id="debt-settings-id" name="debt-settings-id">
+                <input type="hidden" id="debt-settings-color" name="debt-settings-color" value="wine">
+                <div class="form-group">
+                    <label for="debt-settings-company">Banco / empresa</label>
+                    <input id="debt-settings-company" name="debt-settings-company" type="text" required maxlength="200" autocomplete="organization">
+                </div>
+                <div class="form-group">
+                    <label for="debt-settings-initial">Valor inicial da dívida</label>
+                    <input id="debt-settings-initial" name="debt-settings-initial" type="number" step="0.01" min="0" placeholder="Ex.: 5000" inputmode="decimal">
+                    <small>Referência para calcular a elevação %. Se vazio, usa o primeiro mês registrado.</small>
+                </div>
+                <div class="form-group">
+                    <span class="cofrinho-bucket-form__panel-title" id="debt-settings-color-label">Cor do card</span>
+                    <div id="debt-settings-color-swatches" class="zero-budget__colors-list debts-settings-form__colors" role="radiogroup" aria-labelledby="debt-settings-color-label"></div>
+                </div>
+                <div class="form-actions debt-settings-form__actions">
+                    <button type="button" class="btn-secondary" data-close-modal="debt-settings-modal">Cancelar</button>
+                    <button type="submit" class="btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Modal: nova dívida — nome, início e valores mês a mês -->
     <div id="debt-update-modal" class="modal-container hidden" role="dialog" aria-modal="true" aria-labelledby="debt-update-modal-title">
         <div class="modal-content modal-content--debt-form">
@@ -1729,14 +1750,26 @@
                     <small>O mesmo nome agrupa o histórico no gráfico.</small>
                 </div>
                 <div class="form-group">
-                    <label for="debt-start-date">Data de início da dívida</label>
-                    <input id="debt-start-date" name="debt-start-date" type="date" required>
-                    <small>Depois de escolher a data, aparecem os meses para você preencher o valor de cada um.</small>
+                    <span class="form-label" id="debt-start-date-label">Mês de início da dívida</span>
+                    <div class="debt-start-month-row" role="group" aria-labelledby="debt-start-date-label">
+                        <select id="debt-start-month" class="debt-start-month-select" aria-label="Mês de início" required>
+                            <option value="">Mês</option>
+                        </select>
+                        <select id="debt-start-year" class="debt-start-year-select" aria-label="Ano de início" required>
+                            <option value="">Ano</option>
+                        </select>
+                    </div>
+                    <input type="hidden" id="debt-start-date" name="debt-start-date">
+                    <small>Selecione mês e ano; abaixo aparecem os meses até o atual para informar o saldo.</small>
                 </div>
                 <div id="debt-monthly-section" class="debt-monthly-section hidden">
+                    <div class="debt-monthly-section__head">
+                        <span class="debt-monthly-section__title">Saldos por mês</span>
+                        <span id="debt-month-filled-count" class="debt-month-filled-count" aria-live="polite"></span>
+                    </div>
                     <p id="debt-monthly-note" class="debt-monthly-note hidden" role="status"></p>
-                    <p class="debt-monthly-hint">Preencha só os meses em que tiver o valor. Use <strong>Remover</strong> para tirar um mês que não quiser registrar agora.</p>
-                    <div id="debt-monthly-rows" class="debt-monthly-rows"></div>
+                    <p class="debt-monthly-hint"><i class="fas fa-circle-info" aria-hidden="true"></i> Meses em branco não são salvos. <i class="fas fa-arrow-down" aria-hidden="true"></i> copia o valor anterior; <i class="fas fa-eraser" aria-hidden="true"></i> limpa o mês.</p>
+                    <div id="debt-monthly-years" class="debt-monthly-years" role="region" aria-label="Valores por mês"></div>
                 </div>
                 <div class="form-actions debt-update-form__actions">
                     <button type="button" class="btn-secondary" data-close-modal="debt-update-modal">Cancelar</button>

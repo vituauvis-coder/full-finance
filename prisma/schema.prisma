@@ -168,6 +168,12 @@ model Debt {
   updatedAt DateTime @updatedAt
   /** Se true, a dívida foi resolvida (não aparece por padrão). */
   isClosed  Boolean  @default(false)
+  /** Chave de cor do card (ex.: wine, violet). */
+  colorKey  String   @default("wine") @db.NVarChar(32)
+  /** Valor de referência no início do acompanhamento. */
+  initialAmount Float?
+  /** Desconto percentual da última oferta de renegociação (0–100). */
+  lastOfferDiscountPercent Float?
 
   user      User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   updates   DebtUpdate[]

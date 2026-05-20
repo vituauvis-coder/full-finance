@@ -60,6 +60,14 @@ export const COFRINHOS_SUMMARY_COPY = {
     totalInBuckets: 'Soma de todo o patrimônio alocado nas caixinhas, em todos os meses.'
 };
 
+export const DEBTS_SUMMARY_COPY = {
+    totalToday:
+        'Soma do saldo mais recente de cada banco com dívida ativa (última atualização registrada).',
+    monthTotal:
+        'Soma dos saldos de fim de mês de cada banco no mês calendário atual.',
+    bankCount: 'Bancos ou instituições com pelo menos uma atualização e dívida não encerrada.'
+};
+
 /** Textos da linha de variação % nos cards (quando o filtro não é um mês único, etc.). */
 export const MOVEMENT_SUMMARY_VARIATION_COPY = {
     needSingleMonth: 'Escolha um único mês no filtro para comparar com o mês anterior.',
@@ -314,6 +322,35 @@ export const MOVEMENT_SUMMARY_CARD_GROUPS = {
                 title: 'Pendente de alocar',
                 description: COFRINHOS_SUMMARY_COPY.pending,
                 variationId: 'cofrinhos-summary-pending-variation'
+            }
+        ]
+    },
+    debts: {
+        ariaLabel: 'Resumo das dívidas',
+        containerClass: 'debts-page__summary',
+        cards: [
+            {
+                id: 'debts-summary-total',
+                tone: 'debts',
+                icon: 'fa-landmark',
+                title: 'Total hoje',
+                description: DEBTS_SUMMARY_COPY.totalToday
+            },
+            {
+                id: 'debts-summary-month',
+                tone: 'debts',
+                icon: 'fa-chart-line',
+                title: 'Total neste mês',
+                description: DEBTS_SUMMARY_COPY.monthTotal,
+                variationId: 'debts-summary-month-variation'
+            },
+            {
+                id: 'debts-summary-banks',
+                tone: 'debts',
+                icon: 'fa-building-columns',
+                title: 'Bancos com dívida',
+                description: DEBTS_SUMMARY_COPY.bankCount,
+                hint: 'com saldo registrado'
             }
         ]
     }

@@ -415,6 +415,11 @@
     box-shadow: none;
 }
 
+.app-header.app-header--debts {
+    background: var(--bg-light);
+    box-shadow: none;
+}
+
 .header-left {
     display: flex;
     align-items: center;
@@ -469,6 +474,10 @@
     color: var(--cofrinhos-accent);
 }
 
+.app-header--debts .header-page-emoji i {
+    color: var(--debts-accent);
+}
+
 @keyframes header-emoji-swap {
     0% {
         transform: scale(0.82);
@@ -518,6 +527,10 @@
 
 .app-header--cofrinhos .header-page-title {
     color: var(--cofrinhos-accent);
+}
+
+.app-header--debts .header-page-title {
+    color: var(--debts-accent);
 }
 
 .header-right {
@@ -616,6 +629,12 @@
 .app-header--cofrinhos .header-page-actions .btn-primary.header-action-btn {
     background-color: var(--cofrinhos-accent);
     border-color: var(--cofrinhos-accent);
+    color: #fff;
+}
+
+.app-header--debts .header-page-actions .btn-primary.header-action-btn {
+    background-color: var(--debts-accent);
+    border-color: var(--debts-accent);
     color: #fff;
 }
 

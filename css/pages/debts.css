@@ -1,5 +1,288 @@
 /* --- Dívidas --- */
 
+.debts-page {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding-bottom: 2rem;
+    --debts-page-accent: var(--debts-accent);
+}
+
+[data-theme='dark'] .debts-page {
+    --debts-page-accent: var(--debts-accent);
+}
+
+.debts-page .summary-cards.movements-summary .card-icon.debts,
+.debts-page__summary.movements-summary .card-icon {
+    background: color-mix(in srgb, var(--debts-page-accent) 14%, var(--bg-color));
+    color: var(--debts-page-accent);
+}
+
+[data-theme='dark'] .debts-page .summary-cards.movements-summary .card-icon.debts,
+[data-theme='dark'] .debts-page__summary.movements-summary .card-icon {
+    background: color-mix(in srgb, var(--debts-page-accent) 20%, var(--bg-light));
+    color: var(--debts-accent-muted);
+}
+
+.debts-page__section-head h3,
+.debts-page__charts-section .reports-chart-header h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+}
+
+.debts-page__summary[hidden] {
+    display: none !important;
+}
+
+.debts-page__charts-section {
+    margin-bottom: 0;
+}
+
+.debts-page__charts-section .reports-chart-container,
+.debts-page__chart-card {
+    margin-bottom: 0;
+    padding: 1.35rem 1.5rem 1.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 1rem;
+    box-shadow: var(--shadow);
+    background: color-mix(in srgb, var(--bg-light) 96%, var(--bg-color) 4%);
+}
+
+[data-theme='dark'] .debts-page__charts-section .reports-chart-container,
+[data-theme='dark'] .debts-page__chart-card {
+    background: var(--bg-light);
+    border-color: var(--border-color);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+
+.debts-page__charts-section .reports-chart-hint {
+    max-width: none;
+    margin-bottom: 0;
+    line-height: 1.35;
+}
+
+.debts-page__chart-wrapper {
+    position: relative;
+    flex: 0 0 auto;
+    width: 100%;
+    height: min(420px, 48vh);
+    min-height: 300px;
+    max-height: 420px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+[data-theme='dark'] .debts-page__chart-wrapper canvas {
+    color: var(--text-color, #fafafa);
+}
+
+.debts-page__section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.debts-page__goals-grid--cards {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.25rem;
+}
+
+.debts-page__goals-grid--cards > .debts-page__goal-card:only-child {
+    grid-column: 1 / -1;
+}
+
+@media (max-width: 959px) {
+    .debts-page__goals-grid--cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 639px) {
+    .debts-page__goals-grid--cards {
+        grid-template-columns: 1fr;
+    }
+}
+
+.debts-page__goal-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    padding: 1.35rem 1.4rem 1.25rem;
+    background: var(--bg-light);
+    border: 1px solid color-mix(in srgb, var(--goal-accent) 18%, var(--border-color));
+    border-radius: 16px;
+    box-shadow: none;
+}
+
+.debts-page__goal-card-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.debts-page__goal-card-dot {
+    flex-shrink: 0;
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+}
+
+.debts-page__goal-card-title {
+    margin: 0;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    line-height: 1.25;
+    color: var(--text-color);
+}
+
+.debts-page__goal-card-hero {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.85rem 1rem;
+    border-radius: 12px;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+}
+
+.debts-page__goal-card-hero-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-light);
+}
+
+.debts-page__goal-card-hero-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    color: var(--text-color);
+    font-variant-numeric: tabular-nums;
+}
+
+.debts-page__goal-card-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.55rem;
+}
+
+.debts-page__goal-metric,
+.debts-page__goal-change {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.55rem 0.65rem;
+    border-radius: 10px;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    min-width: 0;
+}
+
+.debts-page__goal-metric-label,
+.debts-page__goal-change-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-light);
+}
+
+.debts-page__goal-metric-value {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-color);
+    font-variant-numeric: tabular-nums;
+}
+
+.debts-page__goal-change-value {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-light);
+    font-variant-numeric: tabular-nums;
+}
+
+.debts-page__goal-change--discounted .debts-page__goal-change-value {
+    color: var(--gains-accent);
+}
+
+.debts-page__goal-change--elevated .debts-page__goal-change-value {
+    color: var(--danger-color);
+}
+
+.debts-page__goal-card-delta {
+    margin: 0;
+    font-size: 0.8rem;
+    font-weight: 500;
+    line-height: 1.35;
+    color: var(--text-light);
+    grid-column: 1 / -1;
+}
+
+.debts-page__goal-card-delta--discounted {
+    color: var(--gains-accent);
+}
+
+.debts-page__goal-card-delta--elevated {
+    color: var(--danger-color);
+}
+
+.debts-page__goal-card-colors {
+    margin-top: 0.85rem;
+}
+
+.debts-page__debt-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.85rem;
+}
+
+.debts-page__empty.goals-empty-state {
+    grid-column: 1 / -1;
+}
+
+#debt-settings-modal .modal-content.modal-content--debt-settings {
+    max-width: min(26rem, 94vw);
+}
+
+#debt-settings-modal .modal-content > form#debt-settings-form {
+    display: flex;
+    flex-direction: column;
+    padding: 1.25rem 1.5rem 1.5rem;
+}
+
+#debt-settings-modal .modal-content > form#debt-settings-form > .form-group {
+    margin-bottom: 1.125rem;
+}
+
+.debts-settings-form__colors {
+    margin-top: 0.5rem;
+}
+
+#debt-settings-modal .debt-settings-form__actions.form-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-top: 0.25rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border-color);
+}
+
 /*
  * Modal "Atualização de dívida": o modal-forms.css usa grid de 2 colunas em .modal-content > form.
  * Este formulário é só uma coluna; sem override os campos quebram no desktop.
@@ -35,115 +318,365 @@
     border-top: 1px solid var(--border-color);
 }
 
-/* Modal um pouco mais largo para a lista de meses */
+/* Modal largo para grade de meses */
 #debt-update-modal .modal-content.modal-content--debt-form {
-    max-width: min(28rem, 94vw);
+    max-width: min(94vw, 32rem);
 }
 
 @media (min-width: 640px) {
     #debt-update-modal .modal-content.modal-content--debt-form {
-        max-width: min(40rem, 94vw);
+        max-width: min(94vw, 52rem);
     }
 }
 
-.debt-monthly-section {
-    margin-bottom: 1rem;
+@media (min-width: 900px) {
+    #debt-update-modal .modal-content.modal-content--debt-form {
+        max-width: min(94vw, 58rem);
+    }
+}
+
+.debt-start-month-row {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 0.65rem;
+    align-items: stretch;
+}
+
+#debt-update-modal .debt-start-month-row select {
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.65rem 0.95rem;
+    border: 1.5px solid var(--border-color);
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    font-weight: 500;
+    background-color: var(--bg-light);
+    color: var(--text-color);
+    cursor: pointer;
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+#debt-update-modal .debt-start-month-row select:hover:not(:focus) {
+    border-color: #cbd5e1;
+}
+
+#debt-update-modal .debt-start-month-row select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.18);
+}
+
+@media (max-width: 479px) {
+    .debt-start-month-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Saldos por mês — camadas como blocos aninhados em outros modais (ex.: dividir saída) */
+#debt-update-modal .debt-monthly-section {
+    margin-bottom: 0.5rem;
+    padding: 1rem 1rem 0.85rem;
+    border-radius: 12px;
+    border: 1px solid rgba(163, 163, 163, 0.28);
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.04) 0%, rgba(0, 0, 0, 0.01) 100%);
+}
+
+.debt-monthly-section__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.debt-monthly-section__title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-light);
+}
+
+.debt-month-filled-count {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-light);
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+}
+
+.debt-month-filled-count:not(:empty) {
+    color: var(--text-color);
 }
 
 .debt-monthly-note {
     font-size: 0.82rem;
     line-height: 1.45;
     color: var(--warning-color, #d97706);
-    margin: 0 0 0.75rem;
-    padding: 0.6rem 0.75rem;
+    margin: 0 0 0.65rem;
+    padding: 0.55rem 0.7rem;
     border-radius: 8px;
     background: color-mix(in srgb, var(--warning-color, #f59e0b) 12%, transparent);
 }
 
 .debt-monthly-hint {
-    font-size: 0.85rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.65rem;
+    font-size: 0.8rem;
     color: var(--text-light);
-    margin: 0 0 0.75rem;
-    line-height: 1.45;
+    margin: 0 0 0.85rem;
+    line-height: 1.4;
 }
 
-.debt-monthly-rows {
-    max-height: min(50vh, 22rem);
+.debt-monthly-hint i {
+    font-size: 0.72rem;
+    opacity: 0.75;
+}
+
+.debt-monthly-years {
+    max-height: min(58vh, 26rem);
     overflow-y: auto;
-    padding-right: 0.25rem;
-    margin-bottom: 0.25rem;
+    padding: 0.15rem 0.35rem 0.15rem 0;
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    scrollbar-gutter: stable;
 }
 
-.debt-month-row__inner {
+.debt-year-block {
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--bg-color);
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+}
+
+.debt-year-block__toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.7rem 1rem;
+    border: 0;
+    border-bottom: 1px solid transparent;
+    background: var(--bg-light);
+    color: var(--text-color);
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s ease;
+}
+
+.debt-year-block__toggle[aria-expanded='true'] {
+    border-bottom-color: var(--border-color);
+}
+
+.debt-year-block__toggle:hover {
+    background: color-mix(in srgb, var(--border-color) 40%, var(--bg-light));
+}
+
+.debt-year-block__year {
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.debt-year-block__meta {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text-light);
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    background: var(--bg-color);
+}
+
+.debt-year-block__panel {
+    padding: 0.85rem 0.9rem 0.95rem;
+}
+
+.debt-year-block__panel[hidden] {
+    display: none;
+}
+
+.debt-month-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+}
+
+@media (min-width: 520px) {
+    .debt-month-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 900px) {
+    .debt-month-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.6rem;
+    }
+}
+
+.debt-month-cell {
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
 }
 
-.debt-month-row__label {
-    display: block;
-    margin-bottom: 0;
-    font-size: 0.8rem;
+.debt-month-cell:hover .debt-month-input:not(:focus) {
+    border-color: #cbd5e1;
+}
+
+.debt-month-cell--filled .debt-month-cell__label {
+    color: var(--text-color);
+}
+
+.debt-month-cell__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.35rem;
+    min-height: 1.25rem;
+}
+
+.debt-month-cell__label {
+    font-size: 0.75rem;
     font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: capitalize;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
     color: var(--text-light);
 }
 
-.debt-month-row__controls {
+.debt-month-cell__tools {
     display: flex;
+    gap: 0.15rem;
+    opacity: 0.55;
+    transition: opacity 0.15s ease;
+}
+
+.debt-month-cell:hover .debt-month-cell__tools,
+.debt-month-cell:focus-within .debt-month-cell__tools {
+    opacity: 1;
+}
+
+.debt-month-cell__tool {
+    display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
+    justify-content: center;
+    width: 1.35rem;
+    height: 1.35rem;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-light);
+    cursor: pointer;
+    font-size: 0.65rem;
 }
 
-.debt-month-row__controls .debt-month-input {
-    flex: 1;
-    min-width: 0;
+.debt-month-cell__tool:hover {
+    background: color-mix(in srgb, var(--text-color) 8%, var(--bg-color));
+    color: var(--text-color);
 }
 
-.debt-month-row__controls .debt-month-remove {
-    flex-shrink: 0;
+#debt-update-modal .debt-month-cell .debt-month-input {
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.65rem 0.75rem;
+    border: 1.5px solid var(--border-color);
+    border-radius: 10px;
+    background-color: var(--bg-light);
+    color: var(--text-color);
+    font-size: 0.95rem;
+    font-family: inherit;
+    font-weight: 600;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+    -moz-appearance: textfield;
 }
 
-#debt-update-modal .debt-monthly-rows .form-group.debt-month-row {
-    margin-bottom: 0.75rem;
+.debt-month-cell .debt-month-input::-webkit-outer-spin-button,
+.debt-month-cell .debt-month-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }
 
-#debt-update-modal .debt-monthly-rows .form-group.debt-month-row:last-child {
-    margin-bottom: 0;
+.debt-month-cell .debt-month-input::placeholder {
+    color: var(--text-light);
+    font-weight: 500;
+    opacity: 0.55;
+}
+
+#debt-update-modal .debt-month-cell .debt-month-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.18);
+}
+
+[data-theme='dark'] #debt-update-modal .debt-monthly-section {
+    border-color: rgba(64, 64, 64, 0.55);
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.28) 0%, rgba(0, 0, 0, 0.12) 100%);
+}
+
+[data-theme='dark'] #debt-update-modal .debt-start-month-row select {
+    background-color: rgba(38, 38, 38, 0.75);
+    border-color: rgba(82, 82, 82, 0.85);
+}
+
+[data-theme='dark'] #debt-update-modal .debt-start-month-row select:hover:not(:focus) {
+    border-color: rgba(115, 115, 115, 0.9);
+}
+
+[data-theme='dark'] .debt-year-block {
+    background: var(--bg-color);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+[data-theme='dark'] .debt-year-block__toggle {
+    background: var(--bg-light);
+}
+
+[data-theme='dark'] .debt-year-block__toggle:hover {
+    background: color-mix(in srgb, var(--border-color) 35%, var(--bg-light));
+}
+
+[data-theme='dark'] .debt-month-filled-count {
+    background: rgba(38, 38, 38, 0.75);
+    border-color: rgba(82, 82, 82, 0.85);
+}
+
+[data-theme='dark'] #debt-update-modal .debt-month-cell .debt-month-input {
+    background-color: rgba(38, 38, 38, 0.75);
+    border-color: rgba(82, 82, 82, 0.85);
+}
+
+[data-theme='dark'] #debt-update-modal .debt-month-cell:hover .debt-month-input:not(:focus) {
+    border-color: rgba(115, 115, 115, 0.9);
+}
+
+[data-theme='dark'] #debt-update-modal .debt-month-cell .debt-month-input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.12);
 }
 
 @media (max-width: 639px) {
     #debt-update-modal .modal-content .debt-update-form__actions.form-actions {
         grid-template-columns: 1fr;
     }
-}
-
-#debts-page .table-container {
-    margin-top: 1rem;
-}
-
-#debt-updates-table th,
-#debt-updates-table td {
-    vertical-align: middle;
-}
-
-.debt-actions {
-    display: flex;
-    gap: 0.5rem;
-    justify-content: flex-end;
-}
-
-.debt-actions .btn-icon {
-    border: 1px solid var(--border-color);
-    background: var(--bg-light);
-    color: var(--text-color);
-    border-radius: 8px;
-    padding: 0.35rem 0.55rem;
-    cursor: pointer;
-}
-
-.debt-actions .btn-icon:hover {
-    background: color-mix(in srgb, var(--primary-color) 10%, var(--bg-light));
 }
 

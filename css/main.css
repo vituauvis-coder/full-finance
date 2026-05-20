@@ -16,6 +16,11 @@
     --cofrinhos-accent-strong: #6d28d9;
     --cofrinhos-accent-muted: #a78bfa;
     --cofrinhos-accent-soft: #c4b5fd;
+    /* Dívidas — vinho/burgundy (obrigação, peso financeiro; distinto do vermelho de saídas) */
+    --debts-accent: #9f1239;
+    --debts-accent-strong: #881337;
+    --debts-accent-muted: #be185d;
+    --debts-accent-soft: #ffe4e6;
     --bg-color: #fafafa;
     /* Fundo app: branco levemente térmico */
     --bg-light: #ffffff;

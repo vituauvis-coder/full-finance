@@ -458,7 +458,8 @@ export function navigateTo(pageId) {
             'app-header--gains',
             'app-header--zero-budget',
             'app-header--wallet',
-            'app-header--cofrinhos'
+            'app-header--cofrinhos',
+            'app-header--debts'
         );
         if (pageId === 'expenses') {
             appHeader.classList.add('app-header--expenses');
@@ -470,6 +471,8 @@ export function navigateTo(pageId) {
             appHeader.classList.add('app-header--wallet');
         } else if (pageId === 'cofrinhos') {
             appHeader.classList.add('app-header--cofrinhos');
+        } else if (pageId === 'debts') {
+            appHeader.classList.add('app-header--debts');
         }
     }
 
@@ -479,6 +482,7 @@ export function navigateTo(pageId) {
     document.getElementById('zero-budget-header-actions')?.classList.toggle('hidden', pageId !== 'zero-budget');
     document.getElementById('wallet-header-actions')?.classList.toggle('hidden', pageId !== 'wallet');
     document.getElementById('cofrinhos-header-actions')?.classList.toggle('hidden', pageId !== 'cofrinhos');
+    document.getElementById('debts-header-actions')?.classList.toggle('hidden', pageId !== 'debts');
 
     // Salva a última página visitada
     localStorage.setItem('lastVisitedPage', pageId);

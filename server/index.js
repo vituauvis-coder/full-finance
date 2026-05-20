@@ -471,7 +471,10 @@ app.get('/api/data', requireAuth, async (req, res) => {
                     notes,
                     created_at AS "createdAt",
                     updated_at AS "updatedAt",
-                    is_closed AS "isClosed"
+                    is_closed AS "isClosed",
+                    color_key AS "colorKey",
+                    initial_amount AS "initialAmount",
+                    last_offer_discount_percent AS "lastOfferDiscountPercent"
                  FROM debts
                  WHERE user_id = $1`,
                 [uid]
@@ -755,6 +758,46 @@ async function assertAccountBelongsToUser(accountId, uid) {
     if (!rows[0]) throw httpMovementError('Conta não encontrada ou inválida');
 }
 
+const DEBT_COLOR_KEYS_ALLOWED = new Set([
+    'wine',
+    'rose',
+    'amber',
+    'violet',
+    'fuchsia',
+    'cyan',
+    'emerald',
+    'indigo'
+]);
+
+function parseDebtColorKey(raw, fallback = 'wine') {
+    let colorKey = String(raw ?? fallback).trim().toLowerCase();
+    if (!DEBT_COLOR_KEYS_ALLOWED.has(colorKey)) colorKey = fallback;
+    return colorKey;
+}
+
+function parseDebtInitialAmount(raw) {
+    if (raw == null || raw === '') return null;
+    const initialAmount = Number(raw);
+    if (!Number.isFinite(initialAmount) || initialAmount < 0) {
+        throw httpMovementError('Valor inicial inválido');
+    }
+    return initialAmount;
+}
+
+function parseDebtLastOfferDiscount(raw) {
+    if (raw == null || raw === '') return null;
+    const lastOfferDiscountPercent = Number(raw);
+    if (
+        !Number.isFinite(lastOfferDiscountPercent) ||
+        lastOfferDiscountPercent < 0 ||
+        lastOfferDiscountPercent > 100
+    ) {
+        throw httpMovementError('Desconto da oferta inválido (use 0 a 100)');
+    }
+    return lastOfferDiscountPercent;
+}
+
+/** Criação: todos os campos obrigatórios no body. */
 function debtPayloadFromBody(body, uid) {
     const company = String(body.company ?? '').trim();
     if (!company) throw httpMovementError('Empresa obrigatória');
@@ -762,7 +805,61 @@ function debtPayloadFromBody(body, uid) {
     if (notes == null || notes === '') notes = null;
     else notes = String(notes);
     const isClosed = Boolean(body.isClosed);
-    return { userId: uid, company, notes, isClosed };
+    const colorKey = parseDebtColorKey(body.colorKey, 'wine');
+    const initialAmount = parseDebtInitialAmount(body.initialAmount);
+    const lastOfferDiscountPercent = parseDebtLastOfferDiscount(body.lastOfferDiscountPercent);
+    return {
+        userId: uid,
+        company,
+        notes,
+        isClosed,
+        colorKey,
+        initialAmount,
+        lastOfferDiscountPercent
+    };
+}
+
+/** Atualização: mescla com registro existente (ex.: só `colorKey` no body). */
+function mergeDebtPayloadFromBody(body, uid, existing) {
+    const company =
+        body.company !== undefined
+            ? String(body.company ?? '').trim() || existing.company
+            : existing.company;
+    if (!company) throw httpMovementError('Empresa obrigatória');
+
+    let notes = existing.notes ?? null;
+    if (body.notes !== undefined) {
+        if (body.notes == null || body.notes === '') notes = null;
+        else notes = String(body.notes);
+    }
+
+    const isClosed =
+        body.isClosed !== undefined ? Boolean(body.isClosed) : Boolean(existing.isClosed);
+
+    const colorKey =
+        body.colorKey !== undefined
+            ? parseDebtColorKey(body.colorKey, existing.colorKey || 'wine')
+            : parseDebtColorKey(existing.colorKey, 'wine');
+
+    const initialAmount =
+        body.initialAmount !== undefined
+            ? parseDebtInitialAmount(body.initialAmount)
+            : existing.initialAmount ?? null;
+
+    const lastOfferDiscountPercent =
+        body.lastOfferDiscountPercent !== undefined
+            ? parseDebtLastOfferDiscount(body.lastOfferDiscountPercent)
+            : existing.lastOfferDiscountPercent ?? null;
+
+    return {
+        userId: uid,
+        company,
+        notes,
+        isClosed,
+        colorKey,
+        initialAmount,
+        lastOfferDiscountPercent
+    };
 }
 
 function debtUpdatePayloadFromBody(body, uid) {
@@ -2026,7 +2123,10 @@ app.get('/api/debts', requireAuth, async (req, res) => {
             notes,
             created_at AS "createdAt",
             updated_at AS "updatedAt",
-            is_closed AS "isClosed"
+            is_closed AS "isClosed",
+            color_key AS "colorKey",
+            initial_amount AS "initialAmount",
+            last_offer_discount_percent AS "lastOfferDiscountPercent"
          FROM debts
          WHERE user_id = $1
          ORDER BY updated_at DESC`,
@@ -2041,8 +2141,12 @@ app.post('/api/debts', requireAuth, async (req, res) => {
         const data = debtPayloadFromBody(req.body, uid);
         const id = crypto.randomUUID();
         const { rows } = await query(
-            `INSERT INTO debts (id, user_id, company, notes, is_closed, created_at, updated_at)
-             VALUES ($1,$2,$3,$4,$5, now(), now())
+            `INSERT INTO debts (
+                id, user_id, company, notes, is_closed,
+                color_key, initial_amount, last_offer_discount_percent,
+                created_at, updated_at
+             )
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8, now(), now())
              RETURNING
                 id,
                 user_id AS "userId",
@@ -2050,8 +2154,20 @@ app.post('/api/debts', requireAuth, async (req, res) => {
                 notes,
                 created_at AS "createdAt",
                 updated_at AS "updatedAt",
-                is_closed AS "isClosed"`,
-            [id, data.userId, data.company, data.notes, data.isClosed]
+                is_closed AS "isClosed",
+                color_key AS "colorKey",
+                initial_amount AS "initialAmount",
+                last_offer_discount_percent AS "lastOfferDiscountPercent"`,
+            [
+                id,
+                data.userId,
+                data.company,
+                data.notes,
+                data.isClosed,
+                data.colorKey,
+                data.initialAmount,
+                data.lastOfferDiscountPercent
+            ]
         );
         res.json(rows[0]);
     } catch (e) {
@@ -2065,15 +2181,31 @@ app.put('/api/debts/:id', requireAuth, async (req, res) => {
     try {
         const uid = req.session.userId;
         const { rows: existingRows } = await query(
-            `SELECT id FROM debts WHERE id = $1 AND user_id = $2`,
+            `SELECT
+                id,
+                user_id AS "userId",
+                company,
+                notes,
+                is_closed AS "isClosed",
+                color_key AS "colorKey",
+                initial_amount AS "initialAmount",
+                last_offer_discount_percent AS "lastOfferDiscountPercent"
+             FROM debts
+             WHERE id = $1 AND user_id = $2`,
             [req.params.id, uid]
         );
         const existing = existingRows[0] || null;
         if (!existing) return res.status(404).json({ error: 'Não encontrado' });
-        const data = debtPayloadFromBody(req.body, uid);
+        const data = mergeDebtPayloadFromBody(req.body, uid, existing);
         const { rows: updatedRows } = await query(
             `UPDATE debts
-             SET company = $3, notes = $4, is_closed = $5, updated_at = now()
+             SET company = $3,
+                 notes = $4,
+                 is_closed = $5,
+                 color_key = $6,
+                 initial_amount = $7,
+                 last_offer_discount_percent = $8,
+                 updated_at = now()
              WHERE id = $1 AND user_id = $2
              RETURNING
                 id,
@@ -2082,8 +2214,20 @@ app.put('/api/debts/:id', requireAuth, async (req, res) => {
                 notes,
                 created_at AS "createdAt",
                 updated_at AS "updatedAt",
-                is_closed AS "isClosed"`,
-            [req.params.id, uid, data.company, data.notes, data.isClosed]
+                is_closed AS "isClosed",
+                color_key AS "colorKey",
+                initial_amount AS "initialAmount",
+                last_offer_discount_percent AS "lastOfferDiscountPercent"`,
+            [
+                req.params.id,
+                uid,
+                data.company,
+                data.notes,
+                data.isClosed,
+                data.colorKey,
+                data.initialAmount,
+                data.lastOfferDiscountPercent
+            ]
         );
         res.json(updatedRows[0]);
     } catch (e) {

@@ -17,7 +17,7 @@ import { initTools } from '../features/tools/tools.js';
 import { initSupport } from '../features/support/support.js';
 import { initCofrinhos, loadCofrinhosPage } from '../features/cofrinhos/cofrinhos-page.js';
 import { setCofrinhoBucketSubcategoryFilter } from '../features/finance/expense-categories.js';
-import { initDebts, loadDebtsData } from '../features/debts/debts.js';
+import { initDebtsPage, loadDebtsData } from '../features/debts/debts-page.js';
 import { initHeaderNotifications, refreshHeaderNotifications } from '../shared/header-notifications.js';
 import { setupGlobalErrorHandlers } from './error-handling.js';
 import { syncPeriodFilterSelectsToCurrentMonth } from '../core/period-filters.js';
@@ -91,7 +91,7 @@ async function onAuthenticated(user) {
     initTools();
     initSupport();
     initCofrinhos(AppState.currentUser, refreshAllData);
-    initDebts(AppState.currentUser, refreshAllData);
+    initDebtsPage(AppState.currentUser, refreshAllData);
     initZeroBudgetPage();
 
     let lastPage = localStorage.getItem('lastVisitedPage') || 'dashboard';
