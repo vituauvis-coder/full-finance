@@ -72,3 +72,14 @@ export const DEBT_COLOR_HEX = {
 export function debtColorHex(colorKey) {
     return DEBT_COLOR_HEX[colorKey] || DEBT_COLOR_HEX.wine;
 }
+
+/** Ordem estável dos cards: A→Z pelo nome da instituição (pt-BR). */
+export function compareDebtsByCompany(a, b) {
+    return String(a?.company ?? '').localeCompare(String(b?.company ?? ''), 'pt-BR', {
+        sensitivity: 'base'
+    });
+}
+
+export function sortDebtsByCompany(debts) {
+    return [...(debts || [])].sort(compareDebtsByCompany);
+}

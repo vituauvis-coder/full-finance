@@ -4,7 +4,8 @@ import { runWithButtonLoading } from '../../core/button-loading.js';
 import {
     DEBT_COLOR_KEYS,
     DEBT_COLOR_LABELS,
-    debtColorHex
+    debtColorHex,
+    sortDebtsByCompany
 } from './constants.js';
 import {
     getCurrentDebtAmount,
@@ -137,7 +138,7 @@ export function renderDebtCards(debts, updates, currency) {
     const grid = document.getElementById('debts-goal-cards');
     if (!grid) return;
 
-    const active = (debts || []).filter((d) => d.isClosed !== true);
+    const active = sortDebtsByCompany((debts || []).filter((d) => d.isClosed !== true));
     if (!active.length) {
         grid.innerHTML = `
             <div class="goals-empty-state debts-page__empty">

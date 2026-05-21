@@ -1,6 +1,6 @@
 import { movementDateToJsDate, getChartAxisColors } from '../../core/utils.js';
 import { monthKey, enumerateCalendarYearMonths } from './debts-aggregations.js';
-import { debtColorHex } from './constants.js';
+import { compareDebtsByCompany, debtColorHex } from './constants.js';
 import { baseChartOptions, colorWithAlpha } from '../../shared/chart-options.js';
 
 let balanceChart = null;
@@ -60,7 +60,11 @@ export function renderDebtsBalanceChart(debts, updates, currency) {
     const datasets = [];
     const totalByMonth = monthKeysList.map(() => 0);
 
-    [...byDebt.entries()].forEach(([debtId, arr]) => {
+    [...byDebt.entries()]
+        .sort(([idA], [idB]) =>
+            compareDebtsByCompany(debtById.get(idA), debtById.get(idB))
+        )
+        .forEach(([debtId, arr]) => {
         const debt = debtById.get(debtId);
         const company = debt?.company || 'Dívida';
         const color = debtColorHex(debt?.colorKey);

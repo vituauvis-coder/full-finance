@@ -477,7 +477,8 @@ app.get('/api/data', requireAuth, async (req, res) => {
                     initial_amount AS "initialAmount",
                     last_offer_discount_percent AS "lastOfferDiscountPercent"
                  FROM debts
-                 WHERE user_id = $1`,
+                 WHERE user_id = $1
+                 ORDER BY LOWER(TRIM(company)) ASC`,
                 [uid]
             ),
             query(
@@ -2142,7 +2143,7 @@ app.get('/api/debts', requireAuth, async (req, res) => {
             last_offer_discount_percent AS "lastOfferDiscountPercent"
          FROM debts
          WHERE user_id = $1
-         ORDER BY updated_at DESC`,
+         ORDER BY LOWER(TRIM(company)) ASC`,
         [uid]
     );
     res.json(rows);
@@ -4175,15 +4176,50 @@ registerExpenseSplitRoutes(app, { requireAuth });
 registerZeroBudgetRoutes(app, requireAuth);
 registerCofrinhoRoutes(app, requireAuth);
 
-/** Produção (Railway etc.): um único processo Node serve o build Vite (`dist`) e a API. */
-const distPath = path.join(ROOT, 'dist');
-if (fs.existsSync(distPath)) {
-    app.use(express.static(distPath));
-    app.get(/.*/, (req, res, next) => {
-        if (req.path.startsWith('/api')) return next();
-        res.sendFile(path.join(distPath, 'index.html'), (err) => (err ? next(err) : undefined));
-    });
+/** Produção (Railway etc.): API + app Vite (`dist`) + painel `/admin` (pasta separada). */
+function mountProductionFrontend() {
+    const cssPath = path.join(ROOT, 'css');
+    const jsPath = path.join(ROOT, 'js');
+    const adminPath = path.join(ROOT, 'admin');
+    const distPath = path.join(ROOT, 'dist');
+
+    if (fs.existsSync(cssPath)) {
+        app.use('/css', express.static(cssPath));
+    }
+    if (fs.existsSync(jsPath)) {
+        app.use('/js', express.static(jsPath));
+    }
+
+    if (fs.existsSync(adminPath)) {
+        app.get('/admin', (_req, res) => res.redirect(302, '/admin/'));
+        app.use('/admin', express.static(adminPath, { index: 'index.html' }));
+        app.get('/admin/*', (req, res, next) => {
+            if (req.path.startsWith('/api')) return next();
+            const rel = req.path.replace(/^\/admin\/?/, '') || 'index.html';
+            const adminRoot = path.resolve(adminPath);
+            const filePath = path.resolve(adminRoot, rel);
+            if (!filePath.startsWith(adminRoot + path.sep) && filePath !== adminRoot) {
+                return res.status(400).end();
+            }
+            if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+                return res.sendFile(filePath, (err) => (err ? next(err) : undefined));
+            }
+            return res.sendFile(path.join(adminPath, 'index.html'), (err) =>
+                err ? next(err) : undefined
+            );
+        });
+    }
+
+    if (fs.existsSync(distPath)) {
+        app.use(express.static(distPath));
+        app.get(/.*/, (req, res, next) => {
+            if (req.path.startsWith('/api') || req.path.startsWith('/admin')) return next();
+            res.sendFile(path.join(distPath, 'index.html'), (err) => (err ? next(err) : undefined));
+        });
+    }
 }
+
+mountProductionFrontend();
 
 const server = app.listen(PORT, HOST, () => {
     console.log(`API ${AppBrand.NAME} em http://localhost:${PORT}`);
