@@ -1,27 +1,72 @@
-/** Cores dos cards de dívida (compartilha paleta com cofrinhos + vinho padrão). */
+/** Cores dos cards de dívida — paleta ampla e bem separada no círculo cromático. */
 
-export const DEBT_COLOR_KEYS = ['wine', 'rose', 'amber', 'violet', 'fuchsia', 'cyan', 'emerald', 'indigo'];
+export const DEBT_COLOR_KEYS = [
+    'wine',
+    'red',
+    'rose',
+    'orange',
+    'amber',
+    'gold',
+    'lime',
+    'emerald',
+    'teal',
+    'cyan',
+    'sky',
+    'blue',
+    'indigo',
+    'violet',
+    'purple',
+    'magenta',
+    'fuchsia',
+    'pink',
+    'brown',
+    'slate'
+];
 
 export const DEBT_COLOR_LABELS = {
     wine: 'Vinho',
+    red: 'Vermelho',
     rose: 'Rosa',
+    orange: 'Laranja',
     amber: 'Âmbar',
-    violet: 'Violeta',
-    fuchsia: 'Fúcsia',
-    cyan: 'Ciano',
+    gold: 'Dourado',
+    lime: 'Lima',
     emerald: 'Esmeralda',
-    indigo: 'Índigo'
+    teal: 'Turquesa',
+    cyan: 'Ciano',
+    sky: 'Azul claro',
+    blue: 'Azul',
+    indigo: 'Índigo',
+    violet: 'Violeta',
+    purple: 'Roxo',
+    magenta: 'Magenta',
+    fuchsia: 'Fúcsia',
+    pink: 'Pink',
+    brown: 'Marrom',
+    slate: 'Grafite'
 };
 
 export const DEBT_COLOR_HEX = {
     wine: '#9f1239',
-    rose: '#f43f5e',
+    red: '#dc2626',
+    rose: '#e11d48',
+    orange: '#ea580c',
     amber: '#f59e0b',
-    violet: '#8b5cf6',
+    gold: '#ca8a04',
+    lime: '#65a30d',
+    emerald: '#059669',
+    teal: '#0d9488',
+    cyan: '#0891b2',
+    sky: '#0284c7',
+    blue: '#2563eb',
+    indigo: '#4f46e5',
+    violet: '#7c3aed',
+    purple: '#9333ea',
+    magenta: '#c026d3',
     fuchsia: '#d946ef',
-    cyan: '#06b6d4',
-    emerald: '#10b981',
-    indigo: '#6366f1'
+    pink: '#db2777',
+    brown: '#78350f',
+    slate: '#475569'
 };
 
 export function debtColorHex(colorKey) {

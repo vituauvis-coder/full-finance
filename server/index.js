@@ -761,13 +761,25 @@ async function assertAccountBelongsToUser(accountId, uid) {
 
 const DEBT_COLOR_KEYS_ALLOWED = new Set([
     'wine',
+    'red',
     'rose',
+    'orange',
     'amber',
-    'violet',
-    'fuchsia',
-    'cyan',
+    'gold',
+    'lime',
     'emerald',
-    'indigo'
+    'teal',
+    'cyan',
+    'sky',
+    'blue',
+    'indigo',
+    'violet',
+    'purple',
+    'magenta',
+    'fuchsia',
+    'pink',
+    'brown',
+    'slate'
 ]);
 
 function parseDebtColorKey(raw, fallback = 'wine') {

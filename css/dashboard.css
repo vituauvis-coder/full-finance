@@ -1783,6 +1783,10 @@ button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='
     /* Mesmos tons das telas Saídas (#e11d48) e Entradas (#10b981) */
     --heatmap-expense-accent: var(--expenses-accent, #e11d48);
     --heatmap-gain-accent: #10b981;
+    /* Altura visível da lista de detalhes do dia (~8 linhas) */
+    --heatmap-day-visible-rows: 8;
+    --heatmap-day-row-height: 2.15rem;
+    --heatmap-day-row-gap: 0.35rem;
 }
 
 .dashboard-cash-heatmap__layout {
@@ -1825,13 +1829,7 @@ button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='
     display: flex;
     flex-direction: column;
     min-height: 0;
-    flex: 1;
-}
-
-@media (min-width: 1024px) {
-    .cash-heatmap-day-panel {
-        height: 100%;
-    }
+    align-self: start;
 }
 
 .cash-heatmap-calendar__header {
@@ -2041,12 +2039,15 @@ button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='
 
 .cash-heatmap-day-panel__list-wrap {
     position: relative;
-    flex: 1;
-    min-height: 12rem;
+    flex: none;
     display: flex;
     flex-direction: column;
     min-width: 0;
     margin-top: 1rem;
+    max-height: calc(
+        var(--heatmap-day-row-height) * var(--heatmap-day-visible-rows) +
+            var(--heatmap-day-row-gap) * (var(--heatmap-day-visible-rows) - 1)
+    );
 }
 
 .cash-heatmap-day-panel__list-wrap::after {
@@ -2070,12 +2071,6 @@ button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='
 
 .cash-heatmap-day-panel__list-wrap--fade-bottom::after {
     opacity: 1;
-}
-
-@media (min-width: 1024px) {
-    .cash-heatmap-day-panel__list-wrap {
-        min-height: 0;
-    }
 }
 
 .cash-heatmap-day-panel__year {
