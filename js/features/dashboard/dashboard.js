@@ -1,8 +1,22 @@
 // js/dashboard.js
+import { runWithButtonLoading } from '../../core/button-loading.js';
 import { confirmExpenseCashOut } from '../../services/firestore.js';
 import { buildPendingCashOutItems } from '../finance/pending-cash-outs.js';
 import { refreshCashHeatmap } from './cash-heatmap.js';
 import { formatCurrency } from '../../core/utils.js';
+
+/** Evita vários `refreshAllData` em paralelo ao confirmar vários pagamentos seguidos. */
+let pendingCashOutRefreshTimer = null;
+const PENDING_CASH_OUT_REFRESH_MS = 450;
+
+function schedulePendingCashOutDataRefresh(onDataRefresh) {
+    if (typeof onDataRefresh !== 'function') return;
+    if (pendingCashOutRefreshTimer != null) clearTimeout(pendingCashOutRefreshTimer);
+    pendingCashOutRefreshTimer = setTimeout(() => {
+        pendingCashOutRefreshTimer = null;
+        void onDataRefresh();
+    }, PENDING_CASH_OUT_REFRESH_MS);
+}
 
 /**
  * Carrega e exibe os dados do dashboard.
@@ -47,16 +61,24 @@ export function loadDashboardData(
                     userCurrency
                 );
                 const btn = li.querySelector('.dashboard-pending-confirm');
+                btn.type = 'button';
                 btn.textContent = 'Marcar como pago';
-                btn.addEventListener('click', async () => {
-                    btn.disabled = true;
-                    try {
-                        await confirmExpenseCashOut(p.expenseId, p.periodKey);
-                        onDataRefresh?.();
-                    } catch (err) {
+                btn.dataset.loadingLabel = 'Confirmando...';
+                btn.addEventListener('click', () => {
+                    void runWithButtonLoading(
+                        btn,
+                        async () => {
+                            await confirmExpenseCashOut(p.expenseId, p.periodKey);
+                            li.remove();
+                            if (pendingList.children.length === 0) {
+                                pendingWrap.classList.add('hidden');
+                            }
+                            schedulePendingCashOutDataRefresh(onDataRefresh);
+                        },
+                        { busyLabel: 'Confirmando...' }
+                    ).catch((err) => {
                         console.error(err);
-                        btn.disabled = false;
-                    }
+                    });
                 });
                 pendingList.appendChild(li);
             });
