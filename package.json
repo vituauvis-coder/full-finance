@@ -11,7 +11,7 @@
     "dev:app": "concurrently -k \"npm run server\" \"vite\"",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --test tests/wallet-plastic.test.js",
     "restore:account": "node scripts/restore-account-sqlserver-to-supabase.mjs",
     "restore:account:sqlcmd": "node scripts/sqlcmd-upsert-account.mjs",
     "restore:movements:sqlcmd": "node scripts/sqlcmd-restore-account-movements.mjs",
