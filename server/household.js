@@ -26,7 +26,7 @@ export const ACCOUNT_SELECT_FIELDS = `
     hu.name AS "holderUserName",
     hu.email AS "holderUserEmail"`;
 
-const ACCOUNT_FROM_JOIN = `
+export const ACCOUNT_FROM_JOIN = `
     FROM accounts a
     LEFT JOIN users hu ON hu.id = a.holder_user_id`;
 
