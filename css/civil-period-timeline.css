@@ -1,0 +1,189 @@
+/* Timeline civil compartilhada — ‹ ano › + Jan…Dez */
+.civil-period-timeline {
+    --cpt-accent: var(--primary-color);
+    --cpt-accent-muted: color-mix(in srgb, var(--cpt-accent) 14%, var(--bg-light));
+    --cpt-accent-border: color-mix(in srgb, var(--cpt-accent) 42%, var(--border-color));
+    --cpt-accent-hover-bg: color-mix(in srgb, var(--cpt-accent) 8%, var(--bg-light));
+    --cpt-accent-hover-border: color-mix(in srgb, var(--cpt-accent) 34%, var(--border-color));
+    --cpt-year-stepper-border: color-mix(in srgb, var(--cpt-accent) 28%, var(--border-color));
+    --cpt-year-btn-bg: color-mix(in srgb, var(--cpt-accent) 11%, var(--bg-color));
+    --cpt-year-btn-bg-hover: color-mix(in srgb, var(--cpt-accent) 20%, var(--bg-color));
+
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 0.55rem;
+    width: 100%;
+    margin: 0 0 1.25rem;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.civil-period-timeline--expenses {
+    --cpt-accent: var(--expenses-accent);
+}
+
+.civil-period-timeline--gains {
+    --cpt-accent: var(--gains-accent);
+}
+
+.civil-period-timeline--zero-budget {
+    --cpt-accent: #d97706;
+}
+
+[data-theme='dark'] .civil-period-timeline--zero-budget {
+    --cpt-accent: #fbbf24;
+}
+
+.civil-period-timeline--wallet {
+    --cpt-accent: #2563eb;
+}
+
+.civil-period-timeline__year-stepper {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-height: 2.35rem;
+    padding: 0.32rem 0.5rem;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    align-self: stretch;
+    background-color: var(--bg-light);
+    border: 1px solid var(--cpt-year-stepper-border);
+    border-radius: 8px;
+    box-shadow:
+        0 1px 0 color-mix(in srgb, #fff 6%, transparent),
+        0 1px 2px color-mix(in srgb, #000 6%, transparent);
+}
+
+[data-theme='dark'] .civil-period-timeline__year-stepper {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28);
+}
+
+.civil-period-timeline__year-value {
+    min-width: 3.1rem;
+    padding: 0 0.15rem;
+    text-align: center;
+    font-size: 0.92rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    color: var(--cpt-accent);
+    user-select: none;
+}
+
+.civil-period-timeline__year-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.9rem;
+    height: 1.9rem;
+    min-width: 1.9rem;
+    padding: 0;
+    border: none;
+    border-radius: 7px;
+    background-color: var(--cpt-year-btn-bg);
+    color: var(--text-color);
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease;
+}
+
+.civil-period-timeline__year-btn:hover {
+    background-color: var(--cpt-year-btn-bg-hover);
+    color: var(--cpt-accent);
+}
+
+.civil-period-timeline__chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    align-content: stretch;
+    gap: 0.5rem;
+    row-gap: 0.45rem;
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.civil-period-timeline__month-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1 1 2.35rem;
+    min-height: 2.35rem;
+    min-width: 2.35rem;
+    max-width: none;
+    padding: 0.45rem 0.55rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 650;
+    line-height: 1.1;
+    white-space: nowrap;
+    cursor: pointer;
+    box-sizing: border-box;
+    background-color: var(--bg-light);
+    color: var(--text-color);
+    transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease,
+        color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.civil-period-timeline__month-btn:hover {
+    background-color: var(--cpt-accent-hover-bg);
+    border-color: var(--cpt-accent-hover-border);
+    color: var(--text-color);
+}
+
+.civil-period-timeline__month-btn.is-active {
+    background-color: var(--cpt-accent-muted);
+    border-color: var(--cpt-accent-border);
+    color: var(--cpt-accent);
+    font-weight: 750;
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--cpt-accent) 12%, transparent);
+}
+
+.civil-period-timeline__month-btn.is-active:hover {
+    background-color: color-mix(in srgb, var(--cpt-accent) 20%, var(--bg-light));
+    border-color: color-mix(in srgb, var(--cpt-accent) 52%, var(--border-color));
+}
+
+[data-theme='dark'] .civil-period-timeline__month-btn {
+    border-color: color-mix(in srgb, #fff 8%, var(--border-color));
+}
+
+[data-theme='dark'] .civil-period-timeline__month-btn.is-active {
+    background-color: color-mix(in srgb, var(--cpt-accent) 22%, var(--bg-light));
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--cpt-accent) 18%, transparent);
+}
+
+[data-theme='dark'] .civil-period-timeline__year-stepper {
+    border-color: color-mix(in srgb, var(--cpt-accent) 38%, var(--border-color));
+}
+
+[data-theme='dark'] .civil-period-timeline__year-btn {
+    background-color: color-mix(in srgb, var(--cpt-accent) 16%, var(--bg-color));
+}
+
+[data-theme='dark'] .civil-period-timeline__year-btn:hover {
+    background-color: color-mix(in srgb, var(--cpt-accent) 26%, var(--bg-color));
+}
+
+@media (max-width: 640px) {
+    .civil-period-timeline {
+        margin-bottom: 1rem;
+    }
+
+    .civil-period-timeline__month-btn {
+        min-width: 2.65rem;
+        padding: 0.4rem 0.45rem;
+        font-size: 0.8rem;
+    }
+}

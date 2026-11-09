@@ -35,6 +35,12 @@ import {
 } from '../../core/zero-budget-calculator.js';
 import { openModal, closeModal } from '../../shell/app-shell.js';
 import { buildSyntheticExpectedSplitGainsRows } from '../../core/expected-split-gain-rows.js';
+import { getDefaultCivilYear } from '../../core/period-filters.js';
+import {
+    bindCivilPeriodTimeline,
+    refreshCivilPeriodTimeline,
+    syncCivilPeriodYearToDom
+} from '../../components/civil-period-timeline.js';
 
 const ZB_BAR_BG_ALLOWED = new Set(getAvailableColors().map((c) => c.class));
 
@@ -99,6 +105,29 @@ let zbTodosOverlayEl = null;
 let zbTodosOpenBlockId = null;
 // Meses para exibição
 const MONTH_NAMES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+function getZbCivilYearFromDom() {
+    const el = document.getElementById('zero-budget-period-year');
+    const y = parseInt(String(el?.value ?? '').trim(), 10);
+    return Number.isFinite(y) && y >= 1970 && y <= 2100 ? y : getDefaultCivilYear();
+}
+
+function zbTimelineRoot() {
+    return zbRootElement?.querySelector('[data-civil-period-timeline]') ?? null;
+}
+
+function setZbCivilYearInDom(year) {
+    const y = syncCivilPeriodYearToDom(zbTimelineRoot(), 'zero-budget-period-year', year);
+    zbState.currentYear = y;
+}
+
+async function applyZbCivilYearDelta(delta) {
+    const next = getZbCivilYearFromDom() + delta;
+    if (next < 1970 || next > 2100) return;
+    setZbCivilYearInDom(next);
+    await loadData();
+    renderFullUI();
+}
 
 /**
  * Lista nomes de categorias de saída: mesma regra que Saídas (EXPENSE ou sem tipo)
@@ -310,7 +339,8 @@ export async function loadZeroBudgetPage() {
     const now = new Date();
     zbState.currentMonth = now.getMonth() + 1;
     zbState.currentYear = now.getFullYear();
-    
+    setZbCivilYearInDom(zbState.currentYear);
+
     // Carregar dados
     await loadData();
     
@@ -349,8 +379,21 @@ async function loadData() {
  * Configura event listeners da UI
  */
 function setupEventListeners(root) {
-    // Timeline de meses
-    root.addEventListener('click', handleTimelineClick);
+    const timelineRoot = zbTimelineRoot();
+    if (timelineRoot) {
+        bindCivilPeriodTimeline(timelineRoot, root, {
+            onYearDelta: (delta) => {
+                void applyZbCivilYearDelta(delta);
+            },
+            onMonthSelect: (mi) => {
+                zbState.currentMonth = mi + 1;
+                void (async () => {
+                    await loadData();
+                    renderFullUI();
+                })();
+            }
+        });
+    }
 
     // Blocos (delegação de eventos)
     root.addEventListener('click', handleBlockActions);
@@ -418,24 +461,13 @@ function renderFullUI() {
  * Renderiza timeline de meses
  */
 function renderTimeline() {
-    const timeline = zbRootElement?.querySelector('[data-zb-timeline]');
-    if (!timeline) return;
-    
-    const monthButtons = MONTH_NAMES.map((name, index) => {
-        const monthNum = index + 1;
-        const isActive = monthNum === zbState.currentMonth;
-        const monthLabel = `${name}/${String(zbState.currentYear).slice(-2)}`;
-        
-        return `
-            <button type="button" 
-                    class="zero-budget__month-btn ${isActive ? 'is-active' : ''}"
-                    data-zb-month="${monthNum}">
-                ${monthLabel}
-            </button>
-        `;
-    }).join('');
-    
-    timeline.innerHTML = monthButtons;
+    const root = zbTimelineRoot();
+    if (!root) return;
+    syncCivilPeriodYearToDom(root, 'zero-budget-period-year', zbState.currentYear);
+    refreshCivilPeriodTimeline(root, {
+        period: `month-${Math.max(0, zbState.currentMonth - 1)}`,
+        year: zbState.currentYear
+    });
 }
 
 /**
@@ -897,23 +929,6 @@ function closeBlockTodosOverlay() {
     overlay.classList.add('hidden');
     overlay.classList.remove('active');
     document.body.classList.remove('modal-open');
-}
-
-/**
- * Manipula cliques na timeline
- */
-async function handleTimelineClick(e) {
-    const btn = e.target.closest('[data-zb-month]');
-    if (!btn) return;
-    
-    const month = parseInt(btn.dataset.zbMonth, 10);
-    if (isNaN(month)) return;
-    
-    zbState.currentMonth = month;
-    
-    // Recarregar dados para o novo mês
-    await loadData();
-    renderFullUI();
 }
 
 /**

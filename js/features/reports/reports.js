@@ -19,9 +19,19 @@ import {
 } from '../../core/credit-installments.js';
 import { getTotalApplicationsSum } from '../cofrinhos/cofrinhos-page.js';
 import {
+    getDefaultCivilYear,
     getDefaultPeriodValue,
-    getPeriodDateBounds
+    getDashboardCivilYearFromDom,
+    getPeriodDateBounds,
+    registerDashboardPeriodTimelineRefresh,
+    setDashboardCivilYearInDom
 } from '../../core/period-filters.js';
+import {
+    bindCivilPeriodTimeline,
+    queryCivilPeriodTimelineRoot,
+    refreshCivilPeriodTimeline,
+    syncCivilPeriodYearToDom
+} from '../../components/civil-period-timeline.js';
 import {
     enumerateCalendarMonths,
     isProjectionMonth,
@@ -53,10 +63,9 @@ import { setButtonLoading } from '../../core/button-loading.js';
  */
 async function reloadReportsWithBusy(triggerBtn = null) {
     if (!lastReportsLoadArgs) return;
-    const periodSel = document.getElementById('period-filter');
     const categorySel = document.getElementById('category-filter');
     const wasCategoryDisabled = categorySel ? categorySel.disabled : false;
-    [periodSel, categorySel].forEach((el) => {
+    [categorySel].forEach((el) => {
         if (!el) return;
         el.disabled = true;
         el.setAttribute('aria-busy', 'true');
@@ -65,10 +74,6 @@ async function reloadReportsWithBusy(triggerBtn = null) {
     try {
         await loadReportsData(...lastReportsLoadArgs);
     } finally {
-        if (periodSel) {
-            periodSel.disabled = false;
-            periodSel.removeAttribute('aria-busy');
-        }
         if (categorySel) {
             // refreshCategoryFilterOptions pode redefinir o disabled; preservamos.
             categorySel.disabled = wasCategoryDisabled;
@@ -93,6 +98,87 @@ function isDashboardPeriodLinked() {
 
 function markDashboardPeriodLinked() {
     dashboardPeriodLinked = true;
+}
+
+function getDashboardPeriodFromDom() {
+    const el = document.getElementById('period-filter');
+    const v = el?.value?.trim();
+    if (v && /^month-\d+$/.test(v)) return v;
+    return getDefaultPeriodValue();
+}
+
+function setDashboardPeriodInDom(period) {
+    const el = document.getElementById('period-filter');
+    if (el) el.value = period || getDefaultPeriodValue();
+    renderDashboardPeriodTimeline();
+}
+
+function dashboardTimelineRoot() {
+    return queryCivilPeriodTimelineRoot('dashboard-page');
+}
+
+function renderDashboardPeriodTimeline() {
+    const root = dashboardTimelineRoot();
+    const year = getDashboardCivilYearFromDom();
+    syncCivilPeriodYearToDom(root, 'dashboard-period-year', year);
+    refreshCivilPeriodTimeline(root, { period: getDashboardPeriodFromDom(), year });
+}
+
+function dashboardPeriodBoundsOptions(period) {
+    if (/^month-\d+$/.test(period || '')) {
+        return { civilYear: getDashboardCivilYearFromDom() };
+    }
+    return {};
+}
+
+function boundsForDashboardCardPeriod(period, now = new Date()) {
+    return getPeriodDateBounds(period, now, dashboardPeriodBoundsOptions(period));
+}
+
+function ensureDashboardPeriodDefaults() {
+    const periodEl = document.getElementById('period-filter');
+    if (periodEl && !periodEl.value?.trim()) {
+        periodEl.value = getDefaultPeriodValue();
+    }
+    const yearEl = document.getElementById('dashboard-period-year');
+    if (yearEl && !yearEl.value?.trim()) {
+        setDashboardCivilYearInDom(getDefaultCivilYear());
+    } else {
+        setDashboardCivilYearInDom(getDashboardCivilYearFromDom());
+    }
+    renderDashboardPeriodTimeline();
+}
+
+function applyDashboardCivilYearDelta(delta) {
+    const next = getDashboardCivilYearFromDom() + delta;
+    if (next < 1970 || next > 2100) return;
+    setDashboardCivilYearInDom(next);
+    markDashboardPeriodLinked();
+    void reloadReportsWithBusy();
+}
+
+let initDashboardTimelineOnceRan = false;
+
+function initDashboardPeriodTimelineOnce() {
+    if (initDashboardTimelineOnceRan) return;
+    const page = document.getElementById('dashboard-page');
+    if (!page) return;
+    initDashboardTimelineOnceRan = true;
+    registerDashboardPeriodTimelineRefresh(renderDashboardPeriodTimeline);
+    ensureDashboardPeriodDefaults();
+    const root = dashboardTimelineRoot();
+    if (root) {
+        bindCivilPeriodTimeline(root, page, {
+            onYearDelta: (delta) => applyDashboardCivilYearDelta(delta),
+            onMonthSelect: (_mi, period) => {
+                const el = document.getElementById('period-filter');
+                if (el) el.value = period;
+                renderDashboardPeriodTimeline();
+                markDashboardPeriodLinked();
+                void reloadReportsWithBusy();
+            }
+        });
+    }
 }
 
 /**
@@ -397,8 +483,12 @@ function parseDashboardFlowFacetsFromStorage() {
     return empty();
 }
 
+function dashboardFacetsRoot() {
+    return document.getElementById('dashboard-header-actions');
+}
+
 function readDashboardOutflowFacetSetFromDom() {
-    const root = document.getElementById('dashboard-page');
+    const root = dashboardFacetsRoot();
     if (!root) return new Set();
     const facets = new Set();
     root
@@ -413,7 +503,7 @@ function readDashboardOutflowFacetSetFromDom() {
 }
 
 function readDashboardInflowFacetSetFromDom() {
-    const root = document.getElementById('dashboard-page');
+    const root = dashboardFacetsRoot();
     if (!root) return new Set();
     const facets = new Set();
     root
@@ -428,7 +518,7 @@ function readDashboardInflowFacetSetFromDom() {
 }
 
 function persistDashboardExpenseFacetsFromDom() {
-    const root = document.getElementById('dashboard-page');
+    const root = dashboardFacetsRoot();
     const expenses = [];
     const gains = [];
     if (root) {
@@ -467,7 +557,7 @@ function hydrateDashboardExpenseFacetsFromStorageOnce() {
 
     const { expenses: expenseActive, gains: gainActive } = parseDashboardFlowFacetsFromStorage();
 
-    const root = document.getElementById('dashboard-page');
+    const root = dashboardFacetsRoot();
     if (!root) return;
 
     root.querySelectorAll('.dashboard-expense-facet-btn[data-facet][data-dashboard-flow]').forEach((btn) => {
@@ -483,7 +573,7 @@ function hydrateDashboardExpenseFacetsFromStorageOnce() {
 
 function onDashboardExpenseFacetBarClick(ev) {
     const btn = ev.target?.closest?.('.dashboard-expense-facet-btn');
-    if (!btn || !document.getElementById('dashboard-page')?.contains(btn)) return;
+    if (!btn || !dashboardFacetsRoot()?.contains(btn)) return;
     ev.preventDefault();
     const pressed = btn.getAttribute('aria-pressed') === 'true';
     const next = !pressed;
@@ -495,15 +585,12 @@ function onDashboardExpenseFacetBarClick(ev) {
 
 function ensureReportsListeners() {
     hydrateDashboardExpenseFacetsFromStorageOnce();
+    initDashboardPeriodTimelineOnce();
     if (reportsListenersBound) return;
     reportsListenersBound = true;
     ensureFinancialChartColorSettingsBound();
     ensureChartTypeTogglesBound();
-    document.getElementById('dashboard-page')?.addEventListener('click', onDashboardExpenseFacetBarClick);
-    document.getElementById('period-filter')?.addEventListener('change', () => {
-        markDashboardPeriodLinked();
-        void reloadReportsWithBusy();
-    });
+    document.getElementById('dashboard-header-actions')?.addEventListener('click', onDashboardExpenseFacetBarClick);
     document.getElementById('category-filter')?.addEventListener('change', () => {
         void reloadReportsWithBusy();
     });
@@ -667,7 +754,8 @@ export async function loadReportsData(
         userExpenses || [],
         userAccounts || [],
         expenseSplitRequests?.outgoing || [],
-        userGains || []
+        userGains || [],
+        getDashboardCivilYearFromDom()
     );
     const gainsForDashboardRaw = [...gainsForTotals, ...syntheticExpectedGains];
 
@@ -762,10 +850,13 @@ function applyDashboardPeriodFromChartMonth(monthsForAxis, dataIndex) {
     if (!lastReportsLoadArgs) return;
     const mo = monthsForAxis[dataIndex];
     const periodValue = `month-${Math.min(11, Math.max(0, mo.start.getMonth()))}`;
-    const sel = document.getElementById('period-filter');
-    if (!sel?.querySelector(`option[value="${periodValue}"]`)) return;
-    if (sel.value === periodValue) return;
-    sel.value = periodValue;
+    const el = document.getElementById('period-filter');
+    const samePeriod = el?.value === periodValue;
+    const sameYear = getDashboardCivilYearFromDom() === mo.start.getFullYear();
+    if (samePeriod && sameYear) return;
+    if (el) el.value = periodValue;
+    setDashboardCivilYearInDom(mo.start.getFullYear());
+    renderDashboardPeriodTimeline();
     markDashboardPeriodLinked();
     void reloadReportsWithBusy();
 }
@@ -1415,7 +1506,7 @@ function sumOutflowsForPeriod(
     splitRequests = null,
     dashSummationMode = 'paid_through'
 ) {
-    let { startDate, endDate } = getPeriodDateBounds(period, now);
+    let { startDate, endDate } = boundsForDashboardCardPeriod(period, now);
     if (startDate > endDate) return 0;
     const months = enumerateCalendarMonths(startDate, endDate);
     return months.reduce((sum, mo) => {
@@ -1455,7 +1546,7 @@ function sumOutflowsForPeriod(
 
 function sumGainsForPeriod(period, userGains) {
     const now = new Date();
-    let { startDate, endDate } = getPeriodDateBounds(period, now);
+    let { startDate, endDate } = boundsForDashboardCardPeriod(period, now);
     if (startDate > endDate) return 0;
     // Períodos futuros: soma entradas cuja data cai no intervalo (inclui linhas já lançadas para meses futuros / série).
     return sumMovementsInRange(userGains || [], startDate, endDate);
@@ -1481,7 +1572,7 @@ async function updateDashboardCardsAndTitlesForPeriod(
     const gainsForBalanceProj = gainListForBalanceProjection ?? gainsForDashboard;
     const now = new Date();
     const isSingleMonth = /^month-\d+$/.test(period || '');
-    const { startDate: dashStart, endDate: dashEnd } = getPeriodDateBounds(period, now);
+    const { startDate: dashStart, endDate: dashEnd } = boundsForDashboardCardPeriod(period, now);
     const prevBounds = isSingleMonth ? dashboardPrevCalendarMonthBounds(dashStart) : null;
 
     setSummaryCardTitle('dashboard-balance', DASHBOARD_SUMMARY_COPY.titles.balance);
@@ -1565,7 +1656,7 @@ async function updateDashboardCardsAndTitlesForPeriod(
     let dashNetProj = 0;
     let dashAnyProj = false;
     {
-        let { startDate, endDate } = getPeriodDateBounds(period, now);
+        let { startDate, endDate } = boundsForDashboardCardPeriod(period, now);
         if (startDate > endDate) {
             setTextIfExists('dashboard-projection-total', '—');
         } else if (!facetDashReady) {
@@ -1638,7 +1729,7 @@ async function updateDashboardCardsAndTitlesForPeriod(
     let balanceCurr = null;
     let balancePrev = null;
     try {
-        const { startDate, endDate } = getPeriodDateBounds(period, now);
+        const { startDate, endDate } = boundsForDashboardCardPeriod(period, now);
         const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 
         if (endDate > endOfToday) {

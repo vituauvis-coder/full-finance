@@ -80,8 +80,14 @@ export function refreshCashHeatmap(expenses, gains, accounts, currency) {
     );
 
     if (!periodListenerBound) {
-        const sel = document.getElementById('period-filter');
-        sel?.addEventListener('change', () => {
+        const page = document.getElementById('dashboard-page');
+        page?.addEventListener('click', (e) => {
+            if (
+                !e.target.closest('[data-civil-period-month]') &&
+                !e.target.closest('[data-civil-period-year-delta]')
+            ) {
+                return;
+            }
             const { year: y, monthIndex: m } = resolveHeatmapMonthFromPeriod(periodValue());
             state.selectedDay = clampSelectedDay(getDefaultSelectedDay(y, m), y, m);
             refresh();

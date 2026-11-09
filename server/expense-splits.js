@@ -253,6 +253,22 @@ export function registerExpenseSplitRoutes(app, { requireAuth }) {
         }
     });
 
+    /** Lista todos os usuários (titular de conta/cartão). */
+    app.get('/api/users/for-account-holder', requireAuth, async (_req, res) => {
+        try {
+            const { rows: users } = await query(
+                `SELECT id, name, email
+                 FROM users
+                 ORDER BY LOWER(COALESCE(name, '')), LOWER(email)
+                 LIMIT 500`
+            );
+            res.json({ users });
+        } catch (e) {
+            console.error('GET /api/users/for-account-holder', e);
+            res.status(500).json({ error: 'Erro ao listar usuários' });
+        }
+    });
+
     /** Lista usuários para escolher destinatário do rateio (exceto o logado). */
     app.get('/api/users/for-split', requireAuth, async (req, res) => {
         try {

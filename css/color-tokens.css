@@ -1,0 +1,65 @@
+/**
+ * Design tokens — acentos por área do app e intensidades padronizadas (color-mix).
+ * Tema claro: definições base em main.css; escuro: sobrescreve --*-accent em theme-dark.css.
+ * Usar sempre var(--expenses-*) / var(--gains-*) em vez de hex soltos (#e11d48, #ef4444…).
+ */
+
+:root {
+    /* --- Escala de mistura (acento → fundo/borda) --- */
+    --tone-6: 6%;
+    --tone-8: 8%;
+    --tone-10: 10%;
+    --tone-11: 11%;
+    --tone-12: 12%;
+    --tone-14: 14%;
+    --tone-16: 16%;
+    --tone-18: 18%;
+    --tone-20: 20%;
+    --tone-25: 25%;
+    --tone-28: 28%;
+    --tone-34: 34%;
+    --tone-40: 40%;
+    --tone-42: 42%;
+    --tone-48: 48%;
+    --tone-72: 72%;
+    --tone-85: 85%;
+
+    /* --- Saídas (cor canônica: --expenses-accent em main.css) --- */
+    --expenses-accent-strong: #be123c;
+    --expenses-accent-soft: #fda4af;
+    --expenses-bg-subtle: color-mix(in srgb, var(--expenses-accent) var(--tone-8), var(--bg-light));
+    --expenses-bg-muted: color-mix(in srgb, var(--expenses-accent) var(--tone-14), var(--bg-light));
+    --expenses-bg-chip: color-mix(in srgb, var(--expenses-accent) var(--tone-16), transparent);
+    --expenses-bg-chip-hover: color-mix(in srgb, var(--expenses-accent) var(--tone-25), transparent);
+    --expenses-border-subtle: color-mix(in srgb, var(--expenses-accent) var(--tone-28), var(--border-color));
+    --expenses-border-active: color-mix(in srgb, var(--expenses-accent) var(--tone-42), var(--border-color));
+    --expenses-icon-bg: color-mix(in srgb, var(--expenses-accent) var(--tone-14), transparent);
+    --expenses-text-on-surface: var(--expenses-accent);
+
+    /* Valores e ícones de despesa na tabela → acento de saídas (não --danger-color) */
+    --movement-expense-color: var(--expenses-accent);
+
+    /* --- Entradas --- */
+    --gains-accent-strong: #059669;
+    --gains-accent-soft: #6ee7b7;
+    --gains-bg-subtle: color-mix(in srgb, var(--gains-accent) var(--tone-8), var(--bg-light));
+    --gains-bg-muted: color-mix(in srgb, var(--gains-accent) var(--tone-12), var(--bg-light));
+    --gains-bg-chip: color-mix(in srgb, var(--gains-accent) var(--tone-16), transparent);
+    --gains-bg-chip-hover: color-mix(in srgb, var(--gains-accent) var(--tone-25), transparent);
+    --gains-border-subtle: color-mix(in srgb, var(--gains-accent) var(--tone-28), var(--border-color));
+    --gains-border-active: color-mix(in srgb, var(--gains-accent) var(--tone-42), var(--border-color));
+    --gains-icon-bg: color-mix(in srgb, var(--gains-accent) var(--tone-12), transparent);
+    --movement-gain-color: var(--gains-accent);
+
+    /* --- Painel / carteira / planejamento --- */
+    --wallet-accent: #2563eb;
+    --wallet-accent-muted: #60a5fa;
+    --wallet-bg-chip: color-mix(in srgb, var(--wallet-accent) var(--tone-16), transparent);
+
+    --zb-accent: #d97706;
+    --zb-accent-muted: #f59e0b;
+    --zb-bg-chip: color-mix(in srgb, var(--zb-accent) var(--tone-16), transparent);
+
+    --dashboard-accent: var(--info-color);
+    --dashboard-bg-chip: color-mix(in srgb, var(--dashboard-accent) var(--tone-16), transparent);
+}

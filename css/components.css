@@ -461,7 +461,7 @@ button[aria-busy="true"] {
 }
 
 .portal-tooltip[data-tone='expense'] .portal-tooltip__accent {
-    background: linear-gradient(180deg, #f87171 0%, var(--danger-color) 100%);
+    background: linear-gradient(180deg, var(--expenses-accent-soft) 0%, var(--expenses-accent) 100%);
 }
 
 .portal-tooltip[data-tone='income'] .portal-tooltip__accent {
@@ -583,8 +583,7 @@ button[aria-busy="true"] {
 .transaction-actions {
     display: flex;
     align-items: center;
-    gap: 0.25rem;
-    /* Espaçamento entre os botões */
+    gap: 0.35rem;
 }
 
 /* Texto truncado em células de tabela (mostra "..." no fim e tooltip com o texto completo). */
@@ -593,55 +592,98 @@ button[aria-busy="true"] {
     word-break: break-word;
 }
 
+
 /* Em tabelas, evite `display:flex` direto no `<td>` (quebra alinhamento quando outra coluna tem 2 linhas). */
 #expenses-table td.transaction-actions,
 #gains-table td.transaction-actions,
 #transactions-table td.transaction-actions,
 #cofrinhos-applications-table td.transaction-actions {
     display: table-cell;
-    vertical-align: top;
+    vertical-align: middle;
+    width: 1%;
+    white-space: nowrap;
+    padding-left: 0.45rem;
+    padding-right: 0.75rem;
 }
 
 #expenses-table td.transaction-actions .transaction-actions__inner,
 #gains-table td.transaction-actions .transaction-actions__inner,
 #transactions-table td.transaction-actions .transaction-actions__inner,
 #cofrinhos-applications-table td.transaction-actions .transaction-actions__inner {
-    display: flex;
+    display: inline-flex;
     flex-wrap: nowrap;
-    align-items: flex-start;
+    align-items: center;
     justify-content: center;
-    gap: 0.25rem;
+    gap: 0.35rem;
+    vertical-align: middle;
 }
 
+/* Botões de ícone reutilizáveis (tabelas, cartões, listas) */
 .btn-action {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    padding: 0.5rem;
-    border-radius: 50%;
-    width: 34px;
-    height: 34px;
+    box-sizing: border-box;
+    flex-shrink: 0;
+    width: 1.875rem;
+    height: 1.875rem;
+    min-width: 1.875rem;
+    min-height: 1.875rem;
+    padding: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: var(--text-light);
-    transition: background-color 0.2s ease, color 0.2s ease;
+    border: 1px solid color-mix(in srgb, var(--border-color) 88%, transparent);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--bg-light) 75%, transparent);
+    color: color-mix(in srgb, var(--text-color) 50%, var(--text-light));
+    cursor: pointer;
+    transition:
+        background-color 0.18s ease,
+        border-color 0.18s ease,
+        color 0.18s ease;
+}
+
+.btn-action i {
+    font-size: 0.82rem;
+    line-height: 1;
+    pointer-events: none;
 }
 
 .btn-action:hover {
     background-color: var(--bg-color);
+    border-color: color-mix(in srgb, var(--text-light) 35%, var(--border-color));
+    color: var(--text-color);
+}
+
+.btn-action:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--primary-color) 55%, transparent);
+    outline-offset: 2px;
+}
+
+[data-theme='dark'] .btn-action {
+    background: color-mix(in srgb, #fff 6%, var(--bg-color));
+    border-color: color-mix(in srgb, #fff 12%, var(--border-color));
+    color: color-mix(in srgb, var(--text-color) 82%, var(--text-light));
+}
+
+[data-theme='dark'] .btn-action:hover {
+    background: color-mix(in srgb, #fff 8%, var(--bg-light));
+}
+
+.btn-action.btn-split:hover {
+    color: #6366f1;
+    border-color: color-mix(in srgb, #6366f1 35%, var(--border-color));
+    background: color-mix(in srgb, #6366f1 10%, var(--bg-color));
 }
 
 .btn-action.btn-edit:hover {
-    color: var(--info-color);
+    color: var(--info-color, #2563eb);
+    border-color: color-mix(in srgb, var(--info-color, #2563eb) 35%, var(--border-color));
+    background: color-mix(in srgb, var(--info-color, #2563eb) 10%, var(--bg-color));
 }
 
 .btn-action.btn-delete:hover {
     color: var(--danger-color);
-}
-
-.btn-action.btn-split:hover {
-    color: var(--info-color);
+    border-color: color-mix(in srgb, var(--danger-color) 38%, var(--border-color));
+    background: color-mix(in srgb, var(--danger-color) 10%, var(--bg-color));
 }
 
 /* Rateio de despesas — solicitações enviadas (pendentes) */
@@ -1080,6 +1122,24 @@ input.input-readonly-locked {
     display: none !important;
 }
 
+#gains-header-actions .quick-filter-btn.active,
+#gains-header-actions .quick-filter-btn[aria-pressed='true'] {
+    background-color: rgba(16, 185, 129, 0.12);
+    border-color: rgba(16, 185, 129, 0.35);
+    color: #10b981;
+}
+
+#gains-header-actions .quick-filter-btn.active:hover,
+#gains-header-actions .quick-filter-btn[aria-pressed='true']:hover {
+    background-color: rgba(16, 185, 129, 0.18);
+    border-color: rgba(16, 185, 129, 0.5);
+}
+
+#gains-header-actions .quick-filter-btn.active i,
+#gains-header-actions .quick-filter-btn[aria-pressed='true'] i {
+    color: #10b981;
+}
+
 /* --- Barra de Filtros Rápidos --- */
 .quick-filters-bar {
     display: flex;
@@ -1129,30 +1189,34 @@ input.input-readonly-locked {
     border-color: var(--border-color);
 }
 
-.quick-filter-btn.active,
-.quick-filter-btn[aria-pressed='true'] {
-    background-color: rgba(225, 29, 72, 0.12);
-    border-color: rgba(225, 29, 72, 0.35);
-    color: #e11d48;
+#expenses-page .quick-filter-btn.active,
+#expenses-page .quick-filter-btn[aria-pressed='true'],
+.app-header--expenses .quick-filter-btn.active,
+.app-header--expenses .quick-filter-btn[aria-pressed='true'] {
+    background-color: var(--expenses-bg-chip);
+    border-color: var(--expenses-border-subtle);
+    color: var(--expenses-accent);
 }
 
-.quick-filter-btn.active:hover,
-.quick-filter-btn[aria-pressed='true']:hover {
-    background-color: rgba(225, 29, 72, 0.18);
-    border-color: rgba(225, 29, 72, 0.5);
+#expenses-page .quick-filter-btn.active:hover,
+#expenses-page .quick-filter-btn[aria-pressed='true']:hover,
+.app-header--expenses .quick-filter-btn.active:hover,
+.app-header--expenses .quick-filter-btn[aria-pressed='true']:hover {
+    background-color: var(--expenses-bg-chip-hover);
+    border-color: var(--expenses-border-active);
 }
 
 #gains-page .quick-filter-btn.active,
 #gains-page .quick-filter-btn[aria-pressed='true'] {
-    background-color: rgba(16, 185, 129, 0.12);
-    border-color: rgba(16, 185, 129, 0.35);
-    color: #10b981;
+    background-color: var(--gains-bg-chip);
+    border-color: var(--gains-border-subtle);
+    color: var(--gains-accent);
 }
 
 #gains-page .quick-filter-btn.active:hover,
 #gains-page .quick-filter-btn[aria-pressed='true']:hover {
-    background-color: rgba(16, 185, 129, 0.18);
-    border-color: rgba(16, 185, 129, 0.5);
+    background-color: var(--gains-bg-chip-hover);
+    border-color: var(--gains-border-active);
 }
 
 .quick-filter-btn i {
@@ -1164,14 +1228,16 @@ input.input-readonly-locked {
     color: var(--text-color);
 }
 
-.quick-filter-btn.active i,
-.quick-filter-btn[aria-pressed='true'] i {
-    color: #e11d48;
+#expenses-page .quick-filter-btn.active i,
+#expenses-page .quick-filter-btn[aria-pressed='true'] i,
+.app-header--expenses .quick-filter-btn.active i,
+.app-header--expenses .quick-filter-btn[aria-pressed='true'] i {
+    color: var(--expenses-accent);
 }
 
 #gains-page .quick-filter-btn.active i,
 #gains-page .quick-filter-btn[aria-pressed='true'] i {
-    color: #10b981;
+    color: var(--gains-accent);
 }
 
 @media (max-width: 640px) {

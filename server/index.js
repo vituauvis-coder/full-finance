@@ -25,6 +25,21 @@ import {
     registerCofrinhoRoutes
 } from './cofrinho-allocation.js';
 import {
+    assertAccountAccessible,
+    ensureHouseholdForUser,
+    expensesOnHouseholdAccountsSql,
+    gainsOnHouseholdAccountsSql,
+    fetchHouseholdMembers,
+    fetchHouseholdSummary,
+    queryAccountsForUser,
+    registerHouseholdRoutes,
+    validateHolderUserId,
+    accountsVisibleToUserSql,
+    fetchAccountByIdForUser,
+    ACCOUNT_SELECT_FIELDS,
+    ACCOUNT_FROM_JOIN
+} from './household.js';
+import {
     backupContentType,
     backupFilename,
     checkBackupRateLimit,
@@ -384,7 +399,8 @@ app.get('/api/auth/me', async (req, res) => {
 // --- User data bundle ---
 app.get('/api/data', requireAuth, async (req, res) => {
     const uid = req.session.userId;
-    const [userDocRes, accRes, expRes, gainRes, debtRes, debtUpdRes, userNotifications, cofrinhoBundle] =
+    await ensureHouseholdForUser(uid);
+    const [userDocRes, accRes, expRes, gainRes, debtRes, debtUpdRes, userNotifications, cofrinhoBundle, household, householdMembers] =
         await Promise.all([
             query(
                 `SELECT
@@ -404,64 +420,47 @@ app.get('/api/data', requireAuth, async (req, res) => {
                  WHERE id = $1`,
                 [uid]
             ),
+            queryAccountsForUser(uid),
             query(
                 `SELECT
-                    id,
-                    user_id AS "userId",
-                    name,
-                    type,
-                    initial_balance AS "initialBalance",
-                    holder_name AS "holderName",
-                    plastic_tone AS "plasticTone",
-                    plastic_color AS "plasticColor",
-                    "limit",
-                    close_day AS "closeDay",
-                    due_day AS "dueDay",
-                    linked_account_id AS "linkedAccountId"
-                 FROM accounts
-                 WHERE user_id = $1`,
+                    e.id,
+                    e.user_id AS "userId",
+                    e.account_id AS "accountId",
+                    e.category,
+                    e.subcategory,
+                    e.amount,
+                    e.description,
+                    e.date,
+                    e.created_at AS "createdAt",
+                    e.is_paid AS "isPaid",
+                    e.is_cofrinho AS "isCofrinho",
+                    e.installment_count AS "installmentCount",
+                    e.cash_out_confirmed_periods AS "cashOutConfirmedPeriods",
+                    e.recurring_monthly AS "recurringMonthly",
+                    e.recurrence_group_id AS "recurrenceGroupId",
+                    e.split_request_id AS "splitRequestId",
+                    e.reference_only AS "referenceOnly",
+                    e.is_fixed AS "isFixed"
+                 FROM expenses e
+                 WHERE ${expensesOnHouseholdAccountsSql(1)}`,
                 [uid]
             ),
             query(
                 `SELECT
-                    id,
-                    user_id AS "userId",
-                    account_id AS "accountId",
-                    category,
-                    subcategory,
-                    amount,
-                    description,
-                    date,
-                    created_at AS "createdAt",
-                    is_paid AS "isPaid",
-                    is_cofrinho AS "isCofrinho",
-                    installment_count AS "installmentCount",
-                    cash_out_confirmed_periods AS "cashOutConfirmedPeriods",
-                    recurring_monthly AS "recurringMonthly",
-                    recurrence_group_id AS "recurrenceGroupId",
-                    split_request_id AS "splitRequestId",
-                    reference_only AS "referenceOnly",
-                    is_fixed AS "isFixed"
-                 FROM expenses
-                 WHERE user_id = $1`,
-                [uid]
-            ),
-            query(
-                `SELECT
-                    id,
-                    user_id AS "userId",
-                    account_id AS "accountId",
-                    category,
-                    subcategory,
-                    amount,
-                    description,
-                    date,
-                    is_paid AS "isPaid",
-                    recurrence_group_id AS "recurrenceGroupId",
-                    related_expense_id AS "relatedExpenseId",
-                    reference_only AS "referenceOnly"
-                 FROM gains
-                 WHERE user_id = $1`,
+                    g.id,
+                    g.user_id AS "userId",
+                    g.account_id AS "accountId",
+                    g.category,
+                    g.subcategory,
+                    g.amount,
+                    g.description,
+                    g.date,
+                    g.is_paid AS "isPaid",
+                    g.recurrence_group_id AS "recurrenceGroupId",
+                    g.related_expense_id AS "relatedExpenseId",
+                    g.reference_only AS "referenceOnly"
+                 FROM gains g
+                 WHERE ${gainsOnHouseholdAccountsSql(1)}`,
                 [uid]
             ),
             query(
@@ -505,10 +504,12 @@ app.get('/api/data', requireAuth, async (req, res) => {
                     cofrinhoApplications: [],
                     cofrinhoBucketGoals: []
                 };
-            })
+            }),
+            fetchHouseholdSummary(uid),
+            fetchHouseholdMembers(uid)
         ]);
     const userDoc = userDocRes.rows[0] || null;
-    const userAccounts = accRes.rows;
+    const userAccounts = Array.isArray(accRes) ? accRes : accRes.rows || [];
     const userExpensesRaw = expRes.rows;
     const userGainsRaw = gainRes.rows;
     const userDebts = debtRes.rows;
@@ -531,7 +532,9 @@ app.get('/api/data', requireAuth, async (req, res) => {
         userDebts,
         userDebtUpdates,
         expenseSplitRequests,
-        userNotifications: Array.isArray(userNotifications) ? userNotifications : []
+        userNotifications: Array.isArray(userNotifications) ? userNotifications : [],
+        household,
+        householdMembers
     });
 });
 
@@ -753,11 +756,11 @@ function gainPayloadFromBody(body, uid) {
 }
 
 async function assertAccountBelongsToUser(accountId, uid) {
-    const { rows } = await query(`SELECT id FROM accounts WHERE id = $1 AND user_id = $2`, [
-        accountId,
-        uid
-    ]);
-    if (!rows[0]) throw httpMovementError('Conta não encontrada ou inválida');
+    try {
+        await assertAccountAccessible(accountId, uid);
+    } catch (e) {
+        throw httpMovementError(e.message || 'Conta não encontrada ou inválida');
+    }
 }
 
 const DEBT_COLOR_KEYS_ALLOWED = new Set([
@@ -2753,6 +2756,7 @@ const ACCOUNT_FIELDS = new Set([
     'type',
     'initialBalance',
     'holderName',
+    'holderUserId',
     'plasticTone',
     'plasticColor',
     'limit',
@@ -2799,6 +2803,14 @@ function accountPayloadFromBody(body, uid) {
             }
             continue;
         }
+        if (key === 'holderUserId') {
+            if (v == null || v === '') {
+                data.holderUserId = null;
+            } else {
+                data.holderUserId = String(v).trim();
+            }
+            continue;
+        }
         if (key === 'plasticTone' || key === 'plasticColor') {
             if (v === null || v === undefined || v === '') {
                 data[key] = null;
@@ -2820,16 +2832,29 @@ function accountPayloadFromBody(body, uid) {
         err.statusCode = 400;
         throw err;
     }
-    if (data.type !== 'cartao_credito' && data.type !== 'cartao_debito') {
+    const plasticType =
+        data.type === 'cartao_credito' ||
+        data.type === 'cartao_debito' ||
+        data.type === 'vale_alimentacao' ||
+        data.type === 'vale_refeicao';
+    if (!plasticType) {
         delete data.linkedAccountId;
     }
     return data;
 }
 
+const BENEFIT_INSTITUTION_TYPES = new Set(['alimentacao', 'refeicao']);
+const BANK_PLASTIC_TYPES = new Set(['cartao_credito', 'cartao_debito']);
+const BENEFIT_PLASTIC_TYPES = new Set(['vale_alimentacao', 'vale_refeicao']);
+
+function isLinkedPlasticAccountType(type) {
+    return BANK_PLASTIC_TYPES.has(type) || BENEFIT_PLASTIC_TYPES.has(type);
+}
+
 async function assertCardLinkedAccountValid(uid, accountIdOrNull, type, linkedAccountId) {
-    if (type !== 'cartao_credito' && type !== 'cartao_debito') return;
+    if (!isLinkedPlasticAccountType(type)) return;
     if (!linkedAccountId) {
-        const err = new Error('Cartão de crédito ou débito exige uma conta bancária vinculada.');
+        const err = new Error('O plástico exige uma instituição vinculada na Carteira.');
         err.statusCode = 400;
         throw err;
     }
@@ -2839,7 +2864,7 @@ async function assertCardLinkedAccountValid(uid, accountIdOrNull, type, linkedAc
         throw err;
     }
     const { rows: linkedRows } = await query(
-        `SELECT id, type FROM accounts WHERE id = $1 AND user_id = $2 LIMIT 1`,
+        `SELECT id, type FROM accounts a WHERE a.id = $1 AND ${accountsVisibleToUserSql(2)} LIMIT 1`,
         [linkedAccountId, uid]
     );
     const linked = linkedRows[0] || null;
@@ -2848,8 +2873,20 @@ async function assertCardLinkedAccountValid(uid, accountIdOrNull, type, linkedAc
         err.statusCode = 400;
         throw err;
     }
-    if (linked.type === 'cartao_credito' || linked.type === 'cartao_debito') {
-        const err = new Error('Vincule a uma conta bancária (não a outro cartão).');
+    if (isLinkedPlasticAccountType(linked.type)) {
+        const err = new Error('Vincule à instituição (conta), não a outro plástico.');
+        err.statusCode = 400;
+        throw err;
+    }
+    if (BANK_PLASTIC_TYPES.has(type) && BENEFIT_INSTITUTION_TYPES.has(linked.type)) {
+        const err = new Error(
+            'Cartão bancário não pode vincular a conta de alimentação e refeição. Use os vales da instituição.'
+        );
+        err.statusCode = 400;
+        throw err;
+    }
+    if (BENEFIT_PLASTIC_TYPES.has(type) && !BENEFIT_INSTITUTION_TYPES.has(linked.type)) {
+        const err = new Error('Vale alimentação/refeição só vincula a uma conta de benefício na Carteira.');
         err.statusCode = 400;
         throw err;
     }
@@ -2859,33 +2896,32 @@ async function assertCardLinkedAccountValid(uid, accountIdOrNull, type, linkedAc
 app.post('/api/accounts', requireAuth, async (req, res) => {
     try {
         const uid = req.session.userId;
+        const householdId = await ensureHouseholdForUser(uid);
         const data = accountPayloadFromBody(req.body, uid);
+        const holderUserId = await validateHolderUserId(
+            data.holderUserId ?? req.body?.holderUserId ?? uid,
+            uid
+        );
+        data.holderUserId = holderUserId;
+        const holderUser = await query(`SELECT name FROM users WHERE id = $1`, [holderUserId]);
+        if (!data.holderName && holderUser.rows[0]?.name) {
+            data.holderName = holderUser.rows[0].name;
+        }
         await assertCardLinkedAccountValid(uid, null, data.type, data.linkedAccountId);
         const id = crypto.randomUUID();
-        const { rows } = await query(
+        await query(
             `INSERT INTO accounts (
-                id, user_id, name, type, initial_balance, holder_name,
+                id, user_id, household_id, holder_user_id, name, type, initial_balance, holder_name,
                 plastic_tone, plastic_color, "limit", close_day, due_day, linked_account_id
              ) VALUES (
-                $1,$2,$3,$4,$5,$6,
-                $7,$8,$9,$10,$11,$12
-             )
-             RETURNING
-                id,
-                user_id AS "userId",
-                name,
-                type,
-                initial_balance AS "initialBalance",
-                holder_name AS "holderName",
-                plastic_tone AS "plasticTone",
-                plastic_color AS "plasticColor",
-                "limit",
-                close_day AS "closeDay",
-                due_day AS "dueDay",
-                linked_account_id AS "linkedAccountId"`,
+                $1,$2,$3,$4,$5,$6,$7,$8,
+                $9,$10,$11,$12,$13,$14
+             )`,
             [
                 id,
                 uid,
+                householdId,
+                holderUserId,
                 data.name,
                 data.type,
                 data.initialBalance ?? 0,
@@ -2898,7 +2934,7 @@ app.post('/api/accounts', requireAuth, async (req, res) => {
                 data.linkedAccountId ?? null
             ]
         );
-        const account = rows[0];
+        const account = await fetchAccountByIdForUser(id, uid);
         await safeUpsertBalanceSnapshot(uid);
         res.json(account);
     } catch (e) {
@@ -2916,18 +2952,23 @@ app.put('/api/accounts/:id', requireAuth, async (req, res) => {
                 id,
                 type,
                 linked_account_id AS "linkedAccountId"
-             FROM accounts
-             WHERE id = $1 AND user_id = $2`,
+             FROM accounts a
+             WHERE a.id = $1 AND ${accountsVisibleToUserSql(2)}`,
             [req.params.id, uid]
         );
         const existing = existingRows[0] || null;
         if (!existing) return res.status(404).json({ error: 'Não encontrado' });
         const data = accountPayloadFromBody(req.body, uid);
+        if (data.holderUserId !== undefined && data.holderUserId !== null) {
+            data.holderUserId = await validateHolderUserId(data.holderUserId, uid);
+            const holderUser = await query(`SELECT name FROM users WHERE id = $1`, [data.holderUserId]);
+            if (holderUser.rows[0]?.name) data.holderName = holderUser.rows[0].name;
+        }
         const mergedType = data.type !== undefined ? data.type : existing.type;
         const mergedLinked =
             data.linkedAccountId !== undefined ? data.linkedAccountId : existing.linkedAccountId;
         await assertCardLinkedAccountValid(uid, req.params.id, mergedType, mergedLinked);
-        if (mergedType !== 'cartao_credito' && mergedType !== 'cartao_debito') {
+        if (!isLinkedPlasticAccountType(mergedType)) {
             data.linkedAccountId = null;
         }
         const sets = [];
@@ -2941,6 +2982,7 @@ app.put('/api/accounts/:id', requireAuth, async (req, res) => {
         if (data.type !== undefined) addSet('type', data.type);
         if (data.initialBalance !== undefined) addSet('initial_balance', data.initialBalance);
         if (data.holderName !== undefined) addSet('holder_name', data.holderName);
+        if (data.holderUserId !== undefined) addSet('holder_user_id', data.holderUserId);
         if (data.plasticTone !== undefined) addSet('plastic_tone', data.plasticTone);
         if (data.plasticColor !== undefined) addSet('plastic_color', data.plasticColor);
         if (data.limit !== undefined) addSet('"limit"', data.limit);
@@ -2948,27 +2990,17 @@ app.put('/api/accounts/:id', requireAuth, async (req, res) => {
         if (data.dueDay !== undefined) addSet('due_day', data.dueDay);
         if (data.linkedAccountId !== undefined) addSet('linked_account_id', data.linkedAccountId);
 
+        const idIdx = i++;
+        const uidIdx = i++;
         params.push(req.params.id, uid);
-        const { rows: updatedRows } = await query(
-            `UPDATE accounts
+        await query(
+            `UPDATE accounts a
              SET ${sets.join(', ')}
-             WHERE id = $${i++} AND user_id = $${i++}
-             RETURNING
-                id,
-                user_id AS "userId",
-                name,
-                type,
-                initial_balance AS "initialBalance",
-                holder_name AS "holderName",
-                plastic_tone AS "plasticTone",
-                plastic_color AS "plasticColor",
-                "limit",
-                close_day AS "closeDay",
-                due_day AS "dueDay",
-                linked_account_id AS "linkedAccountId"`,
+             WHERE a.id = $${idIdx} AND ${accountsVisibleToUserSql(uidIdx)}`,
             params
         );
-        const updated = updatedRows[0];
+        const updated = await fetchAccountByIdForUser(req.params.id, uid);
+        if (!updated) return res.status(404).json({ error: 'Não encontrado' });
         await safeUpsertBalanceSnapshot(uid);
         res.json(updated);
     } catch (e) {
@@ -2981,28 +3013,23 @@ app.put('/api/accounts/:id', requireAuth, async (req, res) => {
 app.delete('/api/accounts/:id', requireAuth, async (req, res) => {
     const uid = req.session.userId;
     const { rows: existingRows } = await query(
-        `SELECT id FROM accounts WHERE id = $1 AND user_id = $2`,
+        `SELECT id FROM accounts a WHERE a.id = $1 AND ${accountsVisibleToUserSql(2)}`,
         [req.params.id, uid]
     );
     const existing = existingRows[0] || null;
     if (!existing) return res.status(404).json({ error: 'Não encontrado' });
     
     await withTransaction(async (client) => {
-        await client.query(`DELETE FROM expenses WHERE account_id = $1 AND user_id = $2`, [
-            req.params.id,
-            uid
-        ]);
-        await client.query(`DELETE FROM gains WHERE account_id = $1 AND user_id = $2`, [req.params.id, uid]);
+        await client.query(`DELETE FROM expenses WHERE account_id = $1`, [req.params.id]);
+        await client.query(`DELETE FROM gains WHERE account_id = $1`, [req.params.id]);
 
-        await client.query(
-            `UPDATE cofrinho_applications SET account_id = NULL WHERE account_id = $1 AND user_id = $2`,
-            [req.params.id, uid]
-        );
-        await client.query(
-            `UPDATE accounts SET linked_account_id = NULL WHERE linked_account_id = $1 AND user_id = $2`,
-            [req.params.id, uid]
-        );
-        await client.query(`DELETE FROM accounts WHERE id = $1 AND user_id = $2`, [req.params.id, uid]);
+        await client.query(`UPDATE cofrinho_applications SET account_id = NULL WHERE account_id = $1`, [
+            req.params.id
+        ]);
+        await client.query(`UPDATE accounts SET linked_account_id = NULL WHERE linked_account_id = $1`, [
+            req.params.id
+        ]);
+        await client.query(`DELETE FROM accounts WHERE id = $1`, [req.params.id]);
     });
     await safeUpsertBalanceSnapshot(uid);
     res.json({ ok: true });
@@ -4175,6 +4202,7 @@ app.delete('/api/kanban-cards/:id', requireAuth, async (req, res) => {
 registerExpenseSplitRoutes(app, { requireAuth });
 registerZeroBudgetRoutes(app, requireAuth);
 registerCofrinhoRoutes(app, requireAuth);
+registerHouseholdRoutes(app, { requireAuth });
 
 /** Produção (Railway etc.): API + app Vite (`dist`) + painel `/admin` (pasta separada). */
 function mountProductionFrontend() {

@@ -40,11 +40,35 @@ model User {
   zeroBudgetBlocks ZeroBudgetBlock[]
   splitRequestsSent     ExpenseSplitRequest[] @relation("SplitRequester")
   splitRequestsReceived ExpenseSplitRequest[] @relation("SplitRecipient")
+  householdMembers      HouseholdMember[]
+  accountsHeld          Account[]             @relation("AccountHolder")
+}
+
+model Household {
+  id        String   @id @default(uuid())
+  name      String   @default("Minha casa")
+  createdAt DateTime @default(now()) @map("created_at")
+  members   HouseholdMember[]
+  accounts  Account[]
+}
+
+model HouseholdMember {
+  householdId String   @map("household_id")
+  userId      String   @map("user_id")
+  role        String   @default("member")
+  joinedAt    DateTime @default(now()) @map("joined_at")
+  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([householdId, userId])
+  @@index([userId])
 }
 
 model Account {
   id             String       @id @default(uuid())
   userId         String
+  householdId    String?      @map("household_id")
+  holderUserId   String?      @map("holder_user_id")
   name           String
   type           String
   initialBalance Float?       @default(0)
@@ -59,6 +83,8 @@ model Account {
   linkedAccount   Account?    @relation("DebitCardLinkedAccount", fields: [linkedAccountId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   linkedDebitCards Account[]  @relation("DebitCardLinkedAccount")
 
+  household      Household?   @relation(fields: [householdId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  holderUser     User?        @relation("AccountHolder", fields: [holderUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   user           User         @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   expenses       Expense[]
   gains          Gain[]

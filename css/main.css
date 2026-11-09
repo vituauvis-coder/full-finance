@@ -5,9 +5,10 @@
     --primary-color-dark: #262626;
     --secondary-color: #737373;
     --gains-accent: #10b981;
+    /* Saídas — vermelho canônico (tokens derivados em color-tokens.css) */
     --expenses-accent: #e11d48;
+    /* Destrutivo / erro (excluir, validação) — não usar em valores de saída na UI */
     --danger-color: #ef4444;
-    /* Vermelho para despesas */
     --warning-color: #f59e0b;
     /* Amarelo para alertas */
     --info-color: #3b82f6;

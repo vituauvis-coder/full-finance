@@ -25,7 +25,8 @@ import {
 /** Contas de caixa: exibição por conta não fica negativa por somatório (limite inferior 0). Não aplicar ao somar o total. */
 function clampCashAccountBalance(type, value) {
     if (type === 'investimento') return value;
-    if (type === 'cartao_credito' || type === 'cartao_debito') return value;
+    if (type === 'cartao_credito' || type === 'cartao_debito' || type === 'vale_alimentacao' || type === 'vale_refeicao')
+        return value;
     const n = Number(value);
     if (!Number.isFinite(n)) return value;
     return Math.max(0, n);
@@ -45,7 +46,13 @@ export function computeCashAccountRawBalance(
     userProfile = null,
     splitRequests = null
 ) {
-    if (account.type === 'cartao_credito' || account.type === 'cartao_debito') return 0;
+    if (
+        account.type === 'cartao_credito' ||
+        account.type === 'cartao_debito' ||
+        account.type === 'vale_alimentacao' ||
+        account.type === 'vale_refeicao'
+    )
+        return 0;
     const cutoff = asOfEndInclusive.getTime();
     const onOrBeforeCutoff = (dateField) => {
         const t = movementDateToJsDate(dateField);
@@ -122,7 +129,11 @@ export function calculateAllBalances(
     userAccounts.forEach((account) => {
         if (account.type === 'cartao_credito') {
             account.currentBalance = 0;
-        } else if (account.type === 'cartao_debito') {
+        } else if (
+            account.type === 'cartao_debito' ||
+            account.type === 'vale_alimentacao' ||
+            account.type === 'vale_refeicao'
+        ) {
             account.currentBalance = 0;
         } else {
             const raw = computeCashAccountRawBalance(
@@ -139,7 +150,13 @@ export function calculateAllBalances(
     });
     const byId = new Map(userAccounts.map((a) => [a.id, a]));
     userAccounts.forEach((account) => {
-        if (account.type !== 'cartao_debito') return;
+        if (
+            account.type !== 'cartao_debito' &&
+            account.type !== 'vale_alimentacao' &&
+            account.type !== 'vale_refeicao'
+        ) {
+            return;
+        }
         const linkedId = account.linkedAccountId;
         if (linkedId && byId.has(linkedId)) {
             account.currentBalance = byId.get(linkedId).currentBalance;
@@ -168,7 +185,11 @@ export function computeCashBalanceTotalAsOf(
     accs.forEach((account) => {
         if (account.type === 'cartao_credito') {
             account.currentBalance = 0;
-        } else if (account.type === 'cartao_debito') {
+        } else if (
+            account.type === 'cartao_debito' ||
+            account.type === 'vale_alimentacao' ||
+            account.type === 'vale_refeicao'
+        ) {
             account.currentBalance = 0;
         } else {
             const raw = computeCashAccountRawBalance(
@@ -186,7 +207,13 @@ export function computeCashBalanceTotalAsOf(
     });
     const byId = new Map(accs.map((a) => [a.id, a]));
     accs.forEach((account) => {
-        if (account.type !== 'cartao_debito') return;
+        if (
+            account.type !== 'cartao_debito' &&
+            account.type !== 'vale_alimentacao' &&
+            account.type !== 'vale_refeicao'
+        ) {
+            return;
+        }
         const linkedId = account.linkedAccountId;
         if (linkedId && byId.has(linkedId)) {
             account.currentBalance = byId.get(linkedId).currentBalance;

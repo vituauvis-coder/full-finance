@@ -21,6 +21,10 @@
     color: #60a5fa;
 }
 
+#wallet-page #wallet-summary-net.wallet-summary-value--negative {
+    color: var(--danger-color);
+}
+
 .wallet-page__layout {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
@@ -38,8 +42,102 @@
 .wallet-page__aside {
     display: flex;
     flex-direction: column;
-    gap: 0.45rem;
+    gap: 0.85rem;
     min-width: 0;
+}
+
+.wallet-aside-card {
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-light);
+    padding: 1.1rem 1.15rem 0.35rem;
+}
+
+.wallet-aside-card__title {
+    margin: 0 0 0.35rem;
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    text-transform: none;
+    color: var(--text-color);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.wallet-aside-card__title-note {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-light);
+    letter-spacing: 0;
+}
+
+.wallet-aside-card__body {
+    display: flex;
+    flex-direction: column;
+    max-height: min(42vh, 360px);
+    overflow-y: auto;
+}
+
+.wallet-aside-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.72rem 0.15rem;
+    border-bottom: 1px solid var(--border-color);
+    background: transparent;
+}
+
+.wallet-aside-row:last-child {
+    border-bottom: 0;
+}
+
+.wallet-aside-row__main {
+    min-width: 0;
+}
+
+.wallet-aside-row__name {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--text-color);
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.wallet-aside-row__sub {
+    margin-top: 0.12rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-light);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.wallet-aside-row__amt {
+    font-size: 0.95rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.wallet-aside-row__amt--out {
+    color: var(--movement-expense-color, var(--danger-color));
+}
+
+.wallet-aside-row__amt--zero {
+    color: var(--text-light);
+    font-weight: 600;
+}
+
+.wallet-aside-empty {
+    margin: 0.35rem 0 0.85rem;
+    color: var(--text-light);
+    font-size: 0.88rem;
 }
 
 .wallet-institutions-list {
@@ -80,10 +178,16 @@
 
 @media (min-width: 640px) {
     .wallet-institution-row {
-        grid-template-columns: 4px minmax(100px, 0.82fr) minmax(0, 1fr) minmax(0, 1.05fr) auto;
+        grid-template-columns:
+            4px
+            minmax(120px, 1.05fr)
+            minmax(72px, 9.5rem)
+            minmax(0, max-content)
+            auto;
         grid-template-rows: auto;
-        gap: 0 0.55rem;
-        padding: 0.45rem 0.55rem;
+        gap: 0 0.65rem;
+        padding: 0.5rem 0.65rem;
+        align-items: center;
     }
 }
 
@@ -133,6 +237,17 @@
     color: var(--text-light);
 }
 
+.wallet-institution-row__holder {
+    display: block;
+    margin-top: 0.12rem;
+    font-size: 0.74rem;
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--text-light);
+    line-height: 1.25;
+}
+
 .wallet-institution-row__account,
 .wallet-institution-row__cards {
     grid-column: 2;
@@ -140,6 +255,11 @@
     margin-top: 0.4rem;
     border-top: 1px solid var(--border-color);
     min-width: 0;
+}
+
+.wallet-institution-row__cards {
+    display: flex;
+    align-items: stretch;
 }
 
 .wallet-institution-row__row-actions {
@@ -192,6 +312,11 @@
         margin-top: 0;
         border-left: none;
     }
+
+    .wallet-institution-row__cards {
+        justify-self: start;
+        max-width: min(100%, 24rem);
+    }
 }
 
 .wallet-institution-row__label {
@@ -221,68 +346,233 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.35rem;
+    gap: 0.4rem 0.65rem;
     color: var(--text-light);
     font-size: 0.76rem;
-    min-height: 1.5rem;
+    min-height: 0;
+    line-height: 1.35;
+    width: 100%;
+    max-width: 20rem;
+}
+
+.wallet-institution-row__empty .wallet-link-add-card {
+    margin-left: 0;
+    flex: 0 0 auto;
 }
 
 .wallet-link-add-card {
     margin-left: auto;
-    font-size: 0.78rem;
-    font-weight: 700;
-    padding: 0;
-    border: none;
-    background: none;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.22rem 0.55rem;
+    border: 1px solid rgba(59, 130, 246, 0.35);
+    border-radius: 8px;
+    background: rgba(59, 130, 246, 0.1);
     color: var(--primary-color);
     cursor: pointer;
-    text-decoration: underline;
-    text-underline-offset: 2px;
+    text-decoration: none;
 }
 
 .wallet-link-add-card:hover {
+    background: rgba(59, 130, 246, 0.18);
     color: var(--text-color);
 }
 
 .wallet-plastics {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.4rem;
+    gap: 0.55rem;
+    align-items: stretch;
 }
 
-.wallet-plastic {
+.wallet-plastic,
+button.wallet-plastic.wallet-card-open {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    width: 9.5rem;
-    min-height: 5.6rem;
-    padding: 0.45rem 0.55rem;
+    flex: 0 0 auto;
+    width: 11rem;
+    min-height: 6.35rem;
+    margin: 0;
+    padding: 0.62rem 0.7rem 0.58rem;
     border: 0;
-    border-radius: 10px;
+    border-radius: 14px;
     text-align: left;
+    font: inherit;
     color: #f8fafc;
     cursor: pointer;
-    background: linear-gradient(145deg, #334155, #0f172a);
+    background: linear-gradient(160deg, #475569 0%, #1e293b 52%, #0f172a 100%);
+    box-sizing: border-box;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.28),
+        inset 0 -12px 18px rgba(0, 0, 0, 0.18),
+        0 8px 18px rgba(0, 0, 0, 0.22);
+    transition:
+        transform 0.16s ease,
+        box-shadow 0.16s ease;
 }
 
-.wallet-plastic--credit.account-card--bank-bradesco { background: linear-gradient(145deg, #9f1239, #111827); }
-.wallet-plastic--credit.account-card--bank-nubank { background: linear-gradient(145deg, #6b21a8, #111827); }
-.wallet-plastic--credit.account-card--bank-itau { background: linear-gradient(145deg, #c2410c, #111827); }
-.wallet-plastic--credit.account-card--bank-inter { background: linear-gradient(145deg, #ea580c, #111827); }
-.wallet-plastic--credit.account-card--bank-santander { background: linear-gradient(145deg, #b91c1c, #111827); }
-.wallet-plastic--credit.account-card--bank-bb { background: linear-gradient(145deg, #ca8a04, #111827); }
-.wallet-plastic--credit.account-card--bank-caixa { background: linear-gradient(145deg, #1d4ed8, #111827); }
-.wallet-plastic--credit.account-card--bank-c6 { background: linear-gradient(145deg, #262626, #0a0a0a); }
-.wallet-plastic--credit.account-card--bank-mercado-pago { background: linear-gradient(145deg, #0284c7, #111827); }
-.wallet-plastic--credit.account-card--bank-picpay { background: linear-gradient(145deg, #16a34a, #111827); }
-.wallet-plastic--credit.account-card--bank-pagbank { background: linear-gradient(145deg, #eab308, #0a0a0a); }
-.wallet-plastic--credit.account-card--bank-pan { background: linear-gradient(145deg, #f59e0b, #111827); }
-.wallet-plastic--credit.account-card--bank-neon { background: linear-gradient(145deg, #06b6d4, #111827); }
-.wallet-plastic--credit.account-card--bank-riachuelo { background: linear-gradient(145deg, #4338ca, #111827); }
+.wallet-plastic::before,
+button.wallet-plastic.wallet-card-open::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(90% 70% at 100% 0%, rgba(255, 255, 255, 0.28), transparent 46%),
+        linear-gradient(165deg, rgba(255, 255, 255, 0.14), transparent 38%);
+    pointer-events: none;
+    z-index: 0;
+}
 
-.wallet-plastic--debit {
-    background: linear-gradient(145deg, #1e293b, #0b1220);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+.wallet-plastic > *,
+button.wallet-plastic.wallet-card-open > * {
+    position: relative;
+    z-index: 1;
+}
+
+button.wallet-plastic.wallet-card-open:hover {
+    transform: translateY(-2px);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.32),
+        inset 0 -12px 18px rgba(0, 0, 0, 0.18),
+        0 12px 22px rgba(0, 0, 0, 0.28);
+}
+
+button.wallet-plastic.wallet-card-open:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+button.wallet-plastic--custom.wallet-card-open {
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.28),
+        0 8px 18px rgba(0, 0, 0, 0.2);
+}
+
+button.wallet-plastic--credit.account-card--bank-bradesco.wallet-card-open,
+.wallet-plastic--credit.account-card--bank-bradesco { background: linear-gradient(160deg, #fb7185 0%, #9f1239 46%, #1f1116 100%); }
+button.wallet-plastic--credit.account-card--bank-nubank.wallet-card-open,
+.wallet-plastic--credit.account-card--bank-nubank { background: linear-gradient(160deg, #c084fc 0%, #6b21a8 48%, #1a1024 100%); }
+button.wallet-plastic--credit.account-card--bank-itau.wallet-card-open,
+.wallet-plastic--credit.account-card--bank-itau { background: linear-gradient(160deg, #f97316 0%, #c2410c 46%, #2a140c 100%); }
+button.wallet-plastic--credit.account-card--bank-inter.wallet-card-open,
+.wallet-plastic--credit.account-card--bank-inter { background: linear-gradient(160deg, #fb923c 0%, #ea580c 48%, #2a1608 100%); }
+button.wallet-plastic--credit.account-card--bank-santander.wallet-card-open,
+.wallet-plastic--credit.account-card--bank-santander { background: linear-gradient(160deg, #f87171 0%, #b91c1c 48%, #1f1010 100%); }
+button.wallet-plastic--credit.account-card--bank-bb.wallet-card-open,
+.wallet-plastic--credit.account-card--bank-bb { background: linear-gradient(160deg, #eab308 0%, #854d0e 52%, #1c1408 100%); }
+button.wallet-plastic--credit.account-card--bank-caixa.wallet-card-open,
+.wallet-plastic--credit.account-card--bank-caixa { background: linear-gradient(160deg, #60a5fa 0%, #1d4ed8 48%, #0c1730 100%); }
+button.wallet-plastic--credit.account-card--bank-c6.wallet-card-open,
+.wallet-plastic--credit.account-card--bank-c6 { background: linear-gradient(160deg, #525252 0%, #262626 50%, #0a0a0a 100%); }
+button.wallet-plastic--credit.account-card--bank-mercado-pago.wallet-card-open,
+.wallet-plastic--credit.account-card--bank-mercado-pago { background: linear-gradient(160deg, #38bdf8 0%, #0284c7 48%, #0c1a24 100%); }
+button.wallet-plastic--credit.account-card--bank-picpay.wallet-card-open,
+.wallet-plastic--credit.account-card--bank-picpay { background: linear-gradient(160deg, #22c55e 0%, #15803d 50%, #052e16 100%); }
+button.wallet-plastic--credit.account-card--bank-pagbank.wallet-card-open,
+.wallet-plastic--credit.account-card--bank-pagbank { background: linear-gradient(160deg, #eab308 0%, #a16207 50%, #1c1406 100%); }
+button.wallet-plastic--credit.account-card--bank-pan.wallet-card-open,
+.wallet-plastic--credit.account-card--bank-pan { background: linear-gradient(160deg, #f59e0b 0%, #b45309 50%, #1c1208 100%); }
+button.wallet-plastic--credit.account-card--bank-neon.wallet-card-open,
+.wallet-plastic--credit.account-card--bank-neon { background: linear-gradient(160deg, #22d3ee 0%, #0e7490 50%, #082028 100%); }
+button.wallet-plastic--credit.account-card--bank-riachuelo.wallet-card-open,
+.wallet-plastic--credit.account-card--bank-riachuelo { background: linear-gradient(160deg, #a5b4fc 0%, #4338ca 48%, #12102a 100%); }
+
+.wallet-plastic--debit,
+.wallet-plastic--meal,
+button.wallet-plastic--debit.wallet-card-open,
+button.wallet-plastic--meal.wallet-card-open {
+    background: linear-gradient(160deg, #64748b 0%, #334155 46%, #0f172a 100%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.22),
+        inset 0 -12px 18px rgba(0, 0, 0, 0.16),
+        0 8px 18px rgba(0, 0, 0, 0.18);
+}
+
+.wallet-plastic--placeholder,
+button.wallet-plastic--placeholder,
+button.wallet-plastic--placeholder.wallet-plastic--credit,
+button.wallet-plastic--placeholder.wallet-plastic--debit,
+button.wallet-plastic--placeholder.wallet-plastic--food,
+button.wallet-plastic--placeholder.wallet-plastic--meal,
+.wallet-plastic--placeholder.wallet-plastic--credit,
+.wallet-plastic--placeholder.wallet-plastic--debit,
+.wallet-plastic--placeholder.wallet-plastic--food,
+.wallet-plastic--placeholder.wallet-plastic--meal {
+    background: #3a3f46 !important;
+    color: #a8b0ba;
+    border: 1px dashed #5c6570;
+    box-shadow: none;
+    cursor: pointer;
+    filter: none;
+}
+
+.wallet-plastic--placeholder::before,
+button.wallet-plastic--placeholder::before {
+    display: none;
+}
+
+.wallet-plastic--placeholder .wallet-plastic__kind {
+    background: color-mix(in srgb, var(--text-light) 8%, transparent);
+    color: color-mix(in srgb, var(--text-light) 62%, transparent);
+    font-weight: 600;
+}
+
+.wallet-plastic--placeholder .wallet-plastic__name {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: color-mix(in srgb, var(--text-light) 72%, transparent);
+}
+
+.wallet-plastic--placeholder .wallet-plastic__quiet {
+    font-size: 0.68rem;
+    font-weight: 500;
+    color: color-mix(in srgb, var(--text-light) 48%, transparent);
+}
+
+.wallet-plastic--placeholder .wallet-plastic__add {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--text-light) 18%, transparent);
+    background: transparent;
+    color: color-mix(in srgb, var(--text-light) 58%, transparent);
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+button.wallet-plastic--placeholder:hover,
+button.wallet-plastic--placeholder:focus-visible {
+    transform: none;
+    border-color: #8b949e;
+    background: #4a515a !important;
+    box-shadow: none;
+    filter: none;
+}
+
+button.wallet-plastic--placeholder:focus-visible {
+    outline: 1px solid color-mix(in srgb, var(--text-light) 40%, transparent);
+    outline-offset: 2px;
+}
+
+[data-theme='dark'] .wallet-plastic--placeholder,
+[data-theme='dark'] button.wallet-plastic--placeholder {
+    background: #2c3138 !important;
+    color: #9aa3ad;
+    border-color: #4b5563;
+}
+
+[data-theme='dark'] button.wallet-plastic--placeholder:hover {
+    background: #3a414a !important;
 }
 
 .wallet-plastic__top,
@@ -294,30 +584,61 @@
     display: block;
 }
 
+.wallet-plastic__kind,
+.wallet-plastic__due {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    padding: 0.12rem 0.38rem;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.22);
+    font-size: 0.56rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    line-height: 1.15;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.wallet-plastic__due {
+    margin-left: auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .wallet-plastic__top {
     display: flex;
+    align-items: center;
     justify-content: space-between;
     gap: 0.35rem;
-    font-size: 0.62rem;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    opacity: 0.85;
+    min-height: 1.15rem;
 }
 
 .wallet-plastic__name {
-    font-size: 0.78rem;
+    margin-top: 0.45rem;
+    font-size: 0.92rem;
     font-weight: 700;
-    line-height: 1.2;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
 }
 
 .wallet-plastic__amount {
-    font-size: 0.82rem;
+    margin-top: auto;
+    padding-top: 0.4rem;
+    font-size: 0.98rem;
     font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
 }
 
 .wallet-plastic__quiet {
+    margin-top: auto;
+    padding-top: 0.35rem;
     font-size: 0.72rem;
-    opacity: 0.75;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    opacity: 0.82;
 }
 
 #wallet-wizard-block {
@@ -357,212 +678,26 @@
     line-height: 1.35;
 }
 
-.wallet-credit-block {
-    margin-bottom: 0.5rem;
+.wallet-institution-row.account-card--bank-itau .wallet-institution-row__strip {
+    background: #f47920;
 }
-
-.wallet-credit-block:last-child {
-    margin-bottom: 0;
+.wallet-institution-row.account-card--bank-inter .wallet-institution-row__strip {
+    background: #ea580c;
 }
-
-.wallet-credit-block__head {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.35rem;
-    margin-bottom: 0.25rem;
+.wallet-institution-row.account-card--bank-bradesco .wallet-institution-row__strip {
+    background: #e11d48;
 }
-
-.wallet-credit-block__head--due-only {
-    justify-content: flex-end;
-    margin-bottom: 0.12rem;
+.wallet-institution-row.account-card--bank-nubank .wallet-institution-row__strip {
+    background: #8b5cf6;
 }
-
-.wallet-credit-block__due {
-    font-size: 0.65rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 0.15rem 0.45rem;
-    border-radius: 6px;
-    background: var(--bg-color);
-    color: var(--text-light);
-    border: 1px solid var(--border-color);
+.wallet-institution-row.account-card--bank-neon .wallet-institution-row__strip {
+    background: #06b6d4;
 }
-
-.wallet-credit-block .wallet-kpi-progress {
-    margin-top: 0.22rem;
+.wallet-institution-row.account-card--bank-santander .wallet-institution-row__strip {
+    background: #dc2626;
 }
-
-.wallet-credit-block .wallet-institution-row__label--credit-inline {
-    margin-bottom: 0.12rem;
-}
-
-.wallet-credit-block .wallet-institution-row__amount--credit-compact {
-    font-size: 0.95rem;
-    line-height: 1.12;
-}
-
-.wallet-card-open {
-    display: block;
-    width: 100%;
-    margin: 0;
-    padding: 0;
-    border: none;
-    background: none;
-    cursor: pointer;
-    text-align: left;
-    font: inherit;
-    color: inherit;
-    border-radius: 10px;
-}
-
-.wallet-card-open:focus-visible {
-    outline: 2px solid var(--primary-color);
-    outline-offset: 2px;
-}
-
-.wallet-card-open:hover .wallet-credit-block__due,
-.wallet-card-open:hover .wallet-institution-row__amount--credit {
-    text-decoration: underline;
-}
-
-.wallet-aside-card {
-    border-radius: 10px;
-    border: 1px solid var(--border-color);
-    background: var(--bg-light);
-    padding: 0.55rem 0.6rem;
-    margin-bottom: 0;
-}
-
-.wallet-aside-card:last-child {
-    margin-bottom: 0;
-}
-
-.wallet-aside-card__title {
-    margin: 0 0 0.35rem;
-    font-size: 0.65rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--text-color);
-    display: flex;
-    align-items: center;
-    gap: 0.45rem;
-}
-
-.wallet-aside-card__title i {
-    color: var(--text-light);
-}
-
-.wallet-aside-card__title-note {
-    font-weight: 600;
-    color: var(--text-light);
-    text-transform: none;
-    letter-spacing: 0;
-}
-
-.wallet-aside-card__body {
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-    max-height: min(42vh, 320px);
-    overflow-y: auto;
-}
-
-.wallet-aside-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.45rem;
-    padding: 0.35rem 0.45rem;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    background: var(--bg-color);
-}
-
-.wallet-aside-row__name {
-    font-size: 0.72rem;
-    font-weight: 700;
-    color: var(--text-color);
-    line-height: 1.2;
-}
-
-.wallet-aside-row__sub {
-    font-size: 0.65rem;
-    color: var(--text-light);
-    margin-top: 0.15rem;
-}
-
-.wallet-aside-row__amt {
-    font-size: 0.8rem;
-    font-weight: 800;
-    color: var(--danger-color);
-    white-space: nowrap;
-}
-
-.wallet-activity-row {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 0.4rem;
-    font-size: 0.74rem;
-    padding: 0.15rem 0;
-}
-
-.wallet-activity-row__body {
-    flex: 1;
-    min-width: 0;
-}
-
-.wallet-activity-row__dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    flex-shrink: 0;
-}
-
-.wallet-activity-row__dot--out {
-    background: var(--danger-color);
-}
-
-.wallet-activity-row__dot--in {
-    background: var(--gains-accent);
-}
-
-.wallet-activity-row__lbl {
-    display: block;
-    color: var(--text-color);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.wallet-activity-row__sub {
-    display: block;
-    margin-top: 0.12rem;
-    font-size: 0.68rem;
-    font-weight: 600;
-    color: var(--text-light);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.wallet-activity-row__val {
-    flex-shrink: 0;
-    padding-top: 0.06rem;
-    font-weight: 800;
-    white-space: nowrap;
-}
-
-.wallet-activity-row__val--out {
-    color: var(--danger-color);
-}
-
-.wallet-activity-row__val--in {
-    color: var(--gains-accent);
+.wallet-institution-row.account-card--bank-bb .wallet-institution-row__strip {
+    background: #ffef00;
 }
 
 .wallet-institutions-list .accounts-empty-state {
@@ -574,13 +709,6 @@
     text-align: center;
     font-size: 0.9rem;
     color: var(--text-light);
-}
-
-.wallet-aside-empty {
-    margin: 0;
-    font-size: 0.76rem;
-    color: var(--text-light);
-    line-height: 1.35;
 }
 
 /* KPIs + timeline — densidade na Carteira */
@@ -620,80 +748,254 @@
 
 #wallet-page .summary-cards.movements-summary {
     margin-bottom: 0.35rem;
-    gap: 0.4rem;
-    grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
 }
 
-#wallet-page .movements-summary .card {
-    padding: 0.5rem 0.55rem;
-    border-radius: 10px;
+/* Modal conta/cartão — usa largura do modal */
+.modal-content.modal-content--account {
+    width: min(46rem, calc(100vw - 1.25rem));
+    max-width: min(46rem, 96vw);
+    max-height: min(90vh, 42rem);
+    overflow: auto;
+    border-radius: 18px;
 }
 
-#wallet-page .movements-summary .card-icon {
-    width: 2.15rem;
-    height: 2.15rem;
-    min-width: 2.15rem;
-    min-height: 2.15rem;
-    font-size: 0.95rem;
-    margin-right: 0.45rem;
-    border-radius: 8px;
-}
-
-#wallet-page .movements-summary .card-content h3 {
-    font-size: 0.62rem;
-    margin-bottom: 0.1rem;
-    letter-spacing: 0.04em;
-}
-
-#wallet-page .movements-summary .card-content p {
-    font-size: 1.05rem;
-}
-
-#wallet-page .movements-summary .card-metric-hint,
-#wallet-page .movements-summary .card-content .dashboard-card-scope {
-    font-size: 0.62rem;
-    margin-top: 0.08rem;
-    line-height: 1.25;
-}
-
-#wallet-page .wallet-kpi-progress {
-    margin-top: 0.28rem;
-    height: 4px;
-}
-
-/* Modal conta/cartão — formulário mais compacto */
 #account-modal .modal-content > h3 {
-    padding: 0.75rem 1rem 0.55rem;
-    font-size: 1.02rem;
+    padding: 1.4rem 1.75rem 0.35rem;
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+#account-modal #account-modal-subtitle {
+    margin: 0 1.75rem 1.1rem;
+    padding: 0;
+    font-size: 0.92rem;
+    color: var(--text-light);
+    line-height: 1.55;
+    max-width: 42ch;
 }
 
 #account-modal .modal-content > form {
-    padding: 0.65rem 1rem 1rem;
+    padding: 0 1.5rem 1.35rem;
 }
 
 #account-modal .modal-content .form-group {
-    margin-bottom: 0.65rem;
+    margin-bottom: 0;
 }
 
 #account-modal .modal-content .form-group label {
-    margin-bottom: 0.28rem;
-    font-size: 0.68rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--text-color);
 }
 
 #account-modal .modal-content .form-group input:not([type='checkbox']),
 #account-modal .modal-content .form-group select,
 #account-modal .modal-content .form-group textarea {
-    min-height: 2.35rem;
-    padding: 0.45rem 0.65rem;
-    font-size: 0.88rem;
-    border-radius: 8px;
+    min-height: 2.75rem;
+    padding: 0.55rem 0.85rem;
+    font-size: 0.96rem;
+    border-radius: 11px;
+    border-width: 1.5px;
 }
 
-#account-modal .modal-content .form-group small,
 #account-modal .form-hint {
-    font-size: 0.72rem;
-    margin-top: 0.15rem;
-    line-height: 1.3;
+    font-size: 0.84rem;
+    margin-top: 0.45rem;
+    line-height: 1.5;
+    color: var(--text-light);
+}
+
+#account-modal .form-hint--inline {
+    margin-top: 0.35rem;
+    font-size: 0.8rem;
+}
+
+.account-form__wallet-section {
+    margin: 0.1rem 0 0.25rem;
+    padding: 0.65rem 0 0;
+    border-top: 1px solid color-mix(in srgb, var(--border-color) 65%, transparent);
+}
+
+.account-form__wallet-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    width: 100%;
+}
+
+.account-form__card-names {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 1rem;
+    row-gap: 0;
+    margin-bottom: 0.35rem;
+}
+
+.account-form__wallet-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    width: 100%;
+    min-width: 0;
+}
+
+.account-form__tone-select--sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.account-plastic-preview {
+    margin: 0;
+    width: 100%;
+}
+
+.account-plastic-preview .account-plastic-preview__pair {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+    width: 100%;
+}
+
+.account-plastic-preview .account-plastic-preview__pair .wallet-plastic {
+    width: 100%;
+    min-height: 5.25rem;
+    pointer-events: none;
+    font-size: 0.84rem;
+    box-sizing: border-box;
+}
+
+@media (max-width: 639px) {
+    .account-form__wallet-toolbar {
+        flex-wrap: wrap;
+    }
+
+    .account-form__card-names {
+        grid-template-columns: 1fr;
+    }
+}
+
+.account-plastic-pick {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+}
+
+.account-plastic-palette {
+    display: grid;
+    grid-template-columns: repeat(11, minmax(0, 1fr));
+    gap: 0.35rem;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.account-plastic-swatch {
+    aspect-ratio: 1;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    border: 2px solid color-mix(in srgb, var(--border-color) 55%, transparent);
+    border-radius: 6px;
+    background: var(--swatch);
+    cursor: pointer;
+    transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.account-plastic-swatch:hover {
+    border-color: color-mix(in srgb, var(--text-color) 35%, transparent);
+}
+
+.account-plastic-swatch.is-selected {
+    border-color: var(--text-color);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--text-color) 55%, transparent);
+}
+
+.account-plastic-pick__more {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.65rem;
+    height: 1.65rem;
+    padding: 0;
+    border: 1px dashed color-mix(in srgb, var(--text-light) 35%, transparent);
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--bg-color) 96%, var(--text-light));
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.account-plastic-pick__more:hover {
+    border-color: color-mix(in srgb, var(--text-light) 55%, transparent);
+}
+
+.account-plastic-pick__more.is-custom {
+    border-style: solid;
+    border-color: color-mix(in srgb, var(--text-color) 40%, transparent);
+}
+
+.account-plastic-pick__more-dot {
+    width: 100%;
+    height: 100%;
+    border-radius: 5px;
+    border: none;
+    flex-shrink: 0;
+}
+
+.account-form__check {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 1rem;
+    font-size: 0.92rem;
+    line-height: 1.4;
+    color: var(--text-color);
+    cursor: pointer;
+    user-select: none;
+}
+
+.account-form__check input {
+    width: 1.1rem;
+    height: 1.1rem;
+    flex: 0 0 auto;
+    accent-color: var(--primary-color);
+}
+
+#account-modal .btn-primary[type='submit'] {
+    margin-top: 0.5rem;
+    width: 100%;
+    min-height: 2.85rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 12px;
+}
+
+@media (max-width: 639px) {
+    .modal-content.modal-content--account > form#account-form {
+        grid-template-columns: 1fr;
+    }
+
+    .modal-content.modal-content--account > form#account-form > .account-form__field--name,
+    .modal-content.modal-content--account > form#account-form > .account-form__field--type {
+        grid-column: 1 / -1;
+    }
 }
 
 #account-modal #wallet-wizard-block .form-section-label {
@@ -1696,9 +1998,9 @@
     max-height: min(92vh, 920px);
     display: flex;
     flex-direction: column;
-    gap: 0.85rem;
+    gap: 0.55rem;
     /* modal-forms.css zera padding do .modal-content; aqui recuperamos margem interna */
-    padding: 0.85rem 1rem 1rem;
+    padding: 0.75rem 1rem 0.85rem;
     box-sizing: border-box;
 }
 
@@ -1846,8 +2148,337 @@
 .card-purchases-list-section {
     display: flex;
     flex-direction: column;
-    gap: 0.65rem;
+    gap: 0.5rem;
     min-height: 0;
+    flex: 1 1 auto;
+}
+
+.card-statement-strip {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) auto;
+    gap: 0.75rem 1.25rem;
+    align-items: stretch;
+    padding: 0.85rem 1rem;
+    border-radius: 14px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-light);
+}
+
+.card-statement-strip--credit {
+    background:
+        radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--primary-color) 14%, transparent), transparent 58%),
+        var(--bg-light);
+}
+
+.card-statement-strip__primary {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
+}
+
+.card-statement-strip__lbl {
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-light);
+}
+
+.card-statement-strip__val {
+    display: block;
+    margin: 0.05rem 0 0.1rem;
+    font-size: 1.55rem;
+    font-weight: 700;
+    line-height: 1.12;
+    letter-spacing: -0.03em;
+    color: var(--text-color);
+    font-variant-numeric: tabular-nums;
+}
+
+.card-statement-strip__meta,
+.card-statement-strip__hint {
+    font-size: 0.78rem;
+    color: var(--text-light);
+    line-height: 1.35;
+}
+
+.card-statement-strip__due {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.35rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-color);
+    padding: 0.22rem 0.55rem;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    width: fit-content;
+}
+
+.card-statement-strip__limit {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.28rem;
+}
+
+.card-statement-strip__limit .card-statement-limit__top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.card-statement-strip__pct {
+    font-size: 0.82rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--primary-color);
+}
+
+.card-statement-strip__track {
+    height: 8px;
+    margin-top: 0.15rem;
+}
+
+.card-statement-strip__stats {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.45rem;
+    min-width: 7.5rem;
+}
+
+.card-statement-strip__stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.08rem;
+    padding: 0.4rem 0.55rem;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+}
+
+.card-statement-strip__stat-lbl {
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-light);
+}
+
+.card-statement-strip__stat-val {
+    font-size: 0.92rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-color);
+}
+
+.card-purchases-toolbar__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 0.75rem;
+}
+
+.card-purchases-toolbar__search {
+    flex: 1 1 100%;
+    min-width: 0;
+}
+
+@media (min-width: 721px) {
+    .card-purchases-modal .card-purchases-toolbar {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem 0.75rem;
+    }
+
+    .card-purchases-modal .card-purchases-toolbar__row {
+        flex: 1 1 auto;
+        min-width: min(100%, 22rem);
+    }
+
+    .card-purchases-modal .card-purchases-toolbar__search {
+        flex: 1 1 14rem;
+        min-width: 12rem;
+        max-width: 22rem;
+        margin-left: auto;
+    }
+}
+
+.card-statement-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    gap: 1rem 1.5rem;
+    padding: 1rem 1.1rem;
+    border-radius: 16px;
+    background:
+        radial-gradient(120% 80% at 0% 0%, rgba(249, 115, 22, 0.16), transparent 55%),
+        rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+}
+.card-statement-hero__lbl {
+    display: block;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.7;
+}
+.card-statement-hero__val {
+    display: block;
+    margin: 0.15rem 0 0.35rem;
+    font-size: 2rem;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+}
+.card-statement-hero__hint,
+.card-statement-hero__due,
+.card-statement-limit__hint,
+.card-statement-row__total,
+.card-statement-progress__top,
+.card-statement-row__meta {
+    font-size: 0.8rem;
+    opacity: 0.78;
+}
+.card-statement-hero__due {
+    display: inline-block;
+    margin-top: 0.45rem;
+    font-weight: 650;
+    opacity: 1;
+}
+.card-statement-hero__aside {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.75rem;
+}
+.card-statement-limit__top,
+.card-statement-hero__stats,
+.card-statement-progress__top {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.6rem;
+}
+.card-statement-hero__stats {
+    flex-direction: column;
+    align-items: flex-start;
+    font-size: 0.82rem;
+}
+.card-statement-limit__track,
+.card-statement-progress__track {
+    height: 6px;
+    margin-top: 0.35rem;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.22);
+    overflow: hidden;
+}
+.card-statement-limit__track > span,
+.card-statement-progress__track > span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: #f97316;
+}
+.card-statement-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.card-purchases-modal .card-statement-toolbar {
+    margin-bottom: 0.15rem;
+}
+.card-statement-scopes,
+.card-statement-sort,
+.card-statement-toolbar__tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+}
+.card-statement-toolbar__tools { justify-content: space-between; }
+.card-statement-toolbar__tools .table-filters__search { flex: 1 1 12rem; min-width: 0; }
+.card-statement-scope,
+.card-statement-sort__btn {
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: transparent;
+    color: inherit;
+    border-radius: 999px;
+    padding: 0.32rem 0.72rem;
+    font: inherit;
+    font-size: 0.82rem;
+    cursor: pointer;
+}
+.card-statement-scope.is-active,
+.card-statement-sort__btn.is-active {
+    background: rgba(249, 115, 22, 0.18);
+    border-color: rgba(249, 115, 22, 0.75);
+}
+.card-statement-feed {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: min(46vh, 480px);
+    overflow: auto;
+}
+.card-statement-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.7rem 1rem;
+    padding: 0.75rem 0.85rem;
+    border-radius: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    background: rgba(255, 255, 255, 0.03);
+}
+.card-statement-row--invoice { border-color: rgba(249, 115, 22, 0.5); }
+.card-statement-row--paid { opacity: 0.7; }
+.card-statement-row__title { font-weight: 650; }
+.card-statement-row__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.6rem;
+    margin-top: 0.2rem;
+}
+.card-statement-chip {
+    border-radius: 999px;
+    padding: 0.05rem 0.45rem;
+    background: rgba(148, 163, 184, 0.16);
+}
+.card-statement-progress { margin-top: 0.5rem; }
+.card-statement-row__side {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.15rem;
+    min-width: 7.2rem;
+}
+.card-statement-row__amount {
+    font-size: 1.05rem;
+    font-variant-numeric: tabular-nums;
+}
+.card-statement-row__status {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.card-statement-row__status--open { color: #fb7185; }
+.card-statement-row__status--paid { color: #4ade80; }
+.card-statement-filter-empty { margin: 0.25rem 0 0; opacity: 0.75; }
+@media (max-width: 720px) {
+    .card-statement-hero,
+    .card-statement-row { grid-template-columns: 1fr; }
+    .card-statement-row__side { align-items: flex-start; }
 }
 
 .card-purchases-list-section__head {
@@ -1867,88 +2498,98 @@
     gap: 0.45rem;
 }
 
+.card-purchases-list-section__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.35rem;
+    padding: 0.12rem 0.45rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-light);
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+}
+
 .card-purchases-list-section__title i {
     color: var(--primary-color);
     font-size: 0.95rem;
     opacity: 0.9;
 }
 
-.card-purchases-table-wrap {
+.modal-content.card-purchases-modal .card-purchases-table-wrap {
     overflow: auto;
-    max-height: min(50vh, 420px);
-    border-radius: 12px;
-    border: 1px solid var(--border-color);
-    background: var(--bg-light);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    max-height: min(48vh, 400px);
+    flex: 1 1 auto;
+    min-height: 12rem;
 }
 
-.card-purchases-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.88rem;
-}
-
-.card-purchases-table th,
-.card-purchases-table td {
-    padding: 0.4rem 0.75rem;
-    text-align: left;
-    border-bottom: 1px solid var(--border-color);
-    vertical-align: top;
-}
-
-.card-purchases-table th {
-    background: var(--bg-color);
+#card-purchases-table thead th {
     position: sticky;
     top: 0;
     z-index: 1;
-    font-weight: 600;
-    color: var(--text-light);
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+    background: var(--bg-light);
     box-shadow: 0 1px 0 var(--border-color);
 }
 
-.card-purchases-table tbody tr:nth-child(even) {
-    background: rgba(0, 0, 0, 0.02);
+.card-purchases-row--invoice td:first-child {
+    box-shadow: inset 3px 0 0 color-mix(in srgb, var(--primary-color) 85%, transparent);
 }
 
-.card-purchases-row--pending {
-    box-shadow: inset 3px 0 0 0 rgba(245, 158, 11, 0.85);
+.card-purchases-row--settled {
+    opacity: 0.82;
 }
 
-.card-purchases-td-date time {
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-}
-
-.card-purchases-td-desc {
-    max-width: none;
+.card-purchases-row--settled:hover {
+    opacity: 1;
 }
 
 .card-purchases-td-cat {
-    color: var(--text-light);
-    font-size: 0.86rem;
-    white-space: nowrap;
+    vertical-align: middle;
 }
 
-.card-purchases-td-date,
-.card-purchases-td-amount,
-.card-purchases-td-status {
-    white-space: nowrap;
-}
-
-.card-purchases-td-amount {
+.card-purchases-cat-chip {
+    display: inline-block;
+    max-width: 11rem;
+    padding: 0.18rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
     font-weight: 600;
+    line-height: 1.25;
+    color: var(--text-color);
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
     white-space: nowrap;
-    color: var(--danger-color);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+}
+
+.card-purchases-cat-chip--muted {
+    color: var(--text-light);
+    font-weight: 500;
+    border-style: dashed;
+    opacity: 0.85;
+}
+
+.card-purchases-td-date time {
+    font-size: 0.86rem;
+    color: var(--text-light);
     font-variant-numeric: tabular-nums;
 }
 
-.card-purchases-td-status {
-    white-space: nowrap;
-    vertical-align: middle;
-    width: 2.85rem;
+
+@media (max-width: 720px) {
+    .card-statement-strip {
+        grid-template-columns: 1fr;
+    }
+    .card-statement-strip__stats {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 0.5rem 1rem;
+    }
 }
 
 /* Hover: detalhes do parcelamento (tabela despesas + modal do cartão) */
@@ -2318,7 +2959,11 @@ button.installment-tooltip-pill.installment-tooltip-pill-btn:focus-visible {
 }
 
 .card-purchases-footnote {
-    margin: 0;
+    margin: 0.15rem 0 0;
+    padding-top: 0.35rem;
+    border-top: 1px dashed var(--border-color);
+    text-align: center;
     color: var(--text-light);
-    font-size: 0.82rem;
+    font-size: 0.72rem;
+    line-height: 1.4;
 }

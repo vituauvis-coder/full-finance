@@ -119,26 +119,22 @@ export function gainsTopCategoryTooltip(categoryName, formattedAmount) {
     return GAINS_SUMMARY_COPY.topCategoryEmpty;
 }
 
-/**
- * @param {string} periodLabel
- */
-export function expensesSummaryTitles(periodLabel) {
+/** Títulos fixos dos cards de Saídas (mês vem do filtro de chips acima da página). */
+export function expensesSummaryTitles() {
     return {
-        month: `Saídas de ${periodLabel}`,
-        projection: `Despesas essenciais (${periodLabel})`,
-        creditCard: `Cartão de Crédito (${periodLabel})`,
-        other: `Outras despesas (${periodLabel})`
+        month: 'Saídas',
+        projection: 'Despesas essenciais',
+        creditCard: 'Cartão de crédito',
+        other: 'Outras despesas'
     };
 }
 
-/**
- * @param {string} periodLabel
- */
-export function gainsSummaryTitles(periodLabel) {
+/** Títulos fixos dos cards de Entradas (mês vem dos chips acima da página). */
+export function gainsSummaryTitles() {
     return {
-        total: `Entradas de ${periodLabel}`,
-        projection: `A receber em ${periodLabel}`,
-        topCategory: `Principal categoria de ${periodLabel}`
+        total: 'Entradas',
+        projection: 'A receber',
+        topCategory: 'Principal categoria'
     };
 }
 
@@ -206,14 +202,14 @@ export const MOVEMENT_SUMMARY_CARD_GROUPS = {
                 id: 'expenses-summary-month',
                 tone: 'expense',
                 icon: 'fa-calendar-day',
-                title: 'Saídas esse mês',
+                title: 'Saídas',
                 variationId: 'expenses-summary-variation'
             },
             {
                 id: 'expenses-summary-projection',
                 tone: 'expense',
                 icon: 'fa-anchor',
-                title: 'Despesas essenciais no período',
+                title: 'Despesas essenciais',
                 variationId: 'expenses-summary-projection-variation',
                 description: EXPENSES_SUMMARY_COPY.projection
             },
@@ -242,7 +238,7 @@ export const MOVEMENT_SUMMARY_CARD_GROUPS = {
                 id: 'gains-summary-total',
                 tone: 'income',
                 icon: 'fa-calendar-check',
-                title: 'Entradas de …',
+                title: 'Entradas',
                 variationId: 'gains-summary-variation',
                 description: GAINS_SUMMARY_COPY.total
             },
@@ -250,7 +246,7 @@ export const MOVEMENT_SUMMARY_CARD_GROUPS = {
                 id: 'gains-summary-projection',
                 tone: 'income',
                 icon: 'fa-clock',
-                title: 'A receber em …',
+                title: 'A receber',
                 variationId: 'gains-summary-projection-variation',
                 description: GAINS_SUMMARY_COPY.projection
             },

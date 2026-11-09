@@ -966,6 +966,25 @@
         row-gap: 1rem;
     }
 
+    /* Conta/cartão: grid próprio (não o genérico acima) */
+    .modal-content.modal-content--account > form#account-form {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        column-gap: 1.25rem;
+        row-gap: 0.85rem;
+        align-items: start;
+    }
+
+    .modal-content.modal-content--account > form#account-form > input[type='hidden'],
+    .modal-content.modal-content--account > form#account-form > .account-form__field--holder,
+    .modal-content.modal-content--account > form#account-form > #account-appearance-block,
+    .modal-content.modal-content--account > form#account-form > #credit-card-fields,
+    .modal-content.modal-content--account > form#account-form > #wallet-wizard-block,
+    .modal-content.modal-content--account > form#account-form > #card-linked-account-group,
+    .modal-content.modal-content--account > form#account-form > button.btn-primary[type='submit'] {
+        grid-column: 1 / -1;
+    }
+
     .modal-content > form .form-group {
         margin-bottom: 0;
     }
@@ -974,6 +993,8 @@
     .modal-content > form > .expense-category-group,
     .modal-content > form > .form-group:has(textarea),
     .modal-content > form > #credit-card-fields,
+    .modal-content > form > #account-appearance-block,
+    .modal-content > form > #wallet-wizard-block,
     .modal-content > form > #card-linked-account-group,
     .modal-content > form > #expense-installments-row:not(.hidden),
     .modal-content > form > fieldset.form-group,

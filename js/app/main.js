@@ -40,6 +40,8 @@ export let AppState = {
     debtUpdates: [],
     expenseSplitRequests: { incoming: [], outgoing: [] },
     userNotifications: [],
+    household: null,
+    householdMembers: [],
     currency: 'BRL'
 };
 
@@ -173,6 +175,8 @@ async function refreshAllData() {
     AppState.expenseSplitRequests = data.expenseSplitRequests || { incoming: [], outgoing: [] };
     AppState.userNotifications = data.userNotifications || [];
     AppState.userProfile = data.userProfile || null;
+    AppState.household = data.household || null;
+    AppState.householdMembers = data.householdMembers || [];
     if (data.userProfile?.currency) {
         AppState.currency = data.userProfile.currency;
     }

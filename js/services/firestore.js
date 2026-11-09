@@ -34,7 +34,9 @@ export async function fetchAllData(userId) {
             userDebts: data.userDebts || [],
             userDebtUpdates: data.userDebtUpdates || [],
             expenseSplitRequests: data.expenseSplitRequests || { incoming: [], outgoing: [] },
-            userNotifications: data.userNotifications || []
+            userNotifications: data.userNotifications || [],
+            household: data.household || null,
+            householdMembers: data.householdMembers || []
         };
     } catch (error) {
         console.error('Erro ao buscar dados:', error);
@@ -267,6 +269,10 @@ export async function patchExpenseSplitProof(id, senderProofUrl) {
         method: 'PATCH',
         body: JSON.stringify({ senderProofUrl })
     });
+}
+
+export async function fetchUsersForAccountHolder() {
+    return api('/api/users/for-account-holder');
 }
 
 /** Mantidos para compatibilidade com profile antigo — não usados na API local. */

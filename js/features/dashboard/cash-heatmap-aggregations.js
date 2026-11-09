@@ -1,4 +1,4 @@
-import { getPeriodDateBounds } from '../../core/period-filters.js';
+import { getDashboardCivilYearFromDom, getPeriodDateBounds } from '../../core/period-filters.js';
 import { isCreditCardType, movementDateToJsDate } from '../../core/utils.js';
 
 const MONTH_NAMES_PT = [
@@ -25,7 +25,7 @@ export function resolveHeatmapMonthFromPeriod(period, now = new Date()) {
     const monthMatch = /^month-(\d+)$/.exec(period || '');
     if (monthMatch) {
         const mi = Math.min(11, Math.max(0, parseInt(monthMatch[1], 10)));
-        return { year: now.getFullYear(), monthIndex: mi };
+        return { year: getDashboardCivilYearFromDom(), monthIndex: mi };
     }
     if (period === 'current-year') {
         return { year: now.getFullYear(), monthIndex: now.getMonth() };

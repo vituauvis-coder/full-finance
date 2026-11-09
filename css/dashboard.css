@@ -35,7 +35,7 @@
 }
 .card-icon.balance { color: var(--primary-color); }
 .card-icon.income { color: var(--gains-accent); }
-.card-icon.expense { color: var(--danger-color); }
+.card-icon.expense { color: var(--expenses-accent); }
 .card-icon.savings { color: var(--warning-color); }
 .card-icon.cofrinhos,
 .card-icon.investments { color: var(--primary-color); }
@@ -53,11 +53,11 @@
     color: var(--text-light);
 }
 
-/* Variação % logo abaixo do valor principal (Saídas/Entradas) */
-.movements-summary .card-content .dashboard-card-scope {
+/* Variação % e hints no rodapé do card */
+.movements-summary .movement-summary-card__footer .dashboard-card-scope {
     display: block;
-    margin-top: 0.35rem;
-    min-height: 1.25rem;
+    margin-top: 0;
+    min-height: 0;
     line-height: 1.4;
 }
 
@@ -194,11 +194,53 @@
     margin-bottom: 1.75rem;
 }
 
-.movements-summary .card {
+.movements-summary .card,
+.movements-summary .movement-summary-card {
     background: var(--bg-light);
     border: 1px solid var(--border-color);
     padding: 1.25rem 1.5rem;
     box-shadow: none;
+    align-items: flex-start;
+    min-height: 7.25rem;
+}
+
+.movements-summary .card-content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.movements-summary .movement-summary-card__footer {
+    margin-top: auto;
+    min-height: 1.35rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 0.2rem;
+}
+
+.movements-summary .movement-summary-card__footer:empty {
+    min-height: 0;
+    margin-top: 0;
+}
+
+.movements-summary .wallet-kpi-progress {
+    margin-top: 0.35rem;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--border-color);
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.movements-summary .wallet-kpi-progress__fill {
+    display: block;
+    height: 100%;
+    width: 0%;
+    border-radius: inherit;
+    background: var(--expenses-accent);
+    transition: width 0.25s ease;
 }
 
 .movements-summary .card-icon {
@@ -213,12 +255,12 @@
 }
 
 .movements-summary .card-icon.expense {
-    background: rgba(239, 68, 68, 0.15);
-    color: var(--danger-color);
+    background: var(--expenses-icon-bg);
+    color: var(--expenses-accent);
 }
 
 .movements-summary .card-icon.income {
-    background: rgba(16, 185, 129, 0.12);
+    background: var(--gains-icon-bg);
     color: var(--gains-accent);
 }
 
@@ -278,7 +320,8 @@
     line-height: 1.2;
 }
 
-.movements-summary .card-content .dashboard-card-scope {
+.movements-summary .movement-summary-card__footer .dashboard-card-scope,
+.movements-summary .movement-summary-card__footer .card-metric-hint {
     color: var(--text-light);
     font-size: 0.75rem;
     font-weight: 500;
@@ -294,7 +337,7 @@
 }
 
 .movements-summary .summary-mom-pct.negative {
-    color: #f87171;
+    color: var(--expenses-accent);
 }
 
 .card-metric-hint {
@@ -304,6 +347,11 @@
     color: var(--text-light);
     margin-top: 0.35rem;
     line-height: 1.35;
+}
+
+.movements-summary .movement-summary-card__footer .card-metric-hint {
+    margin-top: 0;
+    font-size: 0.75rem;
 }
 
 /* Ícones dos cards de resumo: descrição no hover via portal-tooltip.js */
@@ -375,11 +423,30 @@
 #expenses-table,
 #gains-table,
 #debt-updates-table,
-#cofrinhos-applications-table {
+#cofrinhos-applications-table,
+#card-purchases-table {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
     table-layout: auto;
+}
+
+#expenses-table .movement-td-compact,
+#gains-table .movement-td-compact {
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+#expenses-table td.expenses-td-description,
+#gains-table td.gains-td-description {
+    min-width: 10rem;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.4;
+}
+
+#gains-table td.gains-td-category {
+    white-space: nowrap;
 }
 
 #transactions-table th,
@@ -391,7 +458,9 @@
 #debt-updates-table th,
 #debt-updates-table td,
 #cofrinhos-applications-table th,
-#cofrinhos-applications-table td {
+#cofrinhos-applications-table td,
+#card-purchases-table th,
+#card-purchases-table td {
     padding: 0.875rem 1rem;
     text-align: left;
     border-bottom: 1px solid var(--border-color);
@@ -400,11 +469,18 @@
 
 /* Coluna de ações: regras ficam em `css/components.css` via `.transaction-actions__inner`. */
 
+#expenses-table tbody td,
+#gains-table tbody td,
+#card-purchases-table tbody td {
+    line-height: 1.35;
+}
+
 #expenses-table th,
 #gains-table th,
 #transactions-table th,
 #debt-updates-table th,
-#cofrinhos-applications-table th {
+#cofrinhos-applications-table th,
+#card-purchases-table th {
     font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -415,8 +491,57 @@
 
 #expenses-table tbody tr:hover,
 #gains-table tbody tr:hover,
-#cofrinhos-applications-table tbody tr:hover {
+#cofrinhos-applications-table tbody tr:hover,
+#card-purchases-table tbody tr:hover {
     background: var(--bg-color);
+}
+
+#card-purchases-table td.expenses-td-description {
+    min-width: 10rem;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.4;
+}
+
+#card-purchases-table th.expenses-th-installments,
+#card-purchases-table td.expenses-td-installments {
+    white-space: nowrap;
+}
+
+#card-purchases-table th:nth-child(5),
+#card-purchases-table td.card-purchases-td-amount {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+#card-purchases-table td.card-purchases-td-amount--pending {
+    color: var(--movement-expense-color);
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+#card-purchases-table td.card-purchases-td-amount--invoice {
+    color: var(--primary-color);
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+#card-purchases-table td.card-purchases-td-amount--settled {
+    color: var(--text-color);
+    font-weight: 600;
+    font-size: 0.9rem;
+    opacity: 0.88;
+}
+
+#card-purchases-table td.despesa.card-purchases-td-amount--pending {
+    color: var(--movement-expense-color);
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+#card-purchases-table td.expenses-td-status {
+    white-space: nowrap;
+    vertical-align: middle;
 }
 
 #cofrinhos-applications-table td.cofrinho {
@@ -446,7 +571,7 @@
 }
 
 #expenses-table td.despesa {
-    color: #f87171;
+    color: var(--movement-expense-color);
     font-weight: 700;
     font-size: 0.95rem;
 }
@@ -457,7 +582,7 @@
     font-size: 0.95rem;
 }
 
-/* Valor (#expenses 9.ª após checklist+Essencial+Status); #gains 7.ª após checklist */
+/* Valor (#expenses 9.ª após checklist+Parcelas+Essencial+Status); #gains 7.ª após checklist */
 #expenses-table th:nth-child(9),
 #expenses-table td:nth-child(9),
 #gains-table th:nth-child(7),
@@ -465,8 +590,147 @@
     text-align: right;
 }
 
-#expenses-table td:nth-child(9) {
+#gains-table th:nth-child(7),
+#gains-table td:nth-child(7).receita,
+#gains-table td.gains-td-amount {
+    width: 1%;
+    white-space: nowrap;
     vertical-align: middle;
+    padding-left: 0.45rem;
+    padding-right: 0.75rem;
+}
+
+#expenses-table th:nth-child(9),
+#expenses-table td:nth-child(9) {
+  width: 1%;
+  white-space: nowrap;
+  vertical-align: middle;
+  padding-left: 0.45rem;
+  padding-right: 0.75rem;
+}
+
+#expenses-table th.expenses-th-installments,
+#expenses-table td.expenses-td-installments,
+#card-purchases-table th.expenses-th-installments,
+#card-purchases-table td.expenses-td-installments {
+    white-space: nowrap;
+    text-align: center;
+    vertical-align: middle;
+    min-width: 7.25rem;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
+
+#expenses-table td.expenses-td-installments,
+#card-purchases-table td.expenses-td-installments {
+    font-size: 0.82rem;
+    font-weight: 500;
+    line-height: 1.2;
+    color: var(--text-color);
+    font-variant-numeric: tabular-nums;
+    padding-top: 0.55rem;
+    padding-bottom: 0.55rem;
+}
+
+#expenses-table .expenses-installment-stack,
+#card-purchases-table .expenses-installment-stack {
+    --exp-inst-pill-w: 6.85rem;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.15rem;
+    width: var(--exp-inst-pill-w);
+    max-width: 100%;
+    margin-inline: auto;
+}
+
+#expenses-table .expenses-installment-cell__label,
+#card-purchases-table .expenses-installment-cell__label {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 1.45rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    font-size: 0.82rem;
+    line-height: 1.2;
+    padding: 0.12rem 0.35rem;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    text-align: center;
+    white-space: nowrap;
+}
+
+#expenses-table .expenses-installment-cell__month-parcel,
+#card-purchases-table .expenses-installment-cell__month-parcel {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 0.62rem;
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: 0;
+    color: var(--text-light);
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#expenses-table .expenses-installment-cell__month-parcel--none {
+    font-weight: 500;
+    opacity: 0.75;
+}
+
+/* Ainda há parcelas → amarelo */
+#expenses-table .expenses-installment-cell--open .expenses-installment-cell__label {
+    color: #b45309;
+    background: color-mix(in srgb, var(--warning-color) 16%, transparent);
+    border-color: color-mix(in srgb, var(--warning-color) 38%, transparent);
+}
+
+#expenses-table .expenses-installment-cell--open .expenses-installment-cell__month-parcel {
+    color: color-mix(in srgb, var(--warning-color) 88%, var(--text-color));
+}
+
+[data-theme='dark'] #expenses-table .expenses-installment-cell--open .expenses-installment-cell__label {
+    color: #fbbf24;
+    background: color-mix(in srgb, var(--warning-color) 18%, transparent);
+    border-color: color-mix(in srgb, var(--warning-color) 42%, transparent);
+}
+
+[data-theme='dark'] #expenses-table .expenses-installment-cell--open .expenses-installment-cell__month-parcel {
+    color: #fbbf24;
+}
+
+/* Quitado no caixa → verde */
+#expenses-table .expenses-installment-cell--settled .expenses-installment-cell__label {
+    color: #15803d;
+    background: color-mix(in srgb, var(--gains-accent) 16%, transparent);
+    border-color: color-mix(in srgb, var(--gains-accent) 38%, transparent);
+    font-weight: 700;
+}
+
+#expenses-table .expenses-installment-cell--settled .expenses-installment-cell__month-parcel {
+    color: color-mix(in srgb, var(--gains-accent) 85%, var(--text-color));
+}
+
+[data-theme='dark'] #expenses-table .expenses-installment-cell--settled .expenses-installment-cell__label {
+    color: #4ade80;
+    background: color-mix(in srgb, var(--gains-accent) 18%, transparent);
+    border-color: color-mix(in srgb, var(--gains-accent) 42%, transparent);
+}
+
+[data-theme='dark'] #expenses-table .expenses-installment-cell--settled .expenses-installment-cell__month-parcel {
+    color: #4ade80;
+}
+
+#expenses-table .expenses-installment-cell--empty {
+    display: inline-block;
+    font-weight: 400;
+    font-size: 0.82rem;
+    color: var(--text-light);
+    opacity: 0.65;
 }
 
 /* Essencial (#expenses, 7.ª) — pílulas Sim/Não */
@@ -644,13 +908,14 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 2.4rem;
-    min-height: 2.35rem;
+    min-width: 1.75rem;
+    min-height: 1.75rem;
     margin: 0 auto;
-    padding: 0.35rem;
-    border-radius: 10px;
+    padding: 0.2rem;
+    border-radius: 8px;
     cursor: pointer;
     transition: background 0.15s ease;
+    vertical-align: middle;
 }
 
 #expenses-table label.expense-batch-row-hit:hover,
@@ -683,9 +948,27 @@
 #gains-table .gains-td-received {
     white-space: nowrap;
     width: 1%;
-    padding-top: 0.55rem;
-    padding-bottom: 0.55rem;
+    padding-left: 0.45rem;
+    padding-right: 0.45rem;
+    vertical-align: middle;
     text-align: center;
+}
+
+/* Status nas entradas: mesma «caixa» compacta das saídas */
+#gains-table .gains-td-received .expense-status-badge {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    line-height: 1.25;
+    padding: 0.22rem 0.44rem;
+    border-radius: 6px;
+    min-height: 1.42rem;
+    min-width: 2.95rem;
+    text-align: center;
+    vertical-align: middle;
 }
 
 #gains-table tr.gain-tr-expected-split td:nth-child(2) {
@@ -743,8 +1026,7 @@
 #expenses-table td.expenses-td-status {
     white-space: nowrap;
     width: 1%;
-    padding-top: 0.55rem;
-    padding-bottom: 0.55rem;
+    padding-right: 0.45rem;
     vertical-align: middle;
     text-align: center;
 }
@@ -753,6 +1035,9 @@
 #expenses-table .expense-fixed-pill,
 #expenses-table .expense-status-badge:not(.expense-status-badge--pay) {
     box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     font-size: 0.8rem;
     font-weight: 700;
     line-height: 1.25;
@@ -761,6 +1046,12 @@
     min-height: 1.42rem;
     min-width: 2.95rem;
     text-align: center;
+    vertical-align: middle;
+}
+
+#expenses-table button.expense-status-badge:not(.expense-status-badge--pay),
+#gains-table button.expense-status-badge:not(.expense-status-badge--pay) {
+    vertical-align: middle;
 }
 
 #expenses-table .expense-status-badge--pay {
@@ -1651,126 +1942,6 @@ button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='
     }
 }
 
-/* —— Painel: facetas de tipo de saída (multi-selecção) —— */
-#dashboard-page .dashboard-expense-facets-bar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.65rem 1rem;
-    margin: 0 0 1rem;
-    padding: 0 0.15rem;
-    box-sizing: border-box;
-}
-
-#dashboard-page .dashboard-expense-facets-bar__hint {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--text-light, #64748b);
-    white-space: nowrap;
-}
-
-#dashboard-page .dashboard-expense-facets-bar__chips {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.5rem 0.65rem;
-}
-
-#dashboard-page .dashboard-expense-facets-bar__group-label {
-    align-self: center;
-    margin-right: 0.15rem;
-}
-
-
-#dashboard-page .dashboard-expense-facet-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    padding: 0.5rem 0.85rem;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    background-color: transparent;
-    color: var(--text-light);
-    font-size: 0.82rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-    white-space: nowrap;
-}
-
-/* Entrada: verde suave por defeito; saída: vermelho suave por defeito */
-#dashboard-page .dashboard-expense-facet-btn[data-dashboard-flow="gains"]:not(.is-active) {
-    background-color: rgba(16, 185, 129, 0.06);
-    border-color: rgba(16, 185, 129, 0.22);
-    color: rgba(4, 120, 87, 0.82);
-}
-
-#dashboard-page .dashboard-expense-facet-btn[data-dashboard-flow="expenses"]:not(.is-active) {
-    background-color: rgba(225, 29, 72, 0.055);
-    border-color: rgba(225, 29, 72, 0.2);
-    color: rgba(190, 24, 93, 0.78);
-}
-
-#dashboard-page .dashboard-expense-facet-btn[data-dashboard-flow="gains"]:not(.is-active):hover {
-    background-color: rgba(16, 185, 129, 0.11);
-    border-color: rgba(16, 185, 129, 0.32);
-    color: rgba(5, 96, 70, 0.92);
-}
-
-#dashboard-page .dashboard-expense-facet-btn[data-dashboard-flow="expenses"]:not(.is-active):hover {
-    background-color: rgba(225, 29, 72, 0.095);
-    border-color: rgba(225, 29, 72, 0.32);
-    color: rgba(159, 18, 57, 0.9);
-}
-
-#dashboard-page .dashboard-expense-facet-btn[data-dashboard-flow="gains"].is-active {
-    background-color: rgba(16, 185, 129, 0.16);
-    border-color: rgba(16, 185, 129, 0.42);
-    color: #059669;
-}
-
-#dashboard-page .dashboard-expense-facet-btn[data-dashboard-flow="gains"].is-active:hover {
-    background-color: rgba(16, 185, 129, 0.22);
-    border-color: rgba(16, 185, 129, 0.52);
-    color: #047857;
-}
-
-#dashboard-page .dashboard-expense-facet-btn[data-dashboard-flow="expenses"].is-active {
-    background-color: rgba(225, 29, 72, 0.14);
-    border-color: rgba(225, 29, 72, 0.42);
-    color: #be123c;
-}
-
-#dashboard-page .dashboard-expense-facet-btn[data-dashboard-flow="expenses"].is-active:hover {
-    background-color: rgba(225, 29, 72, 0.2);
-    border-color: rgba(225, 29, 72, 0.55);
-    color: #9f1239;
-}
-
-#dashboard-page .dashboard-expense-facet-btn i {
-    font-size: 0.82rem;
-    opacity: 0.9;
-}
-
-#dashboard-page .dashboard-expense-facet-btn:hover i,
-#dashboard-page .dashboard-expense-facet-btn.is-active i {
-    color: inherit;
-    opacity: 1;
-}
-
-@media (max-width: 640px) {
-    #dashboard-page .dashboard-expense-facets-bar__chips {
-        width: 100%;
-    }
-
-    #dashboard-page .dashboard-expense-facet-btn {
-        flex: 1 1 calc(50% - 0.35rem);
-        justify-content: center;
-        padding: 0.45rem 0.6rem;
-        font-size: 0.78rem;
-    }
-}
-
 /* --- Heatmap de Caixa --- */
 .dashboard-cash-heatmap {
     /* Cinzas neutros (sem matiz azul/slate) só no heatmap */
@@ -1785,7 +1956,8 @@ button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='
     --heatmap-gain-accent: #10b981;
     /* Altura visível da lista de detalhes do dia (~8 linhas) */
     --heatmap-day-visible-rows: 8;
-    --heatmap-day-row-height: 2.15rem;
+    /* Item compacto: padding + título + meta (~2 linhas) */
+    --heatmap-day-row-height: 2.95rem;
     --heatmap-day-row-gap: 0.35rem;
 }
 
@@ -1808,13 +1980,13 @@ button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='
     .dashboard-cash-heatmap__layout {
         grid-template-columns: 2fr auto 1fr;
         gap: 0 1.25rem;
-        align-items: stretch;
+        align-items: start;
     }
 
     .dashboard-cash-heatmap__divider {
         width: 1px;
-        height: auto;
-        min-height: 100%;
+        align-self: stretch;
+        min-height: 12rem;
         margin: 0;
     }
 }
@@ -2044,33 +2216,16 @@ button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='
     flex-direction: column;
     min-width: 0;
     margin-top: 1rem;
+    overflow: visible;
+    max-height: none;
+}
+
+.cash-heatmap-day-panel__list-wrap--scroll-capped {
+    overflow: hidden;
     max-height: calc(
         var(--heatmap-day-row-height) * var(--heatmap-day-visible-rows) +
             var(--heatmap-day-row-gap) * (var(--heatmap-day-visible-rows) - 1)
     );
-}
-
-.cash-heatmap-day-panel__list-wrap::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 3rem;
-    pointer-events: none;
-    z-index: 1;
-    opacity: 0;
-    transition: opacity 0.28s ease;
-    background: linear-gradient(
-        to bottom,
-        transparent 0%,
-        color-mix(in srgb, var(--bg-light) 55%, transparent) 45%,
-        var(--bg-light) 100%
-    );
-}
-
-.cash-heatmap-day-panel__list-wrap--fade-bottom::after {
-    opacity: 1;
 }
 
 .cash-heatmap-day-panel__year {
@@ -2080,13 +2235,13 @@ button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='
 }
 
 .cash-heatmap-day-panel__list {
+    position: relative;
     list-style: none;
     margin: 0;
     padding: 0 0 0.35rem;
-    flex: 1;
-    min-height: 0;
+    flex: none;
     overflow-x: hidden;
-    overflow-y: auto;
+    overflow-y: visible;
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
@@ -2096,7 +2251,36 @@ button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='
     scrollbar-color: color-mix(in srgb, var(--text-light) 35%, transparent) transparent;
 }
 
-.cash-heatmap-day-panel__list::-webkit-scrollbar {
+.cash-heatmap-day-panel__list::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1.75rem;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 0.28s ease;
+    background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        color-mix(in srgb, var(--card-bg, var(--bg-light)) 50%, transparent) 50%,
+        var(--card-bg, var(--bg-light)) 100%
+    );
+}
+
+.cash-heatmap-day-panel__list-wrap--scroll-capped .cash-heatmap-day-panel__list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.cash-heatmap-day-panel__list--fade-bottom::after {
+    opacity: 1;
+}
+
+.cash-heatmap-day-panel__list-wrap--scroll-capped .cash-heatmap-day-panel__list::-webkit-scrollbar {
     width: 6px;
 }
 
@@ -2199,10 +2383,9 @@ button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='
 
 .cash-heatmap-day-panel__empty {
     text-align: center;
-    padding: 1.5rem 0.75rem;
+    padding: 1.25rem 0.75rem;
     color: var(--text-light);
-    flex: 1;
-    min-height: 0;
+    flex: none;
     display: flex;
     flex-direction: column;
     align-items: center;

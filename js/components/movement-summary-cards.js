@@ -50,15 +50,14 @@ export function renderMovementSummaryCard(card) {
     const valueId = card.valueId || card.id;
     const iconAria = card.iconAriaHidden ? ' aria-hidden="true"' : '';
 
-    return `<div class="card">
+    const footerInner = [extraAfterValue, variationHtml, scopeHtml, hintHtml].filter(Boolean).join('');
+
+    return `<div class="card movement-summary-card">
             <div class="${iconClasses}" id="${escapeHtml(card.id)}-icon"${tooltipAttr}${iconAria}><i class="fas ${escapeHtml(card.icon)}" aria-hidden="true"></i></div>
             <div class="card-content">
                 <h3 id="${escapeHtml(titleId)}">${escapeHtml(card.title)}</h3>
                 <p id="${escapeHtml(valueId)}">—</p>
-                ${extraAfterValue}
-                ${variationHtml}
-                ${scopeHtml}
-                ${hintHtml}
+                <div class="movement-summary-card__footer" aria-hidden="false">${footerInner}</div>
             </div>
         </div>`;
 }

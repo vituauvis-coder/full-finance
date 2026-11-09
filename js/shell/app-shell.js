@@ -58,12 +58,12 @@ function applySidebarCollapsed(collapsed) {
     clearSidebarCollapseTabInlineStyles();
 }
 
-/** Aviso “em desenvolvimento” (Dívidas) — blur em tela cheia; dispensa até ao fim da sessão. */
+/** Aviso “em desenvolvimento” — blur em tela cheia; dispensa até ao fim da sessão (por página). */
 const FEATURE_PREVIEW_STORAGE = {
-    debts: 'ff_feature_preview_debts'
+    /* ex.: debts: 'ff_feature_preview_debts' */
 };
 
-const FEATURE_PREVIEW_PAGE_IDS = ['debts'];
+const FEATURE_PREVIEW_PAGE_IDS = [];
 
 function updateFeaturePreviewGlobal(pageId) {
     const el = document.getElementById('feature-preview-global');

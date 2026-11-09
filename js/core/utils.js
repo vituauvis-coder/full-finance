@@ -68,9 +68,53 @@ export function isPixBankAccountType(type) {
     return t === 'conta_corrente' || t === 'poupanca';
 }
 
-/** Conta é cartão (crédito ou débito) — exibido em Cartões, não na lista de Contas. */
+export const BANK_CARD_TYPES = new Set(['cartao_credito', 'cartao_debito']);
+export const BENEFIT_CARD_TYPES = new Set(['vale_alimentacao', 'vale_refeicao']);
+export const BENEFIT_INSTITUTION_TYPES = new Set(['alimentacao', 'refeicao']);
+
+/** Plástico de banco (crédito ou débito). */
+export function isBankCardType(type) {
+    return BANK_CARD_TYPES.has(String(type ?? ''));
+}
+
+/** Plástico de benefício (vale alimentação ou refeição). */
+export function isBenefitCardType(type) {
+    return BENEFIT_CARD_TYPES.has(String(type ?? ''));
+}
+
+/** Qualquer plástico vinculado a uma instituição na Carteira. */
 export function isCardAccountType(type) {
-    return type === 'cartao_credito' || type === 'cartao_debito';
+    return isBankCardType(type) || isBenefitCardType(type);
+}
+
+/** Instituição de vale (ex.: Alelo) — dois vales, sem crédito/débito. */
+export function isBenefitWalletInstitution(type) {
+    return BENEFIT_INSTITUTION_TYPES.has(String(type ?? ''));
+}
+
+/** Tipo persistido ao cadastrar um slot vazio de benefício. */
+export function benefitCardTypeForSlot(slot) {
+    return slot === 'meal' ? 'vale_refeicao' : 'vale_alimentacao';
+}
+
+/**
+ * Slot visual na Carteira para um plástico vinculado a uma instituição.
+ * @param {string} cardType
+ * @param {string} institutionType
+ * @returns {'credit'|'debit'|'food'|'meal'|null}
+ */
+export function walletPlasticSlotForCardType(cardType, institutionType) {
+    const t = String(cardType ?? '');
+    if (isBenefitWalletInstitution(institutionType)) {
+        if (t === 'vale_alimentacao') return 'food';
+        if (t === 'vale_refeicao') return 'meal';
+        if (t === 'cartao_credito') return 'food';
+        if (t === 'cartao_debito') return 'meal';
+        return null;
+    }
+    if (t === 'cartao_credito') return 'credit';
+    if (t === 'cartao_debito') return 'debit';
+    return null;
 }
 
 /**
@@ -82,10 +126,13 @@ export function movementAccountPaymentKindLabel(acc) {
     const t = String(acc.type ?? '');
     if (t === 'cartao_credito') return 'Crédito';
     if (t === 'cartao_debito') return 'Débito';
+    if (t === 'vale_alimentacao' || t === 'vale_refeicao') return 'Vale';
     if (t === 'conta_corrente' || t === 'poupanca') return 'PIX';
     if (t === 'dinheiro' || t === 'outros') return 'Débito';
+    if (t === 'alimentacao' || t === 'refeicao') return 'Vale';
     if (t === 'investimento') return '—';
-    if (isCardAccountType(t)) return 'Débito';
+    if (isBenefitCardType(t)) return 'Vale';
+    if (isBankCardType(t)) return 'Débito';
     return '—';
 }
 

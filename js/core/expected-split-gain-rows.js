@@ -115,12 +115,15 @@ export function buildSyntheticExpectedSplitGainsRows(
     expenses,
     accounts,
     outgoingSplitsRaw,
-    existingGains
+    existingGains,
+    civilYear
 ) {
     if (!period) return [];
     const incomeRows = existingGains || [];
     const outgoing = (outgoingSplitsRaw || []).filter((s) => isAcceptedSettledSplitRequest(s));
-    const months = getMonthKeysInPeriod(period, now);
+    const yearOpt =
+        civilYear != null && Number.isFinite(Number(civilYear)) ? { civilYear: Number(civilYear) } : {};
+    const months = getMonthKeysInPeriod(period, now, yearOpt);
     if (!months.length) return [];
 
     const out = [];

@@ -1,0 +1,180 @@
+/*
+ * Barra de ações do header (Painel, Entradas, Saídas, Planejamento, Carteira, Cofrinhos, Dívidas).
+ * Estrutura: .page-toolbar > .page-toolbar__cluster* + .page-toolbar__tools
+ */
+.app-header .header-right {
+    gap: 0.85rem;
+}
+
+.page-toolbar {
+    --pt-accent: var(--primary-color);
+    --pt-chip-active-bg: color-mix(in srgb, var(--pt-accent) 16%, transparent);
+    --pt-chip-active-color: var(--pt-accent);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 0.85rem 1rem;
+    min-width: 0;
+}
+
+.page-toolbar[data-toolbar-accent='expenses'],
+.page-toolbar__cluster[data-tone='expenses'] {
+    --pt-accent: var(--expenses-accent);
+    --pt-chip-active-bg: var(--expenses-bg-chip);
+    --pt-chip-active-color: var(--expenses-accent);
+}
+
+.page-toolbar[data-toolbar-accent='gains'],
+.page-toolbar__cluster[data-tone='gains'] {
+    --pt-accent: var(--gains-accent);
+    --pt-chip-active-bg: var(--gains-bg-chip);
+    --pt-chip-active-color: var(--gains-accent-strong);
+}
+
+.page-toolbar[data-toolbar-accent='zero-budget'] {
+    --pt-accent: #d97706;
+}
+
+.page-toolbar[data-toolbar-accent='wallet'] {
+    --pt-accent: #2563eb;
+}
+
+.page-toolbar[data-toolbar-accent='cofrinhos'] {
+    --pt-accent: var(--cofrinhos-accent, #0ea5e9);
+}
+
+.page-toolbar[data-toolbar-accent='debts'] {
+    --pt-accent: var(--debts-accent, #f43f5e);
+}
+
+.page-toolbar__clusters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.55rem;
+    min-width: 0;
+}
+
+.page-toolbar__cluster {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.22rem;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--bg-color) 72%, var(--bg-light));
+    border: 1px solid color-mix(in srgb, var(--border-color) 85%, transparent);
+}
+
+.page-toolbar__chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.05rem;
+    padding: 0.35rem 0.78rem;
+    border: none;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--text-light);
+    font-size: 0.84rem;
+    font-weight: 650;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+        background-color 0.15s ease,
+        color 0.15s ease;
+}
+
+.page-toolbar__chip:hover {
+    color: var(--text-color);
+    background: color-mix(in srgb, var(--text-color) 6%, transparent);
+}
+
+.page-toolbar__cluster[data-tone] .page-toolbar__chip.is-active,
+.page-toolbar__cluster[data-tone] .page-toolbar__chip[aria-pressed='true'],
+.page-toolbar__cluster[data-tone] .page-toolbar__chip.active {
+    background: var(--pt-chip-active-bg);
+    color: var(--pt-chip-active-color);
+}
+
+.page-toolbar__tools {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-shrink: 0;
+}
+
+.page-toolbar__icon,
+.page-toolbar .header-action-btn--icon {
+    width: 2.5rem;
+    min-width: 2.5rem;
+    height: 2.5rem;
+    min-height: 2.5rem;
+    padding: 0;
+    border-radius: 12px;
+}
+
+.app-header .header-btn {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 12px;
+}
+
+.page-toolbar__cta.header-action-btn,
+.page-toolbar .btn-primary.header-action-btn {
+    min-height: 2.5rem;
+    padding: 0.45rem 1rem;
+    border-radius: 12px;
+    gap: 0.45rem;
+    font-size: 0.88rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.page-toolbar .btn-primary.header-action-btn {
+    background-color: var(--pt-accent);
+    border-color: var(--pt-accent);
+    color: #fff;
+}
+
+.page-toolbar .btn-primary.header-action-btn:hover {
+    filter: brightness(1.08);
+}
+
+[data-theme='dark'] .page-toolbar__cluster {
+    background: color-mix(in srgb, #fff 4%, var(--bg-color));
+    border-color: color-mix(in srgb, #fff 8%, var(--border-color));
+}
+
+[data-theme='dark'] .page-toolbar__chip:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+@media (max-width: 1100px) {
+    .page-toolbar__chip {
+        padding: 0.32rem 0.62rem;
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 860px) {
+    .page-toolbar {
+        justify-content: flex-start;
+        gap: 0.65rem 0.75rem;
+    }
+}
+
+/* Ganha das regras antigas por id em layout.css */
+#expenses-header-actions .page-toolbar__chip,
+#gains-header-actions .page-toolbar__chip,
+#dashboard-header-actions .page-toolbar__chip {
+    min-height: 2.05rem;
+    padding: 0.35rem 0.78rem;
+    border-radius: 9px;
+    font-size: 0.84rem;
+    gap: 0;
+}

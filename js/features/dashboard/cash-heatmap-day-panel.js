@@ -45,8 +45,6 @@ export function renderCashHeatmapDayPanel(root, { year, monthIndex, selectedDay,
         </header>
         <div class="cash-heatmap-day-panel__list-wrap">${listHtml}</div>`;
 
-    bindDayPanelListFade(root);
-
     const lis = root.querySelectorAll('.cash-heatmap-day-item');
     items.forEach((it, i) => {
         const li = lis[i];
@@ -64,6 +62,8 @@ export function renderCashHeatmapDayPanel(root, { year, monthIndex, selectedDay,
             `cash-heatmap-day-item__amount--${itemTone(it)}`
         );
     });
+
+    bindDayPanelListFade(root);
 }
 
 const dayPanelFadeCleanups = new WeakMap();
@@ -76,14 +76,31 @@ function bindDayPanelListFade(root) {
     const wrap = root.querySelector('.cash-heatmap-day-panel__list-wrap');
     const list = wrap?.querySelector('.cash-heatmap-day-panel__list');
     if (!wrap || !list) {
-        wrap?.classList.remove('cash-heatmap-day-panel__list-wrap--fade-bottom');
+        wrap?.classList.remove('cash-heatmap-day-panel__list-wrap--scroll-capped');
+        list?.classList.remove('cash-heatmap-day-panel__list--fade-bottom');
         return;
     }
 
+    const listScrollCapPx = () => {
+        const heatmap = wrap.closest('.dashboard-cash-heatmap');
+        const cs = getComputedStyle(heatmap || document.documentElement);
+        const rowH = parseFloat(cs.getPropertyValue('--heatmap-day-row-height')) || 2.95;
+        const gap = parseFloat(cs.getPropertyValue('--heatmap-day-row-gap')) || 0.35;
+        const rows = parseInt(cs.getPropertyValue('--heatmap-day-visible-rows'), 10) || 8;
+        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+        return (rowH * rows + gap * Math.max(0, rows - 1)) * rem;
+    };
+
     const sync = () => {
-        const overflow = list.scrollHeight > list.clientHeight + 2;
-        const atBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 6;
-        wrap.classList.toggle('cash-heatmap-day-panel__list-wrap--fade-bottom', overflow && !atBottom);
+        const capPx = listScrollCapPx();
+        const needsCap = list.scrollHeight > capPx + 4;
+        wrap.classList.toggle('cash-heatmap-day-panel__list-wrap--scroll-capped', needsCap);
+        if (!needsCap) {
+            list.classList.remove('cash-heatmap-day-panel__list--fade-bottom');
+            return;
+        }
+        const atBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 12;
+        list.classList.toggle('cash-heatmap-day-panel__list--fade-bottom', !atBottom);
     };
 
     list.addEventListener('scroll', sync, { passive: true });
@@ -92,6 +109,10 @@ function bindDayPanelListFade(root) {
     ro?.observe(wrap);
     window.addEventListener('resize', sync);
     sync();
+    requestAnimationFrame(() => {
+        sync();
+        requestAnimationFrame(sync);
+    });
 
     dayPanelFadeCleanups.set(root, () => {
         list.removeEventListener('scroll', sync);

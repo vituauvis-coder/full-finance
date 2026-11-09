@@ -10,12 +10,14 @@ import {
     formatInstallmentRemainingSummaryHtml,
     formatInstallmentStatusPlain,
     getInstallmentDueDates,
-    getCreditInstallmentIndexDueInMonthKey,
     getInstallmentState,
+    getCreditInstallmentIndexDueInMonthKey,
+    getCurrentMonthInstallmentMeta,
     getExpensePerInstallmentDisplayAmount,
     getLoanInstallmentDueDates,
     isCreditInstallmentFullyPaid,
     isInstallmentDuePaidForCashOut,
+    startOfDay,
     isLoanExpense,
     isMonthlyFixedCashAccountExpense,
     loanInstallmentCashOutForCalendarMonth,
@@ -29,8 +31,13 @@ import {
     expenseCountsAsCashOut,
     formatCurrency,
     getBillingCycle,
+    benefitCardTypeForSlot,
+    isBenefitCardType,
+    isBenefitWalletInstitution,
+    isBankCardType,
     isCardAccountType,
     isCreditCardType,
+    walletPlasticSlotForCardType,
     movementAccountPaymentKindLabel,
     movementDateToJsDate,
     movementDateToUnixSeconds
@@ -59,13 +66,24 @@ import {
 } from '../../core/movement-summary-copy.js';
 import { setSummaryCardTooltip, setSummaryCardTitle } from '../../components/movement-summary-cards.js';
 import {
+    CIVIL_MONTH_CHIP_NAMES,
+    getDefaultCivilYear,
     getDefaultPeriodValue,
     getMonthKeysInPeriod,
     getPeriodDateBounds,
     getPeriodTitleParts,
     isDefaultPeriodValue,
+    isMovementListDefaultMonthAndYear,
+    registerExpensesPeriodTimelineRefresh,
+    registerGainsPeriodTimelineRefresh,
     syncPeriodFilterSelectsToCurrentMonth
 } from '../../core/period-filters.js';
+import {
+    bindCivilPeriodTimeline,
+    queryCivilPeriodTimelineRoot,
+    refreshCivilPeriodTimeline,
+    syncCivilPeriodYearToDom
+} from '../../components/civil-period-timeline.js';
 import { buildSyntheticExpectedSplitGainsRows } from '../../core/expected-split-gain-rows.js';
 import {
     buildTreemapBlocksForDisplay,
@@ -73,6 +91,19 @@ import {
     renderSpendingTreemapHost
 } from '../../components/spending-treemap.js';
 import { populateExpenseCategorySelect, populateExpenseSubcategorySelect, setupExpenseCategoryUi, getSubcategoriesForCategory } from './expense-categories.js';
+import { buildWalletAccountCardsHtml } from './wallet-plastic.js';
+import {
+    buildPlasticInlineStyle,
+    buildStripInlineStyle,
+    defaultColorsForThemeClass,
+    fillAppearanceFormFromAccount,
+    readAppearancePayloadFromForm,
+    refreshPlasticPreview,
+    initAccountPlasticColorUi,
+    resolvePlasticColors,
+    syncAppearancePanelVisibility,
+    writeColorsToForm
+} from './account-plastic-appearance.js';
 import {
     populateGainCategorySelect,
     populateGainSubcategorySelect,
@@ -96,7 +127,8 @@ import {
     acceptExpenseSplitRequest,
     rejectExpenseSplitRequest,
     cancelExpenseSplitRequest,
-    fetchUsersForSplit
+    fetchUsersForSplit,
+    fetchUsersForAccountHolder
 } from '../../services/firestore.js';
 import { TablePaginationController } from '../../shared/table-pagination.js';
 import {
@@ -214,19 +246,32 @@ function buildExpenseInstallmentRowRecBadgeSpan(t) {
     return `<span class="gain-recurrence-badge" title="${htmlAttrEscape(title)}">↻</span>`;
 }
 
-function truncateDisplayHtml(text, max) {
-    const raw = String(text ?? '');
-    if (raw.length <= max) return escapeHtml(raw);
-    return `${escapeHtml(raw.slice(0, Math.max(0, max - 1)))}…`;
+/** Descrição na tabela — sem sufixo de parcela nem prefixo duplicado de divisão. */
+function expenseDescriptionForTableDisplay(raw) {
+    let s = String(raw ?? '').trim();
+    if (!s) return '';
+    s = s.replace(/\s*\(\d+\s+de\s+\d+\)\s*$/iu, '');
+    s = s.replace(/\s*·\s*Parcela\s+\d+\s*(?:\/|de)\s*\d+\s*$/iu, '');
+    s = s.replace(/^(?:Divis[aã]o\s+—\s+)+/iu, 'Divisão — ');
+    return s.trim();
 }
 
-/** Texto encurtado para células de tabela com tooltip do conteúdo completo. */
-const TABLE_CELL_TRUNCATE_LIMIT = 40;
-function buildTruncatedTableCellHtml(text, max = TABLE_CELL_TRUNCATE_LIMIT) {
-    const raw = String(text ?? '');
-    if (raw.length <= max) return escapeHtml(raw);
-    const cut = `${raw.slice(0, max).trimEnd()}...`;
-    return `<span class="table-cell-truncate" title="${htmlAttrEscape(raw)}">${escapeHtml(cut)}</span>`;
+/** Descrição em tabelas: texto integral; a coluna cresce com o conteúdo (sem corte artificial). */
+function buildTableDescriptionCellHtml(text, { prepare } = {}) {
+    let raw = String(text ?? '').trim();
+    if (prepare === 'expense') raw = expenseDescriptionForTableDisplay(raw);
+    if (!raw) return '';
+    return escapeHtml(raw);
+}
+
+function movementDescriptionCellTitleAttr(text, { prepare } = {}) {
+    let raw = String(text ?? '').trim();
+    if (prepare === 'expense') raw = expenseDescriptionForTableDisplay(raw);
+    return raw ? ` title="${htmlAttrEscape(raw)}"` : '';
+}
+
+function buildExpenseDescriptionCellHtml(text) {
+    return buildTableDescriptionCellHtml(text, { prepare: 'expense' });
 }
 
 /** Chaves YYYY-MM-DD das parcelas marcadas como pagas no formulário (empréstimo ou cartão parcelado). */
@@ -340,6 +385,8 @@ let cardPurchasesPagination = null;
 let cardPurchasesCache = { sorted: [], currency: 'BRL', userProfile: null };
 /** Texto do filtro do modal de compras (sincronizado com o input). */
 let cardPurchasesFilterQ = '';
+/** @type {'cycle'|'month'|'open'|'all'} */
+let cardPurchasesScope = 'cycle';
 
 const expensesFilterState = {
     q: '',
@@ -354,8 +401,158 @@ const expensesFilterState = {
     dateFrom: '',
     dateTo: '',
     accountId: '',
-    period: getDefaultPeriodValue()
+    period: getDefaultPeriodValue(),
+    civilYear: getDefaultCivilYear()
 };
+
+function getExpensesCivilYearFromDom() {
+    const el = document.getElementById('expenses-period-year');
+    const y = parseInt(String(el?.value ?? '').trim(), 10);
+    return Number.isFinite(y) && y >= 1970 && y <= 2100 ? y : getDefaultCivilYear();
+}
+
+function expensesTimelineRoot() {
+    return queryCivilPeriodTimelineRoot('expenses-page');
+}
+
+function setExpensesCivilYearInDom(year) {
+    const y = syncCivilPeriodYearToDom(expensesTimelineRoot(), 'expenses-period-year', year);
+    expensesFilterState.civilYear = y;
+}
+
+function applyExpensesCivilYearDelta(delta) {
+    const next = getExpensesCivilYearFromDom() + delta;
+    if (next < 1970 || next > 2100) return;
+    setExpensesCivilYearInDom(next);
+    expensesFilterState.civilYear = next;
+    const df = document.getElementById('expenses-filter-date-from');
+    const dt = document.getElementById('expenses-filter-date-to');
+    if (df) df.dataset.manual = '0';
+    if (dt) dt.dataset.manual = '0';
+    syncDrawerDateInputsToPeriod('expenses-filter', getExpensesPeriodFromDom(), next);
+    renderExpensesPeriodTimeline();
+    applyExpensesFilters();
+}
+
+function getExpensesPeriodFromDom() {
+    const el = document.getElementById('expenses-period-filter');
+    const v = el?.value?.trim();
+    if (v && /^month-\d+$/.test(v)) return v;
+    return getDefaultPeriodValue();
+}
+
+function setExpensesPeriodInDom(period) {
+    const el = document.getElementById('expenses-period-filter');
+    if (el) el.value = period || getDefaultPeriodValue();
+    renderExpensesPeriodTimeline();
+}
+
+function renderExpensesPeriodTimeline() {
+    const root = expensesTimelineRoot();
+    const year = getExpensesCivilYearFromDom();
+    syncCivilPeriodYearToDom(root, 'expenses-period-year', year);
+    refreshCivilPeriodTimeline(root, { period: getExpensesPeriodFromDom(), year });
+}
+
+let initExpensesTimelineOnceRan = false;
+
+function initExpensesPeriodTimelineOnce() {
+    if (initExpensesTimelineOnceRan) return;
+    const page = document.getElementById('expenses-page');
+    if (!page) return;
+    initExpensesTimelineOnceRan = true;
+    registerExpensesPeriodTimelineRefresh(renderExpensesPeriodTimeline);
+    const root = expensesTimelineRoot();
+    if (root) {
+        bindCivilPeriodTimeline(root, page, {
+            onYearDelta: (delta) => applyExpensesCivilYearDelta(delta),
+            onMonthSelect: (_mi, period) => {
+                setExpensesPeriodInDom(period);
+                const df = document.getElementById('expenses-filter-date-from');
+                const dt = document.getElementById('expenses-filter-date-to');
+                if (df) df.dataset.manual = '0';
+                if (dt) dt.dataset.manual = '0';
+                syncDrawerDateInputsToPeriod('expenses-filter', period, getExpensesCivilYearFromDom());
+                applyExpensesFilters();
+            }
+        });
+    }
+}
+
+function getGainsCivilYearFromDom() {
+    const el = document.getElementById('gains-period-year');
+    const y = parseInt(String(el?.value ?? '').trim(), 10);
+    return Number.isFinite(y) && y >= 1970 && y <= 2100 ? y : getDefaultCivilYear();
+}
+
+function gainsTimelineRoot() {
+    return queryCivilPeriodTimelineRoot('gains-page');
+}
+
+function setGainsCivilYearInDom(year) {
+    const y = syncCivilPeriodYearToDom(gainsTimelineRoot(), 'gains-period-year', year);
+    gainsFilterState.civilYear = y;
+}
+
+function applyGainsCivilYearDelta(delta) {
+    const next = getGainsCivilYearFromDom() + delta;
+    if (next < 1970 || next > 2100) return;
+    setGainsCivilYearInDom(next);
+    gainsFilterState.civilYear = next;
+    const df = document.getElementById('gains-filter-date-from');
+    const dt = document.getElementById('gains-filter-date-to');
+    if (df) df.dataset.manual = '0';
+    if (dt) dt.dataset.manual = '0';
+    syncDrawerDateInputsToPeriod('gains-filter', getGainsPeriodFromDom(), next);
+    renderGainsPeriodTimeline();
+    applyGainsFilters();
+}
+
+function getGainsPeriodFromDom() {
+    const el = document.getElementById('gains-period-filter');
+    const v = el?.value?.trim();
+    if (v && /^month-\d+$/.test(v)) return v;
+    return getDefaultPeriodValue();
+}
+
+function setGainsPeriodInDom(period) {
+    const el = document.getElementById('gains-period-filter');
+    if (el) el.value = period || getDefaultPeriodValue();
+    renderGainsPeriodTimeline();
+}
+
+function renderGainsPeriodTimeline() {
+    const root = gainsTimelineRoot();
+    const year = getGainsCivilYearFromDom();
+    syncCivilPeriodYearToDom(root, 'gains-period-year', year);
+    refreshCivilPeriodTimeline(root, { period: getGainsPeriodFromDom(), year });
+}
+
+let initGainsTimelineOnceRan = false;
+
+function initGainsPeriodTimelineOnce() {
+    if (initGainsTimelineOnceRan) return;
+    const page = document.getElementById('gains-page');
+    if (!page) return;
+    initGainsTimelineOnceRan = true;
+    registerGainsPeriodTimelineRefresh(renderGainsPeriodTimeline);
+    const root = gainsTimelineRoot();
+    if (root) {
+        bindCivilPeriodTimeline(root, page, {
+            onYearDelta: (delta) => applyGainsCivilYearDelta(delta),
+            onMonthSelect: (_mi, period) => {
+                setGainsPeriodInDom(period);
+                const df = document.getElementById('gains-filter-date-from');
+                const dt = document.getElementById('gains-filter-date-to');
+                if (df) df.dataset.manual = '0';
+                if (dt) dt.dataset.manual = '0';
+                syncDrawerDateInputsToPeriod('gains-filter', period, getGainsCivilYearFromDom());
+                applyGainsFilters();
+            }
+        });
+    }
+}
+
 const gainsFilterState = {
     q: '',
     category: '',
@@ -368,7 +565,8 @@ const gainsFilterState = {
     dateFrom: '',
     dateTo: '',
     accountId: '',
-    period: getDefaultPeriodValue()
+    period: getDefaultPeriodValue(),
+    civilYear: getDefaultCivilYear()
 };
 
 /** Persistência das tags de status (Saídas / Entradas), alinhada ao painel. */
@@ -442,13 +640,14 @@ function persistPortalGainPaymentStatusToStorage() {
 }
 
 /** Mesmos intervalos do relatório por período — lista de saídas/entradas. */
-function getMovementListPeriodBounds(period) {
-    return getPeriodDateBounds(period || getDefaultPeriodValue(), new Date());
+function getMovementListPeriodBounds(period, civilYear) {
+    const y = civilYear ?? getDefaultCivilYear();
+    return getPeriodDateBounds(period || getDefaultPeriodValue(), new Date(), { civilYear: y });
 }
 
-function movementDateInListPeriod(dateField, period) {
+function movementDateInListPeriod(dateField, period, civilYear) {
     const p = period || getDefaultPeriodValue();
-    const { startDate, endDate } = getMovementListPeriodBounds(p);
+    const { startDate, endDate } = getMovementListPeriodBounds(p, civilYear);
     const transactionDate = movementDateToJsDate(dateField);
     return transactionDate >= startDate && transactionDate <= endDate;
 }
@@ -459,9 +658,9 @@ function movementDateInListPeriod(dateField, period) {
  *   (ex.: compra 19/04 em 10x com 1ª parcela em maio não aparece em «abril»).
  * — Demais: data do lançamento no intervalo OU (empréstimo parcelado) vencimento no intervalo.
  */
-function expenseMatchesListPeriod(t, period) {
+function expenseMatchesListPeriod(t, period, civilYear = expensesFilterState.civilYear) {
     const n = Math.max(1, parseInt(String(t.installmentCount ?? '1'), 10) || 1);
-    const { startDate, endDate } = getMovementListPeriodBounds(period);
+    const { startDate, endDate } = getMovementListPeriodBounds(period, civilYear);
     const acc = userAccounts?.find((a) => a.id === t.accountId);
     const purchase = movementDateToJsDate(t.date);
     if (Number.isNaN(purchase.getTime())) return false;
@@ -473,10 +672,10 @@ function expenseMatchesListPeriod(t, period) {
         if (dueDates.length > 0) {
             return dueDates.some((d) => d >= startDate && d <= endDate);
         }
-        return movementDateInListPeriod(t.date, period);
+        return movementDateInListPeriod(t.date, period, civilYear);
     }
 
-    if (movementDateInListPeriod(t.date, period)) return true;
+    if (movementDateInListPeriod(t.date, period, civilYear)) return true;
 
     if (!acc) return false;
 
@@ -492,13 +691,16 @@ function expenseMatchesListPeriod(t, period) {
 /** Intervalo do filtro «Período» da lista de despesas — usado para mostrar só parcelas desse recorte. */
 function getExpensesFilterListPeriod() {
     const period = expensesFilterState.period || getDefaultPeriodValue();
-    const { startDate, endDate } = getMovementListPeriodBounds(period);
+    const { startDate, endDate } = getMovementListPeriodBounds(period, expensesFilterState.civilYear);
     return { startDate, endDate };
 }
 
 /** Só no mês civil atual (filtro padrão month-N = hoje): anel + tooltip com a parcela do mês. */
 function isExpensesInstallmentMonthRingMode() {
-    return isDefaultPeriodValue(expensesFilterState.period || getDefaultPeriodValue());
+    return isMovementListDefaultMonthAndYear(
+        expensesFilterState.period || getDefaultPeriodValue(),
+        expensesFilterState.civilYear
+    );
 }
 
 /**
@@ -574,16 +776,132 @@ function expandInstallmentRowsForExpensesTable(list, accounts, userProfile) {
     return out;
 }
 
-/** Na lista de saídas: sufixo « (4 de 12) » para compras parceladas no cartão (`installmentCount` ≥ 2). */
-function expenseCreditInstallmentBracketSuffix(t, account, userProfile, now, listPeriod) {
-    if (!t || !account || !isCreditCardType(account.type)) return '';
-    const nTotal = Math.max(1, parseInt(String(t.installmentCount ?? '1'), 10) || 1);
-    if (nTotal < 2) return '';
-    const dues = getDueDatesForExpenseListPeriod(t, account, now, userProfile, listPeriod);
-    if (!dues.length) return '';
-    const idx = getParcelNumberInFullSchedule(t, account, dues[0], now, userProfile);
-    if (!idx) return '';
-    return ` (${idx} de ${nTotal})`;
+/**
+ * Parcela visível no mês/período do filtro (ou da linha expandida).
+ * @returns {{ index: number, total: number, paid: boolean, scope: 'row'|'period' } | null}
+ */
+function resolveExpenseInstallmentMonthParcel(t, account, userProfile, now, listPeriod) {
+    if (t.__instRow) {
+        const index = Number(t.__instParcelIndex);
+        const total = Number(t.__instParcelTotal);
+        if (!Number.isFinite(index) || index < 1) return null;
+        return {
+            index,
+            total: Number.isFinite(total) && total >= 2 ? total : null,
+            paid: !!t.__instParcelPaid,
+            scope: 'row'
+        };
+    }
+
+    let due = null;
+    if (listPeriod) {
+        const dues = getDueDatesForExpenseListPeriod(t, account, now, userProfile, listPeriod);
+        if (dues.length >= 1) due = dues[0];
+    } else {
+        const meta = getCurrentMonthInstallmentMeta(t, account, userProfile, now);
+        if (meta.hasCurrentMonth && meta.currentDue) due = meta.currentDue;
+    }
+    if (!due) return null;
+
+    const index = getParcelNumberInFullSchedule(t, account, due, now, userProfile);
+    if (!index) return null;
+    const total = Math.max(2, parseInt(String(t.installmentCount ?? '1'), 10) || 1);
+    const paid = isInstallmentDuePaidForCashOut(t, account, due, userProfile, now);
+    return { index, total, paid, scope: 'period' };
+}
+
+/**
+ * Coluna «Parcelas»: restantes no contrato + parcela do mês (linha de baixo).
+ * @returns {{ total: number, paidCount: number, remaining: number, allPaid: boolean, monthParcel?: object } | null}
+ */
+function getExpenseInstallmentLabelParts(t, account, userProfile, now, listPeriod) {
+    if (!t) return null;
+    if (t.__instRow && t.__instEmptyPeriod) return null;
+
+    const nField = Math.max(1, parseInt(String(t.installmentCount ?? t.__instParcelTotal ?? '1'), 10) || 1);
+    const nParc = parseInt(String(t.installmentCount ?? ''), 10);
+    const cardOrLoan =
+        (account && isCreditCardType(account.type) && Number.isFinite(nParc) && nParc >= 2) ||
+        (isLoanExpense(t) &&
+            (!account || !isCreditCardType(account.type)) &&
+            Number.isFinite(nParc) &&
+            nParc >= 2) ||
+        (Number.isFinite(nParc) && nParc >= 2);
+    if (!cardOrLoan && nField < 2) return null;
+
+    const st = getInstallmentState(t, account, now, userProfile);
+    if (!st.applies || st.total < 2) return null;
+
+    const monthParcel = resolveExpenseInstallmentMonthParcel(t, account, userProfile, now, listPeriod);
+
+    return {
+        total: st.total,
+        paidCount: st.paidCount,
+        remaining: st.remaining,
+        allPaid: !!st.allPaid,
+        monthParcel
+    };
+}
+
+function getExpenseInstallmentProgressTone(allPaid) {
+    return allPaid ? 'expenses-installment-cell--settled' : 'expenses-installment-cell--open';
+}
+
+function formatExpenseInstallmentCellHtml(parts) {
+    if (!parts || !Number.isFinite(parts.total) || parts.total < 2) {
+        return '<span class="expenses-installment-cell expenses-installment-cell--empty" aria-hidden="true">—</span>';
+    }
+    const total = parts.total;
+    const paidCount = Math.min(total, Math.max(0, Number(parts.paidCount) || 0));
+    const remaining = Math.max(
+        0,
+        Number.isFinite(parts.remaining) ? parts.remaining : Math.max(0, total - paidCount)
+    );
+    const allPaid = parts.allPaid || remaining === 0;
+    const label = allPaid ? 'Quitado' : remaining === 1 ? '1 restante' : `${remaining} restantes`;
+    const paidHint =
+        paidCount === 0
+            ? 'Nenhuma parcela confirmada no caixa'
+            : paidCount === 1
+              ? '1 parcela paga'
+              : `${paidCount} parcelas pagas`;
+    const remainHint = allPaid
+        ? 'Contrato quitado no caixa'
+        : remaining === 1
+          ? 'Falta 1 parcela'
+          : `Faltam ${remaining} parcelas`;
+
+    const mp = parts.monthParcel;
+    let monthLine = '';
+    let monthHint = '';
+    if (!allPaid && mp && Number.isFinite(mp.index)) {
+        const fracLong = mp.total ? `${mp.index} de ${mp.total}` : `${mp.index}ª`;
+        const paidNote = mp.paid ? ' (paga)' : '';
+        monthLine = mp.total ? `${mp.index}/${mp.total}` : `${mp.index}ª`;
+        monthHint =
+            mp.scope === 'row'
+                ? `Vencimento desta linha: parcela ${fracLong}${paidNote}`
+                : `Parcela com vencimento no período filtrado: ${fracLong}${paidNote}`;
+    } else if (!allPaid) {
+        monthLine = 'Sem venc.';
+        monthHint = 'Nenhum vencimento desta compra no mês do filtro';
+    }
+
+    const title = [paidHint + ` de ${total}`, remainHint, monthHint].filter(Boolean).join(' · ');
+    const tone = getExpenseInstallmentProgressTone(allPaid);
+    const tAttr = htmlAttrEscape(title);
+    const monthCls = [
+        'expenses-installment-cell__month-parcel',
+        !mp && !allPaid ? 'expenses-installment-cell__month-parcel--none' : ''
+    ]
+        .filter(Boolean)
+        .join(' ');
+    const monthHtml = monthLine
+        ? `<span class="${monthCls}">${escapeHtml(monthLine)}</span>`
+        : allPaid
+          ? ''
+          : `<span class="${monthCls}">—</span>`;
+    return `<span class="expenses-installment-stack ${tone}" title="${tAttr}" aria-label="${tAttr}"><span class="expenses-installment-cell__label">${escapeHtml(label)}</span>${monthHtml}</span>`;
 }
 
 let expensesFilterDebounce = null;
@@ -616,6 +934,107 @@ let financeUserProfile = null;
 
 /** Solicitações de rateio (incoming/outgoing) — espelho do AppState. */
 let userExpenseSplitRequests = { incoming: [], outgoing: [] };
+
+let accountHolderUsersCache = null;
+let accountHolderUsersLoadPromise = null;
+
+function buildSelfUserForHolderPicker() {
+    const id = currentUser?.uid;
+    if (!id) return null;
+    const prof = financeUserProfile;
+    return {
+        id,
+        name: (prof?.name && String(prof.name).trim()) || currentUser.displayName || '',
+        email: prof?.email || currentUser.email || ''
+    };
+}
+
+async function loadAccountHolderUsersList() {
+    try {
+        const data = await fetchUsersForAccountHolder();
+        const users = Array.isArray(data?.users) ? data.users : [];
+        if (users.length > 0) return users;
+    } catch (err) {
+        console.warn('GET /api/users/for-account-holder', err);
+    }
+    try {
+        const splitData = await fetchUsersForSplit();
+        const others = Array.isArray(splitData?.users) ? splitData.users : [];
+        const self = buildSelfUserForHolderPicker();
+        if (self?.id) {
+            const rest = others.filter((u) => u.id !== self.id);
+            return [self, ...rest];
+        }
+        return others;
+    } catch (err) {
+        console.error('Erro ao carregar usuários para titular', err);
+        const self = buildSelfUserForHolderPicker();
+        return self?.id ? [self] : [];
+    }
+}
+
+async function ensureAccountHolderUsersLoaded() {
+    if (accountHolderUsersCache) return accountHolderUsersCache;
+    if (!accountHolderUsersLoadPromise) {
+        accountHolderUsersLoadPromise = loadAccountHolderUsersList()
+            .then((users) => {
+                accountHolderUsersCache = users;
+                return accountHolderUsersCache;
+            })
+            .catch((err) => {
+                console.error('Erro ao carregar usuários para titular', err);
+                accountHolderUsersLoadPromise = null;
+                return [];
+            });
+    }
+    return accountHolderUsersLoadPromise;
+}
+
+function accountHolderDisplayLabel(acc) {
+    const fromUser =
+        acc?.holderUserName != null && String(acc.holderUserName).trim() !== ''
+            ? String(acc.holderUserName).trim()
+            : '';
+    const fromLegacy =
+        acc?.holderName != null && String(acc.holderName).trim() !== '' ? String(acc.holderName).trim() : '';
+    return fromUser || fromLegacy;
+}
+
+async function populateAccountHolderUserSelect(selectedUserId) {
+    const sel = document.getElementById('account-holder-user');
+    if (!sel) return;
+    if (accountHolderUsersCache && accountHolderUsersCache.length === 0) {
+        accountHolderUsersCache = null;
+        accountHolderUsersLoadPromise = null;
+    }
+    const prev = selectedUserId || sel.value;
+    sel.disabled = false;
+    sel.innerHTML = '<option value="">Carregando usuários…</option>';
+    const users = await ensureAccountHolderUsersLoaded();
+    if (users.length === 0) {
+        sel.innerHTML = '<option value="">Nenhum usuário encontrado — recarregue a página</option>';
+        sel.disabled = true;
+        return;
+    }
+    sel.disabled = false;
+    sel.innerHTML = '<option value="">Selecione o usuário titular</option>';
+    users.forEach((m) => {
+        const o = document.createElement('option');
+        o.value = m.id;
+        const name = m.name && String(m.name).trim() ? String(m.name).trim() : '';
+        o.textContent = name ? `${name} (${m.email || ''})` : m.email || m.id;
+        sel.appendChild(o);
+    });
+    const pick = prev || currentUser?.uid || users[0]?.id || '';
+    if (pick && users.some((u) => u.id === pick)) sel.value = pick;
+    else if (currentUser?.uid && users.some((u) => u.id === currentUser.uid)) sel.value = currentUser.uid;
+}
+
+function getAccountHolderUserIdFromForm(form) {
+    const sel = form?.['account-holder-user'] || document.getElementById('account-holder-user');
+    const v = (sel?.value || '').trim();
+    return v || currentUser?.uid || '';
+}
 
 function getOutgoingAcceptedSettledSplits() {
     return (userExpenseSplitRequests?.outgoing || []).filter((s) => isAcceptedSettledSplitRequest(s));
@@ -1273,6 +1692,17 @@ function getTodayDateInputValue() {
 /** HTML completo de `#account-type` (todas as contas); preenchido no init. */
 let cachedAccountTypeOptionsFull = '';
 
+/** Tipos válidos na Carteira (instituição + plásticos); não inclui cartões soltos nem dinheiro. */
+const WALLET_INSTITUTION_ACCOUNT_TYPES = new Set(['conta_corrente', 'investimento', 'alimentacao', 'refeicao']);
+/** Tipos antigos ainda exibidos na Carteira até o usuário mudar o tipo no editar. */
+const WALLET_INSTITUTION_LEGACY_TYPES = new Set(['poupanca', 'outros', 'dinheiro']);
+
+const WALLET_INSTITUTION_TYPE_OPTIONS = [
+    ['conta_corrente', 'Conta corrente'],
+    ['investimento', 'Investimento'],
+    ['alimentacao', 'Alimentação e refeição']
+];
+
 function cacheAccountTypeOptionsIfNeeded() {
     const sel = document.getElementById('account-type');
     if (sel && !cachedAccountTypeOptionsFull) {
@@ -1280,7 +1710,22 @@ function cacheAccountTypeOptionsIfNeeded() {
     }
 }
 
-/** No cadastro de cartão só Crédito / Débito; em contas normais, lista completa; na Carteira (wizard) só contas não-cartão. */
+function ensureAccountTypeOptionPresent(selectEl, type) {
+    if (!selectEl || !type) return;
+    if (Array.from(selectEl.options).some((o) => o.value === type)) return;
+    const opt = document.createElement('option');
+    opt.value = type;
+    opt.textContent = `${accountTypeDisplayLabel(type)} (atual)`;
+    selectEl.appendChild(opt);
+}
+
+function walletInstitutionTypeOptionsHtml() {
+    return WALLET_INSTITUTION_TYPE_OPTIONS.map(
+        ([value, label]) => `<option value="${value}">${label}</option>`
+    ).join('');
+}
+
+/** Carteira: instituição (corrente/poupança/…); cartão: só crédito/débito; Contas: lista completa. */
 function setAccountTypeSelectMode(mode) {
     cacheAccountTypeOptionsIfNeeded();
     const sel = document.getElementById('account-type');
@@ -1294,12 +1739,28 @@ function setAccountTypeSelectMode(mode) {
         `;
         if (typeLabel) typeLabel.textContent = 'Tipo de cartão';
         typeGroup?.classList.add('account-type-group--full-width');
+    } else if (mode === 'benefitCardsOnly') {
+        sel.innerHTML = `
+            <option value="vale_alimentacao">Vale alimentação</option>
+            <option value="vale_refeicao">Vale refeição</option>
+        `;
+        if (typeLabel) typeLabel.textContent = 'Tipo de vale';
+        typeGroup?.classList.add('account-type-group--full-width');
+    } else if (mode === 'walletInstitution') {
+        sel.innerHTML = walletInstitutionTypeOptionsHtml();
+        if (typeLabel) typeLabel.textContent = 'Tipo da conta bancária';
+        typeGroup?.classList.remove('account-type-group--full-width');
     } else if (mode === 'bankOnly') {
         const tmp = document.createElement('select');
         tmp.innerHTML = cachedAccountTypeOptionsFull;
         sel.innerHTML = '';
         Array.from(tmp.options).forEach((opt) => {
-            if (opt.value !== 'cartao_credito' && opt.value !== 'cartao_debito') {
+            if (
+                opt.value !== 'cartao_credito' &&
+                opt.value !== 'cartao_debito' &&
+                opt.value !== 'vale_alimentacao' &&
+                opt.value !== 'vale_refeicao'
+            ) {
                 sel.appendChild(opt.cloneNode(true));
             }
         });
@@ -1310,6 +1771,13 @@ function setAccountTypeSelectMode(mode) {
         if (typeLabel) typeLabel.textContent = 'Tipo';
         typeGroup?.classList.remove('account-type-group--full-width');
     }
+}
+
+function accountFormSelectModeFor(acc, context = 'general') {
+    if (isBenefitCardType(acc?.type)) return 'benefitCardsOnly';
+    if (isBankCardType(acc?.type)) return 'cardsOnly';
+    if (context === 'wallet') return 'walletInstitution';
+    return 'full';
 }
 
 export function initFinance(
@@ -1328,9 +1796,12 @@ export function initFinance(
         syncPeriodFilterSelectsToCurrentMonth();
         initFinance._didSyncPeriodFilters = true;
     }
+    initExpensesPeriodTimelineOnce();
+    initGainsPeriodTimelineOnce();
     cacheAccountTypeOptionsIfNeeded();
     setupExpenseCategoryUi();
     setupGainCategoryUi();
+    void ensureAccountHolderUsersLoaded();
 
     document.getElementById('add-expense-btn')?.addEventListener('click', () => openExpenseModal(false));
     document.getElementById('add-gain-btn')?.addEventListener('click', () => openGainModal(false));
@@ -1355,9 +1826,21 @@ export function initFinance(
     document.getElementById('card-purchases-modal')?.addEventListener('click', handleCardPurchasesModalActions);
     document.querySelector('#expenses-table tbody')?.addEventListener('click', handleExpenseRowActions);
     document.querySelector('#gains-table tbody')?.addEventListener('click', handleGainRowActions);
-    document.getElementById('account-type')?.addEventListener('change', (e) => toggleCreditCardFields(e.target.value));
+    document.getElementById('account-type')?.addEventListener('change', (e) => {
+        toggleCreditCardFields(e.target.value);
+        const wizardMode = document.getElementById('account-form-mode')?.value;
+        if (wizardMode === 'wallet_wizard') {
+            syncWalletWizardPanels();
+            updateWalletWizardCopy(e.target.value);
+        }
+    });
+    document.getElementById('card-linked-account')?.addEventListener('change', () => {
+        syncLinkedCardNameField(document.getElementById('account-form'));
+        refreshPlasticPreview(document.getElementById('account-form'));
+    });
     document.getElementById('wallet-wizard-add-credit')?.addEventListener('change', syncWalletWizardPanels);
     document.getElementById('wallet-wizard-add-debit')?.addEventListener('change', syncWalletWizardPanels);
+    initAccountAppearanceFormUi();
     document.getElementById('expense-payment-method')?.addEventListener('change', () => syncExpenseInstallmentsRow());
     document.getElementById('expense-installments')?.addEventListener('input', () => syncExpenseInstallmentsRow());
     document.getElementById('expense-date')?.addEventListener('change', () => syncExpenseInstallmentsRow());
@@ -1378,7 +1861,7 @@ export function initFinance(
         openBtnId: 'expenses-filter-open-btn',
         onOpen: () => {
             readExpensesFilterFromDom();
-            syncDrawerDateInputsToPeriod('expenses-filter', document.getElementById('expenses-period-filter')?.value);
+            syncDrawerDateInputsToPeriod('expenses-filter', getExpensesPeriodFromDom());
             populateExpenseFilterSelects();
             readExpensesFilterFromDom();
             syncRangeLabels('expenses-filter', expensesRenderCache.currency);
@@ -1389,7 +1872,7 @@ export function initFinance(
         openBtnId: 'gains-filter-open-btn',
         onOpen: () => {
             readGainsFilterFromDom();
-            syncDrawerDateInputsToPeriod('gains-filter', document.getElementById('gains-period-filter')?.value);
+            syncDrawerDateInputsToPeriod('gains-filter', getGainsPeriodFromDom());
             populateGainFilterSelects();
             readGainsFilterFromDom();
             syncRangeLabels('gains-filter', gainsRenderCache.currency);
@@ -1941,18 +2424,144 @@ function setNodeListDisabled(root, disabled) {
     });
 }
 
+function updateWalletWizardCopy(institutionType) {
+    const benefit = isBenefitWalletInstitution(institutionType);
+    const labelA = document.getElementById('wallet-wizard-label-slot-a');
+    const labelB = document.getElementById('wallet-wizard-label-slot-b');
+    if (labelA) {
+        labelA.textContent = benefit ? 'Adicionar vale alimentação' : 'Adicionar cartão de crédito';
+    }
+    if (labelB) {
+        labelB.textContent = benefit ? 'Adicionar vale refeição' : 'Adicionar cartão de débito';
+    }
+    const sub = document.getElementById('account-modal-subtitle');
+    if (sub && document.getElementById('account-form-mode')?.value === 'wallet_wizard') {
+        sub.textContent = benefit
+            ? 'Conta de benefício com vale alimentação e vale refeição na mesma instituição. Marque os dois abaixo.'
+            : 'Cada conta bancária inclui cartão de crédito e débito na mesma instituição. Preencha os dois blocos abaixo.';
+        sub.classList.remove('hidden');
+    }
+}
+
 function syncWalletWizardPanels() {
-    const creditOn = document.getElementById('wallet-wizard-add-credit')?.checked === true;
-    const debitOn = document.getElementById('wallet-wizard-add-debit')?.checked === true;
+    const instType = document.getElementById('account-form')?.['account-type']?.value || '';
+    const benefit = isBenefitWalletInstitution(instType);
+    updateWalletWizardCopy(instType);
+    const slotAOn = document.getElementById('wallet-wizard-add-credit')?.checked === true;
+    const slotBOn = document.getElementById('wallet-wizard-add-debit')?.checked === true;
     const creditPanel = document.getElementById('wallet-wizard-credit-fields');
     const debitPanel = document.getElementById('wallet-wizard-debit-fields');
-    creditPanel?.classList.toggle('hidden', !creditOn);
-    debitPanel?.classList.toggle('hidden', !debitOn);
-    setNodeListDisabled(creditPanel, !creditOn);
-    setNodeListDisabled(debitPanel, !debitOn);
+    debitPanel?.classList.add('hidden');
+    setNodeListDisabled(debitPanel, true);
+    const showCreditFields = !benefit && slotAOn;
+    creditPanel?.classList.toggle('hidden', !showCreditFields);
+    setNodeListDisabled(creditPanel, !showCreditFields);
+}
+
+function linkedBenefitSlotCards(institutionId, institutionType, accs) {
+    const food = [];
+    const meal = [];
+    for (const c of accs) {
+        if (c.linkedAccountId !== institutionId || !isCardAccountType(c.type)) continue;
+        const slot = walletPlasticSlotForCardType(c.type, institutionType);
+        if (slot === 'food') food.push(c);
+        else if (slot === 'meal') meal.push(c);
+    }
+    return { food, meal };
+}
+
+function initAccountAppearanceFormUi() {
+    const form = document.getElementById('account-form');
+    if (!form || form.dataset.appearanceBound === '1') return;
+    form.dataset.appearanceBound = '1';
+    initAccountPlasticColorUi(form, () => refreshPlasticPreview(form));
+}
+
+function bankInstitutionById(bankId) {
+    if (!bankId) return null;
+    return (userAccounts || []).find((a) => a.id === bankId && !isCardAccountType(a.type)) || null;
+}
+
+function resolveLinkedCardDisplayName(linkedAccountId, fallback = '') {
+    const bank = bankInstitutionById(linkedAccountId);
+    const name = bank?.name?.trim();
+    return name || fallback;
+}
+
+/** Cartão vinculado usa o nome da conta — não pedimos nome duplicado no formulário. */
+function syncLinkedCardNameField(form) {
+    if (!form) return;
+    const type = form['account-type']?.value || '';
+    const linked = (form['card-linked-account']?.value || '').trim();
+    const nameInput = form['account-name'];
+    const nameGroup = nameInput?.closest('.form-group');
+    const mirrorFromBank = isCardAccountType(type) && !!linked;
+    nameGroup?.classList.toggle('hidden', mirrorFromBank);
+    if (mirrorFromBank) {
+        const bankName = resolveLinkedCardDisplayName(linked, nameInput?.value || '');
+        if (nameInput && bankName) nameInput.value = bankName;
+    }
+    if (nameInput) nameInput.toggleAttribute('required', !mirrorFromBank);
+}
+
+function syncAccountFormSections() {
+    const form = document.getElementById('account-form');
+    if (!form) return;
+    const type = form['account-type']?.value || '';
+    const mode = document.getElementById('account-form-mode')?.value || '';
+    const editingId = form['account-id']?.value || '';
+    const isWizard = mode === 'wallet_wizard';
+    const isBank = !isCardAccountType(type);
+    const isCard = isCardAccountType(type);
+    const appearance = document.getElementById('account-appearance-block');
+    const showBankWalletPanel = !isWizard && isBank && Boolean(editingId);
+    const showAppearance = !isWizard && (showBankWalletPanel || isCard);
+    appearance?.classList.toggle('hidden', !showAppearance);
+    form.querySelector('.account-form__check')?.classList.toggle('hidden', isCard);
+    syncAppearancePanelVisibility(form);
+    syncLinkedCardNameField(form);
+}
+
+async function syncLinkedCardNamesToBankName(bankId, bankName) {
+    const trim = (bankName || '').trim();
+    if (!bankId || !trim) return;
+    const linked = (userAccounts || []).filter(
+        (a) => a.linkedAccountId === bankId && isCardAccountType(a.type)
+    );
+    const tasks = [];
+    for (const card of linked) {
+        if (card.name !== trim) {
+            tasks.push(
+                saveAccount({ ...card, name: trim, userId: currentUser.uid }, card.id, { skipUiSound: true })
+            );
+        }
+    }
+    if (tasks.length) await Promise.all(tasks);
+}
+
+async function applyAppearanceToLinkedCards(form, bankId, appearance) {
+    if (!form || !bankId || !appearance.plasticColor) return;
+    const linked = (userAccounts || []).filter(
+        (a) => a.linkedAccountId === bankId && isCardAccountType(a.type)
+    );
+    for (const c of linked) {
+        await saveAccount(
+            {
+                userId: currentUser.uid,
+                name: c.name,
+                type: c.type,
+                linkedAccountId: c.linkedAccountId,
+                plasticTone: appearance.plasticTone,
+                plasticColor: appearance.plasticColor
+            },
+            c.id,
+            { skipUiSound: true }
+        );
+    }
 }
 
 function hideWalletWizardUi() {
+    clearPlasticLinkInstitutionField();
     const modeEl = document.getElementById('account-form-mode');
     if (modeEl) modeEl.value = '';
     const block = document.getElementById('wallet-wizard-block');
@@ -1981,18 +2590,42 @@ function hideWalletWizardUi() {
 }
 
 function handleWalletInstitutionsLinkClick(e) {
-    const link = e.target.closest('[data-wallet-link-credit]');
-    if (!link) return;
-    e.preventDefault();
-    const bid = link.getAttribute('data-wallet-link-credit');
-    if (bid) openNewCreditCardModal(bid);
+    const linkFood = e.target.closest('[data-wallet-link-food]');
+    if (linkFood) {
+        e.preventDefault();
+        const bid = linkFood.getAttribute('data-wallet-link-food');
+        if (bid) openNewBenefitCardModal(bid, 'food');
+        return;
+    }
+    const linkMeal = e.target.closest('[data-wallet-link-meal]');
+    if (linkMeal) {
+        e.preventDefault();
+        const bid = linkMeal.getAttribute('data-wallet-link-meal');
+        if (bid) openNewBenefitCardModal(bid, 'meal');
+        return;
+    }
+    const linkCredit = e.target.closest('[data-wallet-link-credit]');
+    if (linkCredit) {
+        e.preventDefault();
+        const bid = linkCredit.getAttribute('data-wallet-link-credit');
+        if (bid) openNewCreditCardModal(bid);
+        return;
+    }
+    const linkDebit = e.target.closest('[data-wallet-link-debit]');
+    if (linkDebit) {
+        e.preventDefault();
+        const bid = linkDebit.getAttribute('data-wallet-link-debit');
+        if (bid) openNewDebitCardModal(bid);
+    }
 }
 
 function openWalletCreateModal() {
     const form = document.getElementById('account-form');
     if (!form) return;
-    setAccountTypeSelectMode('bankOnly');
+    form.classList.add('account-form--wallet');
+    setAccountTypeSelectMode('walletInstitution');
     form.reset();
+    clearPlasticLinkInstitutionField();
     form['account-id'].value = '';
     const modeEl = document.getElementById('account-form-mode');
     if (modeEl) modeEl.value = 'wallet_wizard';
@@ -2000,31 +2633,149 @@ function openWalletCreateModal() {
     document.getElementById('wallet-wizard-block')?.classList.remove('hidden');
     const cbC = document.getElementById('wallet-wizard-add-credit');
     const cbD = document.getElementById('wallet-wizard-add-debit');
-    if (cbC) cbC.disabled = false;
-    if (cbD) cbD.disabled = false;
+    if (cbC) {
+        cbC.disabled = false;
+        cbC.checked = true;
+    }
+    if (cbD) {
+        cbD.disabled = false;
+        cbD.checked = true;
+    }
     syncWalletWizardPanels();
 
     const titleEl = document.getElementById('account-modal-title');
     if (titleEl) titleEl.textContent = 'Nova na carteira';
-    const sub = document.getElementById('account-modal-subtitle');
-    if (sub) {
-        sub.textContent =
-            'Primeiro a conta bancária; depois pode marcar cartão de crédito e/ou débito na mesma instituição.';
-        sub.classList.remove('hidden');
-    }
     document.getElementById('account-message')?.classList.add('hidden');
+    populateAccountHolderUserSelect(currentUser?.uid);
     toggleCreditCardFields(form['account-type'].value);
+    updateWalletWizardCopy(form['account-type'].value);
     openModal('account-modal');
 }
 
-/** Contas não-cartão para vincular cartão de crédito ou débito. */
-function populateCardLinkedAccountSelect(selectEl, excludeAccountId) {
+function clearPlasticLinkInstitutionField() {
+    const el = document.getElementById('account-plastic-link-institution');
+    if (el) el.value = '';
+}
+
+function setPlasticLinkInstitutionField(institutionId) {
+    const el = document.getElementById('account-plastic-link-institution');
+    if (el) el.value = institutionId ? String(institutionId) : '';
+}
+
+function readPlasticLinkInstitutionFromForm(form) {
+    const fromSelect = (form?.['card-linked-account']?.value || '').trim();
+    if (fromSelect) return fromSelect;
+    return (document.getElementById('account-plastic-link-institution')?.value || '').trim();
+}
+
+/** Garante que a instituição escolhida na Carteira está na lista antes de definir o value. */
+function ensureInstitutionInLinkedSelect(selectEl, institutionId, plasticType) {
+    if (!selectEl || !institutionId) return;
+    const exclude = '';
+    populateCardLinkedAccountSelect(selectEl, exclude, plasticType);
+    const hasOption = Array.from(selectEl.options).some((o) => o.value === institutionId);
+    if (!hasOption) {
+        const inst = (userAccounts || []).find((a) => a.id === institutionId);
+        if (inst) {
+            const opt = document.createElement('option');
+            opt.value = inst.id;
+            opt.textContent = inst.name;
+            selectEl.appendChild(opt);
+        }
+    }
+    selectEl.value = institutionId;
+}
+
+/**
+ * Vales salvos sem vínculo aparecem como segunda “instituição”; inferimos o link na exibição
+ * e persistimos em segundo plano quando há uma instituição de benefício óbvia (ex.: mesmo nome).
+ */
+function applyInferredBenefitLinksForWallet(accs) {
+    const institutions = (accs || []).filter(
+        (a) => isBenefitWalletInstitution(a.type) && !isCardAccountType(a.type)
+    );
+    if (!institutions.length) return accs;
+    const byName = new Map(
+        institutions.map((i) => [String(i.name || '').trim().toLowerCase(), i])
+    );
+    return (accs || []).map((a) => {
+        if (!isBenefitCardType(a.type) || a.linkedAccountId) return a;
+        const key = String(a.name || '').trim().toLowerCase();
+        const target = byName.get(key) || (institutions.length === 1 ? institutions[0] : null);
+        if (!target) return a;
+        const slot = walletPlasticSlotForCardType(a.type, target.type);
+        const slotTaken = (accs || []).some(
+            (x) =>
+                x.id !== a.id &&
+                x.linkedAccountId === target.id &&
+                walletPlasticSlotForCardType(x.type, target.type) === slot
+        );
+        if (slotTaken) return a;
+        return { ...a, linkedAccountId: target.id };
+    });
+}
+
+let walletBenefitLinkRepairInFlight = false;
+
+async function repairUnlinkedBenefitPlasticsIfNeeded(accs) {
+    if (!currentUser?.uid || walletBenefitLinkRepairInFlight) return false;
+    const institutions = (accs || []).filter(
+        (a) => isBenefitWalletInstitution(a.type) && !isCardAccountType(a.type)
+    );
+    const orphans = (accs || []).filter((a) => isBenefitCardType(a.type) && !a.linkedAccountId);
+    if (!orphans.length || !institutions.length) return false;
+
+    walletBenefitLinkRepairInFlight = true;
+    let fixed = false;
+    try {
+        for (const card of orphans) {
+            const key = String(card.name || '').trim().toLowerCase();
+            const target =
+                institutions.find((i) => String(i.name || '').trim().toLowerCase() === key) ||
+                (institutions.length === 1 ? institutions[0] : null);
+            if (!target) continue;
+            const slot = walletPlasticSlotForCardType(card.type, target.type);
+            const slotTaken = (accs || []).some(
+                (x) =>
+                    x.linkedAccountId === target.id &&
+                    walletPlasticSlotForCardType(x.type, target.type) === slot
+            );
+            if (slotTaken) continue;
+            await saveAccount(
+                {
+                    userId: currentUser.uid,
+                    name: target.name.trim(),
+                    type: card.type,
+                    linkedAccountId: target.id,
+                    holderUserId: card.holderUserId || card.userId,
+                    plasticTone: card.plasticTone ?? null,
+                    plasticColor: card.plasticColor ?? null
+                },
+                card.id,
+                { skipUiSound: true }
+            );
+            fixed = true;
+        }
+    } finally {
+        walletBenefitLinkRepairInFlight = false;
+    }
+    return fixed;
+}
+
+/** Instituições na Carteira para vincular plástico (banco ou benefício). */
+function populateCardLinkedAccountSelect(selectEl, excludeAccountId, plasticType) {
     if (!selectEl) return;
     const exclude = excludeAccountId || '';
+    const t = plasticType || '';
     selectEl.innerHTML = '<option value="">Selecione a conta</option>';
     (userAccounts || [])
         .filter((acc) => !isCardAccountType(acc.type))
         .filter((acc) => acc.id !== exclude)
+        .filter((acc) => {
+            if (isBenefitCardType(t)) return isBenefitWalletInstitution(acc.type);
+            if (isBankCardType(t)) return !isBenefitWalletInstitution(acc.type);
+            return true;
+        })
         .forEach((acc) => {
             selectEl.innerHTML += `<option value="${acc.id}">${escapeHtml(acc.name)}</option>`;
         });
@@ -2037,6 +2788,8 @@ function setCardLinkedHint(type) {
         hint.textContent = hint.dataset.hintDebit || '';
     } else if (type === 'cartao_credito') {
         hint.textContent = hint.dataset.hintCredit || '';
+    } else if (type === 'vale_alimentacao' || type === 'vale_refeicao') {
+        hint.textContent = hint.dataset.hintBenefit || 'Vincule à conta de alimentação e refeição (ex.: Alelo).';
     } else {
         hint.textContent = '';
     }
@@ -2048,7 +2801,7 @@ function toggleCreditCardFields(type) {
     const cardClose = document.getElementById('card-closing-day');
     const cardDue = document.getElementById('card-due-day');
     const holderGroup = document.getElementById('card-holder-group');
-    const holderInput = document.getElementById('card-holder-name');
+    const holderSelect = document.getElementById('account-holder-user');
     const holderLabel = document.getElementById('account-holder-label');
     const holderHint = document.getElementById('account-holder-hint');
     const nameLabel = document.getElementById('account-name-label');
@@ -2059,18 +2812,21 @@ function toggleCreditCardFields(type) {
     const isWalletWizard = document.getElementById('account-form-mode')?.value === 'wallet_wizard';
 
     holderGroup?.classList.remove('hidden');
+    holderSelect?.setAttribute('required', 'required');
     if (isCardAccountType(type)) {
-        holderInput?.setAttribute('required', 'required');
         if (nameLabel) nameLabel.textContent = 'Nome do cartão';
-        if (holderLabel) holderLabel.textContent = 'Titular (como no cartão)';
-        holderHint?.classList.add('hidden');
-        if (holderInput) holderInput.placeholder = 'Como impresso no cartão';
+        if (holderLabel) holderLabel.textContent = 'Titular do cartão';
+        holderHint?.classList.remove('hidden');
+        if (holderHint) {
+            holderHint.textContent = 'Qualquer usuário cadastrado no sistema.';
+        }
     } else {
-        holderInput?.removeAttribute('required');
         if (nameLabel) nameLabel.textContent = 'Nome da conta';
-        if (holderLabel) holderLabel.textContent = 'Titular da conta';
-        holderHint?.classList.add('hidden');
-        if (holderInput) holderInput.placeholder = 'Nome completo do titular';
+        if (holderLabel) holderLabel.textContent = 'Titular';
+        holderHint?.classList.remove('hidden');
+        if (holderHint) {
+            holderHint.textContent = 'Qualquer usuário cadastrado no sistema.';
+        }
     }
 
     if (type === 'cartao_credito') {
@@ -2080,21 +2836,21 @@ function toggleCreditCardFields(type) {
         cardDue?.setAttribute('required', 'required');
         if (!isWalletWizard) {
             cardLinkedGroup?.classList.remove('hidden');
-            populateCardLinkedAccountSelect(cardLinkedSelect, editingAccountId);
+            populateCardLinkedAccountSelect(cardLinkedSelect, editingAccountId, type);
             cardLinkedSelect?.setAttribute('required', 'required');
         } else {
             cardLinkedGroup?.classList.add('hidden');
             cardLinkedSelect?.removeAttribute('required');
         }
         setCardLinkedHint(type);
-    } else if (type === 'cartao_debito') {
+    } else if (type === 'cartao_debito' || type === 'vale_alimentacao' || type === 'vale_refeicao') {
         creditCardFields.classList.add('hidden');
         cardLimit?.removeAttribute('required');
         cardClose?.removeAttribute('required');
         cardDue?.removeAttribute('required');
         if (!isWalletWizard) {
             cardLinkedGroup?.classList.remove('hidden');
-            populateCardLinkedAccountSelect(cardLinkedSelect, editingAccountId);
+            populateCardLinkedAccountSelect(cardLinkedSelect, editingAccountId, type);
             cardLinkedSelect?.setAttribute('required', 'required');
         } else {
             cardLinkedGroup?.classList.add('hidden');
@@ -2110,6 +2866,7 @@ function toggleCreditCardFields(type) {
         cardLinkedSelect?.removeAttribute('required');
         setCardLinkedHint('');
     }
+    syncAccountFormSections();
 }
 
 function readExpensesFilterFromDom() {
@@ -2131,11 +2888,11 @@ function readExpensesFilterFromDom() {
     expensesFilterState.dateFrom = manual ? df?.value || '' : '';
     expensesFilterState.dateTo = manual ? dt?.value || '' : '';
     expensesFilterState.accountId = document.getElementById('expenses-filter-account')?.value || '';
-    expensesFilterState.period =
-        document.getElementById('expenses-period-filter')?.value || getDefaultPeriodValue();
+    expensesFilterState.period = getExpensesPeriodFromDom();
+    expensesFilterState.civilYear = getExpensesCivilYearFromDom();
     expensesFilterState.quickExpenseTypes = new Set();
     document
-        .querySelectorAll('#expenses-page .quick-filter-btn[data-quick-kind="type"][aria-pressed="true"]')
+        .querySelectorAll('#expenses-header-actions .quick-filter-btn[data-quick-kind="type"][aria-pressed="true"]')
         .forEach((btn) => {
             const f = btn.dataset.filter;
             if (f) expensesFilterState.quickExpenseTypes.add(f);
@@ -2176,7 +2933,7 @@ function resetExpensesDrawerFiltersKeepPeriod() {
 }
 
 function clearExpensesQuickTypeButtons() {
-    document.querySelectorAll('#expenses-page .quick-filter-btn[data-quick-kind="type"]').forEach((btn) => {
+    document.querySelectorAll('#expenses-header-actions .quick-filter-btn[data-quick-kind="type"]').forEach((btn) => {
         btn.setAttribute('aria-pressed', 'false');
         btn.classList.remove('active');
     });
@@ -2185,7 +2942,7 @@ function clearExpensesQuickTypeButtons() {
 function syncExpensesQuickStatusButtonsFromCheckboxes() {
     const paid = !!document.getElementById('expenses-filter-status-paid')?.checked;
     const pend = !!document.getElementById('expenses-filter-status-pending')?.checked;
-    document.querySelectorAll('#expenses-page .quick-filter-btn[data-quick-kind="status"]').forEach((btn) => {
+    document.querySelectorAll('#expenses-header-actions .quick-filter-btn[data-quick-kind="status"]').forEach((btn) => {
         const on = btn.dataset.filter === 'paid' ? paid : btn.dataset.filter === 'unpaid' ? pend : false;
         btn.setAttribute('aria-pressed', on ? 'true' : 'false');
         btn.classList.toggle('active', on);
@@ -2195,7 +2952,7 @@ function syncExpensesQuickStatusButtonsFromCheckboxes() {
 function syncGainsQuickStatusButtonsFromCheckboxes() {
     const recv = !!document.getElementById('gains-filter-status-received')?.checked;
     const pend = !!document.getElementById('gains-filter-status-pending')?.checked;
-    document.querySelectorAll('#gains-page .quick-filter-btn[data-quick-kind="status"]').forEach((btn) => {
+    document.querySelectorAll('#gains-header-actions .quick-filter-btn[data-quick-kind="status"]').forEach((btn) => {
         const on = btn.dataset.filter === 'paid' ? recv : btn.dataset.filter === 'unpaid' ? pend : false;
         btn.setAttribute('aria-pressed', on ? 'true' : 'false');
         btn.classList.toggle('active', on);
@@ -2450,7 +3207,7 @@ function updateExpensesSummaryCards() {
 
     // Determina quais meses entram pelo filtro («este ano» = jan–dez; meses futuros no ano ainda sem caixa = 0)
     const currentMonthKey = monthKeyFromDateObj(now);
-    let months = getMonthKeysInPeriod(period, now);
+    let months = getMonthKeysInPeriod(period, now, { civilYear: expensesFilterState.civilYear });
 
     // Total do período (soma de contribuições por mês)
     let totalPeriod = 0;
@@ -2570,10 +3327,10 @@ function updateExpensesSummaryCards() {
     const elOther = document.getElementById('expenses-summary-other');
     if (elOther) elOther.textContent = formatCurrency(otherExpensesPeriod, currency);
 
-    const tParts = getPeriodTitleParts(period, now);
+    const tParts = getPeriodTitleParts(period, now, { civilYear: expensesFilterState.civilYear });
     setSummaryCardTooltip('expenses-summary-month', expensesMonthTooltip(tParts));
 
-    const titles = expensesSummaryTitles(tParts.label);
+    const titles = expensesSummaryTitles();
     setSummaryCardTitle('expenses-summary-month', titles.month);
     setSummaryCardTitle('expenses-summary-top-cat', titles.creditCard);
     setSummaryCardTitle('expenses-summary-projection', titles.projection);
@@ -2591,7 +3348,7 @@ function updateExpensesSummaryCards() {
  */
 function buildSortedExpenseCategoriesForTreemapPeriod(sorted, period, now, userProfile, acceptedSplits) {
     const currentMonthKey = monthKeyFromDateObj(now);
-    const months = getMonthKeysInPeriod(period, now);
+    const months = getMonthKeysInPeriod(period, now, { civilYear: expensesFilterState.civilYear });
     const categoryTotals = {};
     const categorySubcategories = {};
 
@@ -2639,8 +3396,9 @@ function buildSortedExpenseCategoriesForTreemapPeriod(sorted, period, now, userP
 function buildSortedGainCategoriesForTreemapPeriod(sorted, period) {
     const categoryTotals = {};
     const categorySubcategories = {};
+    const civilYear = gainsFilterState.civilYear;
     for (const t of sorted || []) {
-        if (!movementDateInListPeriod(t.date, period)) continue;
+        if (!movementDateInListPeriod(t.date, period, civilYear)) continue;
         if (!gainCountsInTotals(t)) continue;
         const top = gainTopLevelCategory(t);
         const catName = top === '—' ? 'Sem categoria' : top;
@@ -2761,7 +3519,9 @@ if (typeof window !== 'undefined') {
                 monthKey ||
                 (() => {
                     const period = expensesFilterState?.period || getDefaultPeriodValue();
-                    const months = getMonthKeysInPeriod(period, now);
+                    const months = getMonthKeysInPeriod(period, now, {
+                        civilYear: expensesFilterState.civilYear
+                    });
                     return months?.[0] || currentMonthKey;
                 })();
             const cutoff = endOfMonthFromMonthKey(mk);
@@ -2817,14 +3577,15 @@ if (typeof window !== 'undefined') {
  * Inclui cartão (o caixa não gera `Gain` no aceite, mas a expectativa ainda é útil na lista “Entradas”).
  * FULL com várias parcelas em conta não cartão: estorno fica por parcela (INSTALLMENT) — exclui FULL nesse caso.
  */
-function computeExpectedSplitGainsRows(period, now = new Date()) {
+function computeExpectedSplitGainsRows(period, now = new Date(), civilYear = gainsFilterState.civilYear) {
     return buildSyntheticExpectedSplitGainsRows(
         period,
         now,
         userExpenses || [],
         userAccounts || [],
         userExpenseSplitRequests?.outgoing || [],
-        gainsRenderCache?.sorted || []
+        gainsRenderCache?.sorted || [],
+        civilYear
     );
 }
 
@@ -2921,12 +3682,12 @@ function sumPendingGainsForSummary(period, now = new Date()) {
     return sum;
 }
 
-function buildGainsListForPeriod(period) {
+function buildGainsListForPeriod(period, civilYear = gainsFilterState.civilYear) {
     const { sorted } = gainsRenderCache;
     const { dateFrom, dateTo } = gainsFilterState;
     return (dateFrom || dateTo)
         ? [...sorted]
-        : sorted.filter((t) => movementDateInListPeriod(t.date, period));
+        : sorted.filter((t) => movementDateInListPeriod(t.date, period, civilYear));
 }
 
 function buildGainsListForCurrentFilters() {
@@ -3020,11 +3781,11 @@ function updateGainsSummaryCards() {
     const now = new Date();
     const period = gainsFilterState.period || getDefaultPeriodValue();
     const isSingleMonth = /^month-\d+$/.test(period);
-    const label = getPeriodTitleParts(period, now).label;
+    const label = getPeriodTitleParts(period, now, { civilYear: gainsFilterState.civilYear }).label;
 
     const dashHint = summaryFilterRequiredHintHtml(GAINS_SUMMARY_COPY.filterRequiredHint);
 
-    const gainTitles = gainsSummaryTitles(label);
+    const gainTitles = gainsSummaryTitles();
     setSummaryCardTitle('gains-summary-total', gainTitles.total);
     setSummaryCardTitle('gains-summary-projection', gainTitles.projection);
     setSummaryCardTitle('gains-summary-top-cat', gainTitles.topCategory);
@@ -3047,7 +3808,7 @@ function updateGainsSummaryCards() {
         return;
     }
 
-    const months = getMonthKeysInPeriod(period, now);
+    const months = getMonthKeysInPeriod(period, now, { civilYear: gainsFilterState.civilYear });
     const rowsForSummary = getSortedFilteredGainsList();
 
     let receivedTotal = 0;
@@ -3156,7 +3917,8 @@ function syncExpensesFilterButtonHighlight() {
         Boolean(expensesFilterState.accountId) ||
         (ps && ps.size > 0) ||
         (expensesFilterState.quickExpenseTypes && expensesFilterState.quickExpenseTypes.size > 0) ||
-        (expensesFilterState.period && !isDefaultPeriodValue(expensesFilterState.period));
+        (expensesFilterState.period &&
+            !isMovementListDefaultMonthAndYear(expensesFilterState.period, expensesFilterState.civilYear));
     document.getElementById('expenses-filter-open-btn')?.classList.toggle('filter-drawer-trigger--active', active);
 }
 
@@ -3171,7 +3933,8 @@ function syncGainsFilterButtonHighlight() {
         Boolean(gainsFilterState.description?.trim()) ||
         Boolean(gainsFilterState.accountId) ||
         (ps && ps.size > 0) ||
-        (gainsFilterState.period && !isDefaultPeriodValue(gainsFilterState.period));
+        (gainsFilterState.period &&
+            !isMovementListDefaultMonthAndYear(gainsFilterState.period, gainsFilterState.civilYear));
     document.getElementById('gains-filter-open-btn')?.classList.toggle('filter-drawer-trigger--active', active);
 }
 
@@ -3245,13 +4008,16 @@ function getFilteredExpensesList() {
                 ? `${t.category} > ${t.subcategory}` 
                 : t.category;
             const displayAmt = getExpensePerInstallmentDisplayAmount(t, acc);
-            const bracketCredit =
-                acc && isCreditCardType(acc.type) && listPeriodPlain
-                    ? expenseCreditInstallmentBracketSuffix(t, acc, userProfile, new Date(), listPeriodPlain)
-                    : '';
+            const instParts = getExpenseInstallmentLabelParts(t, acc, userProfile, new Date(), listPeriodPlain);
+            const instLabel = instParts
+                ? instParts.allPaid || instParts.remaining === 0
+                    ? 'quitado'
+                    : `${instParts.remaining} restantes`
+                : '';
             const hay = [
                 dateStr,
                 String(t.description ?? ''),
+                instLabel,
                 categoryDisplay,
                 String(t.category ?? ''),
                 String(t.subcategory ?? ''),
@@ -3263,8 +4029,7 @@ function getFilteredExpensesList() {
                 parcelasLbl,
                 statusTxt,
                 movementAccountPaymentKindLabel(acc),
-                expenseIsMarkedFixed(t) ? 'sim essencial despesa essencial' : 'não variável não essencial',
-                bracketCredit.trim()
+                expenseIsMarkedFixed(t) ? 'sim essencial despesa essencial' : 'não variável não essencial'
             ]
                 .join(' ')
                 .toLowerCase();
@@ -3379,6 +4144,7 @@ function renderExpensesBodySliceWithList(list) {
     const { start, end } = expensesPagination.getSliceRange();
     const monthRing = isExpensesInstallmentMonthRingMode();
     const listPeriodMonth = monthRing ? getExpensesFilterListPeriod() : null;
+    const instListPeriod = monthRing ? listPeriodMonth : getExpensesFilterListPeriod();
     const now = new Date();
     const acceptedSplits = getOutgoingAcceptedSettledSplits();
     const acceptedSplitById = new Map(
@@ -3414,13 +4180,9 @@ function renderExpensesBodySliceWithList(list) {
             const dateStr = t.__instEmptyPeriod
                 ? movementDateToJsDate(t.date).toLocaleDateString('pt-BR')
                 : t.__instDueDate.toLocaleDateString('pt-BR');
-            const descSuffix = (() => {
-                if (t.__instEmptyPeriod) return '';
-                if (account && isCreditCardType(account.type)) {
-                    return ` (${t.__instParcelIndex} de ${t.__instParcelTotal})`;
-                }
-                return ` · Parcela ${t.__instParcelIndex}/${t.__instParcelTotal}`;
-            })();
+            const installmentCell = formatExpenseInstallmentCellHtml(
+                getExpenseInstallmentLabelParts(t, account, userProfile, now, instListPeriod)
+            );
             let statusCell;
             if (t.__instEmptyPeriod) {
                 statusCell = '<span class="expense-status-badge expense-status-badge--pending">Pendente</span>';
@@ -3442,7 +4204,6 @@ function renderExpensesBodySliceWithList(list) {
             } else {
                 statusCell = '<span class="expense-status-badge expense-status-badge--pending">Pendente</span>';
             }
-            const categoryDisplay = t.subcategory ? `${t.category} > ${t.subcategory}` : t.category;
             const paymentKindText = escapeHtml(movementAccountPaymentKindLabel(account));
             const displayAmt = applySplitNetToContribution(
                 t,
@@ -3466,11 +4227,11 @@ function renderExpensesBodySliceWithList(list) {
             const eidAttr = htmlAttrEscape(String(t.id));
             tr.innerHTML = `
             <td class="expenses-td-batch"><label class="expense-batch-row-hit"><span class="sr-only">Selecionar para edição em lote</span><input type="checkbox" class="expense-batch-check" data-expense-id="${eidAttr}"></label></td>
-            <td>${dateStr}</td>
-            <td>${buildTruncatedTableCellHtml(`${t.description ?? ''}${descSuffix ?? ''}`)}</td>
-            <td>${escapeHtml(categoryDisplay)}</td>
-            <td>${escapeHtml(account?.name || 'N/A')}</td>
-            <td>${paymentKindText}</td>
+            <td class="movement-td-compact">${dateStr}</td>
+            <td class="expenses-td-description"${movementDescriptionCellTitleAttr(t.description, { prepare: 'expense' })}>${buildExpenseDescriptionCellHtml(t.description)}</td>
+            <td class="expenses-td-installments">${installmentCell}</td>
+            <td class="movement-td-compact">${escapeHtml(account?.name || 'N/A')}</td>
+            <td class="movement-td-compact">${paymentKindText}</td>
             <td class="expenses-td-fixed">${expenseFixedCellHtmlForTable(t)}</td>
             <td class="expenses-td-status">${statusCell}</td>
             <td class="${rowCls}"${amountTitle}>${amountHtmlInst}</td>
@@ -3506,13 +4267,14 @@ function renderExpensesBodySliceWithList(list) {
         } else {
             statusCell = expenseTableBatchPaidToggleButton(t);
         }
-        const creditInstallSuffix =
-            monthRing && listPeriodMonth
-                ? expenseCreditInstallmentBracketSuffix(t, account, userProfile, now, listPeriodMonth)
-                : '';
-        const descriptionHtml = buildTruncatedTableCellHtml(
-            `${t.description ?? ''}${creditInstallSuffix ?? ''}`
-        );
+        const instCellState =
+            monthRing && (cardOrLoanInstallment || (Number.isFinite(nParc) && nParc >= 2))
+                ? getExpenseInstallmentLabelParts(t, account, userProfile, now, instListPeriod)
+                : !monthRing && cardOrLoanInstallment
+                  ? getExpenseInstallmentLabelParts(t, account, userProfile, now, instListPeriod)
+                  : null;
+        const installmentCell = formatExpenseInstallmentCellHtml(instCellState);
+        const descriptionHtml = buildExpenseDescriptionCellHtml(t.description);
         const displayAmt = applySplitNetToContribution(
             t,
             movementMonthKey(t.date),
@@ -3545,15 +4307,14 @@ function renderExpensesBodySliceWithList(list) {
             ? `<span class="expense-split-amount-stack"><span class="expense-split-net-amount">${amountHtmlBase}</span><span class="expense-split-gross-strike" title="Valor bruto / original">${formatCurrency(grossShown, currency)}</span></span>`
             : amountHtmlBase;
         const eidAttrNorm = htmlAttrEscape(String(t.id));
-        const categoryDisplay = t.subcategory ? `${t.category} > ${t.subcategory}` : t.category;
         const paymentKindText = escapeHtml(movementAccountPaymentKindLabel(account));
         tr.innerHTML = `
             <td class="expenses-td-batch"><label class="expense-batch-row-hit"><span class="sr-only">Selecionar para edição em lote</span><input type="checkbox" class="expense-batch-check" data-expense-id="${eidAttrNorm}"></label></td>
-            <td>${movementDateToJsDate(t.date).toLocaleDateString('pt-BR')}</td>
-            <td>${descriptionHtml}</td>
-            <td>${escapeHtml(categoryDisplay)}</td>
-            <td>${escapeHtml(account?.name || 'N/A')}</td>
-            <td>${paymentKindText}</td>
+            <td class="movement-td-compact">${movementDateToJsDate(t.date).toLocaleDateString('pt-BR')}</td>
+            <td class="expenses-td-description"${movementDescriptionCellTitleAttr(t.description, { prepare: 'expense' })}>${descriptionHtml}</td>
+            <td class="expenses-td-installments">${installmentCell}</td>
+            <td class="movement-td-compact">${escapeHtml(account?.name || 'N/A')}</td>
+            <td class="movement-td-compact">${paymentKindText}</td>
             <td class="expenses-td-fixed">${expenseFixedCellHtmlForTable(t)}</td>
             <td class="expenses-td-status">${statusCell}</td>
             <td class="${rowCls}"${amountTitle}>${amountHtml}</td>
@@ -3575,7 +4336,9 @@ export function loadExpensesData(expenses, accounts, currency, userProfile = nul
     );
     expensesRenderCache = { sorted, accounts, currency, userProfile: userProfile ?? null };
     hydratePortalExpensePaymentStatusFromStorage();
-    syncDrawerDateInputsToPeriod('expenses-filter', document.getElementById('expenses-period-filter')?.value);
+    syncDrawerDateInputsToPeriod('expenses-filter', getExpensesPeriodFromDom());
+    initExpensesPeriodTimelineOnce();
+    renderExpensesPeriodTimeline();
     readExpensesFilterFromDom();
     populateExpenseFilterSelects();
     readExpensesFilterFromDom();
@@ -3595,7 +4358,8 @@ export function loadExpensesData(expenses, accounts, currency, userProfile = nul
         'amount',
         'payment',
         'isFixed',
-        'status'
+        'status',
+        'installments'
     ]);
     renderExpensesBodySlice();
     updateExpensesSummaryCards();
@@ -3623,7 +4387,8 @@ function readGainsFilterFromDom() {
     gainsFilterState.dateFrom = manual ? df?.value || '' : '';
     gainsFilterState.dateTo = manual ? dt?.value || '' : '';
     gainsFilterState.accountId = document.getElementById('gains-filter-account')?.value || '';
-    gainsFilterState.period = document.getElementById('gains-period-filter')?.value || getDefaultPeriodValue();
+    gainsFilterState.period = getGainsPeriodFromDom();
+    gainsFilterState.civilYear = getGainsCivilYearFromDom();
 }
 
 /** Zera filtros do drawer (exceto período) — botão «limpar». */
@@ -3664,14 +4429,21 @@ function toLocalDateInputValue(d) {
     return `${y}-${m}-${day}`;
 }
 
-function syncDrawerDateInputsToPeriod(prefix, periodValue) {
+function syncDrawerDateInputsToPeriod(prefix, periodValue, civilYear) {
     const df = document.getElementById(`${prefix}-date-from`);
     const dt = document.getElementById(`${prefix}-date-to`);
     if (!df || !dt) return;
     const manual = df.dataset.manual === '1' || dt.dataset.manual === '1';
     if (manual) return; // usuário assumiu controle do filtro de data
     const now = new Date();
-    const { startDate, endDate } = getPeriodDateBounds(periodValue || getDefaultPeriodValue(), now);
+    let year = civilYear;
+    if (year == null) {
+        if (prefix === 'expenses-filter') year = getExpensesCivilYearFromDom();
+        else if (prefix === 'gains-filter') year = getGainsCivilYearFromDom();
+    }
+    const { startDate, endDate } = getPeriodDateBounds(periodValue || getDefaultPeriodValue(), now, {
+        civilYear: year
+    });
     // Não usar toISOString() — em fusos como America/Sao_Paulo o dia pode “voltar” um dia.
     df.value = toLocalDateInputValue(startDate);
     dt.value = toLocalDateInputValue(endDate);
@@ -3739,7 +4511,7 @@ function populateGainFilterSelects() {
     const prevSub = subSel?.value || '';
     const prevAcc = accSel.value;
     const period = gainsFilterState.period || getDefaultPeriodValue();
-    const inPeriod = sorted.filter((t) => movementDateInListPeriod(t.date, period));
+    const inPeriod = sorted.filter((t) => movementDateInListPeriod(t.date, period, gainsFilterState.civilYear));
     const dfEl = document.getElementById('gains-filter-date-from');
     const dtEl = document.getElementById('gains-filter-date-to');
     const manual = dfEl?.dataset?.manual === '1' || dtEl?.dataset?.manual === '1';
@@ -3943,14 +4715,6 @@ function initMovementFilterDrawerEvents() {
             });
         }
     });
-    // Período global controla o default do filtro de data (visual); ao mudar o período, volta a seguir o global
-    document.getElementById('expenses-period-filter')?.addEventListener('change', () => {
-        const df = document.getElementById('expenses-filter-date-from');
-        const dt = document.getElementById('expenses-filter-date-to');
-        if (df) df.dataset.manual = '0';
-        if (dt) dt.dataset.manual = '0';
-        syncDrawerDateInputsToPeriod('expenses-filter', document.getElementById('expenses-period-filter')?.value);
-    });
     // Quando usuário muda date-from/to, ativa filtro manual de data
     const expDf = document.getElementById('expenses-filter-date-from');
     const expDt = document.getElementById('expenses-filter-date-to');
@@ -3994,13 +4758,6 @@ function initMovementFilterDrawerEvents() {
                 applyGainsFilters();
             });
         }
-    });
-    document.getElementById('gains-period-filter')?.addEventListener('change', () => {
-        const df = document.getElementById('gains-filter-date-from');
-        const dt = document.getElementById('gains-filter-date-to');
-        if (df) df.dataset.manual = '0';
-        if (dt) dt.dataset.manual = '0';
-        syncDrawerDateInputsToPeriod('gains-filter', document.getElementById('gains-period-filter')?.value);
     });
     const gainDf = document.getElementById('gains-filter-date-from');
     const gainDt = document.getElementById('gains-filter-date-to');
@@ -4074,12 +4831,12 @@ function renderGainsBodySliceWithList(list) {
         // Não exibe subtítulo/“hint” abaixo da descrição do ganho.
         tr.innerHTML = `
             <td class="gains-td-batch"><label class="gain-batch-row-hit"><span class="sr-only">Selecionar para seleção em lote</span><input type="checkbox" class="gain-batch-check" data-gain-id="${gidForAttr}"></label></td>
-            <td>${movementDateToJsDate(t.date).toLocaleDateString('pt-BR')}</td>
-            <td>${buildTruncatedTableCellHtml(t.description)}</td>
-            <td>${escapeHtml(categoryDisplay)}</td>
-            <td>${escapeHtml(account?.name || 'N/A')}</td>
-            <td>${paymentKindText}</td>
-            <td class="receita">${amountHtml}</td>
+            <td class="movement-td-compact">${movementDateToJsDate(t.date).toLocaleDateString('pt-BR')}</td>
+            <td class="gains-td-description"${movementDescriptionCellTitleAttr(t.description)}>${buildTableDescriptionCellHtml(t.description)}</td>
+            <td class="movement-td-compact gains-td-category"${categoryDisplay ? ` title="${htmlAttrEscape(categoryDisplay)}"` : ''}>${escapeHtml(categoryDisplay)}</td>
+            <td class="movement-td-compact">${escapeHtml(account?.name || 'N/A')}</td>
+            <td class="movement-td-compact">${paymentKindText}</td>
+            <td class="receita gains-td-amount">${amountHtml}</td>
             <td class="gains-td-received">${receivedCell}</td>
             <td class="transaction-actions">
                 <div class="transaction-actions__inner">
@@ -4097,7 +4854,9 @@ export function loadGainsData(gains, accounts, currency) {
     );
     gainsRenderCache = { sorted, accounts, currency };
     hydratePortalGainPaymentStatusFromStorage();
-    syncDrawerDateInputsToPeriod('gains-filter', document.getElementById('gains-period-filter')?.value);
+    syncDrawerDateInputsToPeriod('gains-filter', getGainsPeriodFromDom());
+    initGainsPeriodTimelineOnce();
+    renderGainsPeriodTimeline();
     readGainsFilterFromDom();
     populateGainFilterSelects();
     readGainsFilterFromDom();
@@ -4130,12 +4889,12 @@ function setupTransactionTableFilters() {
     });
     document.getElementById('expenses-filter-category')?.addEventListener('change', () => applyExpensesFilters());
     document.getElementById('expenses-filter-account')?.addEventListener('change', () => applyExpensesFilters());
-    document.getElementById('expenses-period-filter')?.addEventListener('change', () => applyExpensesFilters());
     document.getElementById('expenses-filter-clear')?.addEventListener('click', () => {
-        const p = document.getElementById('expenses-period-filter');
         resetExpensesDrawerFiltersKeepPeriod();
-        if (p) p.value = getDefaultPeriodValue();
-        syncDrawerDateInputsToPeriod('expenses-filter', getDefaultPeriodValue());
+        setExpensesPeriodInDom(getDefaultPeriodValue());
+        setExpensesCivilYearInDom(getDefaultCivilYear());
+        expensesFilterState.civilYear = getDefaultCivilYear();
+        syncDrawerDateInputsToPeriod('expenses-filter', getDefaultPeriodValue(), getDefaultCivilYear());
         applyExpensesFilters();
         closeFilterDrawer('expenses-filter-drawer');
     });
@@ -4146,12 +4905,12 @@ function setupTransactionTableFilters() {
     });
     document.getElementById('gains-filter-category')?.addEventListener('change', () => applyGainsFilters());
     document.getElementById('gains-filter-account')?.addEventListener('change', () => applyGainsFilters());
-    document.getElementById('gains-period-filter')?.addEventListener('change', () => applyGainsFilters());
     document.getElementById('gains-filter-clear')?.addEventListener('click', () => {
-        const p = document.getElementById('gains-period-filter');
         resetGainsDrawerFiltersKeepPeriod();
-        if (p) p.value = getDefaultPeriodValue();
-        syncDrawerDateInputsToPeriod('gains-filter', getDefaultPeriodValue());
+        setGainsPeriodInDom(getDefaultPeriodValue());
+        setGainsCivilYearInDom(getDefaultCivilYear());
+        gainsFilterState.civilYear = getDefaultCivilYear();
+        syncDrawerDateInputsToPeriod('gains-filter', getDefaultPeriodValue(), getDefaultCivilYear());
         applyGainsFilters();
         closeFilterDrawer('gains-filter-drawer');
     });
@@ -4172,7 +4931,7 @@ function setupTransactionTableFilters() {
 }
 
 function setupQuickFilters() {
-    document.querySelectorAll('#expenses-page .quick-filter-btn[data-quick-kind="type"]').forEach((btn) => {
+    document.querySelectorAll('#expenses-header-actions .quick-filter-btn[data-quick-kind="type"]').forEach((btn) => {
         btn.setAttribute('aria-pressed', 'false');
         btn.addEventListener('click', () => {
             const on = btn.getAttribute('aria-pressed') !== 'true';
@@ -4181,7 +4940,7 @@ function setupQuickFilters() {
             applyExpensesFilters();
         });
     });
-    document.querySelectorAll('#expenses-page .quick-filter-btn[data-quick-kind="status"]').forEach((btn) => {
+    document.querySelectorAll('#expenses-header-actions .quick-filter-btn[data-quick-kind="status"]').forEach((btn) => {
         btn.addEventListener('click', () => {
             const filter = btn.dataset.filter;
             if (filter === 'paid') {
@@ -4200,7 +4959,7 @@ function setupQuickFilters() {
         });
     });
 
-    document.querySelectorAll('#gains-page .quick-filter-btn[data-quick-kind="status"]').forEach((btn) => {
+    document.querySelectorAll('#gains-header-actions .quick-filter-btn[data-quick-kind="status"]').forEach((btn) => {
         btn.setAttribute('aria-pressed', 'false');
         btn.addEventListener('click', () => {
             const filter = btn.dataset.filter;
@@ -4241,7 +5000,8 @@ function setupTableSortClicks() {
             'amount',
             'payment',
             'isFixed',
-            'status'
+            'status',
+            'installments'
         ]);
         renderExpensesBodySlice();
     });
@@ -4261,6 +5021,13 @@ function setupTableSortClicks() {
         renderGainsBodySlice();
     });
 
+    document.getElementById('card-purchases-scopes')?.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-card-scope]');
+        if (!btn) return;
+        cardPurchasesScope = btn.getAttribute('data-card-scope') || 'all';
+        syncCardPurchasesScopeUi();
+        applyCardPurchasesFilters();
+    });
     document.getElementById('card-purchases-table')?.addEventListener('click', (e) => {
         const btn = e.target.closest('.sortable-th__btn');
         if (!btn) return;
@@ -4271,20 +5038,15 @@ function setupTableSortClicks() {
         if (!key) return;
         cardPurchasesSort = nextSortState(cardPurchasesSort, key, [
             'date',
-            'amount',
+            'description',
+            'category',
             'installments',
-            'lastInstallment',
+            'amount',
             'status'
         ]);
         if (!cardPurchasesPagination) return;
         cardPurchasesPagination.setTotal(getSortedFilteredCardPurchasesList().length, { resetPage: true });
-        syncSortableTableHeaders(document.getElementById('card-purchases-table'), cardPurchasesSort, [
-            'date',
-            'amount',
-            'installments',
-            'lastInstallment',
-            'status'
-        ]);
+        syncCardPurchasesSortHeaders();
         renderCardPurchasesBodySlice();
     });
 }
@@ -5812,6 +6574,13 @@ const ACCOUNT_TYPE_LABELS = {
     conta_corrente: 'Conta corrente',
     poupanca: 'Poupança',
     dinheiro: 'Dinheiro',
+    investimento: 'Investimento',
+    alimentacao: 'Alimentação e refeição',
+    refeicao: 'Alimentação e refeição',
+    vale_alimentacao: 'Vale alimentação',
+    vale_refeicao: 'Vale refeição',
+    cartao_credito: 'Cartão de crédito',
+    cartao_debito: 'Cartão de débito',
     cofrinho: 'Cofrinho',
     outros: 'Outros'
 };
@@ -5820,6 +6589,9 @@ const ACCOUNT_TYPE_ICONS = {
     conta_corrente: 'fa-building-columns',
     poupanca: 'fa-piggy-bank',
     dinheiro: 'fa-money-bill-wave',
+    investimento: 'fa-chart-line',
+    alimentacao: 'fa-utensils',
+    refeicao: 'fa-burger',
     cofrinho: 'fa-chart-line',
     outros: 'fa-wallet'
 };
@@ -5841,7 +6613,8 @@ function accountTypeVisualKey(type) {
     if (t === 'conta_corrente') return 'cc';
     if (t === 'poupanca') return 'poup';
     if (t === 'dinheiro') return 'din';
-    if (t === 'cofrinho') return 'inv';
+    if (t === 'investimento' || t === 'cofrinho') return 'inv';
+    if (t === 'alimentacao' || t === 'refeicao') return 'out';
     return 'out';
 }
 
@@ -5890,18 +6663,47 @@ function resolveBankThemeClass(name) {
 }
 
 // --- Carteira (página unificada) — mês civil na timeline (igual Planejamento Base Zero) ---
-const WALLET_MONTH_NAMES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
 let walletSelectedMonth = 0;
 let walletSelectedYear = 0;
+
+function getWalletCivilYearFromDom() {
+    const el = document.getElementById('wallet-period-year');
+    const y = parseInt(String(el?.value ?? '').trim(), 10);
+    return Number.isFinite(y) && y >= 1970 && y <= 2100 ? y : getDefaultCivilYear();
+}
+
+function walletTimelineRoot() {
+    return queryCivilPeriodTimelineRoot('wallet-page');
+}
+
+function setWalletCivilYearInDom(year) {
+    const y = syncCivilPeriodYearToDom(walletTimelineRoot(), 'wallet-period-year', year);
+    walletSelectedYear = y;
+}
+
+function applyWalletCivilYearDelta(delta) {
+    const next = getWalletCivilYearFromDom() + delta;
+    if (next < 1970 || next > 2100) return;
+    setWalletCivilYearInDom(next);
+    renderWalletTimeline();
+    const ctx = walletRefreshCtx;
+    if (ctx) {
+        loadWalletPage(ctx.accounts, ctx.expenses, ctx.gains, ctx.currency, ctx.userProfile, ctx.expenseSplitRequests);
+    }
+}
 
 function ensureWalletMonthDefaults() {
     const n = new Date();
     if (!walletSelectedMonth || walletSelectedMonth < 1 || walletSelectedMonth > 12) {
         walletSelectedMonth = n.getMonth() + 1;
     }
-    if (!walletSelectedYear || walletSelectedYear < 2000) {
+    const fromDom = parseInt(String(document.getElementById('wallet-period-year')?.value ?? '').trim(), 10);
+    if (Number.isFinite(fromDom) && fromDom >= 1970 && fromDom <= 2100) {
+        walletSelectedYear = fromDom;
+    } else if (!walletSelectedYear || walletSelectedYear < 2000) {
         walletSelectedYear = n.getFullYear();
+        setWalletCivilYearInDom(walletSelectedYear);
     }
 }
 let initWalletPageUiOnceRan = false;
@@ -5909,7 +6711,7 @@ let initWalletPageUiOnceRan = false;
 let walletRefreshCtx = null;
 
 function walletMonthLabel() {
-    return `${WALLET_MONTH_NAMES[walletSelectedMonth - 1]}/${String(walletSelectedYear).slice(-2)}`;
+    return `${CIVIL_MONTH_CHIP_NAMES[walletSelectedMonth - 1]}/${String(walletSelectedYear).slice(-2)}`;
 }
 
 /** Soma das parcelas de cartão com vencimento no mês civil (YYYY-MM), com rateio líquido. */
@@ -5929,15 +6731,14 @@ function creditCardInstallmentsDueInCalendarMonth(card, expenses, year, month1to
 }
 
 function renderWalletTimeline() {
-    const timeline = document.querySelector('[data-wallet-timeline]');
-    if (!timeline) return;
-    const yShort = String(walletSelectedYear).slice(-2);
-    timeline.innerHTML = WALLET_MONTH_NAMES.map((name, index) => {
-        const monthNum = index + 1;
-        const isActive = monthNum === walletSelectedMonth;
-        const label = `${name}/${yShort}`;
-        return `<button type="button" class="zero-budget__month-btn${isActive ? ' is-active' : ''}" data-wallet-month="${monthNum}" role="tab" aria-selected="${isActive ? 'true' : 'false'}">${label}</button>`;
-    }).join('');
+    ensureWalletMonthDefaults();
+    const root = walletTimelineRoot();
+    const year = walletSelectedYear || getWalletCivilYearFromDom();
+    syncCivilPeriodYearToDom(root, 'wallet-period-year', year);
+    refreshCivilPeriodTimeline(root, {
+        period: `month-${Math.max(0, walletSelectedMonth - 1)}`,
+        year
+    });
 }
 
 function initWalletPageUiOnce() {
@@ -5945,17 +6746,25 @@ function initWalletPageUiOnce() {
     const page = document.getElementById('wallet-page');
     if (!page) return;
     initWalletPageUiOnceRan = true;
-    page.addEventListener('click', (e) => {
-        const btn = e.target.closest('[data-wallet-month]');
-        if (!btn || !page.contains(btn)) return;
-        const m = parseInt(btn.getAttribute('data-wallet-month'), 10);
-        if (!Number.isFinite(m) || m < 1 || m > 12) return;
-        walletSelectedMonth = m;
-        walletSelectedYear = new Date().getFullYear();
-        const ctx = walletRefreshCtx;
-        if (!ctx) return;
-        loadWalletPage(ctx.accounts, ctx.expenses, ctx.gains, ctx.currency, ctx.userProfile, ctx.expenseSplitRequests);
-    });
+    const timelineRoot = walletTimelineRoot();
+    if (timelineRoot) {
+        bindCivilPeriodTimeline(timelineRoot, page, {
+            onYearDelta: (delta) => applyWalletCivilYearDelta(delta),
+            onMonthSelect: (mi) => {
+                walletSelectedMonth = mi + 1;
+                const ctx = walletRefreshCtx;
+                if (!ctx) return;
+                loadWalletPage(
+                    ctx.accounts,
+                    ctx.expenses,
+                    ctx.gains,
+                    ctx.currency,
+                    ctx.userProfile,
+                    ctx.expenseSplitRequests
+                );
+            }
+        });
+    }
     page.addEventListener('keydown', handleCreditCardListKeydown);
 }
 /**
@@ -5968,7 +6777,11 @@ function initWalletPageUiOnce() {
  */
 export function loadWalletPage(accounts, expenses, gains, currency, userProfile = null, expenseSplitRequests = null) {
     initWalletPageUiOnce();
-    const accs = accounts || [];
+    const accsRaw = accounts || [];
+    void repairUnlinkedBenefitPlasticsIfNeeded(accsRaw).then((fixed) => {
+        if (fixed && onUpdateCallback) onUpdateCallback();
+    });
+    const accs = applyInferredBenefitLinksForWallet(accsRaw);
     const exps = expenses || [];
     const gns = gains || [];
     const cur = currency || 'BRL';
@@ -6017,7 +6830,10 @@ export function loadWalletPage(accounts, expenses, gains, currency, userProfile 
     const elLimitHint = document.getElementById('wallet-summary-total-limit-hint');
     if (elLimit) elLimit.textContent = formatCurrency(totalLimit, cur);
     if (elInv) elInv.textContent = formatCurrency(totalInvoices, cur);
-    if (elNet) elNet.textContent = formatCurrency(netPurchasing, cur);
+    if (elNet) {
+        elNet.textContent = formatCurrency(netPurchasing, cur);
+        elNet.classList.toggle('wallet-summary-value--negative', netPurchasing < 0);
+    }
     if (elBar) elBar.style.width = `${pctLimit}%`;
     if (elLimitHint) {
         elLimitHint.textContent =
@@ -6028,25 +6844,118 @@ export function loadWalletPage(accounts, expenses, gains, currency, userProfile 
 
     const byBankId = new Map(accs.filter((a) => !isCardAccountType(a.type)).map((a) => [a.id, a]));
     const linkedCredit = (id) => creditCards.filter((c) => c.linkedAccountId === id);
-    const linkedBankOk = (lid) => !!(lid && byBankId.has(lid));
+    const debitCards = accs.filter((a) => a.type === 'cartao_debito');
+    const linkedDebit = (id) => debitCards.filter((c) => c.linkedAccountId === id);
 
-    const bankAccounts = accs.filter((a) => !isCardAccountType(a.type));
-    const bankRowsSorted = bankAccounts
-        .map((acc) => {
-            const credits = linkedCredit(acc.id);
-            let spendScore = 0;
-            for (const c of credits) {
-                spendScore += creditCardInstallmentsDueInCalendarMonth(
-                    c,
-                    exps,
-                    walletSelectedYear,
-                    walletSelectedMonth,
-                    prof,
-                    acceptedSplits,
-                    exps
+    function benefitPlasticSpendInMonth(cardId) {
+        const monthKey = `${walletSelectedYear}-${String(walletSelectedMonth).padStart(2, '0')}`;
+        let total = 0;
+        for (const t of exps) {
+            if (t.accountId !== cardId) continue;
+            total += expenseContributionProjectedToMonthKey(t, monthKey, prof, acceptedSplits, exps);
+        }
+        return total;
+    }
+
+    function plasticsFor(bankAcc, slot1Cards, slot2Cards, walletMode) {
+        const bankName = bankAcc && typeof bankAcc === 'object' ? bankAcc.name : String(bankAcc || '');
+        const bankRecord = bankAcc && typeof bankAcc === 'object' ? bankAcc : null;
+        const themeClass = resolveBankThemeClass(bankName);
+        const displayName = String(bankName || '').trim();
+        const slot1 = walletMode === 'benefit' ? 'food' : 'credit';
+        const slot2 = walletMode === 'benefit' ? 'meal' : 'debit';
+        const mapCard = (c, slot) => {
+            const colors = resolvePlasticColors(bankRecord, c);
+            const useCustom = !!colors;
+            const colorKind = slot === 'meal' || slot === 'debit' ? 'debit' : 'credit';
+            let amountText = '';
+            if (walletMode === 'benefit') {
+                amountText = formatCurrency(benefitPlasticSpendInMonth(c.id), cur);
+            } else if (slot === 'credit') {
+                amountText = formatCurrency(
+                    creditCardInstallmentsDueInCalendarMonth(
+                        c,
+                        exps,
+                        walletSelectedYear,
+                        walletSelectedMonth,
+                        prof,
+                        acceptedSplits,
+                        exps
+                    ),
+                    cur
                 );
             }
-            return { acc, credits, spendScore };
+            return {
+                id: c.id,
+                name: displayName || c.name,
+                slot,
+                walletMode,
+                kindLabel: null,
+                dueText: slot === 'credit' && c.dueDay != null ? `Vence dia ${c.dueDay}` : '',
+                amountText,
+                themeClass: useCustom ? '' : themeClass,
+                useCustom,
+                inlineStyle: useCustom ? buildPlasticInlineStyle(colorKind, colors) : ''
+            };
+        };
+        const slot1Plastics = slot1Cards.map((c) => mapCard(c, slot1));
+        const slot2Plastics = slot2Cards.map((c) => mapCard(c, slot2));
+        return {
+            themeClass,
+            slot1Plastics,
+            slot2Plastics,
+            institutionColors: resolvePlasticColors(bankRecord, null)
+        };
+    }
+
+    function walletCardsColumn(bankAcc, slot1Cards, slot2Cards, bankId, walletMode) {
+        const { themeClass, slot1Plastics, slot2Plastics, institutionColors } = plasticsFor(
+            bankAcc,
+            slot1Cards,
+            slot2Cards,
+            walletMode
+        );
+        return buildWalletAccountCardsHtml({
+            bankId,
+            themeClass,
+            walletMode,
+            slot1Plastics,
+            slot2Plastics,
+            institutionColors
+        });
+    }
+
+    const linkedBankOk = (lid) => !!(lid && byBankId.has(lid));
+
+    const bankAccounts = accs.filter(
+        (a) =>
+            !isCardAccountType(a.type) &&
+            (WALLET_INSTITUTION_ACCOUNT_TYPES.has(a.type) || WALLET_INSTITUTION_LEGACY_TYPES.has(a.type))
+    );
+    const bankRowsSorted = bankAccounts
+        .map((acc) => {
+            const benefit = isBenefitWalletInstitution(acc.type);
+            let spendScore = 0;
+            if (benefit) {
+                const { food, meal } = linkedBenefitSlotCards(acc.id, acc.type, accs);
+                for (const c of [...food, ...meal]) {
+                    spendScore += benefitPlasticSpendInMonth(c.id);
+                }
+            } else {
+                const credits = linkedCredit(acc.id);
+                for (const c of credits) {
+                    spendScore += creditCardInstallmentsDueInCalendarMonth(
+                        c,
+                        exps,
+                        walletSelectedYear,
+                        walletSelectedMonth,
+                        prof,
+                        acceptedSplits,
+                        exps
+                    );
+                }
+            }
+            return { acc, spendScore };
         })
         .sort((a, b) => {
             if (b.spendScore !== a.spendScore) return b.spendScore - a.spendScore;
@@ -6056,37 +6965,46 @@ export function loadWalletPage(accounts, expenses, gains, currency, userProfile 
     const rowsHtml = [];
     let tint = 0;
 
-    for (const { acc, credits } of bankRowsSorted) {
-        // Coluna de cartões: só crédito; valores do mês selecionado na timeline.
-        const hasCards = credits.length > 0;
+    for (const { acc } of bankRowsSorted) {
+        const walletMode = isBenefitWalletInstitution(acc.type) ? 'benefit' : 'bank';
+        let slot1Cards;
+        let slot2Cards;
+        if (walletMode === 'benefit') {
+            const slots = linkedBenefitSlotCards(acc.id, acc.type, accs);
+            slot1Cards = slots.food;
+            slot2Cards = slots.meal;
+        } else {
+            slot1Cards = linkedCredit(acc.id);
+            slot2Cards = linkedDebit(acc.id);
+        }
+        const hasCards = true;
         const typeLabel = accountTypeDisplayLabel(acc.type);
-        const accountCol = `
-            <div class="wallet-institution-row__label"><i class="fas ${accountTypeIconClass(acc.type)}" aria-hidden="true"></i> ${escapeHtml(typeLabel)}</div>
-            <div class="wallet-institution-row__amount">${formatCurrency(Number(acc.currentBalance) || 0, cur)}</div>`;
-        const cardsCol = buildWalletCardsColumnHtml(
-            credits,
-            exps,
-            cur,
-            walletSelectedYear,
-            walletSelectedMonth,
-            acc.id,
-            prof,
-            acceptedSplits
-        );
+        const holderRaw = accountHolderDisplayLabel(acc);
+        const bankClass = resolveBankThemeClass(acc.name);
+        const bankClassAttr = bankClass ? ` ${bankClass}` : '';
+        const institutionColors = resolvePlasticColors(acc, null);
+        const stripAttr = institutionColors
+            ? ` style="${escapeHtml(buildStripInlineStyle(institutionColors))}"`
+            : '';
+        const holderLine = holderRaw ? `<span class="wallet-institution-row__holder">${escapeHtml(holderRaw)}</span>` : '';
         const actionsCol = `
             <div class="wallet-institution-row__row-actions">
                 <button type="button" class="btn-action btn-edit" data-id="${escapeHtml(acc.id)}" title="Editar conta" aria-label="Editar conta"><i class="fas fa-pen" aria-hidden="true"></i></button>
                 <button type="button" class="btn-action btn-delete" data-id="${escapeHtml(acc.id)}" title="Excluir conta" aria-label="Excluir conta"><i class="fas fa-trash-alt" aria-hidden="true"></i></button>
             </div>`;
         rowsHtml.push(`
-            <article class="wallet-institution-row wallet-institution-row--tint-${tint % 5}" data-has-account="1" data-has-cards="${hasCards ? '1' : '0'}">
-                <div class="wallet-institution-row__strip" aria-hidden="true"></div>
+            <article class="wallet-institution-row wallet-institution-row--tint-${tint % 5}${bankClassAttr}" data-has-account="1" data-has-cards="${hasCards ? '1' : '0'}">
+                <div class="wallet-institution-row__strip" aria-hidden="true"${stripAttr}></div>
                 <div class="wallet-institution-row__bank">
                     <h3>${escapeHtml(acc.name)}</h3>
-                    <span class="wallet-institution-row__meta">Conta</span>
+                    <span class="wallet-institution-row__meta">${escapeHtml(typeLabel)}</span>
+                    ${holderLine}
                 </div>
-                <div class="wallet-institution-row__account">${accountCol}</div>
-                <div class="wallet-institution-row__cards">${cardsCol}</div>
+                <div class="wallet-institution-row__account">
+                    <div class="wallet-institution-row__label">Saldo</div>
+                    <div class="wallet-institution-row__amount">${formatCurrency(Number(acc.currentBalance) || 0, cur)}</div>
+                </div>
+                <div class="wallet-institution-row__cards">${walletCardsColumn(acc, slot1Cards, slot2Cards, acc.id, walletMode)}</div>
                 ${actionsCol}
             </article>`);
         tint += 1;
@@ -6117,18 +7035,10 @@ export function loadWalletPage(accounts, expenses, gains, currency, userProfile 
             return String(a.name).localeCompare(String(b.name), 'pt-BR');
         });
     for (const c of orphanCredits) {
-        const cardsCol = buildWalletCardsColumnHtml(
-            [c],
-            exps,
-            cur,
-            walletSelectedYear,
-            walletSelectedMonth,
-            null,
-            prof,
-            acceptedSplits
-        );
+        const bankClass = resolveBankThemeClass(c.name);
+        const bankClassAttr = bankClass ? ` ${bankClass}` : '';
         rowsHtml.push(`
-            <article class="wallet-institution-row wallet-institution-row--tint-${tint % 5}" data-has-account="0" data-has-cards="1">
+            <article class="wallet-institution-row wallet-institution-row--tint-${tint % 5}${bankClassAttr}" data-has-account="0" data-has-cards="1">
                 <div class="wallet-institution-row__strip" aria-hidden="true"></div>
                 <div class="wallet-institution-row__bank">
                     <h3>${escapeHtml(c.name)}</h3>
@@ -6137,15 +7047,62 @@ export function loadWalletPage(accounts, expenses, gains, currency, userProfile 
                 <div class="wallet-institution-row__account">
                     <div class="wallet-institution-row__empty"><i class="fas fa-lock" aria-hidden="true"></i> Sem conta atrelada</div>
                 </div>
-                <div class="wallet-institution-row__cards">${cardsCol}</div>
+                <div class="wallet-institution-row__cards">${walletCardsColumn(c, [c], [], null, 'bank')}</div>
+                <div class="wallet-institution-row__row-actions"></div>
+            </article>`);
+        tint += 1;
+    }
+
+    const orphanDebits = debitCards
+        .filter((c) => !linkedBankOk(c.linkedAccountId))
+        .sort((a, b) => String(a.name).localeCompare(String(b.name), 'pt-BR'));
+    for (const c of orphanDebits) {
+        const bankClass = resolveBankThemeClass(c.name);
+        const bankClassAttr = bankClass ? ` ${bankClass}` : '';
+        rowsHtml.push(`
+            <article class="wallet-institution-row wallet-institution-row--tint-${tint % 5}${bankClassAttr}" data-has-account="0" data-has-cards="1">
+                <div class="wallet-institution-row__strip" aria-hidden="true"></div>
+                <div class="wallet-institution-row__bank">
+                    <h3>${escapeHtml(c.name)}</h3>
+                    <span class="wallet-institution-row__meta">Cartão (sem conta vinculada)</span>
+                </div>
+                <div class="wallet-institution-row__account">
+                    <div class="wallet-institution-row__empty"><i class="fas fa-lock" aria-hidden="true"></i> Sem conta atrelada</div>
+                </div>
+                <div class="wallet-institution-row__cards">${walletCardsColumn(c, [], [c], null, 'bank')}</div>
+                <div class="wallet-institution-row__row-actions"></div>
+            </article>`);
+        tint += 1;
+    }
+
+    const benefitCards = accs.filter((a) => isBenefitCardType(a.type));
+    const orphanBenefit = benefitCards
+        .filter((c) => !linkedBankOk(c.linkedAccountId))
+        .sort((a, b) => String(a.name).localeCompare(String(b.name), 'pt-BR'));
+    for (const c of orphanBenefit) {
+        const slot = c.type === 'vale_refeicao' ? 'meal' : 'food';
+        const slot1 = slot === 'food' ? [c] : [];
+        const slot2 = slot === 'meal' ? [c] : [];
+        const bankClass = resolveBankThemeClass(c.name);
+        const bankClassAttr = bankClass ? ` ${bankClass}` : '';
+        rowsHtml.push(`
+            <article class="wallet-institution-row wallet-institution-row--tint-${tint % 5}${bankClassAttr}" data-has-account="0" data-has-cards="1">
+                <div class="wallet-institution-row__strip" aria-hidden="true"></div>
+                <div class="wallet-institution-row__bank">
+                    <h3>${escapeHtml(c.name)}</h3>
+                    <span class="wallet-institution-row__meta">Vale (sem conta vinculada)</span>
+                </div>
+                <div class="wallet-institution-row__account">
+                    <div class="wallet-institution-row__empty"><i class="fas fa-lock" aria-hidden="true"></i> Sem conta atrelada</div>
+                </div>
+                <div class="wallet-institution-row__cards">${walletCardsColumn(c, slot1, slot2, null, 'benefit')}</div>
                 <div class="wallet-institution-row__row-actions"></div>
             </article>`);
         tint += 1;
     }
 
     const hasAnyBank = accs.some((a) => !isCardAccountType(a.type));
-    const debitCards = accs.filter((a) => isCardAccountType(a.type) && !isCreditCardType(a.type));
-    const hasAnyCard = creditCards.length > 0 || debitCards.length > 0;
+    const hasAnyCard = creditCards.length > 0 || debitCards.length > 0 || benefitCards.length > 0;
     if (!hasAnyBank && !hasAnyCard) {
         list.innerHTML = `
             <div class="accounts-empty-state">
@@ -6159,11 +7116,11 @@ export function loadWalletPage(accounts, expenses, gains, currency, userProfile 
 
     const dueTitle = document.querySelector('#wallet-due-panel .wallet-aside-card__title');
     if (dueTitle) {
-        dueTitle.innerHTML = `<i class="fas fa-calendar-check" aria-hidden="true"></i> Vencimentos · ${escapeHtml(monLbl)}`;
+        dueTitle.innerHTML = `Vencimentos <span class="wallet-aside-card__title-note">${escapeHtml(monLbl)}</span>`;
     }
     const actTitle = document.querySelector('#wallet-activity-panel .wallet-aside-card__title');
     if (actTitle) {
-        actTitle.innerHTML = `<i class="fas fa-receipt" aria-hidden="true"></i> Compras na fatura <span class="wallet-aside-card__title-note">(${escapeHtml(monLbl)})</span>`;
+        actTitle.innerHTML = `Compras na fatura <span class="wallet-aside-card__title-note">${escapeHtml(monLbl)}</span>`;
     }
 
     const dueHost = document.getElementById('wallet-due-list');
@@ -6189,13 +7146,14 @@ export function loadWalletPage(accounts, expenses, gains, currency, userProfile 
                         exps
                     );
                     const due = c.dueDay != null ? `Dia ${c.dueDay}` : '—';
+                    const amtCls = inv > 0 ? 'wallet-aside-row__amt wallet-aside-row__amt--out' : 'wallet-aside-row__amt wallet-aside-row__amt--zero';
                     return `
                 <div class="wallet-aside-row">
-                    <div>
+                    <div class="wallet-aside-row__main">
                         <div class="wallet-aside-row__name">${escapeHtml(c.name)}</div>
                         <div class="wallet-aside-row__sub">${escapeHtml(due)}</div>
                     </div>
-                    <div class="wallet-aside-row__amt">${formatCurrency(inv, cur)}</div>
+                    <div class="${amtCls}">${formatCurrency(inv, cur)}</div>
                 </div>`;
                 })
                 .join('');
@@ -6238,13 +7196,12 @@ export function loadWalletPage(accounts, expenses, gains, currency, userProfile 
                             ? `Parcela ${m.inst.index} de ${m.inst.total} · ${escapeHtml(m.cardName)}`
                             : escapeHtml(m.cardName);
                     return `
-                <div class="wallet-activity-row">
-                    <span class="wallet-activity-row__dot wallet-activity-row__dot--out" aria-hidden="true"></span>
-                    <div class="wallet-activity-row__body">
-                        <span class="wallet-activity-row__lbl">${escapeHtml(m.label)}</span>
-                        <span class="wallet-activity-row__sub">${sub}</span>
+                <div class="wallet-aside-row">
+                    <div class="wallet-aside-row__main">
+                        <div class="wallet-aside-row__name">${escapeHtml(m.label)}</div>
+                        <div class="wallet-aside-row__sub">${sub}</div>
                     </div>
-                    <span class="wallet-activity-row__val wallet-activity-row__val--out">${formatCurrency(m.amount, cur)}</span>
+                    <div class="wallet-aside-row__amt wallet-aside-row__amt--out">${formatCurrency(Math.abs(m.amount), cur)}</div>
                 </div>`;
                 })
                 .join('');
@@ -6252,53 +7209,6 @@ export function loadWalletPage(accounts, expenses, gains, currency, userProfile 
     }
 
     renderWalletTimeline();
-}
-
-/** Coluna direita: só cartões de crédito; parcelas com vencimento no mês civil. `linkBankId` permite atalho «Adicionar cartão». */
-function buildWalletCardsColumnHtml(
-    creditList,
-    expenses,
-    currency,
-    year,
-    month1to12,
-    linkBankId = null,
-    userProfile = null,
-    acceptedSplits = null
-) {
-    const parts = [];
-    for (const c of creditList) {
-        const bill = creditCardInstallmentsDueInCalendarMonth(
-            c,
-            expenses,
-            year,
-            month1to12,
-            userProfile,
-            acceptedSplits,
-            expenses
-        );
-        const lim = Number(c.limit);
-        const pct = Number.isFinite(lim) && lim > 0 ? Math.min(100, (bill / lim) * 100) : 0;
-        const due = c.dueDay != null ? `Vence dia ${c.dueDay}` : 'Vencimento —';
-        parts.push(`
-            <div class="wallet-credit-block">
-                <button type="button" tabindex="0" class="wallet-card-open credit-card-card--interactive" data-card-id="${escapeHtml(c.id)}" aria-label="Ver lançamentos: ${escapeHtml(c.name)}">
-                    <div class="wallet-credit-block__head wallet-credit-block__head--due-only">
-                        <span class="wallet-credit-block__due">${escapeHtml(due)}</span>
-                    </div>
-                    <div class="wallet-institution-row__label wallet-institution-row__label--credit-inline"><i class="fas fa-calendar-alt" aria-hidden="true"></i> Parcelas no mês</div>
-                    <div class="wallet-institution-row__amount wallet-institution-row__amount--credit wallet-institution-row__amount--credit-compact">${formatCurrency(bill, currency)}</div>
-                    <div class="wallet-kpi-progress" aria-hidden="true"><span class="wallet-kpi-progress__fill" style="width:${pct}%"></span></div>
-                </button>
-            </div>`);
-    }
-    if (parts.length === 0) {
-        const link =
-            linkBankId != null && String(linkBankId).trim() !== ''
-                ? `<button type="button" class="wallet-link-add-card" data-wallet-link-credit="${escapeHtml(String(linkBankId))}">Adicionar cartão de crédito</button>`
-                : '';
-        return `<div class="wallet-institution-row__empty"><i class="fas fa-lock" aria-hidden="true"></i> Sem cartão de crédito atrelado${link}</div>`;
-    }
-    return parts.join('');
 }
 
 // --- LÓGICA DE CONTAS E CARTÕES ---
@@ -6312,8 +7222,8 @@ export function loadAccountsData(accounts, currency) {
             <div class="accounts-empty-state">
                 <div class="accounts-empty-state__icon" aria-hidden="true"><i class="fas fa-wallet"></i></div>
                 <p class="accounts-empty-state__title">Nenhuma conta cadastrada</p>
-                <p class="accounts-empty-state__text">Use <strong>Nova conta</strong> para corrente, poupança, investimento
-                    ou outras contas — os cartões ficam na secção <strong>Cartões</strong> abaixo.</p>
+                <p class="accounts-empty-state__text">Use <strong>Nova conta</strong> para corrente, investimento ou vale alimentação/refeição
+                    — os cartões ficam na secção <strong>Cartões</strong> abaixo.</p>
             </div>`;
         return;
     }
@@ -6324,7 +7234,7 @@ export function loadAccountsData(accounts, currency) {
         const tint = bankClass ? '' : ` account-card--tint-${index % 5}`;
         article.className = `account-card account-card--landscape account-card--tipo-${tipo}${bankClass ? ` ${bankClass}` : ''}${tint}`;
         const nameSafe = escapeHtml(acc.name);
-        const holderRaw = acc.holderName != null && String(acc.holderName).trim() !== '' ? String(acc.holderName).trim() : '';
+        const holderRaw = accountHolderDisplayLabel(acc);
         const holderBlock = holderRaw
             ? `<p class="account-card__holder">${escapeHtml(holderRaw)}</p>`
             : '';
@@ -6369,6 +7279,7 @@ function openNewAccountModal() {
     hideWalletWizardUi();
     const form = document.getElementById('account-form');
     if (!form) return;
+    form.classList.remove('account-form--wallet');
     setAccountTypeSelectMode('full');
     form.reset();
     form['account-id'].value = '';
@@ -6378,7 +7289,117 @@ function openNewAccountModal() {
         sub.textContent = '';
         sub.classList.add('hidden');
     }
+    populateAccountHolderUserSelect(currentUser?.uid);
     toggleCreditCardFields(form['account-type'].value);
+    fillAppearanceFormFromAccount(form, {}, resolveBankThemeClass(''));
+    syncAccountFormSections();
+    refreshPlasticPreview(form);
+    openModal('account-modal');
+}
+
+function openNewBenefitCardModal(preLinkedBankId = null, slot = 'food') {
+    hideWalletWizardUi();
+    const institutions = (userAccounts || []).filter(
+        (a) => !isCardAccountType(a.type) && isBenefitWalletInstitution(a.type)
+    );
+    if (!preLinkedBankId && institutions.length === 0) {
+        showToast(
+            'Conta necessária',
+            'Crie primeiro uma conta de alimentação e refeição na Carteira (botão Nova).',
+            'warning'
+        );
+        return;
+    }
+    if (
+        preLinkedBankId &&
+        !(userAccounts || []).some(
+            (a) => a.id === preLinkedBankId && isBenefitWalletInstitution(a.type)
+        )
+    ) {
+        showToast('Conta inválida', 'Não foi possível encontrar a conta de benefício.', 'warning');
+        return;
+    }
+    const form = document.getElementById('account-form');
+    if (!form) return;
+    form.classList.remove('account-form--wallet');
+    setAccountTypeSelectMode('benefitCardsOnly');
+    form.reset();
+    form['account-id'].value = '';
+    setPlasticLinkInstitutionField(preLinkedBankId);
+    const cardType = benefitCardTypeForSlot(slot);
+    form['account-type'].value = cardType;
+    toggleCreditCardFields(cardType);
+    const sel = document.getElementById('card-linked-account');
+    if (preLinkedBankId && sel) {
+        ensureInstitutionInLinkedSelect(sel, preLinkedBankId, cardType);
+    }
+    syncLinkedCardNameField(form);
+    populateAccountHolderUserSelect(currentUser?.uid);
+    document.getElementById('account-modal-title').textContent =
+        slot === 'meal' ? 'Novo vale refeição' : 'Novo vale alimentação';
+    const sub = document.getElementById('account-modal-subtitle');
+    if (sub) {
+        sub.textContent = '';
+        sub.classList.add('hidden');
+    }
+    const bank = (userAccounts || []).find((a) => a.id === preLinkedBankId);
+    fillAppearanceFormFromAccount(form, bank || {}, resolveBankThemeClass(bank?.name || ''));
+    syncAccountFormSections();
+    refreshPlasticPreview(form);
+    openModal('account-modal');
+}
+
+function openNewDebitCardModal(preLinkedBankId = null) {
+    hideWalletWizardUi();
+    const bankCount = (userAccounts || []).filter((a) => !isCardAccountType(a.type)).length;
+    if (!preLinkedBankId && bankCount === 0) {
+        showToast(
+            'Conta necessária',
+            'Crie primeiro uma conta na Carteira (botão Nova no topo) antes de vincular um cartão.',
+            'warning'
+        );
+        return;
+    }
+    if (preLinkedBankId) {
+        const inst = (userAccounts || []).find((a) => a.id === preLinkedBankId);
+        if (!inst || isCardAccountType(inst.type)) {
+            showToast('Conta inválida', 'Não foi possível encontrar a conta para vincular o cartão.', 'warning');
+            return;
+        }
+        if (isBenefitWalletInstitution(inst.type)) {
+            showToast(
+                'Use os vales',
+                'Contas de alimentação e refeição usam vale alimentação e vale refeição, não cartão de débito.',
+                'warning'
+            );
+            return;
+        }
+    }
+    const form = document.getElementById('account-form');
+    if (!form) return;
+    form.classList.remove('account-form--wallet');
+    setAccountTypeSelectMode('cardsOnly');
+    form.reset();
+    form['account-id'].value = '';
+    form['account-type'].value = 'cartao_debito';
+    setPlasticLinkInstitutionField(preLinkedBankId);
+    toggleCreditCardFields('cartao_debito');
+    const selDebit = document.getElementById('card-linked-account');
+    if (preLinkedBankId && selDebit) {
+        ensureInstitutionInLinkedSelect(selDebit, preLinkedBankId, 'cartao_debito');
+    }
+    syncLinkedCardNameField(form);
+    populateAccountHolderUserSelect(currentUser?.uid);
+    document.getElementById('account-modal-title').textContent = 'Novo cartão de débito';
+    const sub = document.getElementById('account-modal-subtitle');
+    if (sub) {
+        sub.textContent = '';
+        sub.classList.add('hidden');
+    }
+    const bank = (userAccounts || []).find((a) => a.id === preLinkedBankId);
+    fillAppearanceFormFromAccount(form, bank || {}, resolveBankThemeClass(bank?.name || ''));
+    syncAccountFormSections();
+    refreshPlasticPreview(form);
     openModal('account-modal');
 }
 
@@ -6393,48 +7414,66 @@ function openNewCreditCardModal(preLinkedBankId = null) {
         );
         return;
     }
-    if (
-        preLinkedBankId &&
-        !(userAccounts || []).some((a) => a.id === preLinkedBankId && !isCardAccountType(a.type))
-    ) {
-        showToast('Conta inválida', 'Não foi possível encontrar a conta para vincular o cartão.', 'warning');
-        return;
+    if (preLinkedBankId) {
+        const inst = (userAccounts || []).find((a) => a.id === preLinkedBankId);
+        if (!inst || isCardAccountType(inst.type)) {
+            showToast('Conta inválida', 'Não foi possível encontrar a conta para vincular o cartão.', 'warning');
+            return;
+        }
+        if (isBenefitWalletInstitution(inst.type)) {
+            showToast(
+                'Use os vales',
+                'Contas de alimentação e refeição usam vale alimentação e vale refeição, não cartão de crédito.',
+                'warning'
+            );
+            return;
+        }
     }
     const form = document.getElementById('account-form');
     if (!form) return;
+    form.classList.remove('account-form--wallet');
     setAccountTypeSelectMode('cardsOnly');
     form.reset();
     form['account-id'].value = '';
     form['account-type'].value = 'cartao_credito';
+    setPlasticLinkInstitutionField(preLinkedBankId);
     toggleCreditCardFields('cartao_credito');
-    if (preLinkedBankId) {
-        const sel = document.getElementById('card-linked-account');
-        if (sel) sel.value = preLinkedBankId;
+    const selCredit = document.getElementById('card-linked-account');
+    if (preLinkedBankId && selCredit) {
+        ensureInstitutionInLinkedSelect(selCredit, preLinkedBankId, 'cartao_credito');
     }
+    syncLinkedCardNameField(form);
+    populateAccountHolderUserSelect(currentUser?.uid);
     document.getElementById('account-modal-title').textContent = 'Novo cartão';
     const sub = document.getElementById('account-modal-subtitle');
     if (sub) {
         sub.textContent = '';
         sub.classList.add('hidden');
     }
+    const bank = (userAccounts || []).find((a) => a.id === preLinkedBankId);
+    fillAppearanceFormFromAccount(form, bank || {}, resolveBankThemeClass(bank?.name || ''));
+    syncAccountFormSections();
+    refreshPlasticPreview(form);
     openModal('account-modal');
 }
 
 /** Preenche o modal de conta/cartão para edição (contas e tela de cartões). */
-function fillAndOpenAccountForm(acc) {
+function fillAndOpenAccountForm(acc, options = {}) {
     const form = document.getElementById('account-form');
     if (!form || !acc) return;
+    const context = options.context || 'general';
+    form.classList.toggle('account-form--wallet', context === 'wallet');
     hideWalletWizardUi();
-    setAccountTypeSelectMode(isCardAccountType(acc.type) ? 'cardsOnly' : 'full');
+    clearPlasticLinkInstitutionField();
+    const mode = accountFormSelectModeFor(acc, context);
+    setAccountTypeSelectMode(mode);
+    ensureAccountTypeOptionPresent(form['account-type'], acc.type);
     form['account-id'].value = acc.id;
     form['account-name'].value = acc.name;
     form['account-type'].value = acc.type;
-    const holderEl = form['card-holder-name'];
-    if (holderEl) {
-        holderEl.value = acc.holderName != null && acc.holderName !== '' ? String(acc.holderName) : '';
-    }
+    void populateAccountHolderUserSelect(acc.holderUserId || acc.userId || currentUser?.uid);
     toggleCreditCardFields(acc.type);
-    if (acc.type === 'cartao_credito' || acc.type === 'cartao_debito') {
+    if (isBankCardType(acc.type) || isBenefitCardType(acc.type)) {
         const sel = document.getElementById('card-linked-account');
         if (sel) sel.value = acc.linkedAccountId || '';
     }
@@ -6443,14 +7482,27 @@ function fillAndOpenAccountForm(acc) {
         form['card-closing-day'].value = acc.closeDay != null ? acc.closeDay : '';
         form['card-due-day'].value = acc.dueDay != null ? acc.dueDay : '';
     }
-    document.getElementById('account-modal-title').textContent = isCardAccountType(acc.type)
-        ? 'Editar cartão'
-        : 'Editar Conta';
+    fillAppearanceFormFromAccount(form, acc, resolveBankThemeClass(acc.name));
+    document.getElementById('account-modal-title').textContent = isBenefitCardType(acc.type)
+        ? 'Editar vale'
+        : isBankCardType(acc.type)
+          ? 'Editar cartão'
+          : 'Editar Conta';
     const sub = document.getElementById('account-modal-subtitle');
     if (sub) {
-        sub.textContent = '';
-        sub.classList.add('hidden');
+        if (isCardAccountType(acc.type)) {
+            sub.textContent = '';
+            sub.classList.add('hidden');
+        } else if (context === 'wallet') {
+            sub.textContent = '';
+            sub.classList.add('hidden');
+        } else {
+            sub.textContent = '';
+            sub.classList.add('hidden');
+        }
     }
+    syncAccountFormSections();
+    refreshPlasticPreview(form);
     openModal('account-modal');
 }
 
@@ -6466,13 +7518,29 @@ async function handleAccountFormSubmit(e) {
         return;
     }
 
-    const holderTrim = (form['card-holder-name']?.value || '').trim();
+    const holderUserId = getAccountHolderUserIdFromForm(form);
+    if (!holderUserId) {
+        showMessage('account-message', 'Selecione o titular.', 'error');
+        return;
+    }
 
     if (mode === 'wallet_wizard' && !id) {
-        const addCr = document.getElementById('wallet-wizard-add-credit')?.checked === true;
-        const addDb = document.getElementById('wallet-wizard-add-debit')?.checked === true;
+        const addSlotA = document.getElementById('wallet-wizard-add-credit')?.checked === true;
+        const addSlotB = document.getElementById('wallet-wizard-add-debit')?.checked === true;
+        const benefitInstitution = isBenefitWalletInstitution(type);
 
-        if (addCr) {
+        if (!addSlotA || !addSlotB) {
+            showMessage(
+                'account-message',
+                benefitInstitution
+                    ? 'Marque vale alimentação e vale refeição — a instituição de benefício deve ter os dois.'
+                    : 'Marque cartão de crédito e cartão de débito — cada conta bancária deve ter os dois.',
+                'error'
+            );
+            return;
+        }
+
+        if (!benefitInstitution && addSlotA) {
             const lim = parseFloat(String(form.querySelector('#wizard-credit-limit')?.value || '').replace(',', '.'));
             const closeDay = parseInt(form.querySelector('#wizard-credit-closing-day')?.value, 10);
             const dueDay = parseInt(form.querySelector('#wizard-credit-due-day')?.value, 10);
@@ -6502,12 +7570,12 @@ async function handleAccountFormSubmit(e) {
             name: nameTrim,
             type,
             initialBalance: 0,
-            holderName: holderTrim || null
+            holderUserId
         };
 
         let cardSteps = 0;
-        if (addCr) cardSteps += 1;
-        if (addDb) cardSteps += 1;
+        if (addSlotA) cardSteps += 1;
+        if (addSlotB) cardSteps += 1;
         let remainingSounds = cardSteps;
 
         setFormSubmittingState(form, true, 'A guardar…');
@@ -6519,47 +7587,84 @@ async function handleAccountFormSubmit(e) {
                 throw new Error('Resposta sem id da conta.');
             }
 
-            const holderCard = holderTrim || nameTrim;
+            if (benefitInstitution) {
+                if (addSlotA) {
+                    remainingSounds -= 1;
+                    await saveAccount(
+                        {
+                            userId: currentUser.uid,
+                            name: nameTrim,
+                            type: 'vale_alimentacao',
+                            linkedAccountId: bid,
+                            holderUserId,
+                            initialBalance: 0,
+                            plasticTone: null,
+                            plasticColor: null
+                        },
+                        '',
+                        { skipUiSound: remainingSounds > 0 }
+                    );
+                }
+                if (addSlotB) {
+                    remainingSounds -= 1;
+                    await saveAccount(
+                        {
+                            userId: currentUser.uid,
+                            name: nameTrim,
+                            type: 'vale_refeicao',
+                            linkedAccountId: bid,
+                            holderUserId,
+                            initialBalance: 0,
+                            plasticTone: null,
+                            plasticColor: null
+                        },
+                        '',
+                        { skipUiSound: remainingSounds > 0 }
+                    );
+                }
+            } else {
+                if (addSlotA) {
+                    const lim = parseFloat(
+                        String(form.querySelector('#wizard-credit-limit')?.value || '').replace(',', '.')
+                    );
+                    const closeDay = parseInt(form.querySelector('#wizard-credit-closing-day')?.value, 10);
+                    const dueDay = parseInt(form.querySelector('#wizard-credit-due-day')?.value, 10);
+                    remainingSounds -= 1;
+                    await saveAccount(
+                        {
+                            userId: currentUser.uid,
+                            name: nameTrim,
+                            type: 'cartao_credito',
+                            linkedAccountId: bid,
+                            holderUserId,
+                            limit: lim,
+                            closeDay,
+                            dueDay,
+                            plasticTone: null,
+                            plasticColor: null
+                        },
+                        '',
+                        { skipUiSound: remainingSounds > 0 }
+                    );
+                }
 
-            if (addCr) {
-                const crNameRaw = (form.querySelector('#wizard-credit-card-name')?.value || '').trim();
-                const crName = crNameRaw || `${nameTrim} Crédito`;
-                const lim = parseFloat(
-                    String(form.querySelector('#wizard-credit-limit')?.value || '').replace(',', '.')
-                );
-                const closeDay = parseInt(form.querySelector('#wizard-credit-closing-day')?.value, 10);
-                const dueDay = parseInt(form.querySelector('#wizard-credit-due-day')?.value, 10);
-                const creditData = {
-                    userId: currentUser.uid,
-                    name: crName,
-                    type: 'cartao_credito',
-                    linkedAccountId: bid,
-                    holderName: holderCard,
-                    limit: lim,
-                    closeDay,
-                    dueDay,
-                    plasticTone: null,
-                    plasticColor: null
-                };
-                remainingSounds -= 1;
-                await saveAccount(creditData, '', { skipUiSound: remainingSounds > 0 });
-            }
-
-            if (addDb) {
-                const dbNameRaw = (form.querySelector('#wizard-debit-card-name')?.value || '').trim();
-                const dbName = dbNameRaw || `${nameTrim} Débito`;
-                const debitData = {
-                    userId: currentUser.uid,
-                    name: dbName,
-                    type: 'cartao_debito',
-                    linkedAccountId: bid,
-                    holderName: holderCard,
-                    initialBalance: 0,
-                    plasticTone: null,
-                    plasticColor: null
-                };
-                remainingSounds -= 1;
-                await saveAccount(debitData, '', { skipUiSound: remainingSounds > 0 });
+                if (addSlotB) {
+                    remainingSounds -= 1;
+                    await saveAccount(
+                        {
+                            userId: currentUser.uid,
+                            name: nameTrim,
+                            type: 'cartao_debito',
+                            linkedAccountId: bid,
+                            holderUserId,
+                            initialBalance: 0,
+                            plasticTone: null,
+                            plasticColor: null
+                        },
+                        '',
+                        { skipUiSound: remainingSounds > 0 }
+                    );
+                }
             }
 
             hideWalletWizardUi();
@@ -6576,7 +7681,7 @@ async function handleAccountFormSubmit(e) {
                 closeModal('account-modal');
                 showToast(
                     'Conta criada',
-                    `${msg} Pode completar o cartão com «Adicionar cartão de crédito» na linha da conta ou com Nova no topo.`,
+                    `${msg} Complete os plásticos pelos slots na linha da conta ou com Nova no topo.`,
                     'warning'
                 );
             } else {
@@ -6594,27 +7699,47 @@ async function handleAccountFormSubmit(e) {
         type: type
     };
 
-    if (type !== 'cartao_credito' && type !== 'cartao_debito' && !id) {
+    if (!isBankCardType(type) && !isBenefitCardType(type) && !id) {
         data.initialBalance = 0;
     }
 
-    if (isCardAccountType(type)) {
-        data.holderName = holderTrim;
-        data.plasticTone = null;
-        data.plasticColor = null;
+    data.holderUserId = holderUserId;
+
+    const appearance = readAppearancePayloadFromForm(form);
+    if (!document.getElementById('account-appearance-block')?.classList.contains('hidden')) {
+        Object.assign(data, appearance);
     }
 
-    if (type === 'cartao_credito' || type === 'cartao_debito') {
-        const linked = (form['card-linked-account']?.value || '').trim();
+    if (isBankCardType(type) || isBenefitCardType(type)) {
+        const linked = readPlasticLinkInstitutionFromForm(form);
         if (!linked) {
             showMessage(
                 'account-message',
-                'Selecione a conta existente à qual este cartão está vinculado.',
+                'Selecione a instituição na Carteira à qual este plástico está vinculado.',
+                'error'
+            );
+            return;
+        }
+        const linkedInstitution = bankInstitutionById(linked);
+        if (isBenefitCardType(type) && !isBenefitWalletInstitution(linkedInstitution?.type)) {
+            showMessage(
+                'account-message',
+                'Vale alimentação/refeição só pode vincular a uma conta de benefício na Carteira.',
+                'error'
+            );
+            return;
+        }
+        if (isBankCardType(type) && isBenefitWalletInstitution(linkedInstitution?.type)) {
+            showMessage(
+                'account-message',
+                'Cartão bancário não pode vincular a conta de alimentação e refeição. Use os vales.',
                 'error'
             );
             return;
         }
         data.linkedAccountId = linked;
+        const linkedBankName = resolveLinkedCardDisplayName(linked, nameTrim);
+        if (linkedBankName) data.name = linkedBankName;
         if (type === 'cartao_credito') {
             data.limit = parseFloat(form['card-limit'].value) || 0;
             data.closeDay = parseInt(form['card-closing-day'].value, 10);
@@ -6625,13 +7750,18 @@ async function handleAccountFormSubmit(e) {
         }
     } else {
         data.linkedAccountId = null;
-        data.holderName = holderTrim || null;
     }
 
     setFormSubmittingState(form, true, 'Salvando conta...');
     try {
-        await saveAccount(data, id);
+        const saved = await saveAccount(data, id);
+        const bankId = !isCardAccountType(type) ? id || saved?.id : null;
+        if (bankId) {
+            await syncLinkedCardNamesToBankName(bankId, nameTrim);
+            await applyAppearanceToLinkedCards(form, bankId, appearance);
+        }
         closeModal('account-modal');
+        clearPlasticLinkInstitutionField();
         onUpdateCallback();
     } catch (error) {
         console.error('Erro ao salvar conta:', error);
@@ -6649,7 +7779,10 @@ async function handleAccountActions(e) {
 
     if (button.classList.contains('btn-edit')) {
         const acc = userAccounts.find((a) => a.id === id);
-        if (acc) fillAndOpenAccountForm(acc);
+        if (acc) {
+            const fromWallet = Boolean(e.currentTarget?.closest('#wallet-institutions-list'));
+            fillAndOpenAccountForm(acc, { context: fromWallet ? 'wallet' : 'general' });
+        }
     } else if (button.classList.contains('btn-delete')) {
         if (confirm('Tem certeza que deseja excluir esta conta? Saídas e entradas associadas a ela também serão removidas.')) {
             try {
@@ -6721,6 +7854,93 @@ function getLastInstallmentMonthLabel(dateField, installmentCount) {
     return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+function sameCalendarDay(a, b) {
+    if (!a || !b) return false;
+    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function expenseOnCurrentInvoice(expense, card) {
+    if (!card || !isCreditCardType(card.type)) return false;
+    const cycle = getBillingCycle(card);
+    const n = Math.max(1, parseInt(String(expense.installmentCount ?? '1'), 10) || 1);
+    const purchase = movementDateToJsDate(expense.date);
+    if (Number.isNaN(purchase.getTime())) return false;
+    const dues = getInstallmentDueDates(
+        purchase,
+        n,
+        card.closeDay ?? card.closingDay,
+        card.dueDay ?? card.dueDate
+    );
+    return dues.some((d) => sameCalendarDay(d, cycle.due));
+}
+
+function expenseInCardPurchasesScope(expense, card, scope) {
+    if (scope === 'all') return true;
+    if (scope === 'open') {
+        if (card && isCreditCardType(card.type)) {
+            return !isCreditInstallmentFullyPaid(expense, card, new Date(), financeUserProfile);
+        }
+        return !expense.isPaid;
+    }
+    if (scope === 'cycle') return expenseOnCurrentInvoice(expense, card);
+    if (scope === 'month') {
+        const now = new Date();
+        const d = movementDateToJsDate(expense.date);
+        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+    }
+    return true;
+}
+
+function syncCardPurchasesScopeUi() {
+    document.querySelectorAll('#card-purchases-scopes [data-card-scope]').forEach((btn) => {
+        const on = btn.getAttribute('data-card-scope') === cardPurchasesScope;
+        btn.classList.toggle('is-active', on);
+        btn.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+}
+
+function syncCardPurchasesSortHeaders() {
+    syncSortableTableHeaders(document.getElementById('card-purchases-table'), cardPurchasesSort, [
+        'date',
+        'description',
+        'category',
+        'installments',
+        'amount',
+        'status'
+    ]);
+}
+
+function getCardPurchasesListPeriod(card) {
+    const now = new Date();
+    if (card && isCreditCardType(card.type) && cardPurchasesScope === 'cycle') {
+        const cycle = getBillingCycle(card);
+        return { startDate: cycle.start, endDate: cycle.end };
+    }
+    if (cardPurchasesScope === 'month') {
+        return {
+            startDate: new Date(now.getFullYear(), now.getMonth(), 1),
+            endDate: new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+        };
+    }
+    return {
+        startDate: new Date(now.getFullYear(), now.getMonth(), 1),
+        endDate: new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+    };
+}
+
+function refreshOpenCardPurchasesModalIfVisible() {
+    const modal = document.getElementById('card-purchases-modal');
+    if (!modal || modal.classList.contains('hidden')) return;
+    const cardId = cardPurchasesCache?.card?.id;
+    if (!cardId) return;
+    openCardPurchasesModal(cardId);
+}
+
+function formatStatementDate(dateObj) {
+    const raw = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+    return raw.replace(/\./g, '').replace(' de ', ' ');
+}
+
 function parcelasLabel(ic) {
     const n = parseInt(String(ic ?? ''), 10);
     if (!Number.isFinite(n) || n < 1) return 'À vista';
@@ -6734,15 +7954,16 @@ function getSortedFilteredCardPurchasesList() {
 }
 
 function getFilteredCardPurchasesList() {
-    const { sorted, currency, userProfile: cardProf } = cardPurchasesCache;
+    const { sorted, currency, userProfile: cardProf, card } = cardPurchasesCache;
     const needle = cardPurchasesFilterQ.trim().toLowerCase();
-    if (!needle) return sorted;
-    return sorted.filter((t) => {
+    return (sorted || []).filter((t) => {
+        if (!expenseInCardPurchasesScope(t, card, cardPurchasesScope)) return false;
+        if (!needle) return true;
         const dateStr = movementDateToJsDate(t.date).toLocaleDateString('pt-BR');
         const parcelas = parcelasLabel(t.installmentCount);
         const n = parseInt(String(t.installmentCount ?? ''), 10);
         const ultima = Number.isFinite(n) && n >= 2 ? getLastInstallmentMonthLabel(t.date, n) : '—';
-        const cardAcc = userAccounts?.find((a) => a.id === t.accountId);
+        const cardAcc = card || userAccounts?.find((a) => a.id === t.accountId);
         const status = formatInstallmentStatusPlain(t, cardAcc, new Date(), cardProf);
         const perParc = getExpensePerInstallmentDisplayAmount(t, cardAcc);
         const hay = [
@@ -6770,59 +7991,112 @@ function applyCardPurchasesFilters() {
 
 function renderCardPurchasesBodySlice() {
     const tbody = document.getElementById('card-purchases-tbody');
+    const filterEmpty = document.getElementById('card-purchases-filter-empty');
+    const table = document.getElementById('card-purchases-table');
     if (!tbody || !cardPurchasesPagination) return;
     const currency = cardPurchasesCache?.currency || 'BRL';
     const cardUserProfile = cardPurchasesCache?.userProfile ?? null;
+    const card = cardPurchasesCache?.card || null;
     const list = getSortedFilteredCardPurchasesList();
     const { start, end } = cardPurchasesPagination.getSliceRange();
-    tbody.innerHTML = '';
-    list.slice(start, end).forEach((t) => {
-        const ic = t.installmentCount;
-        const n = parseInt(String(ic ?? ''), 10);
-        const parcelas = parcelasLabel(ic);
-        const ultima = Number.isFinite(n) && n >= 2 ? getLastInstallmentMonthLabel(t.date, n) : '—';
-        const cardAcc = userAccounts?.find((a) => a.id === t.accountId);
-        const fullyPaid =
-            cardAcc && isCreditCardType(cardAcc.type)
-                ? isCreditInstallmentFullyPaid(t, cardAcc, new Date(), financeUserProfile)
-                : !!t.isPaid;
-        const isPending = !fullyPaid;
-        const statusPlain = formatInstallmentStatusPlain(t, cardAcc, new Date(), cardUserProfile);
-        const statusInner =
-            cardAcc && isCreditCardType(cardAcc.type)
-                ? formatInstallmentPopoverHtml(t, cardAcc, currency, new Date(), cardUserProfile)
-                : `<span class="card-purchases-status ${isPending ? 'card-purchases-status--pending' : 'card-purchases-status--paid'}">${escapeHtml(statusPlain)}</span>`;
-        const statusHtml =
-            cardAcc && isCreditCardType(cardAcc.type)
-                ? `<div class="card-purchases-status-ring">${statusInner}</div>`
-                : statusInner;
-        const descRaw = String(t.description ?? '');
-        const descTitle = descRaw.length > 48 ? htmlAttrEscape(descRaw) : '';
-        const descCell = descTitle
-            ? `<span class="card-purchases-desc" title="${descTitle}">${truncateDisplayHtml(t.description, 48)}</span>`
-            : `<span class="card-purchases-desc">${escapeHtml(t.description)}</span>`;
-        const dateObj = movementDateToJsDate(t.date);
-        const dateIso = dateObj.toISOString().slice(0, 10);
-        const displayAmt = getExpensePerInstallmentDisplayAmount(t, cardAcc);
-        const totalAmt = Number(t.amount) || 0;
-        const amountTitle =
-            displayAmt !== totalAmt && totalAmt > 0
-                ? ` title="Total da compra: ${formatCurrency(totalAmt, currency)}"`
-                : '';
-        const tr = document.createElement('tr');
-        tr.className = isPending ? 'card-purchases-row card-purchases-row--pending' : 'card-purchases-row';
-        tr.innerHTML = `
-                <td class="card-purchases-td-date"><time datetime="${dateIso}">${dateObj.toLocaleDateString('pt-BR')}</time></td>
-                <td class="card-purchases-td-desc">${descCell}</td>
-                <td class="card-purchases-td-cat">${escapeHtml(t.category)}</td>
-                <td class="card-purchases-td-amount"${amountTitle}>${formatCurrency(displayAmt, currency)}</td>
-                <td>${parcelas}</td>
-                <td>${ultima}</td>
-                <td class="card-purchases-td-status">${statusHtml}</td>
-            `;
-        tbody.appendChild(tr);
-    });
-    setupInstallmentPopovers(tbody);
+    syncCardPurchasesListHeading(list.length);
+    filterEmpty?.classList.toggle('hidden', list.length > 0);
+    table?.classList.toggle('hidden', list.length === 0);
+    tbody.innerHTML = list
+        .slice(start, end)
+        .map((t) => buildCardPurchaseRowHtml(t, card, currency, cardUserProfile))
+        .join('');
+}
+
+function syncCardPurchasesListHeading(total) {
+    const el = document.getElementById('card-purchases-list-heading');
+    if (!el) return;
+    const n = Number.isFinite(total) ? total : getSortedFilteredCardPurchasesList().length;
+    el.innerHTML = `Lançamentos<span class="card-purchases-list-section__count" aria-hidden="true">${n}</span>`;
+}
+
+function cardPurchaseRowAmountTone(t, cardAcc, cardUserProfile, now, listPeriod) {
+    if (!cardAcc) return 'pending';
+    if (isCreditCardType(cardAcc.type)) {
+        if (isCreditInstallmentFullyPaid(t, cardAcc, now, cardUserProfile)) return 'settled';
+        const nParc = parseInt(String(t.installmentCount ?? ''), 10);
+        if (Number.isFinite(nParc) && nParc >= 2) {
+            const st = getInstallmentState(t, cardAcc, now, cardUserProfile);
+            const t0Start = startOfDay(listPeriod.startDate).getTime();
+            const t0End = listPeriod.endDate.getTime();
+            let dueInScope = null;
+            for (const d of st.dueDates || []) {
+                const u = startOfDay(d).getTime();
+                if (u >= t0Start && u <= t0End) {
+                    dueInScope = d;
+                    break;
+                }
+            }
+            if (
+                dueInScope &&
+                isInstallmentDuePaidForCashOut(t, cardAcc, dueInScope, cardUserProfile, now)
+            ) {
+                return 'settled';
+            }
+        } else if (t.isPaid !== false) {
+            return 'settled';
+        }
+        return 'pending';
+    }
+    return t.isPaid !== false ? 'settled' : 'pending';
+}
+
+function buildCardPurchaseRowHtml(t, cardAcc, currency, cardUserProfile) {
+    const now = new Date();
+    const listPeriod = getCardPurchasesListPeriod(cardAcc);
+    const nParc = parseInt(String(t.installmentCount ?? ''), 10);
+    const installmentCount = Number.isFinite(nParc) && nParc >= 1 ? nParc : 1;
+    const cardOrLoanInstallment =
+        cardAcc && isCreditCardType(cardAcc.type) && Number.isFinite(nParc) && nParc >= 2;
+    const onInvoice = expenseOnCurrentInvoice(t, cardAcc);
+    const dateObj = movementDateToJsDate(t.date);
+    const dateIso = dateObj.toISOString().slice(0, 10);
+    const displayAmt = getExpensePerInstallmentDisplayAmount(t, cardAcc);
+    const totalAmt = Number(t.amount) || 0;
+    const amountTitle =
+        installmentCount >= 2 && totalAmt > displayAmt
+            ? ` title="Total da compra: ${formatCurrency(totalAmt, currency)}"`
+            : '';
+    const installmentCell = formatExpenseInstallmentCellHtml(
+        getExpenseInstallmentLabelParts(t, cardAcc, cardUserProfile, now, listPeriod)
+    );
+    let statusCell;
+    if (cardAcc && isCreditCardType(cardAcc.type) && cardOrLoanInstallment) {
+        statusCell = formatExpenseTableStatusBadgeHtml(t, cardAcc, cardUserProfile, now, listPeriod);
+    } else {
+        statusCell = expenseTableBatchPaidToggleButton(t);
+    }
+    const amountTone = cardPurchaseRowAmountTone(t, cardAcc, cardUserProfile, now, listPeriod);
+    const amountCls =
+        amountTone === 'settled'
+            ? 'card-purchases-td-amount card-purchases-td-amount--settled'
+            : onInvoice
+              ? 'card-purchases-td-amount card-purchases-td-amount--invoice'
+              : 'despesa card-purchases-td-amount card-purchases-td-amount--pending';
+    const rowCls = [
+        'card-purchases-row',
+        onInvoice ? 'card-purchases-row--invoice' : '',
+        amountTone === 'settled' ? 'card-purchases-row--settled' : ''
+    ]
+        .filter(Boolean)
+        .join(' ');
+    const catRaw = String(t.category ?? '').trim();
+    const catCell = catRaw
+        ? `<span class="card-purchases-cat-chip">${escapeHtml(catRaw)}</span>`
+        : '<span class="card-purchases-cat-chip card-purchases-cat-chip--muted">—</span>';
+    return `<tr class="${rowCls}">
+        <td class="movement-td-compact card-purchases-td-date"><time datetime="${dateIso}">${dateObj.toLocaleDateString('pt-BR')}</time></td>
+        <td class="expenses-td-description"${movementDescriptionCellTitleAttr(t.description, { prepare: 'expense' })}>${buildExpenseDescriptionCellHtml(t.description)}</td>
+        <td class="movement-td-compact card-purchases-td-cat">${catCell}</td>
+        <td class="expenses-td-installments">${installmentCell}</td>
+        <td class="movement-td-compact ${amountCls}"${amountTitle}>${formatCurrency(displayAmt, currency)}</td>
+        <td class="expenses-td-status">${statusCell}</td>
+    </tr>`;
 }
 
 function openCardPurchasesModal(accountId) {
@@ -6849,8 +8123,24 @@ function openCardPurchasesModal(accountId) {
     if (fqEl) fqEl.value = '';
 
     const isCredit = isCreditCardType(card.type);
-    const typeLabel = isCredit ? 'Cartão de crédito' : 'Cartão de débito';
-    const holder = card.holderName && String(card.holderName).trim() ? String(card.holderName).trim() : '';
+    const isBenefit = isBenefitCardType(card.type);
+    cardPurchasesScope = isCredit ? 'cycle' : 'month';
+    syncCardPurchasesScopeUi();
+    document.querySelectorAll('#card-purchases-scopes [data-card-scope]').forEach((btn) => {
+        const scope = btn.getAttribute('data-card-scope');
+        const show = isCredit ? scope !== 'month' : scope !== 'cycle';
+        btn.classList.toggle('hidden', !show);
+        if (!isCredit && scope === 'month') btn.textContent = 'Este mês';
+        if (isCredit && scope === 'cycle') btn.textContent = 'Esta fatura';
+    });
+    const typeLabel = isBenefit
+        ? card.type === 'vale_refeicao'
+            ? 'Vale refeição'
+            : 'Vale alimentação'
+        : isCredit
+          ? 'Cartão de crédito'
+          : 'Cartão de débito';
+    const holder = accountHolderDisplayLabel(card);
     titleEl.textContent = card.name;
     if (subtitleEl) {
         subtitleEl.textContent = holder ? `${typeLabel} · ${holder}` : typeLabel;
@@ -6872,24 +8162,41 @@ function openCardPurchasesModal(accountId) {
         const cycleLabel = `${cycle.start.toLocaleDateString('pt-BR')} — ${cycle.end.toLocaleDateString('pt-BR')}`;
         const sumCycle = creditCardInvoiceTotalForCycle(card, sorted);
         const sumAll = sorted.reduce((s, t) => s + t.amount, 0);
+        const lim = parseFloat(String(card.limit ?? '').replace(',', '.'));
+        const hasLimit = Number.isFinite(lim) && lim > 0;
+        const usedPct = hasLimit ? Math.min(100, (sumCycle / lim) * 100) : 0;
+        const openCount = sorted.filter(
+            (t) => !isCreditInstallmentFullyPaid(t, card, new Date(), financeUserProfile)
+        ).length;
         summaryHtml = `
-            <div class="card-purchases-summary__grid">
-                <div class="card-purchases-summary__item">
-                    <span class="card-purchases-summary__icon" aria-hidden="true"><i class="fas fa-file-invoice-dollar"></i></span>
-                    <span class="card-purchases-summary__lbl">Fatura atual (ciclo)</span>
-                    <span class="card-purchases-summary__val">${formatCurrency(sumCycle, currency)}</span>
-                    <span class="card-purchases-summary__hint">${cycleLabel}</span>
+            <div class="card-statement-strip card-statement-strip--credit">
+                <div class="card-statement-strip__primary">
+                    <span class="card-statement-strip__lbl">Fatura atual</span>
+                    <strong class="card-statement-strip__val">${formatCurrency(sumCycle, currency)}</strong>
+                    <span class="card-statement-strip__meta">${cycleLabel}</span>
+                    <span class="card-statement-strip__due">Vence <strong>${cycle.due.toLocaleDateString('pt-BR')}</strong></span>
                 </div>
-                <div class="card-purchases-summary__item">
-                    <span class="card-purchases-summary__icon" aria-hidden="true"><i class="fas fa-receipt"></i></span>
-                    <span class="card-purchases-summary__lbl">Total lançado no cartão</span>
-                    <span class="card-purchases-summary__val">${formatCurrency(sumAll, currency)}</span>
-                    <span class="card-purchases-summary__hint">${sorted.length} lançamento(s)</span>
-                </div>
-                <div class="card-purchases-summary__item">
-                    <span class="card-purchases-summary__icon" aria-hidden="true"><i class="fas fa-calendar-check"></i></span>
-                    <span class="card-purchases-summary__lbl">Vencimento desta fatura</span>
-                    <span class="card-purchases-summary__val">${cycle.due.toLocaleDateString('pt-BR')}</span>
+                ${
+                    hasLimit
+                        ? `<div class="card-statement-strip__limit">
+                    <div class="card-statement-limit__top">
+                        <span class="card-statement-strip__lbl">Limite nesta fatura</span>
+                        <span class="card-statement-strip__pct">${Math.round(usedPct)}%</span>
+                    </div>
+                    <div class="card-statement-limit__track card-statement-strip__track"><span style="width:${usedPct}%"></span></div>
+                    <span class="card-statement-strip__hint">${formatCurrency(sumCycle, currency)} de ${formatCurrency(lim, currency)}</span>
+                </div>`
+                        : ''
+                }
+                <div class="card-statement-strip__stats">
+                    <div class="card-statement-strip__stat">
+                        <span class="card-statement-strip__stat-lbl">No cartão</span>
+                        <strong class="card-statement-strip__stat-val">${formatCurrency(sumAll, currency)}</strong>
+                    </div>
+                    <div class="card-statement-strip__stat">
+                        <span class="card-statement-strip__stat-lbl">Em aberto</span>
+                        <strong class="card-statement-strip__stat-val">${openCount}</strong>
+                    </div>
                 </div>
             </div>`;
     } else {
@@ -6921,8 +8228,9 @@ function openCardPurchasesModal(accountId) {
 
     summaryEl.innerHTML = summaryHtml;
 
-    cardPurchasesCache = { sorted, currency, userProfile: financeUserProfile };
+    cardPurchasesCache = { sorted, currency, userProfile: financeUserProfile, card };
     cardPurchasesSort = { key: 'date', dir: 'desc' };
+    syncCardPurchasesSortHeaders();
 
     if (sorted.length === 0) {
         emptyEl.classList.remove('hidden');
@@ -6943,13 +8251,6 @@ function openCardPurchasesModal(accountId) {
         if (cardPurchasesPagination) {
             cardPurchasesPagination.setTotal(getSortedFilteredCardPurchasesList().length);
         }
-        syncSortableTableHeaders(document.getElementById('card-purchases-table'), cardPurchasesSort, [
-            'date',
-            'amount',
-            'installments',
-            'lastInstallment',
-            'status'
-        ]);
         renderCardPurchasesBodySlice();
     }
 
@@ -6975,14 +8276,13 @@ function handleCreditCardListKeydown(e) {
     openCardPurchasesModal(hit.getAttribute('data-card-id'));
 }
 
-function handleCardPurchasesModalActions(e) {
-    const pillBtn = e.target.closest('.installment-tooltip-pill-btn');
-    if (pillBtn) {
-        e.preventDefault();
-        e.stopPropagation();
-        const expenseId = pillBtn.dataset.expenseId;
-        const periodKey = pillBtn.dataset.periodKey;
-        if (expenseId && periodKey) openInstallmentCashOutConfirmModal(expenseId, periodKey);
+async function handleCardPurchasesModalActions(e) {
+    const expenseAction = e.target.closest(
+        '.expense-inst-confirm-btn, button.expense-paid-toggle, .installment-tooltip-pill-btn, .installment-ring-confirm-btn'
+    );
+    if (expenseAction && e.target.closest('#card-purchases-tbody')) {
+        await handleExpenseRowActions(e);
+        refreshOpenCardPurchasesModalIfVisible();
         return;
     }
     const btn = e.target.closest('#card-purchases-modal-edit-btn, #card-purchases-modal-delete-btn');
@@ -6999,10 +8299,7 @@ function buildCreditCardArticleElement(card, _index, expenses, currency) {
     cardElement.setAttribute('tabindex', '0');
     cardElement.setAttribute('aria-label', `Ver compras e lançamentos: ${card.name}`);
     const cardNameSafe = escapeHtml(card.name);
-    const holderRaw =
-        card.holderName != null && String(card.holderName).trim() !== ''
-            ? String(card.holderName).trim()
-            : '';
+    const holderRaw = accountHolderDisplayLabel(card);
     const holderPlasticSafe = escapeHtml(holderRaw || String(card.name || ''));
     const isCredit = isCreditCardType(card.type);
     const typeBadge = isCredit
@@ -7141,7 +8438,7 @@ async function handleCardButtonActions(e) {
     if (button.classList.contains('btn-edit')) {
         closeModal('card-purchases-modal');
         const acc = userAccounts.find((a) => a.id === id);
-        if (acc) fillAndOpenAccountForm(acc);
+        if (acc) fillAndOpenAccountForm(acc, { context: 'cards' });
     } else if (button.classList.contains('btn-delete')) {
         if (
             confirm(

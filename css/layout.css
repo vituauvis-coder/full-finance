@@ -455,7 +455,7 @@
 }
 
 .app-header--expenses .header-page-emoji i {
-    color: #e11d48;
+    color: var(--expenses-accent);
 }
 
 .app-header--gains .header-page-emoji i {
@@ -510,7 +510,7 @@
 }
 
 .app-header--expenses .header-page-title {
-    color: #e11d48;
+    color: var(--expenses-accent);
 }
 
 .app-header--gains .header-page-title {
@@ -548,6 +548,167 @@
     justify-content: flex-end;
     gap: 0.55rem;
     min-width: 0;
+}
+
+.header-page-actions__quick-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+    margin-right: 0.1rem;
+}
+
+.header-page-actions__quick-filters--ghost {
+    gap: 0.1rem;
+    margin-right: 0;
+}
+
+.header-page-actions__sep {
+    display: inline-block;
+    width: 1px;
+    height: 1.25rem;
+    background: var(--border-color);
+    flex-shrink: 0;
+    margin: 0 0.15rem;
+    align-self: center;
+}
+
+#expenses-header-actions .header-quick-filter-btn--ghost,
+#gains-header-actions .header-quick-filter-btn--ghost {
+    min-height: 32px;
+    padding: 0.32rem 0.55rem;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-light);
+    font-size: 0.86rem;
+    font-weight: 650;
+    gap: 0;
+}
+
+#expenses-header-actions .header-quick-filter-btn--ghost:hover {
+    color: var(--text-color);
+    background: rgba(15, 23, 42, 0.06);
+}
+
+#gains-header-actions .header-quick-filter-btn--ghost:hover {
+    color: var(--text-color);
+    background: rgba(15, 23, 42, 0.06);
+}
+
+#expenses-header-actions .header-quick-filter-btn--ghost.active,
+#expenses-header-actions .header-quick-filter-btn--ghost[aria-pressed='true'] {
+    background: var(--expenses-bg-chip);
+    border: none;
+    color: var(--expenses-accent);
+}
+
+#gains-header-actions .header-quick-filter-btn--ghost.active,
+#gains-header-actions .header-quick-filter-btn--ghost[aria-pressed='true'] {
+    background: var(--gains-bg-chip);
+    border: none;
+    color: var(--gains-accent);
+}
+
+#dashboard-header-actions .header-page-actions__quick-filters.dashboard-header-facets {
+    flex-wrap: wrap;
+    gap: 0.1rem 0.25rem;
+    max-width: min(52rem, 72vw);
+}
+
+#dashboard-header-actions .dashboard-expense-facet-btn.header-quick-filter-btn--ghost {
+    min-height: 32px;
+    padding: 0.32rem 0.5rem;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-light);
+    font-size: 0.82rem;
+    font-weight: 650;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+#dashboard-header-actions .dashboard-expense-facet-btn.header-quick-filter-btn--ghost:hover {
+    color: var(--text-color);
+    background: rgba(15, 23, 42, 0.06);
+}
+
+#dashboard-header-actions .dashboard-expense-facet-btn[data-dashboard-flow='gains'].is-active,
+#dashboard-header-actions .dashboard-expense-facet-btn[data-dashboard-flow='gains'][aria-pressed='true'] {
+    background: var(--gains-bg-chip);
+    color: var(--gains-accent);
+}
+
+#dashboard-header-actions .dashboard-expense-facet-btn[data-dashboard-flow='expenses'].is-active,
+#dashboard-header-actions .dashboard-expense-facet-btn[data-dashboard-flow='expenses'][aria-pressed='true'] {
+    background: var(--expenses-bg-chip);
+    color: var(--expenses-accent);
+}
+
+[data-theme='dark'] #dashboard-header-actions .dashboard-expense-facet-btn.header-quick-filter-btn--ghost:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme='dark'] #dashboard-header-actions .dashboard-expense-facet-btn[data-dashboard-flow='gains'].is-active,
+[data-theme='dark'] #dashboard-header-actions .dashboard-expense-facet-btn[data-dashboard-flow='gains'][aria-pressed='true'] {
+    background: var(--gains-bg-chip);
+    color: var(--gains-accent);
+}
+
+[data-theme='dark'] #dashboard-header-actions .dashboard-expense-facet-btn[data-dashboard-flow='expenses'].is-active,
+[data-theme='dark'] #dashboard-header-actions .dashboard-expense-facet-btn[data-dashboard-flow='expenses'][aria-pressed='true'] {
+    background: var(--expenses-bg-chip);
+    color: var(--expenses-accent);
+}
+
+@media (max-width: 1100px) {
+    #dashboard-header-actions .dashboard-expense-facet-btn.header-quick-filter-btn--ghost {
+        padding: 0.28rem 0.42rem;
+        font-size: 0.78rem;
+    }
+}
+
+.header-page-actions .header-action-btn--icon {
+    width: 2.35rem;
+    min-width: 2.35rem;
+    height: 2.35rem;
+    min-height: 2.35rem;
+    padding: 0;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.header-page-actions .header-action-btn--icon.filter-drawer-trigger--active::after {
+    top: 5px;
+    right: 5px;
+}
+
+[data-theme='dark'] #expenses-header-actions .header-quick-filter-btn--ghost:hover,
+[data-theme='dark'] #gains-header-actions .header-quick-filter-btn--ghost:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme='dark'] #expenses-header-actions .header-quick-filter-btn--ghost.active,
+[data-theme='dark'] #expenses-header-actions .header-quick-filter-btn--ghost[aria-pressed='true'] {
+    background: var(--expenses-bg-chip);
+    color: var(--expenses-accent);
+}
+
+[data-theme='dark'] #gains-header-actions .header-quick-filter-btn--ghost.active,
+[data-theme='dark'] #gains-header-actions .header-quick-filter-btn--ghost[aria-pressed='true'] {
+    background: var(--gains-bg-chip);
+    color: var(--gains-accent);
+}
+
+.header-page-actions .header-quick-filter-btn:not(.header-quick-filter-btn--ghost) {
+    min-height: 36px;
+    padding: 0.4rem 0.72rem;
+    border-radius: 9px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    gap: 0.4rem;
 }
 
 .header-page-actions .header-period-select,
@@ -603,14 +764,14 @@
 }
 
 .app-header--expenses .header-page-actions .btn-primary.header-action-btn {
-    background-color: #e11d48;
-    border-color: #e11d48;
+    background-color: var(--expenses-accent);
+    border-color: var(--expenses-accent);
     color: #fff;
 }
 
 .app-header--gains .header-page-actions .btn-primary.header-action-btn {
-    background-color: #10b981;
-    border-color: #10b981;
+    background-color: var(--gains-accent);
+    border-color: var(--gains-accent);
     color: #fff;
 }
 

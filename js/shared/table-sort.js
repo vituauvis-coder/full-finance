@@ -18,6 +18,20 @@ function expenseMarkedFixedForSort(exp) {
     );
 }
 
+/** Ordenação da coluna Parcelas: índice da linha expandida ou total de parcelas do contrato. */
+function expenseInstallmentSortScore(exp) {
+    if (!exp) return -1;
+    if (exp.__instRow) {
+        if (exp.__instEmptyPeriod) return -1;
+        const index = Number(exp.__instParcelIndex) || 0;
+        const total = Math.max(1, Number(exp.__instParcelTotal) || 1);
+        return index / total;
+    }
+    const n = parseInt(String(exp.installmentCount ?? ''), 10);
+    if (Number.isFinite(n) && n >= 2) return 0;
+    return -1;
+}
+
 /**
  * Alterna coluna/direção ao clicar no cabeçalho.
  * @param {{ key: string, dir: 'asc'|'desc' }} current
@@ -77,12 +91,18 @@ export function sortExpenseRows(list, sort, accounts) {
                     cmp = a.__instParcelIndex - b.__instParcelIndex;
                 }
                 break;
-            case 'category':
-                cmp = String(a.category || '').localeCompare(String(b.category || ''), 'pt-BR');
+            case 'installments': {
+                cmp = expenseInstallmentSortScore(a) - expenseInstallmentSortScore(b);
+                if (cmp === 0) {
+                    const ta = Math.max(0, Number(a.__instParcelTotal) || Number(a.installmentCount) || 0);
+                    const tb = Math.max(0, Number(b.__instParcelTotal) || Number(b.installmentCount) || 0);
+                    cmp = ta - tb;
+                }
                 if (cmp === 0 && a.__instParcelIndex != null && b.__instParcelIndex != null) {
                     cmp = a.__instParcelIndex - b.__instParcelIndex;
                 }
                 break;
+            }
             case 'account': {
                 const na = accounts.find((x) => x.id === a.accountId)?.name || '';
                 const nb = accounts.find((x) => x.id === b.accountId)?.name || '';
