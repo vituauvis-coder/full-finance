@@ -1,0 +1,45 @@
+/* Folhas do app legado — mesma aparência no React */
+@import '../../../legacy-web/css/color-tokens.css';
+@import '../../../legacy-web/css/main.css';
+@import '../../../legacy-web/css/layout.css';
+@import '../../../legacy-web/css/components.css';
+@import '../../../legacy-web/css/page-toolbar.css';
+@import '../../../legacy-web/css/civil-period-timeline.css';
+@import '../../../legacy-web/css/dashboard.css';
+@import '../../../legacy-web/css/pages/reports.css';
+@import '../../../legacy-web/css/filter-drawer.css';
+@import '../../../legacy-web/css/header-notifications.css';
+@import '../../../legacy-web/css/auth.css';
+@import '../../../legacy-web/css/responsive.css';
+@import '../../../legacy-web/css/theme-dark.css';
+@import './auth-react.css';
+@import './auth-modern.css';
+@import '../frentes/shell/styles/sidebar-tokens.css';
+@import '../frentes/shell/styles/sidebar-chrome.css';
+@import '../frentes/shell/styles/sidebar-collapse-handle.css';
+@import '../frentes/dashboard/styles/dashboard-tokens.css';
+@import '../frentes/dashboard/styles/dashboard-ambient-bg.css';
+@import '../frentes/dashboard/styles/dashboard-modern.css';
+@import '../frentes/dashboard/styles/dashboard-surfaces.css';
+@import '../frentes/dashboard/styles/dashboard-header-chrome.css';
+@import '../frentes/dashboard/styles/dashboard-flux-chart.css';
+@import '../frentes/dashboard/styles/dashboard-portal-tooltip.css';
+@import '../frentes/dashboard/styles/dashboard-heatmap-legend.css';
+@import '../frentes/dashboard/styles/dashboard-heatmap-layout.css';
+@import '../frentes/dashboard/styles/dashboard-header-facets.css';
+@import '../frentes/dashboard/styles/dashboard-page-spacing.css';
+@import '../frentes/dashboard/styles/dashboard-pending-modern.css';
+@import '../frentes/dashboard/styles/dashboard-icons.css';
+@import '../frentes/perfil/styles/profile-modern.css';
+@import '../frentes/dinheiro/styles/movements-modern.css';
+@import '../frentes/dinheiro/styles/movements-header-facets.css';
+@import '../../../legacy-web/css/pages/viagens/viagens-malote.css';
+@import './table-pagination-modern.css';
+@import './data-table.css';
+@import '../../../legacy-web/css/table-sort.css';
+@import '../components/ui/screen-loader.css';
+
+/* Raiz React ocupa a viewport como #app legado */
+#root {
+    min-height: 100vh;
+}

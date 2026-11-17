@@ -1,0 +1,121 @@
+/* Nova viagem — poucos blocos, formulário visível de cara */
+
+#viagens-page .viagens-ficha-cadastro {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-width: 48rem;
+    width: 100%;
+}
+
+#viagens-page .viagens-panel--cadastro {
+    gap: 0.6rem;
+    padding: 0.9rem 1rem 1rem;
+}
+
+#viagens-page .viagens-panel--cadastro .viagens-panel__head {
+    align-items: center;
+}
+
+#viagens-page .viagens-panel--cadastro .viagens-panel__title {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+#viagens-page .viagens-panel__hint {
+    font-size: 0.72rem;
+    font-weight: 500;
+    text-align: right;
+    max-width: 11rem;
+    line-height: 1.3;
+}
+
+#viagens-page .viagens-form-divider {
+    margin: 0.25rem 0 0.1rem;
+    border: none;
+    border-top: 1px solid var(--border-color);
+}
+
+#viagens-page .viagens-form-empty {
+    margin: 0.15rem 0 0;
+    padding: 0.55rem 0.65rem;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    color: var(--text-light);
+    border-radius: 0.45rem;
+    border: 1px dashed color-mix(in srgb, var(--border-color) 85%, var(--viagens-accent));
+    background: color-mix(in srgb, var(--bg-color) 92%, transparent);
+}
+
+#viagens-page .viagens-cadastro-destinos-layout {
+    display: grid;
+    gap: 0.65rem;
+    align-items: start;
+}
+
+#viagens-page .viagens-cadastro-destinos-main {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    min-width: 0;
+}
+
+#viagens-page .viagens-cadastro-destinos-map.viagens-form-map .viagens-mini-map,
+#viagens-page .viagens-cadastro-destinos-map .viagens-mini-map {
+    height: min(220px, 36vh);
+    min-height: 160px;
+}
+
+@media (min-width: 720px) {
+    #viagens-page .viagens-cadastro-destinos-layout {
+        grid-template-columns: minmax(0, 1fr) minmax(196px, 252px);
+    }
+
+    #viagens-page .viagens-cadastro-destinos-map {
+        position: sticky;
+        top: 0.5rem;
+    }
+
+    #viagens-page .viagens-form-grid--cadastro-datas {
+        max-width: 22rem;
+    }
+}
+
+#viagens-page .viagens-ficha-cadastro .viagens-ficha-accordion {
+    gap: 0.4rem;
+}
+
+#viagens-page .viagens-ficha-cadastro .viagens-secao {
+    border-radius: 0.75rem;
+    box-shadow: none;
+}
+
+#viagens-page .viagens-ficha-cadastro .viagens-secao:not([open]) {
+    opacity: 0.92;
+}
+
+#viagens-page .viagens-ficha-cadastro .viagens-secao__head {
+    padding: 0.5rem 0.8rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-light);
+}
+
+#viagens-page .viagens-ficha-cadastro .viagens-secao[open] .viagens-secao__head {
+    color: var(--text-color);
+    border-bottom: 1px solid var(--border-color);
+}
+
+#viagens-page .viagens-ficha-accordion .viagens-secao__body {
+    padding: 0.65rem 0.85rem 0.85rem;
+}
+
+#viagens-page .viagens-ficha-cadastro .viagens-form-dest-list {
+    gap: 0.35rem;
+}
+
+#viagens-page .viagens-ficha-cadastro .viagens-form-dest {
+    padding: 0.4rem 0.55rem;
+}

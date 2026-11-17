@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Globo Atlas — skins de textura</title>
+    <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+    <style>
+        :root {
+            --bg: #0a0f1a;
+            --panel: #121a2a;
+            --text: #e8eef8;
+            --muted: #8fa3bf;
+            --accent: #2ec4b6;
+            --border: rgba(255, 255, 255, 0.08);
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+        header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+        header h1 { margin: 0 0 0.35rem; font-size: 1.25rem; }
+        header p { margin: 0; color: var(--muted); font-size: 0.9rem; max-width: 52rem; line-height: 1.45; }
+        header code { font-size: 0.82rem; color: var(--accent); }
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(280px, 360px) 1fr;
+            min-height: calc(100vh - 5.5rem);
+        }
+        @media (max-width: 900px) {
+            .layout { grid-template-columns: 1fr; }
+        }
+        aside {
+            border-right: 1px solid var(--border);
+            background: var(--panel);
+            overflow-y: auto;
+            max-height: calc(100vh - 5.5rem);
+        }
+        .skins { list-style: none; margin: 0; padding: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem; }
+        .skin {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 0.75rem 0.85rem;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.15);
+            transition: border-color 0.15s, background 0.15s;
+        }
+        .skin:hover { border-color: rgba(46, 196, 182, 0.35); }
+        .skin--active { border-color: var(--accent); background: rgba(46, 196, 182, 0.08); }
+        .skin__title { font-weight: 600; font-size: 0.95rem; }
+        .skin__badge {
+            display: inline-block;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            background: rgba(46, 196, 182, 0.2);
+            color: var(--accent);
+            margin-left: 0.35rem;
+            vertical-align: middle;
+        }
+        .skin__desc { margin: 0.35rem 0 0; font-size: 0.8rem; color: var(--muted); line-height: 1.35; }
+        .skin__id { margin-top: 0.4rem; font-size: 0.72rem; font-family: ui-monospace, monospace; color: #6d85a8; }
+        main { position: relative; min-height: 420px; }
+        #map { width: 100%; height: calc(100vh - 5.5rem); min-height: 420px; }
+        .hud {
+            position: absolute;
+            left: 12px;
+            bottom: 12px;
+            z-index: 2;
+            max-width: min(28rem, calc(100% - 24px));
+            padding: 0.65rem 0.85rem;
+            border-radius: 8px;
+            background: rgba(2, 8, 24, 0.82);
+            border: 1px solid var(--border);
+            font-size: 0.78rem;
+            line-height: 1.4;
+            color: var(--muted);
+        }
+        .hud strong { color: var(--text); display: block; margin-bottom: 0.25rem; }
+        .hud a { color: var(--accent); }
+        .doc {
+            padding: 1rem 1.25rem;
+            border-top: 1px solid var(--border);
+            font-size: 0.82rem;
+            color: var(--muted);
+        }
+        .doc ul { margin: 0.5rem 0 0; padding-left: 1.2rem; }
+        .doc li { margin: 0.25rem 0; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Skins do globo (Atlas / Viagens)</h1>
+        <p>
+            No app, a “skin” é a <strong>textura da Terra</strong> (camada raster) sobre o basemap vetorial
+            <code>CARTO Voyager</code> (rótulos pt-BR). Constante no código:
+            <code>front/src/frentes/viagens/utils/maplibre-setup.ts</code> →
+            <code>GLOBE_EARTH_RASTER_TILES</code>.
+            Céu: <code>GLOBE_SPACE_SKY</code>. Sombra da noite: <code>nightShadeImage.ts</code> (separada).
+        </p>
+    </header>
+    <div class="layout">
+        <aside>
+            <ul class="skins" id="skin-list"></ul>
+            <div class="doc">
+                <strong style="color: var(--text)">Depois de escolher</strong>
+                <ul>
+                    <li>Copie o <code>id</code> da skin (ex. <code>esri-imagery</code>).</li>
+                    <li>Troque o array <code>GLOBE_EARTH_RASTER_TILES</code> pela URL da lista abaixo ou desligue o raster se for “só vetor”.</li>
+                </ul>
+            </div>
+        </aside>
+        <main>
+            <div id="map"></div>
+            <div class="hud" id="hud"></div>
+        </main>
+    </div>
+
+    <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+    <script>
+        const CARTO_LIGHT = 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json';
+        const RASTER_ANCHOR = 'place_continent';
+
+        /** @type {{ id: string, title: string, desc: string, badge?: string, tiles: string[] | null, saturation?: number }}[] */
+        const SKINS = [
+            {
+                id: 'esri-physical',
+                title: 'Esri — mapa físico',
+                desc: 'Oceano azul, relevo e vegetação suaves. Skin anterior do projeto.',
+                tiles: [
+                    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Physical_Map/MapServer/tile/{z}/{y}/{x}'
+                ],
+                saturation: 0.15
+            },
+            {
+                id: 'esri-imagery',
+                title: 'Esri — imagem de satélite',
+                badge: 'atual',
+                desc: 'Foto-realista; ótimo globo “ao vivo”, mas pode competir com a sombra da noite.',
+                tiles: [
+                    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+                ],
+                saturation: 0
+            },
+            {
+                id: 'eox-sentinel',
+                title: 'EOX — Sentinel-2 (sem nuvens)',
+                desc: 'Satélite limpo, contraste moderado. Zoom máximo ~14 em muitas regiões.',
+                tiles: [
+                    'https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2021_3857/default/g/{z}/{y}/{x}.jpg'
+                ],
+                saturation: 0.05
+            },
+            {
+                id: 'esri-ocean',
+                title: 'Esri — base oceânica',
+                desc: 'Batimetria azul forte; terra mais neutra. Visual “mar em destaque”.',
+                tiles: [
+                    'https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}'
+                ]
+            },
+            {
+                id: 'esri-shaded-relief',
+                title: 'Esri — relevo sombreado',
+                desc: 'Terra em tons de cinza/verde com sombreamento; pouco colorido.',
+                tiles: [
+                    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}'
+                ]
+            },
+            {
+                id: 'esri-natgeo',
+                title: 'Esri — National Geographic',
+                desc: 'Estilo editorial, cores quentes, boa legibilidade dos rótulos.',
+                tiles: [
+                    'https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}'
+                ]
+            },
+            {
+                id: 'esri-topo',
+                title: 'Esri — topográfico',
+                desc: 'Curvas, relevo clássico tipo atlas escolar.',
+                tiles: [
+                    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}'
+                ]
+            },
+            {
+                id: 'vector-voyager-only',
+                title: 'Só Voyager (vetor)',
+                desc: 'Sem raster: mar/terra pintados no código (applyGlobeVectorEarthColors). Mais leve, menos realista.',
+                tiles: null
+            }
+        ];
+
+        let map;
+        let activeId = 'esri-imagery';
+
+        function ensureRasterSource(tiles) {
+            if (!map.getSource('preview-earth')) {
+                if (tiles) {
+                    map.addSource('preview-earth', { type: 'raster', tiles, tileSize: 256, attribution: '© preview' });
+                    map.addLayer(
+                        {
+                            id: 'preview-earth-layer',
+                            type: 'raster',
+                            source: 'preview-earth',
+                            paint: { 'raster-opacity': 1, 'raster-fade-duration': 0 }
+                        },
+                        RASTER_ANCHOR
+                    );
+                }
+                return;
+            }
+            if (!tiles) {
+                if (map.getLayer('preview-earth-layer')) map.removeLayer('preview-earth-layer');
+                if (map.getSource('preview-earth')) map.removeSource('preview-earth');
+                return;
+            }
+            map.getSource('preview-earth').setTiles(tiles);
+            if (!map.getLayer('preview-earth-layer')) {
+                map.addLayer(
+                    {
+                        id: 'preview-earth-layer',
+                        type: 'raster',
+                        source: 'preview-earth',
+                        paint: { 'raster-opacity': 1, 'raster-fade-duration': 0 }
+                    },
+                    RASTER_ANCHOR
+                );
+            }
+        }
+
+        function applySkin(skin) {
+            activeId = skin.id;
+            document.querySelectorAll('.skin').forEach((el) => {
+                el.classList.toggle('skin--active', el.dataset.id === skin.id);
+            });
+            const paint = { 'raster-opacity': 1, 'raster-fade-duration': 0 };
+            if (skin.saturation != null) paint['raster-saturation'] = skin.saturation;
+            ensureRasterSource(skin.tiles);
+            if (skin.tiles && map.getLayer('preview-earth-layer')) {
+                map.setPaintProperty('preview-earth-layer', 'raster-opacity', 1);
+                if (skin.saturation != null) {
+                    map.setPaintProperty('preview-earth-layer', 'raster-saturation', skin.saturation);
+                }
+            }
+            const tilesLine = skin.tiles ? skin.tiles[0] : '(sem raster — use fallback vetor no app)';
+            document.getElementById('hud').innerHTML =
+                '<strong>' +
+                skin.title +
+                '</strong>' +
+                'id: <code>' +
+                skin.id +
+                '</code><br>' +
+                'tiles: <code style="word-break:break-all">' +
+                tilesLine +
+                '</code>';
+        }
+
+        const list = document.getElementById('skin-list');
+        SKINS.forEach((skin) => {
+            const li = document.createElement('li');
+            li.className = 'skin' + (skin.id === activeId ? ' skin--active' : '');
+            li.dataset.id = skin.id;
+            li.innerHTML =
+                '<div class="skin__title">' +
+                skin.title +
+                (skin.badge ? '<span class="skin__badge">' + skin.badge + '</span>' : '') +
+                '</div>' +
+                '<p class="skin__desc">' +
+                skin.desc +
+                '</p>' +
+                '<div class="skin__id">' +
+                skin.id +
+                '</div>';
+            li.addEventListener('click', () => applySkin(skin));
+            list.appendChild(li);
+        });
+
+        map = new maplibregl.Map({
+            container: 'map',
+            style: CARTO_LIGHT,
+            projection: 'globe',
+            center: [-45, -10],
+            zoom: 2.2,
+            pitch: 0,
+            attributionControl: false,
+            sky: {
+                'sky-color': '#020818',
+                'horizon-color': '#0a1f45',
+                'fog-color': '#01040c',
+                'sky-horizon-blend': 0.12,
+                'horizon-fog-blend': 0.08,
+                'fog-ground-blend': 0.05,
+                'atmosphere-blend': 0.33
+            }
+        });
+        map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-left');
+        map.on('load', () => {
+            applySkin(SKINS.find((s) => s.id === activeId));
+        });
+    </script>
+</body>
+</html>

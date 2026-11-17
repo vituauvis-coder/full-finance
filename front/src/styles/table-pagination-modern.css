@@ -1,0 +1,60 @@
+/* Paridade legado: `legacy-web/css/table-pagination.css` + tokens do painel moderno */
+
+@import '../../../legacy-web/css/table-pagination.css';
+
+.page-content--dashboard-modern .table-pagination--modern {
+    background: var(--dash-surface-bg);
+    border: 1px solid var(--dash-surface-border);
+    border-radius: var(--dash-surface-radius);
+    box-shadow: var(--dash-surface-shadow);
+}
+
+.page-content--dashboard-modern .table-pagination__size-label {
+    color: var(--dash-text-secondary);
+}
+
+.page-content--dashboard-modern .table-pagination__select {
+    border-color: var(--dash-border);
+    background: var(--dash-layer-control);
+    color: var(--dash-text-primary);
+}
+
+.page-content--dashboard-modern .table-pagination__select:focus {
+    outline: none;
+    border-color: var(--dash-border-strong);
+    box-shadow: 0 0 0 3px var(--dash-focus-ring);
+}
+
+.page-content--dashboard-modern .table-pagination__info {
+    color: var(--dash-text-primary);
+}
+
+.page-content--dashboard-modern .table-pagination__btn {
+    border-color: var(--dash-border);
+    background: var(--dash-layer-control);
+    color: var(--dash-text-primary);
+}
+
+.page-content--dashboard-modern .table-pagination__btn:hover:not(:disabled) {
+    background: var(--dash-layer-inset);
+    border-color: var(--dash-border-strong);
+}
+
+.page-content--dashboard-modern .table-pagination__btn:disabled {
+    opacity: 0.45;
+}
+
+@media (max-width: 720px) {
+    .page-content--dashboard-modern .table-pagination--modern {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .page-content--dashboard-modern .table-pagination__info {
+        text-align: center;
+    }
+
+    .page-content--dashboard-modern .table-pagination__nav {
+        justify-content: center;
+    }
+}

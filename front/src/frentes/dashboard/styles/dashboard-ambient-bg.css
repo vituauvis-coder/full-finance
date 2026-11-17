@@ -1,0 +1,148 @@
+/**
+ * Fundo ambient (mesh / grade / orbs) — mesma linguagem do login auth-modern.
+ * Visível: dashboard (claro ou escuro) e demais páginas no tema escuro.
+ */
+
+.page-content--with-ambient {
+    position: relative;
+    isolation: isolate;
+}
+
+.page-content--with-ambient > .app-ambient-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.page-content--with-ambient > .app-header,
+.page-content--with-ambient > .page,
+.page-content--with-ambient > section.page {
+    position: relative;
+    z-index: 1;
+}
+
+.app-ambient-bg__mesh {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+}
+
+.app-ambient-bg__grid {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0;
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(ellipse 78% 70% at 50% 28%, black 12%, transparent 74%);
+}
+
+.app-ambient-bg__orbs {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    overflow: hidden;
+    opacity: 0;
+}
+
+.app-ambient-bg__orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(72px);
+}
+
+.app-ambient-bg__orb--1 {
+    width: min(380px, 85vw);
+    height: min(380px, 85vw);
+    top: -8%;
+    right: -12%;
+}
+
+.app-ambient-bg__orb--2 {
+    width: min(300px, 65vw);
+    height: min(300px, 65vw);
+    bottom: 8%;
+    left: -8%;
+}
+
+.app-ambient-bg__orb--3 {
+    width: min(220px, 50vw);
+    height: min(220px, 50vw);
+    top: 42%;
+    left: 38%;
+}
+
+/* —— Dashboard tema claro —— */
+.page-content--dashboard-modern.page-content--with-ambient .app-ambient-bg__mesh {
+    background:
+        radial-gradient(ellipse 95% 60% at 50% -12%, rgba(0, 0, 0, 0.045), transparent 58%),
+        radial-gradient(ellipse 45% 38% at 100% 8%, rgba(0, 0, 0, 0.035), transparent 52%),
+        linear-gradient(180deg, #e8e8ed 0%, #f2f2f7 50%, #ebebf0 100%);
+}
+
+.page-content--dashboard-modern.page-content--with-ambient .app-ambient-bg__grid {
+    opacity: 0.14;
+    background-image:
+        linear-gradient(rgba(0, 0, 0, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.06) 1px, transparent 1px);
+    mask-image: radial-gradient(ellipse 78% 68% at 50% 22%, black 8%, transparent 72%);
+}
+
+.page-content--dashboard-modern.page-content--with-ambient .app-ambient-bg__orbs {
+    opacity: 1;
+}
+
+.page-content--dashboard-modern.page-content--with-ambient .app-ambient-bg__orb--1 {
+    background: rgba(255, 255, 255, 0.85);
+}
+
+.page-content--dashboard-modern.page-content--with-ambient .app-ambient-bg__orb--2 {
+    background: rgba(210, 210, 215, 0.45);
+}
+
+.page-content--dashboard-modern.page-content--with-ambient .app-ambient-bg__orb--3 {
+    background: rgba(255, 255, 255, 0.55);
+}
+
+/* —— Tema escuro (dashboard + resto do app) —— */
+[data-theme='dark'] .page-content--with-ambient .app-ambient-bg__mesh {
+    background:
+        radial-gradient(ellipse 90% 55% at 50% -15%, rgba(255, 255, 255, 0.07), transparent 55%),
+        radial-gradient(ellipse 50% 40% at 100% 0%, rgba(255, 255, 255, 0.04), transparent 50%),
+        linear-gradient(180deg, #000000 0%, #1d1d1f 55%, #000000 100%);
+}
+
+[data-theme='dark'] .page-content--with-ambient .app-ambient-bg__grid {
+    opacity: 0.22;
+}
+
+[data-theme='dark'] .page-content--with-ambient .app-ambient-bg__orbs {
+    opacity: 1;
+}
+
+[data-theme='dark'] .page-content--with-ambient .app-ambient-bg__orb--1 {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme='dark'] .page-content--with-ambient .app-ambient-bg__orb--2 {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme='dark'] .page-content--with-ambient .app-ambient-bg__orb--3 {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+/* Canvas sólido por baixo do mesh (dashboard) */
+.page-content--dashboard-modern.page-content--with-ambient {
+    background: var(--dash-layer-canvas);
+}
+
+[data-theme='dark'] .page-content--with-ambient:not(.page-content--dashboard-modern) {
+    background: #000000;
+}

@@ -1,0 +1,132 @@
+/* Camada 2 — mesma superfície em todos os blocos principais */
+
+.page-content--dashboard-modern > .app-header,
+.page-content--profile-modern > .app-header,
+#dashboard-page.dashboard-page--modern > .civil-period-timeline--dashboard,
+#dashboard-page.dashboard-page--modern > .summary-cards.movements-summary .movement-summary-card,
+#gains-page.movements-page--modern > .summary-cards.movements-summary .movement-summary-card,
+#expenses-page.movements-page--modern > .summary-cards.movements-summary .movement-summary-card,
+#dashboard-page.dashboard-page--modern .dashboard-pending-cash-outs--modern,
+#dashboard-page.dashboard-page--modern .dashboard-cash-heatmap.list-container,
+#dashboard-page.dashboard-page--modern .dashboard-reports-section .reports-chart-container.dashboard-flux-chart-card {
+    background-color: var(--dash-surface-bg);
+    border: 1px solid var(--dash-surface-border);
+    border-radius: var(--dash-surface-radius);
+    box-shadow: var(--dash-surface-shadow);
+}
+
+[data-theme='dark'] .page-content--dashboard-modern > .app-header,
+[data-theme='dark'] .page-content--profile-modern > .app-header,
+[data-theme='dark'] #dashboard-page.dashboard-page--modern .dashboard-reports-section .reports-chart-container.dashboard-flux-chart-card {
+    background-color: var(--dash-surface-bg);
+    border-color: var(--dash-surface-border);
+    box-shadow: var(--dash-surface-shadow);
+}
+
+#dashboard-page.dashboard-page--modern > .summary-cards.movements-summary .card-content h3,
+#gains-page.movements-page--modern > .summary-cards.movements-summary .card-content h3,
+#expenses-page.movements-page--modern > .summary-cards.movements-summary .card-content h3 {
+    color: var(--dash-text-secondary);
+    font-weight: 500;
+}
+
+#dashboard-page.dashboard-page--modern > .summary-cards.movements-summary .card-content p,
+#gains-page.movements-page--modern > .summary-cards.movements-summary .card-content p,
+#expenses-page.movements-page--modern > .summary-cards.movements-summary .card-content p {
+    color: var(--dash-text-primary);
+}
+
+#dashboard-page.dashboard-page--modern > .summary-cards.movements-summary .card-metric-hint,
+#gains-page.movements-page--modern > .summary-cards.movements-summary .card-metric-hint,
+#expenses-page.movements-page--modern > .summary-cards.movements-summary .card-metric-hint {
+    color: var(--dash-text-tertiary);
+}
+
+#dashboard-page.dashboard-page--modern > .civil-period-timeline--dashboard {
+    padding: 0.45rem 0.55rem;
+}
+
+#dashboard-page.dashboard-page--modern .civil-period-timeline__year-stepper {
+    background-color: transparent;
+    border: 1px solid var(--dash-border);
+    box-shadow: none;
+}
+
+#dashboard-page.dashboard-page--modern .civil-period-timeline__year-btn {
+    background-color: var(--dash-layer-inset);
+    color: var(--dash-text-secondary);
+    border-radius: 8px;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+#dashboard-page.dashboard-page--modern .civil-period-timeline__year-btn:hover {
+    background: var(--dash-layer-control);
+    color: var(--dash-text-primary);
+}
+
+#dashboard-page.dashboard-page--modern .civil-period-timeline__month-btn {
+    background-color: transparent;
+    border: 1px solid var(--dash-border);
+    color: var(--dash-text-secondary);
+    border-radius: 8px;
+    box-shadow: none;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+#dashboard-page.dashboard-page--modern .civil-period-timeline__month-btn:hover {
+    background: var(--dash-layer-inset);
+    border-color: var(--dash-border-strong);
+    color: var(--dash-text-primary);
+}
+
+#dashboard-page.dashboard-page--modern .civil-period-timeline__year-value {
+    color: var(--dash-text-primary);
+    font-weight: 600;
+}
+
+#dashboard-page.dashboard-page--modern .civil-period-timeline__month-btn.is-active,
+#dashboard-page.dashboard-page--modern .civil-period-timeline__month-btn.is-active:hover {
+    background-color: var(--dash-layer-control);
+    border-color: var(--dash-border-strong);
+    color: var(--dash-text-primary);
+    font-weight: 650;
+    box-shadow: inset 0 0 0 1px var(--dash-border-strong);
+}
+
+#dashboard-page.dashboard-page--modern .beta-footer {
+    color: var(--dash-text-tertiary);
+    font-size: 0.8rem;
+}
+
+/* Títulos de painel (heatmap, fluxo, …) — ícone + texto no mesmo ritmo */
+#dashboard-page.dashboard-page--modern .dashboard-section-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: -0.02em;
+    color: var(--dash-text-primary);
+}
+
+#dashboard-page.dashboard-page--modern .cash-heatmap-calendar__subtitle {
+    color: var(--dash-text-secondary);
+}
+
+#dashboard-page.dashboard-page--modern .cash-heatmap-calendar__month-badge {
+    background: var(--dash-layer-inset);
+    border: 1px solid var(--dash-border);
+    color: var(--dash-text-secondary);
+    border-radius: 999px;
+}
+
+#dashboard-page.dashboard-page--modern .cash-heatmap-day-panel__label,
+#dashboard-page.dashboard-page--modern .cash-heatmap-day-panel__meta {
+    color: var(--dash-text-secondary);
+}
+
+#dashboard-page.dashboard-page--modern .cash-heatmap-day-panel__date {
+    color: var(--dash-text-primary);
+}

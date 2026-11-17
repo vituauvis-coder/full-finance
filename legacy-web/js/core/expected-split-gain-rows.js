@@ -1,0 +1,1 @@
+export { buildSyntheticExpectedSplitGainsRows } from '../../../motor/dinheiro/expected-split-gain-rows.js';

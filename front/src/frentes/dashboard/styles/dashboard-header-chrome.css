@@ -1,0 +1,69 @@
+/* Topo = mesma camada raised que timeline e KPIs (não --bg-light #262626) */
+
+.page-content--dashboard-modern > .app-header,
+.page-content--profile-modern > .app-header {
+    margin-bottom: var(--dash-stack-gap);
+    padding: 0.65rem 1rem 0.65rem 0.85rem;
+}
+
+.page-content--dashboard-modern .header-right {
+    gap: var(--dash-toolbar-gap);
+}
+
+.page-content--dashboard-modern .page-toolbar {
+    gap: var(--dash-toolbar-gap);
+}
+
+.page-content--dashboard-modern .page-toolbar__tools {
+    gap: var(--dash-toolbar-gap);
+}
+
+.page-content--dashboard-modern .header-page-title,
+.page-content--profile-modern .header-page-title {
+    color: var(--dash-text-primary);
+    letter-spacing: -0.02em;
+}
+
+.page-content--dashboard-modern .header-page-emoji {
+    background: var(--dash-layer-inset);
+    border: 1px solid var(--dash-border);
+    border-radius: 10px;
+    box-shadow: none;
+}
+
+.page-content--dashboard-modern .header-page-emoji .app-icon {
+    color: var(--dash-text-primary);
+}
+
+/* Chips: poço inset dentro do header raised */
+.page-content--dashboard-modern .page-toolbar__cluster {
+    background: var(--dash-layer-inset);
+    border: 1px solid var(--dash-border);
+    border-radius: 12px;
+    box-shadow: none;
+}
+
+.page-content--dashboard-modern .page-toolbar__icon.btn-secondary,
+.page-content--dashboard-modern .header-action-btn--icon.btn-secondary {
+    background: var(--dash-layer-inset);
+    border: 1px solid var(--dash-border);
+    border-radius: 12px;
+    color: var(--dash-text-primary);
+    box-shadow: none;
+}
+
+.page-content--dashboard-modern .page-toolbar__icon.btn-secondary:hover,
+.page-content--dashboard-modern .header-action-btn--icon.btn-secondary:hover {
+    background: var(--dash-layer-control);
+    border-color: var(--dash-border-strong);
+}
+
+.page-content--dashboard-modern .filter-drawer__panel {
+    background: var(--dash-layer-raised);
+    border-color: var(--dash-border);
+    box-shadow: var(--dash-panel-shadow);
+}
+
+.page-content--dashboard-modern .filter-drawer__title {
+    color: var(--dash-text-primary);
+}

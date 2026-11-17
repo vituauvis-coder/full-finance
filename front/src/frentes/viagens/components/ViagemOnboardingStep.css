@@ -1,0 +1,180 @@
+.viagens-onboarding-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: max(1rem, env(safe-area-inset-top)) 1rem 1.25rem;
+    pointer-events: none;
+}
+
+.viagens-onboarding-modal__scrim {
+    position: absolute;
+    inset: 0;
+    border: none;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    background: rgba(4, 8, 16, 0.82);
+    backdrop-filter: blur(8px);
+    pointer-events: auto;
+}
+
+.viagens-onboarding-modal__dialog {
+    position: relative;
+    z-index: 1;
+    width: min(460px, 100%);
+    max-height: min(88vh, 680px);
+    overflow: auto;
+    pointer-events: auto;
+    border-radius: 16px;
+    box-shadow:
+        0 0 0 1px rgba(46, 196, 182, 0.12),
+        0 28px 80px rgba(0, 0, 0, 0.55);
+}
+
+.viagens-onboarding {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+}
+
+.viagens-onboarding__steps {
+    display: flex;
+    gap: 0.35rem;
+    margin: 0 0 1.15rem;
+    font-size: 0.75rem;
+    color: var(--text-light, rgba(230, 240, 255, 0.65));
+}
+
+.viagens-onboarding__step::after {
+    content: '›';
+    margin: 0 0.35rem;
+    opacity: 0.45;
+}
+
+.viagens-onboarding__step:last-child::after {
+    content: '';
+    margin: 0;
+}
+
+.viagens-onboarding__step--on {
+    color: var(--viagens-accent, #2ec4b6);
+    font-weight: 600;
+}
+
+.viagens-onboarding__card {
+    background: var(--bg-light, #1a2230);
+    border: 1px solid color-mix(in srgb, var(--viagens-accent, #2ec4b6) 28%, var(--border-color, #333));
+    border-radius: 14px;
+    padding: 1.15rem 1.2rem 1.1rem;
+}
+
+.viagens-onboarding__title {
+    margin: 0 0 0.25rem;
+    font-size: 1.08rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text-color, #eef2f8);
+}
+
+.viagens-onboarding__lead {
+    margin: 0 0 1rem;
+    font-size: 0.84rem;
+    line-height: 1.45;
+    color: var(--text-light, rgba(230, 240, 255, 0.72));
+}
+
+.viagens-onboarding__field {
+    margin-bottom: 0.95rem;
+}
+
+.viagens-onboarding__field label {
+    display: block;
+    margin-bottom: 0.35rem;
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-light, rgba(230, 240, 255, 0.65));
+}
+
+.viagens-onboarding__input {
+    width: 100%;
+}
+
+.viagens-onboarding__search {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.viagens-onboarding__search .viagens-field {
+    flex: 1 1 12rem;
+    min-width: 0;
+}
+
+.viagens-onboarding__chip {
+    margin: 0.5rem 0 0;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--viagens-accent, #2ec4b6);
+}
+
+.viagens-onboarding__hits {
+    margin: 0.45rem 0 0;
+    padding: 0;
+    list-style: none;
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.12));
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.viagens-onboarding__hits li + li {
+    border-top: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+}
+
+.viagens-onboarding__hits button {
+    width: 100%;
+    text-align: left;
+    border: none;
+    background: var(--bg-color, #141820);
+    color: var(--text-color, #eef2f8);
+    font: inherit;
+    font-size: 0.84rem;
+    padding: 0.5rem 0.65rem;
+    cursor: pointer;
+}
+
+.viagens-onboarding__hits button:hover {
+    background: color-mix(in srgb, var(--viagens-accent, #2ec4b6) 12%, var(--bg-color, #141820));
+}
+
+.viagens-onboarding__hint {
+    margin: 0.45rem 0 0;
+    font-size: 0.78rem;
+}
+
+.viagens-onboarding__map {
+    height: 180px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.12));
+    margin-top: 0.35rem;
+}
+
+.viagens-onboarding__map .viagens-mini-map {
+    height: 100%;
+}
+
+.viagens-onboarding__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.65rem;
+    margin-top: 1.1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+}

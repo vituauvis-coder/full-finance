@@ -1,0 +1,200 @@
+/* Pagamentos a confirmar — layout compacto (fundo em dashboard-modern.css) */
+#dashboard-page.dashboard-page--modern .dashboard-pending-cash-outs--modern {
+    padding: 0.85rem 1rem 0.65rem;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-pending-cash-outs--modern .dashboard-pending-cash-outs__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.35rem 0.75rem;
+    margin-bottom: 0.55rem;
+    padding-bottom: 0.55rem;
+    border-bottom: 1px solid var(--dash-border);
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-pending-cash-outs--modern .dashboard-pending-cash-outs__title-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-width: 0;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-pending-cash-outs--modern .dashboard-pending-cash-outs__icon-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 8px;
+    background: var(--dash-layer-inset);
+    color: var(--dash-text-primary);
+    flex-shrink: 0;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-pending-cash-outs--modern .dashboard-pending-cash-outs__icon-wrap .app-icon {
+    font-size: 1rem;
+    margin: 0;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-pending-cash-outs--modern .dashboard-pending-cash-outs__title {
+    margin: 0;
+    font-size: 0.92rem;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    color: var(--dash-text-primary);
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-pending-cash-outs--modern .dashboard-pending-cash-outs__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.35rem;
+    height: 1.35rem;
+    padding: 0 0.35rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    background: rgba(244, 63, 94, 0.16);
+    color: #fda4af;
+    line-height: 1;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-pending-cash-outs--modern .dashboard-pending-cash-outs__hint {
+    margin: 0;
+    flex: 1 1 100%;
+    font-size: 0.74rem;
+    line-height: 1.35;
+    color: var(--dash-text-secondary);
+}
+
+@media (min-width: 720px) {
+    #dashboard-page.dashboard-page--modern .dashboard-pending-cash-outs--modern .dashboard-pending-cash-outs__hint {
+        flex: 1 1 auto;
+        text-align: right;
+        max-width: 52%;
+    }
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-pending-cash-outs--modern .dashboard-pending-cash-outs__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-pending-cash-outs--modern .dashboard-pending-cash-outs__item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    padding: 0.45rem 0.55rem;
+    border-radius: 10px;
+    background: var(--dash-layer-inset);
+    border: 1px solid var(--dash-border);
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-pending-cash-outs--modern .dashboard-pending-cash-outs__item:hover {
+    background: var(--dash-layer-control);
+    border-color: var(--dash-border-strong);
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-pending-cash-outs--modern .dashboard-pending-cash-outs__main {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.2rem 0.35rem;
+    min-width: 0;
+    font-size: 0.8rem;
+    line-height: 1.25;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-pending-cash-outs--modern .dashboard-pending-cash-outs__item-title {
+    font-weight: 600;
+    color: var(--dash-text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-pending-cash-outs--modern .dashboard-pending-cash-outs__sep {
+    color: var(--dash-text-tertiary);
+    user-select: none;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-pending-cash-outs--modern .dashboard-pending-cash-outs__item-detail {
+    color: var(--dash-text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-pending-cash-outs--modern .dashboard-pending-cash-outs__actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    flex-shrink: 0;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-pending-cash-outs--modern .dashboard-pending-cash-outs__amount {
+    font-size: 0.82rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--danger-color);
+    white-space: nowrap;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-pending-cash-outs--modern .dashboard-pending-cash-outs__confirm {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    min-height: 1.85rem;
+    padding: 0.28rem 0.62rem;
+    border-radius: 999px;
+    border: 1px solid var(--dash-border);
+    background: var(--dash-layer-control);
+    color: var(--dash-text-primary);
+    font-size: 0.74rem;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-pending-cash-outs--modern .dashboard-pending-cash-outs__confirm:hover:not(:disabled) {
+    background: rgba(52, 211, 153, 0.14);
+    border-color: rgba(52, 211, 153, 0.35);
+    color: #a7f3d0;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-pending-cash-outs--modern .dashboard-pending-cash-outs__confirm .app-icon {
+    font-size: 0.95rem;
+}
+
+@media (max-width: 640px) {
+    #dashboard-page.dashboard-page--modern .dashboard-pending-cash-outs--modern .dashboard-pending-cash-outs__item {
+        grid-template-columns: 1fr;
+        gap: 0.45rem;
+    }
+
+    #dashboard-page.dashboard-page--modern .dashboard-pending-cash-outs--modern .dashboard-pending-cash-outs__actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    #dashboard-page.dashboard-page--modern .dashboard-pending-cash-outs--modern .dashboard-pending-cash-outs__main {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.15rem;
+    }
+
+    #dashboard-page.dashboard-page--modern .dashboard-pending-cash-outs--modern .dashboard-pending-cash-outs__sep {
+        display: none;
+    }
+}

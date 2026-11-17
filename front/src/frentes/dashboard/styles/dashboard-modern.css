@@ -1,0 +1,21 @@
+/**
+ * Painéis elevados (camada 2). Sem blur — superfície sólida.
+ * PROIBIDO sobrescrever --heatmap-* com color-mix.
+ */
+
+[data-theme='dark'] #dashboard-page.dashboard-page--modern .dashboard-cash-heatmap {
+    /* células = camada inset (não competir com o painel raised) */
+    --heatmap-cell-bg: var(--dash-layer-inset);
+    --heatmap-cell-border: rgba(255, 255, 255, 0.12);
+    --heatmap-cell-text: #a3a3a3;
+    --heatmap-muted-bg: var(--dash-layer-inset);
+    --heatmap-muted-border: transparent;
+    --heatmap-muted-text: #525252;
+    --heatmap-expense-accent: var(--dash-chart-expense, #ff453a);
+    --heatmap-gain-accent: var(--dash-chart-gain, #30d158);
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-cash-heatmap {
+    --heatmap-expense-accent: var(--dash-chart-expense, #ff3b30);
+    --heatmap-gain-accent: var(--dash-chart-gain, #34c759);
+}

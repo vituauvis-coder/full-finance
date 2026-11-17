@@ -1,0 +1,39 @@
+.viagens-trilho {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+    position: relative;
+    z-index: 4;
+    background: var(--bg-light, #1a1f28);
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+    border-radius: 0.75rem;
+}
+
+.viagens-trilho__list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    margin: 0;
+    padding: 1rem 0.85rem 0.85rem;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.viagens-trilho__list > li {
+    margin: 0;
+    padding: 0;
+}
+
+.viagens-trilho__empty {
+    margin: 0.85rem;
+    padding: 1rem;
+    font-size: 0.875rem;
+    line-height: 1.45;
+    color: var(--text-light, rgba(230, 240, 255, 0.7));
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.12));
+    border-radius: 6px;
+    background: var(--bg-color, #141820);
+}

@@ -1,0 +1,1 @@
+export { buildSelectedMonthDailySeries, buildYearFluxSeries } from '../frentes/dashboard/domain/fluxSeries';

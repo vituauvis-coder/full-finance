@@ -1,0 +1,111 @@
+/* Legenda do heatmap — chips legíveis (dashboard moderno) */
+
+#dashboard-page.dashboard-page--modern .cash-heatmap-legend {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.55rem;
+    margin-top: 1rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--dash-border);
+    text-transform: none;
+    font-weight: 400;
+    letter-spacing: normal;
+    color: var(--dash-text-secondary);
+}
+
+#dashboard-page.dashboard-page--modern .cash-heatmap-legend__title {
+    margin: 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--dash-text-secondary);
+}
+
+#dashboard-page.dashboard-page--modern .cash-heatmap-legend__list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.45rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+}
+
+#dashboard-page.dashboard-page--modern .cash-heatmap-legend__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 1.65rem;
+    padding: 0.2rem 0.55rem 0.2rem 0.45rem;
+    border-radius: 8px;
+    background: var(--dash-layer-inset);
+    border: 1px solid var(--dash-border);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    line-height: 1.25;
+    color: var(--dash-text-secondary);
+}
+
+#dashboard-page.dashboard-page--modern .cash-heatmap-legend__label {
+    white-space: nowrap;
+}
+
+#dashboard-page.dashboard-page--modern .cash-heatmap-legend-swatch {
+    display: inline-block;
+    width: 0.625rem;
+    height: 0.625rem;
+    border-radius: 3px;
+    flex-shrink: 0;
+    border: 1px solid var(--heatmap-cell-border, rgba(0, 0, 0, 0.12));
+    vertical-align: middle;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme='dark'] #dashboard-page.dashboard-page--modern .cash-heatmap-legend-swatch {
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+#dashboard-page.dashboard-page--modern .cash-heatmap-legend-swatch--empty {
+    background: var(--heatmap-cell-bg);
+    border-color: var(--heatmap-cell-border);
+}
+
+#dashboard-page.dashboard-page--modern .cash-heatmap-legend-swatch--in {
+    background: color-mix(in srgb, var(--heatmap-gain-accent) 48%, var(--heatmap-cell-bg));
+    border-color: color-mix(in srgb, var(--heatmap-gain-accent) 62%, var(--heatmap-cell-border));
+}
+
+#dashboard-page.dashboard-page--modern .cash-heatmap-legend-swatch--out-light {
+    background: color-mix(in srgb, var(--heatmap-expense-accent) 22%, var(--heatmap-cell-bg));
+    border-color: color-mix(in srgb, var(--heatmap-expense-accent) 38%, var(--heatmap-cell-border));
+}
+
+#dashboard-page.dashboard-page--modern .cash-heatmap-legend-swatch--out-mid {
+    background: color-mix(in srgb, var(--heatmap-expense-accent) 40%, var(--heatmap-cell-bg));
+    border-color: color-mix(in srgb, var(--heatmap-expense-accent) 55%, var(--heatmap-cell-border));
+}
+
+#dashboard-page.dashboard-page--modern .cash-heatmap-legend-swatch--out-heavy {
+    background: color-mix(in srgb, var(--heatmap-expense-accent) 58%, var(--heatmap-cell-bg));
+    border-color: color-mix(in srgb, var(--heatmap-expense-accent) 72%, var(--heatmap-cell-border));
+}
+
+#dashboard-page.dashboard-page--modern .cash-heatmap-legend-swatch--due {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--dash-chart-net, #ffd60a);
+    border: 1px solid color-mix(in srgb, var(--dash-chart-net, #ffd60a) 55%, #000);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--dash-chart-net, #ffd60a) 25%, transparent);
+}
+
+@media (max-width: 720px) {
+    #dashboard-page.dashboard-page--modern .cash-heatmap-legend__list {
+        gap: 0.3rem;
+    }
+
+    #dashboard-page.dashboard-page--modern .cash-heatmap-legend__item {
+        font-size: 0.65rem;
+        padding-inline: 0.4rem;
+    }
+}

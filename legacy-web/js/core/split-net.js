@@ -1,0 +1,1 @@
+export * from '../../../motor/dinheiro/split-net.js';

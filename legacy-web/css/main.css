@@ -1,0 +1,84 @@
+/* --- Variáveis Globais (Tema) --- */
+:root {
+    /* Neutro “true gray” (menos azul que slate); verde só em --gains-accent */
+    --primary-color: #404040;
+    --primary-color-dark: #262626;
+    --secondary-color: #737373;
+    --gains-accent: #10b981;
+    /* Saídas — vermelho canônico (tokens derivados em color-tokens.css) */
+    --expenses-accent: #e11d48;
+    /* Destrutivo / erro (excluir, validação) — não usar em valores de saída na UI */
+    --danger-color: #ef4444;
+    --warning-color: #f59e0b;
+    /* Amarelo para alertas */
+    --info-color: #3b82f6;
+    /* Azul só para informação pontual */
+    /* Cofrinhos — acento roxo (header, cards, modal de alocação) */
+    --cofrinhos-accent: #7c3aed;
+    --cofrinhos-accent-strong: #6d28d9;
+    --cofrinhos-accent-muted: #a78bfa;
+    --cofrinhos-accent-soft: #c4b5fd;
+    /* Dívidas — vinho/burgundy (obrigação, peso financeiro; distinto do vermelho de saídas) */
+    --debts-accent: #9f1239;
+    --debts-accent-strong: #881337;
+    --debts-accent-muted: #be185d;
+    --debts-accent-soft: #ffe4e6;
+    /* Viagens — turquesa (atlas / destinos; distinto do azul carteira) */
+    --viagens-accent: #0d9488;
+    --viagens-accent-strong: #0f766e;
+    --viagens-accent-muted: #2dd4bf;
+    --viagens-accent-soft: #ccfbf1;
+    --bg-color: #fafafa;
+    /* Fundo app: branco levemente térmico */
+    --bg-light: #ffffff;
+    /* Cards e modais */
+    --text-color: #262626;
+    --text-light: #737373;
+    --border-color: #e5e5e5;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+    --card-elevated-shadow:
+        6px 6px 0 rgba(0, 0, 0, 0.04),
+        0 4px 6px rgba(0, 0, 0, 0.05),
+        0 18px 40px rgba(0, 0, 0, 0.06);
+    --card-elevated-shadow-hover:
+        8px 8px 0 rgba(0, 0, 0, 0.055),
+        0 10px 16px rgba(0, 0, 0, 0.06),
+        0 24px 48px rgba(0, 0, 0, 0.08);
+    --font-family: 'Poppins', sans-serif;
+}
+
+/* --- Reset Básico e Configurações Globais --- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    font-size: 16px;
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: var(--font-family);
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+body.modal-open {
+    overflow: hidden;
+}
+
+a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+.hidden {
+    display: none !important;
+}

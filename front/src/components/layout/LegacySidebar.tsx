@@ -1,0 +1,1 @@
+export { AppSidebar as LegacySidebar } from '../../frentes/shell/components/AppSidebar';
