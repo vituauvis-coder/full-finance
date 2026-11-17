@@ -24,5 +24,7 @@ Documentação: `platform/docs/STACK.md`
 npm install
 npm run dev          # API + legado (Vite)
 npm run dev:front    # React (5174)
+npm run build:front  # produção (React → front/dist)
+npm start            # API + front em produção
 npm test
 ```
