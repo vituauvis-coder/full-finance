@@ -2,6 +2,9 @@
 [phases.setup]
 nixPkgs = ["postgresql"]
 
+[variables]
+NIXPACKS_NODE_VERSION = "20"
+
 [phases.build]
 cmds = ["NODE_OPTIONS=--max-old-space-size=4096 npm run build:front"]
 
