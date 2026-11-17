@@ -1,0 +1,35 @@
+/**
+ * Shell — menu lateral.
+ */
+/* Alinhado a --dash-layer-raised / --dash-layer-control (dashboard-tokens.css) */
+.sidebar.sidebar--modern {
+    --shell-text-primary: #1d1d1f;
+    --shell-text-secondary: #3a3a3c;
+    --shell-text-tertiary: #6e6e73;
+    --shell-border: rgba(0, 0, 0, 0.08);
+    --shell-canvas: #ffffff;
+    --shell-inset: #e8e8ed;
+    --shell-control: #f2f2f7;
+    --shell-nav-hover: rgba(0, 0, 0, 0.04);
+    --shell-nav-active-bg: #f2f2f7;
+    --shell-nav-indicator: #1d1d1f;
+    --shell-nav-sub: #48484a;
+    --shell-nav-icon: #6e6e73;
+    --shell-nav-icon-active: #1d1d1f;
+}
+
+[data-theme='dark'] .sidebar.sidebar--modern {
+    --shell-text-primary: #f5f5f7;
+    --shell-text-secondary: #d1d1d6;
+    --shell-text-tertiary: #98989d;
+    --shell-border: rgba(255, 255, 255, 0.1);
+    --shell-canvas: #1d1d1f;
+    --shell-inset: #141416;
+    --shell-control: #2c2c2e;
+    --shell-nav-hover: rgba(255, 255, 255, 0.06);
+    --shell-nav-active-bg: #2c2c2e;
+    --shell-nav-indicator: #f5f5f7;
+    --shell-nav-sub: #ebebf5;
+    --shell-nav-icon: #98989d;
+    --shell-nav-icon-active: #f5f5f7;
+}

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Preview — barra de ações (Entradas)</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <style>
+    :root {
+      --bg: #0f1419;
+      --bar: #1c222b;
+      --border: rgba(148, 163, 184, 0.16);
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --green: #22c55e;
+      --green-soft: rgba(34, 197, 94, 0.16);
+      --green-line: rgba(34, 197, 94, 0.4);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 1.5rem 1.25rem 2.5rem;
+    }
+    h1 { font-size: 1.15rem; margin: 0 0 0.35rem; }
+    .lead { color: var(--muted); font-size: 0.9rem; max-width: 46rem; margin: 0 0 1.5rem; line-height: 1.45; }
+    .card {
+      background: #161b22;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      margin: 0 0 1.1rem;
+      overflow: hidden;
+    }
+    .card header {
+      padding: 0.85rem 1rem 0.7rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .card h2 { margin: 0 0 0.2rem; font-size: 0.95rem; }
+    .card p { margin: 0; color: var(--muted); font-size: 0.82rem; line-height: 1.4; max-width: 48rem; }
+    .stage {
+      background: var(--bar);
+      margin: 1rem;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      min-height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 0.65rem 0.85rem;
+      gap: 0.65rem;
+    }
+    .title {
+      margin-right: auto;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 650;
+      letter-spacing: -0.01em;
+    }
+    .title i { color: #4ade80; }
+
+    .pill, .seg button, .icon-btn, .nova, .selectish {
+      font: inherit;
+      color: var(--text);
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #12171e;
+      cursor: default;
+    }
+    .row { display: flex; align-items: center; gap: 0.45rem; }
+    .hint {
+      font-size: 0.68rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 650;
+    }
+    .sep { width: 1px; height: 1.35rem; background: rgba(148,163,184,0.35); }
+
+    /* A — atual */
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.42rem 0.8rem;
+      font-size: 0.86rem;
+      font-weight: 600;
+    }
+    .pill.on {
+      background: var(--green-soft);
+      border-color: var(--green-line);
+      color: #86efac;
+    }
+    .filtros { padding: 0.42rem 0.85rem; }
+    .filtros .dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #e2e8f0; display: inline-block; margin-left: 0.15rem;
+    }
+    .nova {
+      background: var(--green);
+      border-color: transparent;
+      color: #052e16;
+      font-weight: 700;
+      padding: 0.48rem 0.95rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .bell {
+      width: 2.35rem; height: 2.35rem; border-radius: 50%;
+      border: 1px solid var(--border); background: #12171e;
+      display: grid; place-items: center; position: relative; color: #cbd5e1;
+    }
+    .badge {
+      position: absolute; top: -4px; right: -4px;
+      background: #ef4444; color: white; font-size: 0.65rem; font-weight: 700;
+      min-width: 1.05rem; height: 1.05rem; border-radius: 999px;
+      display: grid; place-items: center; padding: 0 0.2rem;
+    }
+
+    /* B — segmented */
+    .seg {
+      display: inline-flex;
+      background: #12171e;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 3px;
+      gap: 2px;
+    }
+    .seg button {
+      border: 0;
+      background: transparent;
+      padding: 0.32rem 0.7rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--muted);
+      border-radius: 999px;
+    }
+    .seg button.on {
+      background: var(--green-soft);
+      color: #86efac;
+    }
+    .icon-btn {
+      width: 2.35rem; height: 2.35rem;
+      display: grid; place-items: center;
+      position: relative;
+    }
+    .icon-btn .dot {
+      position: absolute; top: 6px; right: 6px;
+      width: 7px; height: 7px; border-radius: 50%; background: #e2e8f0;
+    }
+
+    /* C — select + actions */
+    .selectish {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.4rem 0.75rem;
+      font-size: 0.84rem;
+      font-weight: 600;
+    }
+    .selectish small { color: var(--muted); font-weight: 500; }
+    .zone {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding-left: 0.15rem;
+    }
+    .zone + .zone {
+      margin-left: 0.35rem;
+      padding-left: 0.7rem;
+      border-left: 1px solid rgba(148,163,184,0.28);
+    }
+
+    /* D — chips sem rótulo STATUS, ações à direita bem separadas */
+    .ghost {
+      background: transparent;
+      border-color: transparent;
+      color: var(--muted);
+      font-weight: 650;
+      font-size: 0.84rem;
+      padding: 0.38rem 0.55rem;
+    }
+    .ghost.on { color: #86efac; background: var(--green-soft); border-color: transparent; }
+  </style>
+</head>
+<body>
+  <h1>Barra do header — Entradas</h1>
+  <p class="lead">Hoje Status, Filtros, Nova e o sino competem no mesmo visual. As opções abaixo separam <strong>filtro de lista</strong> de <strong>ação</strong>. O mesmo desenho vale para Saídas (Pago / Pendente). Escolha uma letra no chat.</p>
+
+  <article class="card">
+    <header>
+      <h2>Atual</h2>
+      <p>Rótulo STATUS, dois botões grandes, Filtros no mesmo formato e Nova verde. Tudo parece a mesma coisa.</p>
+    </header>
+    <div class="stage">
+      <div class="title"><i class="fas fa-arrow-trend-up"></i> Entradas</div>
+      <span class="hint">Status</span>
+      <span class="sep"></span>
+      <button class="pill on"><i class="fas fa-check-circle"></i> Recebido</button>
+      <button class="pill"><i class="fas fa-clock"></i> Pendente</button>
+      <button class="pill filtros"><i class="fas fa-filter"></i> Filtros <span class="dot"></span></button>
+      <button class="nova"><i class="fas fa-plus"></i> Nova</button>
+      <span class="bell"><i class="fas fa-bell"></i><span class="badge">3</span></span>
+    </div>
+  </article>
+
+  <article class="card">
+    <header>
+      <h2>A · Um controle só de status</h2>
+      <p>Todos / Recebido / Pendente num segmento único (um estado por vez). Filtros vira só o ícone, com o ponto quando há filtro ativo. Nova fica isolada. O sino continua à parte, como notificação — não é filtro da lista.</p>
+    </header>
+    <div class="stage">
+      <div class="title"><i class="fas fa-arrow-trend-up"></i> Entradas</div>
+      <div class="seg" aria-label="Status">
+        <button>Todos</button>
+        <button class="on">Recebido</button>
+        <button>Pendente</button>
+      </div>
+      <button class="icon-btn" title="Filtros"><i class="fas fa-filter"></i><span class="dot"></span></button>
+      <button class="nova"><i class="fas fa-plus"></i> Nova entrada</button>
+      <span class="bell"><i class="fas fa-bell"></i><span class="badge">3</span></span>
+    </div>
+  </article>
+
+  <article class="card">
+    <header>
+      <h2>B · Status em lista + ações agrupadas</h2>
+      <p>O status vira um controle compacto (“Status · Recebido”), menos largura. Filtros e Nova ficam num bloco separado por uma linha. Mantém a ideia de “estou vendo só recebidos”, sem dois botões grandes.</p>
+    </header>
+    <div class="stage">
+      <div class="title"><i class="fas fa-arrow-trend-up"></i> Entradas</div>
+      <button class="selectish"><small>Status</small> Recebido <i class="fas fa-chevron-down" style="font-size:0.7rem;color:#94a3b8"></i></button>
+      <div class="zone">
+        <button class="pill filtros"><i class="fas fa-filter"></i> Filtros <span class="dot"></span></button>
+        <button class="nova"><i class="fas fa-plus"></i> Nova</button>
+      </div>
+      <span class="bell"><i class="fas fa-bell"></i><span class="badge">3</span></span>
+    </div>
+  </article>
+
+  <article class="card">
+    <header>
+      <h2>C · Texto leve, sem caixa de “Status”</h2>
+      <p>Recebido e Pendente viram links da barra (o ativo só muda de cor). Some o rótulo STATUS e o separador. Filtros é ícone; Nova continua o único botão preenchido. Menos ruído, mesma função — e ainda dá para marcar os dois se quiser combinar (os dois ficariam verdes).</p>
+    </header>
+    <div class="stage">
+      <div class="title"><i class="fas fa-arrow-trend-up"></i> Entradas</div>
+      <button class="pill ghost on">Recebido</button>
+      <button class="pill ghost">Pendente</button>
+      <span class="sep"></span>
+      <button class="icon-btn" title="Filtros"><i class="fas fa-filter"></i><span class="dot"></span></button>
+      <button class="nova"><i class="fas fa-plus"></i> Nova</button>
+      <span class="bell"><i class="fas fa-bell"></i><span class="badge">3</span></span>
+    </div>
+  </article>
+</body>
+</html>

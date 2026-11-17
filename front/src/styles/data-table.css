@@ -1,0 +1,123 @@
+/* Tabela genérica — legado (dashboard.css) + refinamentos no shell moderno */
+
+.data-table-host {
+    width: 100%;
+}
+
+.page-content--dashboard-modern .data-table-host {
+    background: var(--dash-surface-bg);
+    border: 1px solid var(--dash-surface-border);
+    border-radius: var(--dash-surface-radius);
+    box-shadow: var(--dash-surface-shadow);
+}
+
+.page-content--dashboard-modern .data-table tbody tr:hover {
+    background: var(--dash-layer-inset);
+}
+
+.page-content--dashboard-modern .data-table tbody tr.data-table__row--selected {
+    background: color-mix(in srgb, var(--dash-layer-control) 65%, var(--dash-layer-inset));
+}
+
+.page-content--dashboard-modern .data-table__empty {
+    text-align: center;
+    padding: 2rem 1rem !important;
+    color: var(--dash-text-tertiary);
+    font-size: 0.875rem;
+}
+
+/* Cabeçalho — mesmo ritmo legado, sem aparência de botão “pill” */
+.page-content--dashboard-modern .data-table thead th {
+    padding: 0.75rem 1rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--dash-text-secondary);
+    background: transparent;
+    border-bottom: 1px solid var(--dash-border);
+    vertical-align: middle;
+}
+
+.page-content--dashboard-modern .data-table__th-label {
+    display: inline-block;
+}
+
+.page-content--dashboard-modern .data-table thead .sortable-th__btn.data-table__sort-btn {
+    appearance: none;
+    -webkit-appearance: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    width: auto;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    font: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    color: inherit;
+    cursor: pointer;
+}
+
+.page-content--dashboard-modern .data-table thead .sortable-th__btn.data-table__sort-btn:hover {
+    background: transparent;
+    color: var(--dash-text-primary);
+}
+
+.page-content--dashboard-modern .data-table thead .sortable-th--active .sortable-th__btn {
+    color: var(--dash-text-primary);
+}
+
+.page-content--dashboard-modern .data-table thead .data-table__sort-icon {
+    font-size: 0.65rem;
+    line-height: 1;
+    opacity: 0.55;
+}
+
+.page-content--dashboard-modern .data-table thead .sortable-th--active .data-table__sort-icon {
+    opacity: 1;
+}
+
+.page-content--dashboard-modern .data-table thead .data-table__sort-btn--right {
+    justify-content: flex-end;
+    width: 100%;
+}
+
+.page-content--dashboard-modern .data-table thead .data-table__sort-btn--center {
+    justify-content: center;
+    width: 100%;
+}
+
+/* Status: estilos em legacy-web/css/dashboard.css (`.expense-status-badge`, `#gains-table`, `#expenses-table`). */
+
+.page-content--dashboard-modern .data-table td.transaction-actions .transaction-actions__inner {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+}
+
+.page-content--dashboard-modern .data-table .btn-small {
+    min-height: 2rem;
+    padding: 0.3rem 0.65rem;
+    font-size: 0.8125rem;
+    border-radius: 8px;
+}
+
+.page-content--dashboard-modern .data-table__td--right,
+.page-content--dashboard-modern .data-table__th--right {
+    text-align: right;
+}
+
+.page-content--dashboard-modern .data-table__td--center,
+.page-content--dashboard-modern .data-table__th--center {
+    text-align: center;
+}

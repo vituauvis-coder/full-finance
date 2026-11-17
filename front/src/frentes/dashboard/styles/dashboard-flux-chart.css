@@ -1,0 +1,208 @@
+/* Gráfico de fluxo — Recharts (herda .dashboard-flux-chart-card + reports.css) */
+.dashboard-reports-section .reports-chart-header {
+    flex-wrap: wrap;
+    align-items: center;
+    row-gap: 0.65rem;
+}
+
+.dashboard-reports-section .reports-chart-header-actions {
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    row-gap: 0.45rem;
+    max-width: 100%;
+}
+
+.flux-chart-canvas {
+    min-height: 380px;
+}
+
+.flux-chart-canvas .recharts-wrapper {
+    font-family: inherit;
+}
+
+#dashboard-page.dashboard-page--modern .flux-chart-canvas .recharts-legend-item-text {
+    color: var(--dash-text-secondary) !important;
+}
+
+#dashboard-page.dashboard-page--modern .chart-type-toggle {
+    background: var(--dash-layer-inset);
+    border: 1px solid var(--dash-border);
+    border-radius: 10px;
+    padding: 0.2rem;
+}
+
+/* Barra de ações do gráfico — mesma altura em pílulas, escopo e ícones */
+#dashboard-page.dashboard-page--modern .reports-chart-header-actions .chart-type-toggle {
+    display: inline-flex;
+    align-items: center;
+    align-self: center;
+    box-sizing: border-box;
+    gap: 0.15rem;
+    padding: 3px;
+    height: 2rem;
+}
+
+#dashboard-page.dashboard-page--modern .reports-chart-header-actions .chart-type-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    height: 1.625rem;
+    min-height: 1.625rem;
+    padding: 0 0.55rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1;
+    border-radius: 7px;
+}
+
+#dashboard-page.dashboard-page--modern .reports-chart-header-actions .chart-type-btn:has(.chart-type-icon) {
+    width: 1.75rem;
+    min-width: 1.75rem;
+    padding: 0;
+}
+
+#dashboard-page.dashboard-page--modern .chart-type-btn {
+    color: var(--dash-text-secondary);
+    opacity: 1;
+}
+
+#dashboard-page.dashboard-page--modern .reports-chart-header-actions .chart-type-btn .chart-type-icon.app-icon,
+#dashboard-page.dashboard-page--modern .chart-type-btn .chart-type-icon.app-icon {
+    font-family: 'Material Symbols Rounded', sans-serif;
+    font-weight: normal;
+    font-size: 1.05rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 20;
+}
+
+#dashboard-page.dashboard-page--modern .chart-type-btn:hover {
+    background: var(--dash-layer-control);
+    color: var(--dash-text-primary);
+}
+
+#dashboard-page.dashboard-page--modern .chart-type-btn.is-active:not(.chart-type-btn--saldo) {
+    background: var(--dash-layer-control);
+    color: var(--dash-text-primary);
+    box-shadow: inset 0 0 0 1px var(--dash-border-strong);
+}
+
+.flux-chart-canvas .recharts-cartesian-grid-horizontal line {
+    shape-rendering: crispEdges;
+    stroke-width: 1;
+}
+
+.flux-chart-canvas .recharts-cartesian-grid-vertical line {
+    shape-rendering: crispEdges;
+    stroke-width: 1;
+}
+
+/* Tooltip Recharts — vidro grafite (não slate legado) */
+.flux-chart-tooltip {
+    border-radius: 12px;
+    padding: 0.65rem 0.75rem;
+    font-size: 0.8125rem;
+    line-height: 1.35;
+    min-width: 11rem;
+    pointer-events: none;
+    backdrop-filter: blur(20px) saturate(165%);
+    -webkit-backdrop-filter: blur(20px) saturate(165%);
+    background: color-mix(in srgb, #ffffff 92%, transparent);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    color: #1d1d1f;
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.04),
+        0 12px 32px rgba(0, 0, 0, 0.12);
+}
+
+#dashboard-page.dashboard-page--modern .flux-chart-tooltip {
+    background: color-mix(in srgb, var(--dash-layer-control) 82%, transparent);
+    border: 1px solid var(--dash-border-strong);
+    color: var(--dash-text-primary);
+    box-shadow: var(--dash-raised-ring), 0 16px 40px rgba(0, 0, 0, 0.28);
+}
+
+[data-theme='dark'] #dashboard-page.dashboard-page--modern .flux-chart-tooltip {
+    background: color-mix(in srgb, var(--dash-layer-control) 76%, var(--dash-layer-raised));
+    box-shadow:
+        var(--dash-raised-ring),
+        0 20px 48px rgba(0, 0, 0, 0.55);
+}
+
+.flux-chart-tooltip__label {
+    margin-bottom: 0.4rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--dash-text-secondary, #6e6e73);
+}
+
+.flux-chart-tooltip__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.35rem;
+}
+
+.flux-chart-tooltip__row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.flux-chart-tooltip__swatch {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme='dark'] .flux-chart-tooltip__swatch {
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.flux-chart-tooltip__name {
+    flex: 1;
+    color: var(--dash-text-secondary, #6e6e73);
+    font-size: 0.75rem;
+}
+
+.flux-chart-tooltip__value {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    color: var(--dash-text-primary, #1d1d1f);
+}
+
+.flux-chart-segmented__btn {
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.flux-chart-saldo-toggle {
+    margin-right: 0.25rem;
+}
+
+#dashboard-page.dashboard-page--modern .chart-type-btn--saldo.is-active {
+    background: var(--dash-layer-control);
+    color: var(--dash-text-primary);
+    box-shadow: inset 0 0 0 1px var(--dash-border-strong);
+}
+
+.chart-type-btn--saldo.is-active {
+    background-color: color-mix(in srgb, var(--dash-chart-saldo, #0a84ff) 18%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--dash-chart-saldo, #0a84ff) 35%, transparent);
+    color: var(--dash-text-primary, #f5f5f7);
+}
+
+@media (max-width: 720px) {
+    .flux-chart-canvas {
+        min-height: 260px;
+    }
+}

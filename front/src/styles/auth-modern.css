@@ -1,0 +1,251 @@
+/**
+ * Auth React — paleta grafite (Apple-like). Só com `.auth-container--modern`.
+ */
+.auth-container--modern {
+    --auth-black: #000000;
+    --auth-graphite: #1d1d1f;
+    --auth-graphite-elevated: #2c2c2e;
+    --auth-graphite-border: rgba(255, 255, 255, 0.1);
+    --auth-text-primary: #f5f5f7;
+    --auth-text-secondary: #86868b;
+    --auth-text-tertiary: #6e6e73;
+    --auth-fill: rgba(44, 44, 46, 0.65);
+    --auth-focus-ring: rgba(255, 255, 255, 0.22);
+}
+
+.auth-container--modern .landing-hero {
+    background: var(--auth-black);
+}
+
+.auth-container--modern .hero-bg-layer {
+    background:
+        radial-gradient(ellipse 90% 55% at 50% -15%, rgba(255, 255, 255, 0.07), transparent 55%),
+        radial-gradient(ellipse 50% 40% at 100% 0%, rgba(255, 255, 255, 0.04), transparent 50%),
+        linear-gradient(180deg, #000000 0%, #1d1d1f 55%, #000000 100%);
+    animation: none;
+    filter: none;
+}
+
+.auth-container--modern .hero-orb--1 {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.auth-container--modern .hero-orb--2 {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.auth-container--modern .hero-orb--3 {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.auth-hero-grid {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    opacity: 0.22;
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(ellipse 75% 65% at 50% 35%, black 15%, transparent 72%);
+}
+
+.auth-container--modern .hero-title-gradient {
+    background: linear-gradient(180deg, #ffffff 0%, #d2d2d7 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    animation: none;
+    filter: none;
+}
+
+.auth-container--modern .hero-lead {
+    color: rgba(245, 245, 247, 0.72);
+}
+
+.auth-container--modern .hero-points li {
+    padding: 0.55rem 0.85rem;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--auth-graphite-border);
+    transition: background 0.2s ease;
+}
+
+.auth-container--modern .hero-points li:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.14);
+}
+
+.auth-container--modern .hero-points .hero-points__icon {
+    color: #d2d2d7;
+}
+
+.auth-container--modern .btn-hero-secondary {
+    border-color: rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--auth-text-primary);
+}
+
+.auth-container--modern .btn-hero-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.32);
+    transform: translateY(-1px);
+}
+
+/* Cartão — vidro grafite, sem borda gradiente */
+.auth-card-shell {
+    position: relative;
+    border-radius: 20px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow:
+        0 0 0 1px var(--auth-graphite-border),
+        0 24px 48px rgba(0, 0, 0, 0.55);
+}
+
+.auth-card-shell::before {
+    content: none;
+}
+
+.auth-container--modern .auth-card-shell .auth-box--hero {
+    margin: 0;
+    border-radius: 20px;
+    background: rgba(29, 29, 31, 0.82);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    box-shadow: none;
+    border: none;
+}
+
+.auth-container--modern .auth-title {
+    color: var(--auth-text-primary);
+}
+
+.auth-container--modern .auth-subtitle {
+    color: var(--auth-text-secondary);
+}
+
+.auth-container--modern .auth-label {
+    color: #d2d2d7;
+}
+
+.auth-container--modern .auth-input-wrap {
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: var(--auth-fill);
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.auth-container--modern .auth-input-wrap:focus-within {
+    border-color: rgba(255, 255, 255, 0.28);
+    box-shadow: 0 0 0 4px var(--auth-focus-ring);
+    transform: none;
+}
+
+.auth-container--modern .auth-input-wrap .auth-input-icon {
+    color: var(--auth-text-secondary);
+}
+
+.auth-container--modern .auth-input-wrap:focus-within .auth-input-icon {
+    color: #d2d2d7;
+}
+
+.auth-container--modern .auth-input-wrap input {
+    color: var(--auth-text-primary);
+}
+
+.auth-container--modern .auth-input-wrap input::placeholder {
+    color: var(--auth-text-tertiary);
+}
+
+.auth-container--modern .password-toggle {
+    color: var(--auth-text-secondary);
+}
+
+.auth-container--modern .auth-form .auth-submit {
+    border-radius: 12px;
+    background: #f5f5f7;
+    color: #1d1d1f;
+    background-size: auto;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    font-weight: 600;
+    transition:
+        transform 0.2s ease,
+        background 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.auth-container--modern .auth-form .auth-submit:hover:not(:disabled) {
+    background: #ffffff;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    transform: translateY(-1px);
+}
+
+.auth-container--modern .auth-toggle {
+    color: var(--auth-text-secondary);
+}
+
+.auth-container--modern .auth-toggle a {
+    color: #f5f5f7;
+}
+
+.auth-container--modern .error-message {
+    color: #ff9f9a;
+}
+
+.auth-container--modern .landing-features {
+    background: #000000;
+    border-top: 1px solid var(--auth-graphite-border);
+}
+
+.auth-container--modern .landing-features h2 {
+    color: var(--auth-text-primary);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+}
+
+.auth-container--modern .feature-card {
+    background: var(--auth-graphite);
+    border: 1px solid var(--auth-graphite-border);
+    box-shadow: none;
+}
+
+.auth-container--modern .feature-card h3 {
+    color: var(--auth-text-primary);
+    font-weight: 600;
+}
+
+.auth-container--modern .feature-card p {
+    color: var(--auth-text-secondary);
+}
+
+.auth-container--modern .feature-icon {
+    background: var(--auth-graphite-elevated);
+    box-shadow: inset 0 0 0 1px var(--auth-graphite-border);
+    color: #f5f5f7;
+}
+
+.auth-container--modern .feature-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(255, 255, 255, 0.16);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+.auth-container--modern .landing-footer {
+    background: #000000;
+    color: var(--auth-text-tertiary);
+    border-top: 1px solid var(--auth-graphite-border);
+}
+
+.auth-container--modern .landing-footer strong {
+    color: var(--auth-text-secondary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .auth-container--modern .auth-form .auth-submit:hover:not(:disabled) {
+        transform: none;
+    }
+}

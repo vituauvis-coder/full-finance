@@ -1,0 +1,99 @@
+/**
+ * Dashboard — hierarquia de camadas (como auth-modern).
+ *
+ * layer-canvas  → fundo da página (mais profundo)
+ * layer-raised  → cards e painéis principais
+ * layer-inset   → trilhas, linhas e controles “dentro” de um painel
+ * layer-control → pill ativo / hover
+ */
+
+.page-content--dashboard-modern,
+.page-content--profile-modern,
+.page-content--dashboard-modern > section.page.active,
+#dashboard-page.dashboard-page--modern,
+#profile-page.profile-page--modern {
+    --dash-text-primary: #1d1d1f;
+    --dash-text-secondary: #6e6e73;
+    --dash-text-tertiary: #86868b;
+    --dash-border: rgba(0, 0, 0, 0.08);
+    --dash-border-strong: rgba(0, 0, 0, 0.14);
+    --dash-focus-ring: rgba(0, 0, 0, 0.12);
+
+    --dash-layer-canvas: #f2f2f7;
+    --dash-layer-raised: #ffffff;
+    --dash-layer-inset: #e8e8ed;
+    --dash-layer-control: #ffffff;
+
+    --dash-panel-bg: var(--dash-layer-raised);
+    --dash-panel-border: var(--dash-border);
+    --dash-panel-radius: 16px;
+    --dash-panel-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 6px 20px rgba(0, 0, 0, 0.05);
+    --dash-raised-ring: 0 0 0 1px rgba(0, 0, 0, 0.06);
+
+    /* Blocos principais — mesmo tom (header, meses, KPIs, fluxo, …) */
+    --dash-surface-bg: var(--dash-layer-raised);
+    --dash-surface-border: var(--dash-panel-border);
+    --dash-surface-radius: var(--dash-panel-radius);
+    --dash-surface-shadow: var(--dash-raised-ring);
+
+    /* Ritmo vertical e gutters (header → timeline → KPIs → blocos) */
+    --dash-stack-gap: 1.25rem;
+    --dash-stack-gap-tight: 0.75rem;
+    --dash-surface-pad-y: 1.15rem;
+    --dash-surface-pad-x: 1.25rem;
+    --dash-toolbar-gap: 0.65rem;
+
+    /* Séries do gráfico de fluxo (legível no claro) */
+    --dash-chart-gain: #34c759;
+    --dash-chart-expense: #ff3b30;
+    --dash-chart-net: #ff9f0a;
+    --dash-chart-net-neg: #ff453a;
+    --dash-chart-saldo: #0a84ff;
+    --dash-chart-tooltip-cursor: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme='dark'] .page-content--dashboard-modern,
+[data-theme='dark'] .page-content--profile-modern,
+[data-theme='dark'] .page-content--dashboard-modern > section.page.active,
+[data-theme='dark'] #dashboard-page.dashboard-page--modern,
+[data-theme='dark'] #profile-page.profile-page--modern {
+    --dash-text-primary: #f5f5f7;
+    --dash-text-secondary: #86868b;
+    --dash-text-tertiary: #6e6e73;
+    --dash-border: rgba(255, 255, 255, 0.1);
+    --dash-border-strong: rgba(255, 255, 255, 0.16);
+    --dash-focus-ring: rgba(255, 255, 255, 0.22);
+
+  /* Preto → cartões grafite → poços mais escuros (nunca igual ao canvas) */
+    --dash-layer-canvas: #000000;
+    --dash-layer-raised: #1d1d1f;
+    --dash-layer-inset: #141416;
+    --dash-layer-control: #2c2c2e;
+
+    --dash-panel-bg: var(--dash-layer-raised);
+    --dash-panel-border: var(--dash-border);
+    --dash-panel-radius: 16px;
+    --dash-panel-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.08),
+        0 20px 40px rgba(0, 0, 0, 0.45);
+    --dash-raised-ring: 0 0 0 1px rgba(255, 255, 255, 0.1);
+
+    --dash-surface-bg: var(--dash-layer-raised);
+    --dash-surface-border: var(--dash-panel-border);
+    --dash-surface-radius: var(--dash-panel-radius);
+    --dash-surface-shadow: var(--dash-raised-ring);
+
+    --dash-chart-gain: #30d158;
+    --dash-chart-expense: #ff453a;
+    --dash-chart-net: #ffd60a;
+    --dash-chart-net-neg: #ff375f;
+    --dash-chart-saldo: #64d2ff;
+    --dash-chart-tooltip-cursor: rgba(255, 255, 255, 0.05);
+}
+
+/* Canvas definido em dashboard-ambient-bg (mesh por cima da cor base) */
+
+#dashboard-page.dashboard-page--modern {
+    background: transparent;
+    color: var(--dash-text-primary);
+}

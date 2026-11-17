@@ -1,0 +1,83 @@
+/* Material Symbols na landing / auth React */
+.material-symbols-rounded.auth-icon {
+    font-family: 'Material Symbols Rounded', sans-serif;
+    font-weight: normal;
+    font-style: normal;
+    font-size: 1.25rem;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    -webkit-font-smoothing: antialiased;
+}
+
+.hero-points .hero-points__icon {
+    flex-shrink: 0;
+    margin-top: 0.15rem;
+    font-size: 1.1rem;
+    opacity: 0.95;
+}
+
+.btn-hero-icon {
+    font-size: 1.1rem;
+    vertical-align: -0.2em;
+    margin-left: 0.35rem;
+}
+
+.auth-input-wrap .auth-input-icon {
+    font-size: 1.15rem;
+    opacity: 0.85;
+}
+
+.password-toggle .material-symbols-rounded {
+    font-size: 1.25rem;
+}
+
+.feature-icon .feature-card__icon {
+    font-size: 2rem;
+}
+
+.auth-submit .material-symbols-rounded {
+    font-size: 1.2rem;
+    vertical-align: -0.15em;
+}
+
+.auth-submit:hover .material-symbols-rounded {
+    transform: translateX(3px);
+    transition: transform 0.2s ease;
+}
+
+.auth-container--loading {
+    display: grid;
+    place-items: center;
+    min-height: 100vh;
+    background: #0f0a1a;
+}
+
+.auth-container:not(.auth-container--modern) .auth-form .auth-input-wrap input:focus-visible {
+    outline: 2px solid rgba(99, 102, 241, 0.55);
+    outline-offset: 2px;
+}
+
+.auth-submit:disabled {
+    opacity: 0.72;
+    cursor: wait;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hero-orb,
+    .hero-title,
+    .hero-lead,
+    .hero-points,
+    .hero-buttons {
+        animation: none !important;
+    }
+
+    .auth-submit:hover .material-symbols-rounded {
+        transform: none;
+    }
+}

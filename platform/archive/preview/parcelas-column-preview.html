@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Preview — coluna Parcelas (compacta)</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --surface: #1a1f26;
+      --border: rgba(148, 163, 184, 0.15);
+      --text: #f1f5f9;
+      --text-light: #94a3b8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 1.5rem;
+      line-height: 1.4;
+    }
+    h1 { font-size: 1.15rem; font-weight: 600; margin: 0 0 0.35rem; }
+    p.lead { color: var(--text-light); font-size: 0.88rem; margin: 0 0 1.25rem; max-width: 52rem; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      align-items: start;
+    }
+    @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .panel__head {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-light);
+      font-weight: 600;
+    }
+    .panel__head strong { color: var(--text); font-weight: 600; text-transform: none; letter-spacing: 0; font-size: 0.85rem; display: block; margin-bottom: 0.15rem; }
+    table.mock {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    table.mock th {
+      text-align: left;
+      padding: 0.65rem 1rem;
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-light);
+      border-bottom: 1px solid var(--border);
+    }
+    table.mock th.col-parcelas { text-align: center; }
+    table.mock td {
+      padding: 0.7rem 1rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    table.mock td.col-parcelas {
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+    table.mock tr:last-child td { border-bottom: none; }
+    .desc { color: var(--text); opacity: 0.92; }
+
+    /* —— Atual (como no app agora) —— */
+    .v-atual td.col-parcelas { font-size: 0.95rem; min-width: 6.25rem; }
+    .v-atual .expenses-installment-stack {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .v-atual .expenses-installment-cell__label {
+      font-weight: 600;
+      padding: 0.2rem 0.55rem;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      font-size: 0.95rem;
+      line-height: 1.25;
+    }
+    .v-atual .expenses-installment-cell__track {
+      width: 4.75rem;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(100, 116, 139, 0.22);
+      overflow: hidden;
+    }
+    .v-atual .expenses-installment-cell__fill {
+      height: 100%;
+      width: calc(var(--inst-pct, 0) * 1%);
+      border-radius: inherit;
+    }
+
+    /* —— Proposta compacta —— */
+    .v-compact td.col-parcelas {
+      font-size: 0.82rem;
+      min-width: 4.75rem;
+      padding-top: 0.55rem;
+      padding-bottom: 0.55rem;
+    }
+    .v-compact .expenses-installment-stack {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.18rem;
+    }
+    .v-compact .expenses-installment-cell__label {
+      font-weight: 600;
+      padding: 0.08rem 0.38rem;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      font-size: 0.82rem;
+      line-height: 1.2;
+    }
+    .v-compact .expenses-installment-cell__track {
+      width: 3.35rem;
+      height: 3px;
+      border-radius: 999px;
+      background: rgba(100, 116, 139, 0.22);
+      overflow: hidden;
+    }
+    .v-compact .expenses-installment-cell__fill {
+      height: 100%;
+      width: calc(var(--inst-pct, 0) * 1%);
+      border-radius: inherit;
+    }
+    .v-compact .expenses-installment-cell--final .expenses-installment-cell__label {
+      font-weight: 700;
+    }
+
+    /* Tons (iguais nos dois) */
+    .expenses-installment-cell--early .expenses-installment-cell__label {
+      color: #fdba74;
+      background: rgba(251, 146, 60, 0.16);
+      border-color: rgba(251, 146, 60, 0.35);
+    }
+    .expenses-installment-cell--early .expenses-installment-cell__fill {
+      background: linear-gradient(90deg, #fb923c, #f97316);
+    }
+    .expenses-installment-cell--mid .expenses-installment-cell__label {
+      color: var(--text);
+      background: rgba(148, 163, 184, 0.12);
+      border-color: rgba(148, 163, 184, 0.22);
+    }
+    .expenses-installment-cell--mid .expenses-installment-cell__fill {
+      background: linear-gradient(90deg, #64748b, #94a3b8);
+    }
+    .expenses-installment-cell--near-end .expenses-installment-cell__label {
+      color: #6ee7b7;
+      background: rgba(52, 211, 153, 0.16);
+      border-color: rgba(52, 211, 153, 0.32);
+    }
+    .expenses-installment-cell--near-end .expenses-installment-cell__fill {
+      background: linear-gradient(90deg, #34d399, #10b981);
+    }
+    .expenses-installment-cell--final .expenses-installment-cell__label {
+      color: #4ade80;
+      background: rgba(74, 222, 128, 0.16);
+      border-color: rgba(74, 222, 128, 0.38);
+    }
+    .expenses-installment-cell--final .expenses-installment-cell__fill {
+      background: linear-gradient(90deg, #4ade80, #22c55e);
+    }
+    .empty { color: var(--text-light); opacity: 0.55; font-size: 0.82rem; }
+
+    .note {
+      margin-top: 1.25rem;
+      padding: 0.85rem 1rem;
+      background: rgba(59, 130, 246, 0.08);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      border-radius: 8px;
+      font-size: 0.82rem;
+      color: var(--text-light);
+      max-width: 52rem;
+    }
+    .note strong { color: var(--text); }
+  </style>
+</head>
+<body>
+  <h1>Coluna Parcelas — comparação de tamanho</h1>
+  <p class="lead">Mesmas cores e barra de progresso; a versão <strong>compacta</strong> reduz fonte, padding, espaço entre label e barra, e largura da barra — para alinhar melhor à altura das outras células da tabela.</p>
+
+  <div class="grid">
+    <section class="panel v-atual">
+      <header class="panel__head"><strong>Atual (no app)</strong> Label 0,95rem · barra 4,75rem × 4px · gap 0,35rem</header>
+      <table class="mock">
+        <thead><tr><th>Descrição</th><th class="col-parcelas">Parcelas</th></tr></thead>
+        <tbody id="rows-atual"></tbody>
+      </table>
+    </section>
+
+    <section class="panel v-compact">
+      <header class="panel__head"><strong>Proposta compacta</strong> Label 0,82rem · barra 3,35rem × 3px · gap 0,18rem</header>
+      <table class="mock">
+        <thead><tr><th>Descrição</th><th class="col-parcelas">Parcelas</th></tr></thead>
+        <tbody id="rows-compact"></tbody>
+      </table>
+    </section>
+  </div>
+
+  <p class="note"><strong>Como ver:</strong> abra este arquivo no navegador. Se curtir a coluna da direita, responda no chat que posso aplicar a versão compacta no <code>dashboard.css</code>.</p>
+
+  <script>
+    const samples = [
+      { desc: 'MacBook Air M1', index: 1, total: 10, tone: 'early' },
+      { desc: 'Divisão — Airbnb Natal', index: 4, total: 6, tone: 'mid' },
+      { desc: 'Microondas presente', index: 9, total: 10, tone: 'near-end' },
+      { desc: 'Sofá parcelado', index: 12, total: 12, tone: 'final' },
+      { desc: 'Supermercado à vista', empty: true },
+    ];
+
+    function cellHtml(s) {
+      if (s.empty) return '<span class="empty">—</span>';
+      const pct = Math.round((s.index / s.total) * 100);
+      const label = `${s.index} de ${s.total}`;
+      return `<span class="expenses-installment-stack expenses-installment-cell--${s.tone}" style="--inst-pct:${pct}">
+        <span class="expenses-installment-cell__label">${label}</span>
+        <span class="expenses-installment-cell__track"><span class="expenses-installment-cell__fill"></span></span>
+      </span>`;
+    }
+
+    function render(id) {
+      const tbody = document.getElementById(id);
+      tbody.innerHTML = samples.map((s) =>
+        `<tr><td class="desc">${s.desc}</td><td class="col-parcelas">${cellHtml(s)}</td></tr>`
+      ).join('');
+    }
+    render('rows-atual');
+    render('rows-compact');
+  </script>
+</body>
+</html>

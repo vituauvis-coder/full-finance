@@ -1,0 +1,135 @@
+/* Portal tooltip dos cards KPI (React — markup em portalTooltip.ts) */
+
+.portal-tooltip .portal-tooltip__accent {
+    display: none;
+}
+
+.portal-tooltip__head {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin: 0 0 0.4rem;
+}
+
+.portal-tooltip__tone {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+.portal-tooltip[data-tone='expense'] .portal-tooltip__tone {
+    background: var(--expenses-accent, #ef4444);
+}
+
+.portal-tooltip[data-tone='income'] .portal-tooltip__tone {
+    background: var(--gains-accent, #10b981);
+}
+
+.portal-tooltip[data-tone='balance'] .portal-tooltip__tone {
+    background: var(--info-color, #3b82f6);
+}
+
+.portal-tooltip[data-tone='projection'] .portal-tooltip__tone {
+    background: var(--warning-color, #f59e0b);
+}
+
+.portal-tooltip[data-tone='investments'] .portal-tooltip__tone,
+.portal-tooltip[data-tone='savings'] .portal-tooltip__tone,
+.portal-tooltip[data-tone='cofrinhos'] .portal-tooltip__tone {
+    background: var(--primary-color, #737373);
+}
+
+/* —— Dashboard moderno (grafite / vidro) —— */
+.portal-tooltip--dashboard-modern {
+    max-width: min(300px, calc(100vw - 28px));
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--dash-layer-control) 80%, transparent);
+    border: 1px solid var(--dash-border-strong);
+    box-shadow: var(--dash-raised-ring), 0 18px 44px rgba(0, 0, 0, 0.42);
+    backdrop-filter: blur(22px) saturate(165%);
+    -webkit-backdrop-filter: blur(22px) saturate(165%);
+}
+
+.portal-tooltip--dashboard-modern .portal-tooltip__body {
+    padding: 0.7rem 0.85rem 0.75rem;
+}
+
+.portal-tooltip--dashboard-modern .portal-tooltip__kicker {
+    margin: 0;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--dash-text-secondary);
+    line-height: 1.25;
+}
+
+.portal-tooltip--dashboard-modern[data-tone='income'] .portal-tooltip__kicker {
+    color: color-mix(in srgb, var(--dash-chart-gain) 55%, var(--dash-text-secondary));
+}
+
+.portal-tooltip--dashboard-modern[data-tone='expense'] .portal-tooltip__kicker {
+    color: color-mix(in srgb, var(--dash-chart-expense) 55%, var(--dash-text-secondary));
+}
+
+.portal-tooltip--dashboard-modern[data-tone='balance'] .portal-tooltip__kicker {
+    color: color-mix(in srgb, var(--dash-chart-saldo) 50%, var(--dash-text-secondary));
+}
+
+.portal-tooltip--dashboard-modern[data-tone='projection'] .portal-tooltip__kicker {
+    color: color-mix(in srgb, var(--dash-chart-net) 55%, var(--dash-text-secondary));
+}
+
+.portal-tooltip--dashboard-modern .portal-tooltip__tone {
+    width: 6px;
+    height: 6px;
+    box-shadow: none;
+    opacity: 0.95;
+}
+
+.portal-tooltip--dashboard-modern[data-tone='income'] .portal-tooltip__tone {
+    background: var(--dash-chart-gain);
+}
+
+.portal-tooltip--dashboard-modern[data-tone='expense'] .portal-tooltip__tone {
+    background: var(--dash-chart-expense);
+}
+
+.portal-tooltip--dashboard-modern[data-tone='balance'] .portal-tooltip__tone {
+    background: var(--dash-chart-saldo);
+}
+
+.portal-tooltip--dashboard-modern[data-tone='projection'] .portal-tooltip__tone {
+    background: var(--dash-chart-net);
+}
+
+.portal-tooltip--dashboard-modern .portal-tooltip__text {
+    margin: 0;
+    font-size: 0.8125rem;
+    font-weight: 400;
+    line-height: 1.52;
+    color: var(--dash-text-primary);
+}
+
+/* Hover no ícone do card — halos suaves (sem neon Tailwind) */
+#dashboard-page.dashboard-page--modern .movements-summary-card-icon.portal-tooltip-active {
+    transform: scale(1.04);
+}
+
+#dashboard-page.dashboard-page--modern .movements-summary-card-icon.expense.portal-tooltip-active {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--dash-chart-expense) 35%, transparent);
+}
+
+#dashboard-page.dashboard-page--modern .movements-summary-card-icon.income.portal-tooltip-active {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--dash-chart-gain) 35%, transparent);
+}
+
+#dashboard-page.dashboard-page--modern .movements-summary-card-icon.balance.portal-tooltip-active {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--dash-chart-saldo) 35%, transparent);
+}
+
+#dashboard-page.dashboard-page--modern .movements-summary-card-icon.projection.portal-tooltip-active {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--dash-chart-net) 35%, transparent);
+}

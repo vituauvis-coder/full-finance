@@ -1,0 +1,18 @@
+/* Chips Recebido/Pendente no header — tema dashboard-modern (legado já cobre .active no layout.css) */
+
+.page-content--dashboard-modern #gains-header-actions .header-quick-filter-btn--ghost:not(.active):not([aria-pressed='true']),
+.page-content--dashboard-modern #expenses-header-actions .header-quick-filter-btn--ghost:not(.active):not([aria-pressed='true']) {
+    color: var(--dash-text-tertiary);
+}
+
+.page-content--dashboard-modern #gains-header-actions .header-quick-filter-btn--ghost:not(.active):not([aria-pressed='true']):hover,
+.page-content--dashboard-modern #expenses-header-actions .header-quick-filter-btn--ghost:not(.active):not([aria-pressed='true']):hover {
+    background: var(--dash-layer-control);
+    color: var(--dash-text-secondary);
+}
+
+[data-theme='dark'] .page-content--dashboard-modern #gains-header-actions .header-quick-filter-btn--ghost.active,
+[data-theme='dark'] .page-content--dashboard-modern #gains-header-actions .header-quick-filter-btn--ghost[aria-pressed='true'] {
+    background: rgba(52, 211, 153, 0.18);
+    color: #34d399;
+}

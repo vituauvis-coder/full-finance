@@ -1,0 +1,61 @@
+/* Facetas do header — inativo cinza; ativo com cor do fluxo (fora de #dashboard-page) */
+
+#dashboard-header-actions .dashboard-expense-facet-btn.header-quick-filter-btn--ghost:not(.is-active):not([aria-pressed='true']),
+#dashboard-header-actions .page-toolbar__cluster[data-tone] .page-toolbar__chip:not(.is-active):not([aria-pressed='true']) {
+    background: transparent !important;
+    color: var(--text-light) !important;
+    border: none;
+}
+
+#dashboard-header-actions .dashboard-expense-facet-btn.header-quick-filter-btn--ghost:not(.is-active):not([aria-pressed='true']):hover,
+#dashboard-header-actions .page-toolbar__cluster[data-tone] .page-toolbar__chip:not(.is-active):not([aria-pressed='true']):hover {
+    background: color-mix(in srgb, var(--text-color) 6%, transparent) !important;
+    color: var(--text-color) !important;
+}
+
+#dashboard-header-actions .dashboard-expense-facet-btn[data-dashboard-flow='gains'].is-active,
+#dashboard-header-actions .dashboard-expense-facet-btn[data-dashboard-flow='gains'][aria-pressed='true'] {
+    background: var(--gains-bg-chip);
+    color: var(--gains-accent);
+}
+
+#dashboard-header-actions .dashboard-expense-facet-btn[data-dashboard-flow='expenses'].is-active,
+#dashboard-header-actions .dashboard-expense-facet-btn[data-dashboard-flow='expenses'][aria-pressed='true'] {
+    background: var(--expenses-bg-chip);
+    color: var(--expenses-accent);
+}
+
+[data-theme='dark'] #dashboard-header-actions .dashboard-expense-facet-btn.header-quick-filter-btn--ghost:not(.is-active):not([aria-pressed='true']),
+[data-theme='dark'] #dashboard-header-actions .page-toolbar__cluster[data-tone] .page-toolbar__chip:not(.is-active):not([aria-pressed='true']) {
+    background: transparent !important;
+    color: rgba(235, 235, 245, 0.42) !important;
+}
+
+[data-theme='dark'] #dashboard-header-actions .dashboard-expense-facet-btn.header-quick-filter-btn--ghost:not(.is-active):not([aria-pressed='true']):hover,
+[data-theme='dark'] #dashboard-header-actions .page-toolbar__cluster[data-tone] .page-toolbar__chip:not(.is-active):not([aria-pressed='true']):hover {
+    background: rgba(255, 255, 255, 0.06) !important;
+    color: rgba(235, 235, 245, 0.68) !important;
+}
+
+.page-content--dashboard-modern #dashboard-header-actions .dashboard-expense-facet-btn.header-quick-filter-btn--ghost:not(.is-active):not([aria-pressed='true']),
+.page-content--dashboard-modern #dashboard-header-actions .page-toolbar__cluster[data-tone] .page-toolbar__chip:not(.is-active):not([aria-pressed='true']) {
+    color: var(--dash-text-tertiary) !important;
+}
+
+.page-content--dashboard-modern #dashboard-header-actions .dashboard-expense-facet-btn.header-quick-filter-btn--ghost:not(.is-active):not([aria-pressed='true']):hover,
+.page-content--dashboard-modern #dashboard-header-actions .page-toolbar__cluster[data-tone] .page-toolbar__chip:not(.is-active):not([aria-pressed='true']):hover {
+    background: var(--dash-layer-control) !important;
+    color: var(--dash-text-secondary) !important;
+}
+
+[data-theme='dark'] #dashboard-header-actions .dashboard-expense-facet-btn[data-dashboard-flow='gains'].is-active,
+[data-theme='dark'] #dashboard-header-actions .dashboard-expense-facet-btn[data-dashboard-flow='gains'][aria-pressed='true'] {
+    background: rgba(52, 211, 153, 0.18);
+    color: #34d399;
+}
+
+[data-theme='dark'] #dashboard-header-actions .dashboard-expense-facet-btn[data-dashboard-flow='expenses'].is-active,
+[data-theme='dark'] #dashboard-header-actions .dashboard-expense-facet-btn[data-dashboard-flow='expenses'][aria-pressed='true'] {
+    background: var(--expenses-bg-chip);
+    color: var(--expenses-accent);
+}

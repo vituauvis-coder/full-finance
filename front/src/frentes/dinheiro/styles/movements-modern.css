@@ -1,0 +1,112 @@
+/* Entradas / Saídas — paridade com dashboard (--dash-* em dashboard-tokens.css) */
+
+#gains-page.movements-page--modern,
+#expenses-page.movements-page--modern {
+    width: 100%;
+    max-width: none;
+}
+
+/* —— Toolbar só timeline (CTA «Nova» fica no app-header) —— */
+.movements-page--modern .movements-toolbar {
+    width: 100%;
+}
+
+.movements-page--modern .movements-toolbar .civil-period-timeline {
+    width: 100%;
+    min-width: 0;
+    background-color: var(--dash-surface-bg);
+    border: 1px solid var(--dash-surface-border);
+    border-radius: var(--dash-surface-radius);
+    box-shadow: var(--dash-surface-shadow);
+    padding: 0.45rem 0.55rem;
+    box-sizing: border-box;
+}
+
+.page-content--dashboard-modern .movements-summary .movement-summary-card {
+    gap: 0.85rem;
+}
+
+.page-content--dashboard-modern .movements-summary .card-icon {
+    margin-right: 0;
+}
+
+/* Não herdar o `<p>` gigante de dashboard.css */
+.movements-page--modern .movement-summary-card__footer .dashboard-card-scope {
+    margin-top: 0.15rem;
+}
+
+.movements-summary .card-content p.movement-summary-card__subtitle {
+    margin: 0 0 0.45rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1.35;
+    color: var(--dash-text-secondary, var(--text-light));
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.movements-summary .card-content p.movement-summary-card__value {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+/* —— Treemap —— */
+.movements-page--modern .treemap-container {
+    width: 100%;
+    background: var(--dash-surface-bg);
+    border: 1px solid var(--dash-surface-border);
+    border-radius: var(--dash-surface-radius);
+    box-shadow: var(--dash-surface-shadow);
+    margin-bottom: 0;
+    padding: var(--dash-surface-pad-y) var(--dash-surface-pad-x);
+}
+
+.movements-page--modern .treemap-header {
+    margin-bottom: var(--dash-stack-gap-tight);
+    gap: var(--dash-stack-gap-tight);
+}
+
+.movements-page--modern .treemap-title {
+    color: var(--dash-text-primary);
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.movements-page--modern .treemap-title span {
+    color: var(--dash-text-secondary);
+    font-weight: 500;
+}
+
+.movements-page--modern .treemap-empty {
+    color: var(--dash-text-tertiary);
+    font-size: 0.875rem;
+    padding: 2rem 0;
+    text-align: center;
+}
+
+/* Altura fixa — igual legado; evita canvas “régua” de 1 linha */
+.movements-page--modern .treemap-squarify-host {
+    position: relative;
+    width: 100%;
+    min-height: 400px;
+}
+
+.movements-page--modern .treemap-squarify-host .treemap-chartjs-wrap {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    min-height: 400px;
+    overflow: hidden;
+}
+
+.movements-page--modern .treemap-chartjs-wrap canvas {
+    display: block;
+    vertical-align: top;
+}
+
+.movements-page--modern .table-pagination-bar,
+.movements-page--modern .movement-batch-bar {
+    width: 100%;
+}

@@ -1,0 +1,115 @@
+import { AppBrandKey, readBrandStorage, writeBrandStorage } from './appBrand';
+
+const VOLUME = 0.4;
+const DELETE_SOUND_URL = '/sounds/delete.mp3';
+const SAVE_SOUND_URL = '/sounds/save.mp3';
+
+function prefersReducedMotion() {
+    try {
+        return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    } catch {
+        return false;
+    }
+}
+
+export function isUiSoundEnabled(): boolean {
+    try {
+        const v = readBrandStorage(AppBrandKey.uiSounds);
+        if (v === null || v === '') return true;
+        return v === '1';
+    } catch {
+        return true;
+    }
+}
+
+export function setUiSoundEnabled(on: boolean) {
+    writeBrandStorage(AppBrandKey.uiSounds, on ? '1' : '0');
+}
+
+function canPlay() {
+    return isUiSoundEnabled() && !prefersReducedMotion();
+}
+
+function playUrl(url: string) {
+    const a = new Audio(url);
+    a.volume = VOLUME;
+    return a.play().then(() => undefined);
+}
+
+function getAudioContext() {
+    const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    return Ctx ? new Ctx() : null;
+}
+
+function playPingOsc() {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const t0 = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, t0);
+    osc.frequency.exponentialRampToValueAtTime(523.25, t0 + 0.1);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(0.14, t0 + 0.018);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.2);
+    osc.connect(g);
+    g.connect(ctx.destination);
+    osc.start(t0);
+    osc.stop(t0 + 0.22);
+    setTimeout(() => {
+        void ctx.close();
+    }, 450);
+}
+
+export function playPingSound() {
+    if (!canPlay()) return;
+    playUrl(SAVE_SOUND_URL).catch(() => {
+        try {
+            playPingOsc();
+        } catch {
+            /* ignore */
+        }
+    });
+}
+
+function playTrashNoise() {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const dur = 0.14;
+    const len = Math.floor(ctx.sampleRate * dur);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) {
+        data[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 900;
+    const g = ctx.createGain();
+    const t0 = ctx.currentTime;
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(0.11, t0 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    src.connect(filter);
+    filter.connect(g);
+    g.connect(ctx.destination);
+    src.start(t0);
+    src.stop(t0 + dur);
+    src.onended = () => {
+        void ctx.close();
+    };
+}
+
+export function playTrashSound() {
+    if (!canPlay()) return;
+    playUrl(DELETE_SOUND_URL).catch(() => {
+        try {
+            playTrashNoise();
+        } catch {
+            /* ignore */
+        }
+    });
+}

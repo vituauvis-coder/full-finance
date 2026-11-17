@@ -1,0 +1,1 @@
+export { FinancialFluxChart } from '../../dashboard/components/FinancialFluxChart';

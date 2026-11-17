@@ -1,0 +1,83 @@
+/* Material Symbols — shell/dashboard: preenchido e mais pesado */
+.material-symbols-rounded.app-icon {
+    font-family: 'Material Symbols Rounded', sans-serif;
+    font-weight: normal;
+    font-style: normal;
+    font-size: 1.25rem;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 24;
+    -webkit-font-smoothing: antialiased;
+}
+
+.movements-summary .card-icon .app-icon {
+    font-size: 1.4rem;
+    font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 28;
+}
+
+.header-page-emoji .app-icon {
+    font-size: 1.2rem;
+    font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 24;
+    color: var(--dash-text-primary, var(--text-color));
+}
+
+.page-content--dashboard-modern .header-notifications .header-btn .app-icon {
+    font-size: 1.2rem;
+    font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 24;
+}
+
+.dashboard-pending-title .app-icon {
+    margin-right: 0.35rem;
+    color: var(--primary-color);
+    font-size: 1.15rem;
+    vertical-align: -0.15em;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-section-title .app-icon {
+    flex-shrink: 0;
+    color: var(--dash-text-primary);
+    font-size: 1.15rem;
+    line-height: 1;
+    font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 24;
+}
+
+.cash-heatmap-calendar__month-badge .app-icon {
+    margin-right: 0.3rem;
+    font-size: 1rem;
+    vertical-align: -0.12em;
+    opacity: 0.95;
+}
+
+.cash-heatmap-day-panel__empty .app-icon {
+    display: block;
+    margin: 0 auto 0.65rem;
+    font-size: 1.75rem;
+    opacity: 0.65;
+    font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 32;
+    color: var(--text-light);
+}
+
+.cash-heatmap-day-item__icon .app-icon {
+    font-size: 1rem;
+    font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 22;
+    line-height: 1;
+}
+
+.page-toolbar__icon .app-icon {
+    font-size: 1.1rem;
+    font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 22;
+}
+
+.filter-drawer__close .app-icon {
+    font-size: 1.3rem;
+}
+
+.flux-chart-canvas .chart-type-btn .app-icon {
+    font-size: 1.05rem;
+    font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 22;
+}

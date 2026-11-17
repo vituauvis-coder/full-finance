@@ -1,0 +1,45 @@
+/* Conteúdo das rotas React (entradas, saídas, carteira, …) */
+.page-content--dashboard-modern > section.page.active {
+    color: var(--dash-text-primary);
+}
+
+/* —— Stack vertical único (só gap; sem margin-bottom duplicado) —— */
+#dashboard-page.dashboard-page--modern,
+#gains-page.movements-page--modern,
+#expenses-page.movements-page--modern {
+    display: flex;
+    flex-direction: column;
+    gap: var(--dash-stack-gap);
+}
+
+#dashboard-page.dashboard-page--modern > *,
+#gains-page.movements-page--modern > *,
+#expenses-page.movements-page--modern > * {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+/* Header → primeira seção da página */
+.page-content > .app-header + #dashboard-page > .civil-period-timeline--dashboard:first-child,
+.page-content > .app-header + #gains-page > .movements-toolbar:first-child,
+.page-content > .app-header + #expenses-page > .movements-toolbar:first-child {
+    margin-top: 0;
+}
+
+/* KPIs — gutter do grid (não confundir com stack) */
+#dashboard-page.dashboard-page--modern > .summary-cards.movements-summary,
+#gains-page.movements-page--modern > .summary-cards.movements-summary,
+#expenses-page.movements-page--modern > .summary-cards.movements-summary {
+    gap: var(--dash-stack-gap-tight);
+}
+
+/* Timeline civil — mesmo passo entre ano e meses */
+.page-content--dashboard-modern .civil-period-timeline {
+    margin: 0;
+    gap: 0.5rem;
+}
+
+.page-content--dashboard-modern .civil-period-timeline__chips {
+    gap: 0.5rem;
+    row-gap: 0.5rem;
+}

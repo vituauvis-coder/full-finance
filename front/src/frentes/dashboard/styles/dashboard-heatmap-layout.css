@@ -1,0 +1,84 @@
+/* Heatmap — altura estável (lista com scroll; calendário com 6 semanas) */
+
+#dashboard-page.dashboard-page--modern .dashboard-cash-heatmap {
+    --heatmap-day-visible-rows: 8;
+    --heatmap-day-row-height: 2.95rem;
+    --heatmap-day-row-gap: 0.35rem;
+    --heatmap-day-list-height: calc(
+        var(--heatmap-day-row-height) * var(--heatmap-day-visible-rows) +
+            var(--heatmap-day-row-gap) * (var(--heatmap-day-visible-rows) - 1)
+    );
+}
+
+@media (min-width: 1024px) {
+    #dashboard-page.dashboard-page--modern .dashboard-cash-heatmap__layout {
+        align-items: stretch;
+    }
+
+    #dashboard-page.dashboard-page--modern .cash-heatmap-calendar,
+    #dashboard-page.dashboard-page--modern .cash-heatmap-day-panel {
+        align-self: stretch;
+    }
+
+    #dashboard-page.dashboard-page--modern .cash-heatmap-day-panel {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+}
+
+#dashboard-page.dashboard-page--modern .cash-heatmap-calendar__grid {
+    grid-template-rows: repeat(6, minmax(4rem, auto));
+}
+
+#dashboard-page.dashboard-page--modern .cash-heatmap-day-panel__list-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    margin-top: 1rem;
+}
+
+#dashboard-page.dashboard-page--modern .cash-heatmap-day-panel__list-wrap--scroll-capped {
+    overflow: hidden;
+    height: var(--heatmap-day-list-height);
+    max-height: var(--heatmap-day-list-height);
+    min-height: var(--heatmap-day-list-height);
+}
+
+#dashboard-page.dashboard-page--modern .cash-heatmap-day-panel__list-wrap--scroll-capped .cash-heatmap-day-panel__list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+#dashboard-page.dashboard-page--modern .cash-heatmap-day-panel__empty {
+    flex: 1;
+    min-height: var(--heatmap-day-list-height);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+}
+
+#dashboard-page.dashboard-page--modern .cash-heatmap-day-panel__list::after {
+    background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        color-mix(in srgb, var(--dash-layer-raised) 45%, transparent) 55%,
+        var(--dash-layer-raised) 100%
+    );
+}
+
+@media (max-width: 1023px) {
+    #dashboard-page.dashboard-page--modern .cash-heatmap-day-panel__list-wrap--scroll-capped {
+        height: var(--heatmap-day-list-height);
+        max-height: min(var(--heatmap-day-list-height), 42vh);
+        min-height: min(var(--heatmap-day-list-height), 42vh);
+    }
+
+    #dashboard-page.dashboard-page--modern .cash-heatmap-day-panel__empty {
+        min-height: min(var(--heatmap-day-list-height), 42vh);
+    }
+}

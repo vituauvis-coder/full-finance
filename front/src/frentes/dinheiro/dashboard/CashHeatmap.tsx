@@ -1,0 +1,1 @@
+export { CashHeatmap } from '../../dashboard/components/CashHeatmap';

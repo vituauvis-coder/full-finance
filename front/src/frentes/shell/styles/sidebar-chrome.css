@@ -1,0 +1,343 @@
+/* Menu lateral — hierarquia clara; neutraliza gradientes do legado */
+
+.sidebar.sidebar--modern {
+    background: var(--shell-canvas);
+    border-right: 1px solid var(--shell-border);
+    padding: 1rem 0.75rem 0.85rem;
+}
+
+/* Perfil */
+.sidebar.sidebar--modern .sidebar-profile-row {
+    margin: 0 0 0.85rem;
+    padding: 0 0 0.85rem;
+    border-bottom: 1px solid var(--shell-border);
+    background: none !important;
+    box-shadow: none !important;
+}
+
+.sidebar.sidebar--modern .app-sidebar__profile-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    border-radius: 12px;
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sidebar.sidebar--modern .app-sidebar__profile-link:hover .app-sidebar__profile-card,
+.sidebar.sidebar--modern .app-sidebar__profile-link:focus-visible .app-sidebar__profile-card {
+    background: color-mix(in srgb, var(--shell-control) 70%, transparent);
+    border-color: var(--shell-border-strong);
+}
+
+.sidebar.sidebar--modern .app-sidebar__profile-link.sidebar-user-on-profile .app-sidebar__profile-card {
+    background: var(--shell-control);
+    border-color: var(--shell-border-strong);
+}
+
+.sidebar.sidebar--modern .app-sidebar__profile-card {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    min-width: 0;
+    padding: 0.55rem 0.6rem;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--shell-control) 55%, transparent);
+    border: 1px solid var(--shell-border);
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.sidebar.sidebar--modern .app-sidebar__profile-chevron {
+    margin-left: auto;
+    flex-shrink: 0;
+    display: flex;
+    color: var(--shell-text-tertiary);
+    opacity: 0.7;
+}
+
+.sidebar.sidebar--modern .app-sidebar__profile-link:hover .app-sidebar__profile-chevron {
+    color: var(--shell-text-secondary);
+    opacity: 1;
+}
+
+.main-content.sidebar-collapsed .sidebar.sidebar--modern .app-sidebar__profile-chevron {
+    display: none;
+}
+
+.sidebar.sidebar--modern .app-sidebar__avatar {
+    position: relative;
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--shell-text-primary) 8%, var(--shell-inset));
+    border: 1px solid color-mix(in srgb, var(--shell-border) 80%, transparent);
+    color: var(--shell-text-secondary);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    overflow: hidden;
+}
+
+.sidebar.sidebar--modern .app-sidebar__avatar-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+}
+
+.sidebar.sidebar--modern .app-sidebar__avatar:has(.app-sidebar__avatar-img[src]:not([src=''])) .app-sidebar__avatar-fallback {
+    display: none;
+}
+
+.sidebar.sidebar--modern .app-sidebar__avatar:has(.app-sidebar__avatar-img[src]:not([src=''])) .app-sidebar__avatar-img {
+    opacity: 1;
+}
+
+.sidebar.sidebar--modern .sidebar-user-card {
+    all: unset;
+}
+
+.sidebar.sidebar--modern .app-sidebar__profile-text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.1rem;
+    min-width: 0;
+    flex: 1;
+}
+
+.sidebar.sidebar--modern .app-sidebar__profile-title,
+.sidebar.sidebar--modern .sidebar-user-name {
+    display: block;
+    width: 100%;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.25;
+    color: var(--shell-text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sidebar.sidebar--modern .app-sidebar__profile-subtitle {
+    display: block;
+    width: 100%;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    line-height: 1.35;
+    color: var(--shell-text-tertiary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sidebar.sidebar--modern .sidebar-user-label {
+    display: none;
+}
+
+/* Navegação */
+.sidebar.sidebar--modern .app-sidebar__menu {
+    gap: 0.12rem;
+    padding: 0;
+}
+
+.sidebar.sidebar--modern .sidebar-menu li a,
+.sidebar.sidebar--modern .sidebar-group__trigger {
+    position: relative;
+    min-height: 40px;
+    padding: 0.45rem 0.6rem;
+    border-radius: 8px;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: var(--shell-text-secondary);
+    font-weight: 500;
+    font-size: 0.875rem;
+    gap: 0.65rem;
+}
+
+.sidebar.sidebar--modern .sidebar-group__trigger {
+    color: var(--shell-text-primary);
+    font-weight: 600;
+}
+
+.sidebar.sidebar--modern .sidebar-menu li a:hover,
+.sidebar.sidebar--modern .sidebar-group__trigger:hover {
+    background: var(--shell-nav-hover) !important;
+    color: var(--shell-text-primary);
+    transform: none !important;
+}
+
+.sidebar.sidebar--modern .sidebar-menu li a.active {
+    background: var(--shell-nav-active-bg) !important;
+    color: var(--shell-text-primary);
+    font-weight: 600;
+}
+
+.sidebar.sidebar--modern .sidebar-menu li a.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 55%;
+    border-radius: 0 3px 3px 0;
+    background: var(--shell-nav-indicator);
+}
+
+.sidebar.sidebar--modern .sidebar-menu li a i {
+    display: none;
+}
+
+.sidebar.sidebar--modern .sidebar-nav-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    color: var(--shell-nav-icon);
+}
+
+.sidebar.sidebar--modern .sidebar-menu li a.active .sidebar-nav-icon {
+    color: var(--shell-nav-icon-active);
+}
+
+.sidebar.sidebar--modern .sidebar-group__chev {
+    margin-left: auto;
+    opacity: 0.45;
+    color: var(--shell-text-tertiary);
+}
+
+.sidebar.sidebar--modern .sidebar-group.is-open .sidebar-group__chev {
+    transform: rotate(180deg);
+}
+
+.sidebar.sidebar--modern .sidebar-submenu {
+    margin: 0.15rem 0 0.35rem 0.35rem;
+    padding: 0.2rem 0 0.2rem 0.5rem;
+    border-left: none;
+    gap: 0.05rem;
+}
+
+.sidebar.sidebar--modern .nav-link--sub {
+    min-height: 36px;
+    padding: 0.38rem 0.55rem 0.38rem 0.75rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--shell-nav-sub) !important;
+}
+
+.sidebar.sidebar--modern .nav-link--sub:hover {
+    color: var(--shell-text-primary) !important;
+}
+
+.sidebar.sidebar--modern .nav-link--sub.active {
+    color: var(--shell-text-primary) !important;
+    font-weight: 600;
+}
+
+.sidebar.sidebar--modern .nav-link--sub.active::before {
+    height: 45%;
+}
+
+/* Rodapé discreto */
+.sidebar.sidebar--modern .app-sidebar__footer {
+    margin-top: auto;
+    padding-top: 0.65rem;
+    border-top: 1px solid var(--shell-border);
+    gap: 0.15rem;
+}
+
+.sidebar.sidebar--modern .app-sidebar__footer-btn,
+.sidebar.sidebar--modern #logout-btn {
+    min-height: 36px;
+    padding: 0.4rem 0.55rem;
+    border: none !important;
+    border-radius: 8px;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: var(--shell-text-tertiary) !important;
+    font-weight: 500;
+    font-size: 0.8125rem;
+}
+
+.sidebar.sidebar--modern .app-sidebar__footer-btn:hover,
+.sidebar.sidebar--modern #logout-btn:hover {
+    background: var(--shell-nav-hover) !important;
+    color: var(--shell-text-secondary) !important;
+}
+
+.sidebar.sidebar--modern #sidebar-theme-toggle[aria-pressed='true'] {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: var(--shell-text-tertiary) !important;
+}
+
+.sidebar.sidebar--modern .app-sidebar__footer-btn i {
+    display: none;
+}
+
+.sidebar.sidebar--modern .app-sidebar__footer-btn--logout:hover {
+    color: #ff6961 !important;
+}
+
+.sidebar-overlay:not(.hidden) {
+    backdrop-filter: blur(4px);
+}
+
+/* Neutraliza theme-dark + profile.css no menu moderno */
+[data-theme='dark'] .sidebar.sidebar--modern .sidebar-user-card,
+[data-theme='dark'] .sidebar.sidebar--modern button#user-info .sidebar-user-card {
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+[data-theme='dark'] .sidebar.sidebar--modern .user-photo--sidebar,
+[data-theme='dark'] .sidebar.sidebar--modern .app-sidebar__avatar {
+    box-shadow: none;
+}
+
+[data-theme='dark'] .sidebar.sidebar--modern .sidebar-menu li a {
+    color: var(--shell-text-secondary);
+}
+
+[data-theme='dark'] .sidebar.sidebar--modern .sidebar-menu li a.active {
+    color: var(--shell-text-primary);
+    background: var(--shell-nav-active-bg) !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+[data-theme='dark'] .sidebar.sidebar--modern .sidebar-menu li a:hover:not(.active) {
+    background: var(--shell-nav-hover) !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+[data-theme='dark'] .sidebar.sidebar--modern #sidebar-theme-toggle,
+[data-theme='dark'] .sidebar.sidebar--modern #sidebar-theme-toggle[aria-pressed='true'],
+[data-theme='dark'] .sidebar.sidebar--modern #sidebar-theme-toggle:hover {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: var(--shell-text-tertiary) !important;
+}
+
+[data-theme='dark'] .sidebar.sidebar--modern #logout-btn {
+    background: transparent !important;
+    border: none !important;
+}
+
+.main-content.sidebar-collapsed .sidebar.sidebar--modern .app-sidebar__profile-text {
+    display: none;
+}
+
+.main-content.sidebar-collapsed .sidebar.sidebar--modern .app-sidebar__profile-card {
+    justify-content: center;
+    padding: 0.45rem;
+}
