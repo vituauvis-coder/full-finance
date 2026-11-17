@@ -24,7 +24,8 @@ Documentação: `platform/docs/STACK.md`
 npm install
 npm run dev          # API + legado (Vite)
 npm run dev:front    # React (5174)
-npm run build:front  # produção (React → front/dist)
+npm run build        # produção (React → front/dist; usado no Railway)
+npm run build:legacy # legado (legacy-web)
 npm start            # API + front em produção
 npm test
 ```
