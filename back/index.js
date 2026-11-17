@@ -4156,11 +4156,16 @@ function mountProductionFrontend() {
     }
 
     if (fs.existsSync(distPath)) {
+        console.log(`[front] Servindo ${servingReact ? 'React' : 'legado'} em ${distPath}`);
         app.use(express.static(distPath));
         app.get(/.*/, (req, res, next) => {
             if (req.path.startsWith('/api') || req.path.startsWith('/admin')) return next();
             res.sendFile(path.join(distPath, 'index.html'), (err) => (err ? next(err) : undefined));
         });
+    } else {
+        console.warn(
+            `[front] Sem dist (${reactDist} / ${legacyDist}); GET / retorna 404. Rode npm run build:front no deploy.`
+        );
     }
 }
 

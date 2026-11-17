@@ -1,3 +1,9 @@
-# Cliente PostgreSQL para pg_dump (backup admin em /api/admin/backup/database)
+# Railway/Nixpacks: instala deps, gera front/dist, pg_dump no admin
 [phases.setup]
 nixPkgs = ["postgresql"]
+
+[phases.build]
+cmds = ["NODE_OPTIONS=--max-old-space-size=4096 npm run build:front"]
+
+[start]
+cmd = "npm start"
