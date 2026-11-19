@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createContext, useContext, useMemo, useRef, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useOpenNewTrip } from '../hooks/useOpenNewTrip';
 
@@ -13,24 +13,24 @@ type Ctx = {
 
 const ViagensHeaderSlotContext = createContext<Ctx | null>(null);
 
+function isViagensAtlasPath(pathname: string): boolean {
+    return pathname === '/viagens' || pathname === '/viagens/';
+}
+
 export function ViagensHeaderSlotProvider({ children }: { children: ReactNode }) {
     const { pathname } = useLocation();
-    const onViagens = pathname.startsWith('/viagens');
-    const [slot, setSlot] = useState<ViagensHeaderSlot | null>(null);
-    const openNewTrip = useOpenNewTrip();
+    const onAtlas = isViagensAtlasPath(pathname);
+    const { openNewTrip, busy } = useOpenNewTrip();
     const openNewTripRef = useRef(openNewTrip);
     openNewTripRef.current = openNewTrip;
 
-    useEffect(() => {
-        if (!onViagens) {
-            setSlot(null);
-            return;
-        }
-        setSlot({
-            busy: false,
-            onNew: () => openNewTripRef.current()
-        });
-    }, [onViagens]);
+    const slot = useMemo<ViagensHeaderSlot | null>(() => {
+        if (!onAtlas) return null;
+        return {
+            busy,
+            onNew: () => void openNewTripRef.current()
+        };
+    }, [onAtlas, busy]);
 
     const value = useMemo<Ctx>(() => ({ slot }), [slot]);
 

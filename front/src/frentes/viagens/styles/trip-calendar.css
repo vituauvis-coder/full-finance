@@ -1,0 +1,303 @@
+/* Calendário inteligente da ficha — preenche o card sem inflar os dias */
+
+#viagens-page .viagens-cal--smart.viagens-panel--cal {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.85rem 0.9rem 0.75rem;
+    min-height: 26.5rem;
+    height: 100%;
+}
+
+#viagens-page .viagens-cal--smart .viagens-cal__dates {
+    display: none;
+}
+
+#viagens-page .viagens-cal__nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.35rem;
+    margin: 0;
+    flex-shrink: 0;
+}
+
+#viagens-page .viagens-cal__nav-title {
+    margin: 0;
+    flex: 1 1 auto;
+    text-align: center;
+    font-size: 0.875rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text-color);
+}
+
+#viagens-page .viagens-cal__nav-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.85rem;
+    height: 1.85rem;
+    padding: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    background: var(--bg-color);
+    color: var(--text-light);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition:
+        color 0.15s ease,
+        border-color 0.15s ease,
+        background 0.15s ease;
+}
+
+#viagens-page .viagens-cal__nav-btn:hover {
+    color: var(--text-color);
+    border-color: color-mix(in srgb, var(--viagens-accent) 40%, var(--border-color));
+    background: color-mix(in srgb, var(--viagens-accent) 8%, var(--bg-color));
+}
+
+#viagens-page .viagens-cal__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    flex-shrink: 0;
+}
+
+#viagens-page .viagens-cal__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.22rem 0.5rem;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--viagens-accent) 35%, var(--border-color));
+    background: color-mix(in srgb, var(--viagens-accent) 10%, var(--bg-color));
+    color: var(--viagens-accent-strong);
+    font-size: 0.625rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease;
+}
+
+#viagens-page .viagens-cal__chip:hover {
+    background: color-mix(in srgb, var(--viagens-accent) 18%, var(--bg-color));
+    border-color: var(--viagens-accent);
+}
+
+#viagens-page .viagens-cal__chip .material-symbols-outlined,
+#viagens-page .viagens-cal__chip .app-icon {
+    font-size: 0.85rem;
+    line-height: 1;
+}
+
+#viagens-page .viagens-cal--smart .viagens-cal__week {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    margin: 0.1rem 0 0;
+    gap: 0.12rem;
+    font-size: 0.5625rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--text-light);
+    opacity: 0.85;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+#viagens-page .viagens-cal--smart .viagens-cal__grid {
+    flex: 1 1 auto;
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-rows: repeat(6, minmax(0, 1fr));
+    gap: 0.12rem;
+    min-height: 11.5rem;
+}
+
+#viagens-page .viagens-cal__day-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    justify-self: center;
+    align-self: center;
+    width: min(100%, 2.2rem);
+    height: min(100%, 2.2rem);
+    padding: 0;
+    margin: 0;
+    border: 1.5px solid transparent;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-light);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition:
+        color 0.12s ease,
+        background 0.12s ease,
+        border-color 0.12s ease,
+        box-shadow 0.12s ease;
+}
+
+#viagens-page .viagens-cal__day-btn:hover:not(:disabled) {
+    color: var(--text-color);
+    background: color-mix(in srgb, var(--viagens-accent) 12%, transparent);
+}
+
+#viagens-page .viagens-cal__day-btn--empty {
+    visibility: hidden;
+    pointer-events: none;
+}
+
+#viagens-page .viagens-cal__day-btn--in-range {
+    background: color-mix(in srgb, var(--viagens-accent) 88%, #0a1628);
+    color: #fff;
+    font-weight: 600;
+}
+
+#viagens-page .viagens-cal__day-btn--start {
+    background: color-mix(in srgb, var(--viagens-accent) 88%, #0a1628);
+    color: #fff;
+    font-weight: 700;
+    box-shadow: 0 0 0 2px var(--bg-light), 0 0 0 3.5px color-mix(in srgb, #fff 85%, var(--viagens-accent));
+}
+
+#viagens-page .viagens-cal__day-btn--end {
+    background: color-mix(in srgb, var(--viagens-accent) 88%, #0a1628);
+    color: #fff;
+    font-weight: 700;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--destructive-color, #e85d4c) 65%, transparent);
+}
+
+#viagens-page .viagens-cal__day-btn--start.viagens-cal__day-btn--end {
+    box-shadow:
+        0 0 0 2px var(--bg-light),
+        0 0 0 3.5px color-mix(in srgb, #fff 85%, var(--viagens-accent)),
+        0 0 0 5px color-mix(in srgb, var(--destructive-color, #e85d4c) 45%, transparent);
+}
+
+#viagens-page .viagens-cal__footer {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    align-items: stretch;
+    gap: 0.4rem;
+    margin-top: auto;
+    padding-top: 0.55rem;
+    border-top: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+
+#viagens-page .viagens-cal__bound {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.12rem;
+    padding: 0.4rem 0.5rem;
+    border-radius: 0.5rem;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    min-width: 0;
+}
+
+#viagens-page .viagens-cal__bound span {
+    font-size: 0.5625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-light);
+}
+
+#viagens-page .viagens-cal__bound strong {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--text-color);
+}
+
+#viagens-page .viagens-cal__bound--start {
+    border-left: 3px solid var(--viagens-accent);
+}
+
+#viagens-page .viagens-cal__bound--start strong {
+    color: var(--viagens-accent-strong);
+}
+
+#viagens-page .viagens-cal__bound--end {
+    border-left: 3px solid color-mix(in srgb, var(--destructive-color, #e85d4c) 75%, #c45a4a);
+    background: color-mix(in srgb, var(--destructive-color, #e85d4c) 8%, var(--bg-color));
+}
+
+#viagens-page .viagens-cal__bound--end strong {
+    color: color-mix(in srgb, var(--destructive-color, #e85d4c) 85%, var(--text-color));
+}
+
+#viagens-page .viagens-cal__clear {
+    align-self: center;
+    padding: 0.35rem 0.45rem;
+    border: none;
+    background: transparent;
+    color: color-mix(in srgb, var(--destructive-color, #e85d4c) 90%, #fff);
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    border-radius: 0.35rem;
+}
+
+#viagens-page .viagens-cal__clear:hover {
+    background: color-mix(in srgb, var(--destructive-color, #e85d4c) 12%, transparent);
+}
+
+#viagens-page .viagens-cal__sim {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    width: 100%;
+    margin-top: 0.15rem;
+    padding: 0.55rem 0.75rem;
+    border: none;
+    border-radius: 0.65rem;
+    background: var(--v-coral, #ff5a36);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    flex-shrink: 0;
+    box-shadow: 0 1px 8px rgba(255, 90, 54, 0.28);
+    transition:
+        filter 0.15s ease,
+        transform 0.1s ease;
+}
+
+#viagens-page .viagens-cal__sim:hover {
+    filter: brightness(1.05);
+}
+
+#viagens-page .viagens-cal__sim:active {
+    transform: scale(0.98);
+}
+
+#viagens-page .viagens-cal__sim .app-icon {
+    font-size: 1.05rem;
+}
+
+#viagens-page .viagens-cal__sim .viagens-badge {
+    min-width: 1.15rem;
+    padding: 0.08rem 0.35rem;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.22);
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 800;
+}
+
+@media (max-width: 1024px) {
+    #viagens-page .viagens-ficha-top > .viagens-panel,
+    #viagens-page .viagens-cal--smart.viagens-panel--cal {
+        min-height: 24.5rem;
+    }
+}

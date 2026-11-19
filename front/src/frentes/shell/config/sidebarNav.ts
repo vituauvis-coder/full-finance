@@ -6,7 +6,7 @@ export type SidebarLeaf = {
 };
 
 export type SidebarGroupConfig = {
-    id: 'dinheiro' | 'viagens';
+    id: 'dinheiro';
     label: string;
     icon: string;
     items: readonly SidebarLeaf[];
@@ -17,6 +17,13 @@ export const SIDEBAR_DASHBOARD: SidebarLeaf = {
     page: 'dashboard',
     icon: 'dashboard',
     label: 'Dashboard'
+};
+
+export const SIDEBAR_VIAGENS: SidebarLeaf = {
+    to: '/viagens',
+    page: 'viagens',
+    icon: 'flight',
+    label: 'Viagens'
 };
 
 export const SIDEBAR_FERRAMENTAS: SidebarLeaf = {
@@ -39,12 +46,6 @@ export const SIDEBAR_GROUPS: readonly SidebarGroupConfig[] = [
             { to: '/dinheiro/cofrinhos', page: 'cofrinhos', icon: 'savings', label: 'Cofrinhos' },
             { to: '/dinheiro/dividas', page: 'debts', icon: 'warning', label: 'Dívidas' }
         ]
-    },
-    {
-        id: 'viagens',
-        label: 'Viagens',
-        icon: 'flight',
-        items: [{ to: '/viagens', page: 'viagens', icon: 'map', label: 'Atlas' }]
     }
 ] as const;
 

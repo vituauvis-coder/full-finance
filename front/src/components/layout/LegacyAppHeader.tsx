@@ -10,6 +10,7 @@ export function LegacyAppHeader() {
     const { pathname } = useLocation();
     const pageId = legacyPageIdFromPath(pathname) ?? 'dashboard';
     const meta = LEGACY_PAGE_HEADERS[pageId];
+    const viagensAtlas = pathname === '/viagens' || pathname === '/viagens/';
 
     return (
         <>
@@ -49,7 +50,7 @@ export function LegacyAppHeader() {
                         unpaidLabel="Pendente"
                         tone="expenses"
                     />
-                    <ViagensHeaderActions hidden={pageId !== 'viagens'} />
+                    <ViagensHeaderActions hidden={pageId !== 'viagens' || !viagensAtlas} />
                     <HeaderNotifications />
                 </div>
             </header>

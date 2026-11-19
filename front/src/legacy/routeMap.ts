@@ -35,7 +35,7 @@ export const LEGACY_PAGE_HEADERS: Record<
     wallet: { icon: 'fa-wallet', title: 'Carteira', headerClass: 'app-header--wallet' },
     cofrinhos: { icon: 'fa-piggy-bank', title: 'Cofrinhos', headerClass: 'app-header--cofrinhos' },
     debts: { icon: 'fa-triangle-exclamation', title: 'Dívidas', headerClass: 'app-header--debts' },
-    viagens: { icon: 'fa-map', title: 'Atlas', headerClass: 'app-header--viagens' },
+    viagens: { icon: 'fa-map', materialIcon: 'flight', title: 'Viagens', headerClass: 'app-header--viagens' },
     tools: { icon: 'fa-tools', title: 'Ferramentas' },
     profile: { icon: 'fa-user', materialIcon: 'person', title: 'Meu Perfil' }
 };

@@ -5,8 +5,22 @@ export type ManualCashOutPrefs = {
     monthlyFixed: boolean;
 };
 
+export type MilesProgramPayload = {
+    id: string;
+    brand: string;
+    name: string;
+    balance: number;
+    milheiroBrl: number;
+    updatedAt?: string | null;
+};
+
+export type ViagensMilesPayload = {
+    programs: MilesProgramPayload[];
+};
+
 export type FinancePreferencesPayload = {
     manualCashOut: ManualCashOutPrefs;
+    viagensMiles?: ViagensMilesPayload;
 };
 
 export type ProfileUser = {

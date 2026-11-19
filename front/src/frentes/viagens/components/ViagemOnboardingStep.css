@@ -140,7 +140,7 @@
     width: 100%;
     text-align: left;
     border: none;
-    background: var(--bg-color, #141820);
+    background: var(--v-janela, #161618);
     color: var(--text-color, #eef2f8);
     font: inherit;
     font-size: 0.84rem;
@@ -149,7 +149,7 @@
 }
 
 .viagens-onboarding__hits button:hover {
-    background: color-mix(in srgb, var(--viagens-accent, #2ec4b6) 12%, var(--bg-color, #141820));
+    background: color-mix(in srgb, var(--v-turquesa, #2ec4b6) 12%, var(--v-janela, #161618));
 }
 
 .viagens-onboarding__hint {

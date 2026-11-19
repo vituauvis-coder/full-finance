@@ -16,6 +16,24 @@ type Props = {
     trip: Trip;
 };
 
+function CapBar({ fraction }: { fraction: number }) {
+    const over = fraction > 1;
+    const pct = Math.min(100, fraction * 100);
+    return (
+        <div
+            className="viagens-cap-bar trip-ticket__cap"
+            role="progressbar"
+            aria-valuenow={Math.round(pct)}
+            aria-label="Uso do orçamento por categoria"
+        >
+            <div
+                className={`viagens-cap-bar__fill${over ? ' viagens-cap-bar__fill--over' : ''}`}
+                style={{ width: `${pct}%` }}
+            />
+        </div>
+    );
+}
+
 /** Bilhete de embarque — link para a ficha da viagem. */
 export function TripTicketCard({ trip }: Props) {
     const navigate = useNavigate();
@@ -77,6 +95,7 @@ export function TripTicketCard({ trip }: Props) {
                         </div>
                     ) : null}
                 </dl>
+                <CapBar fraction={trip.capUsedFraction ?? 0} />
             </div>
             <div className="trip-ticket__stub" aria-hidden>
                 <span className="trip-ticket__stub-label">REF</span>

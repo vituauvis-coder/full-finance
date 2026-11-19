@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { useSidebarProfileLabel } from '../hooks/useSidebarProfileLabel';
 import { MaterialIcon } from '../../../components/icons/MaterialIcon';
+import { collapseSidebarOnModuleNav } from '../sidebarCollapse';
 
 type Props = {
     email: string;
@@ -21,6 +22,7 @@ export function SidebarProfile({ email }: Props) {
                         .join(' ')
                 }
                 aria-label="Abrir meu perfil"
+                onClick={() => collapseSidebarOnModuleNav()}
             >
                 <div className="app-sidebar__profile-card">
                     <div className="app-sidebar__avatar" aria-hidden="true">

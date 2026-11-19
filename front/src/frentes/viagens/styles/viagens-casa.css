@@ -1,0 +1,43 @@
+/* Home Viagens (atlas) — complementa viagens-malote.css */
+
+#viagens-page .viagens-trail-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 0.75rem;
+}
+
+#viagens-page .viagens-trail-header h2 {
+    margin: 0;
+    flex: 1 1 auto;
+}
+
+#viagens-page .viagens-trail-scroll {
+    scrollbar-gutter: stable;
+}
+
+#viagens-page .viagens-trail-item {
+    margin: 0;
+    animation: viagens-card-in 0.45s ease backwards;
+}
+
+#viagens-page .viagens-trail-scroll .trip-ticket {
+    width: 100%;
+    /* Bilhete sempre “papel” — não herda fundo escuro do portal */
+    color-scheme: light;
+}
+
+#viagens-page .viagens-root > .screen-loader--page {
+    flex: 1 1 auto;
+    min-height: 12rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@media (max-width: 900px) {
+    #viagens-page .viagens-page-lead {
+        padding: 0 0.15rem;
+    }
+}

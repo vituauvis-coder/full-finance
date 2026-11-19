@@ -12,7 +12,10 @@ export async function apiFetch(path: string, init?: RequestInit) {
     });
     if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || res.statusText);
+        throw new Error(
+            (typeof body.error === 'string' && body.error) ||
+                (res.status === 404 ? 'Não encontrado' : res.statusText)
+        );
     }
     return res.json();
 }

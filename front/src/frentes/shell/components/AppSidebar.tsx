@@ -6,7 +6,8 @@ import { legacyPageIdFromPath } from '../../../legacy/routeMap';
 import {
     SIDEBAR_DASHBOARD,
     SIDEBAR_FERRAMENTAS,
-    SIDEBAR_GROUPS
+    SIDEBAR_GROUPS,
+    SIDEBAR_VIAGENS
 } from '../config/sidebarNav';
 import { useSidebarNavState } from '../hooks/useSidebarNavState';
 import { SidebarCollapseToggle } from './SidebarCollapseToggle';
@@ -44,6 +45,14 @@ export function AppSidebar() {
                                 onToggle={() => toggle(group.id)}
                             />
                         ))}
+                        <li className="sidebar-root-item">
+                            <SidebarNavLink
+                                to={SIDEBAR_VIAGENS.to}
+                                icon={SIDEBAR_VIAGENS.icon}
+                                label={SIDEBAR_VIAGENS.label}
+                                end
+                            />
+                        </li>
                         <li className="sidebar-root-item">
                             <SidebarNavLink
                                 to={SIDEBAR_FERRAMENTAS.to}

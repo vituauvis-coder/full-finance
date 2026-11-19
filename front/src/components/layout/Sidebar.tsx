@@ -27,12 +27,9 @@ export function Sidebar() {
                     ))}
                 </nav>
             </details>
-            <details className="sidebar__group">
-                <summary>Viagens</summary>
-                <nav>
-                    <NavLink to="/viagens">Atlas</NavLink>
-                </nav>
-            </details>
+            <NavLink to="/viagens" end>
+                Viagens
+            </NavLink>
             <NavLink to="/ferramentas">Ferramentas</NavLink>
             <Button onClick={() => void logout()}>Sair</Button>
         </aside>

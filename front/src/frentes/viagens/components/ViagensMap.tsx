@@ -217,6 +217,7 @@ export function ViagensMap({ trips, visits, onOpenTrip }: Props) {
             aria-label="Mapa de viagens"
         >
             {mapView === 'globe' ? <div className="viagens-map-frame__space" aria-hidden /> : null}
+            <div className="viagens-map-frame__wash" aria-hidden="true" />
             <p className="viagens-map-sun-legend" aria-live="polite">
                 Satélite Esri · sombra solar ao vivo (1 min)
             </p>

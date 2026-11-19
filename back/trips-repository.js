@@ -39,7 +39,7 @@ export async function updateTrip(userId, tripId, patch) {
          SET title = COALESCE($3, title),
              starts_on = COALESCE($4, starts_on),
              ends_on = COALESCE($5, ends_on),
-             status_override = COALESCE($6, status_override),
+             status_override = $6,
              budget_caps = COALESCE($7::jsonb, budget_caps),
              payload = COALESCE($8::jsonb, payload),
              updated_at = NOW()

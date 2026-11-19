@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchTrip, saveTrip } from '../api/trips';
 import type { Trip } from '../types';
-import type { TripDraft } from '../components/ViagemFicha';
+import { tripToDraft, type TripDraft } from '../components/ViagemFicha';
 
 function mergePayload(server: Trip['payload'], draft: Trip['payload']): Trip['payload'] {
     return { ...server, ...draft };
@@ -9,6 +9,7 @@ function mergePayload(server: Trip['payload'], draft: Trip['payload']): Trip['pa
 
 export function useTripAutosave(tripId: string | undefined) {
     const [trip, setTrip] = useState<Trip | null>(null);
+    const [draft, setDraft] = useState<TripDraft | null>(null);
     const [scenarioWinnerId, setScenarioWinnerId] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [saveError, setSaveError] = useState<string | null>(null);
@@ -23,7 +24,10 @@ export function useTripAutosave(tripId: string | undefined) {
         try {
             setError(null);
             const data = await fetchTrip(tripId);
+            const loaded = tripToDraft(data.trip);
             setTrip(data.trip);
+            setDraft(loaded);
+            latestDraft.current = loaded;
             serverPayload.current = data.trip.payload ?? {};
             setScenarioWinnerId(data.scenarioWinnerId ?? null);
             setDirty(false);
@@ -52,6 +56,21 @@ export function useTripAutosave(tripId: string | undefined) {
                     payload
                 });
                 serverPayload.current = saved.payload ?? payload;
+                const savedDraft = tripToDraft(saved);
+                setDraft((prev) => {
+                    const base = prev ?? savedDraft;
+                    const next: TripDraft = {
+                        ...base,
+                        title: saved.title ?? base.title,
+                        startsOn: saved.startsOn ?? base.startsOn ?? '',
+                        endsOn: saved.endsOn ?? base.endsOn ?? '',
+                        statusOverride: saved.statusOverride ?? base.statusOverride ?? '',
+                        budgetCaps: { ...(saved.budgetCaps ?? {}), ...(base.budgetCaps ?? {}) },
+                        payload: { ...savedDraft.payload, ...base.payload }
+                    };
+                    latestDraft.current = next;
+                    return next;
+                });
                 setTrip(saved);
                 setDirty(false);
             } catch (e) {
@@ -71,18 +90,19 @@ export function useTripAutosave(tripId: string | undefined) {
         return () => clearTimeout(t);
     }, [dirty, saveTick, persist]);
 
-    const onDraftChange = useCallback((draft: TripDraft) => {
-        latestDraft.current = draft;
+    const onDraftChange = useCallback((next: TripDraft) => {
+        latestDraft.current = next;
+        setDraft(next);
         setTrip((t) =>
             t
                 ? {
                       ...t,
-                      title: draft.title,
-                      startsOn: draft.startsOn || null,
-                      endsOn: draft.endsOn || null,
-                      statusOverride: draft.statusOverride || null,
-                      budgetCaps: draft.budgetCaps,
-                      payload: draft.payload
+                      title: next.title,
+                      startsOn: next.startsOn || null,
+                      endsOn: next.endsOn || null,
+                      statusOverride: next.statusOverride || null,
+                      budgetCaps: { ...next.budgetCaps },
+                      payload: next.payload
                   }
                 : t
         );
@@ -105,6 +125,7 @@ export function useTripAutosave(tripId: string | undefined) {
 
     return {
         trip,
+        draft,
         scenarioWinnerId,
         error,
         saveError,

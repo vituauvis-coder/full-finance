@@ -15,18 +15,18 @@
 }
 
 .viagens-root {
-    --v-noite: #0b1f33;
+    --v-noite: #121214;
     --v-coral: #ff5a36;
     --v-turquesa: #2ec4b6;
     --v-areia: #f6e6c8;
     --v-ouro: #f2c94c;
-    --v-tinta: #1a1a2e;
-    --v-oceano: #0e7c7b;
-    --v-janela: #f5f5f7;
-    --v-painel: #ebebed;
-    --v-campo: rgba(120, 120, 128, 0.12);
-    --v-borda: rgba(60, 60, 67, 0.18);
-    --v-legenda: rgba(60, 60, 67, 0.65);
+    --v-tinta: #f4f4f6;
+    --v-oceano: #2aa8a0;
+    --v-janela: #161618;
+    --v-painel: #1c1c20;
+    --v-campo: rgba(255, 255, 255, 0.06);
+    --v-borda: rgba(255, 255, 255, 0.1);
+    --v-legenda: rgba(244, 244, 246, 0.58);
     min-height: 100vh;
     background: var(--v-janela);
     color: var(--v-tinta);
@@ -526,7 +526,7 @@
     border-radius: 50%;
     border: none;
     background: var(--v-campo);
-    color: rgba(26, 26, 46, 0.45);
+    color: var(--v-legenda);
     cursor: pointer;
     font-size: 11px;
 }
@@ -611,14 +611,14 @@
     color: inherit;
     padding: 1.25rem 1.5rem;
     border-radius: 16px;
-    background: linear-gradient(135deg, #0b1f33, #0e7c7b);
-    border: 2px solid #2ec4b6;
+    background: var(--v-painel);
+    border: 1px solid color-mix(in srgb, var(--v-turquesa) 45%, var(--v-borda));
     margin-top: 1rem;
 }
 
 .viagens-hub-link h3 {
     margin: 0 0 0.35rem;
-    color: #f6e6c8;
+    color: var(--v-tinta);
 }
 
 @media (max-width: 900px) {

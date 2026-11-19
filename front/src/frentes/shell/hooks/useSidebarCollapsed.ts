@@ -1,26 +1,33 @@
 import { useCallback, useEffect, useState } from 'react';
-import { AppBrandKey, readBrandStorage, writeBrandStorage } from '../../../app/appBrand';
-
-function mainEl() {
-    return document.getElementById('main-content');
-}
+import { AppBrandKey, readBrandStorage } from '../../../app/appBrand';
+import { applySidebarCollapsed, sidebarCollapseSyncEvent } from '../sidebarCollapse';
 
 export function useSidebarCollapsed() {
     const [collapsed, setCollapsed] = useState(false);
 
     useEffect(() => {
         const stored = readBrandStorage(AppBrandKey.sidebarCollapsed) === '1';
-        const main = mainEl();
-        main?.classList.toggle('sidebar-collapsed', stored);
+        applySidebarCollapsed(stored);
         setCollapsed(stored);
+
+        const onSync = (e: Event) => {
+            const detail = (e as CustomEvent<{ collapsed?: boolean }>).detail;
+            if (typeof detail?.collapsed === 'boolean') {
+                setCollapsed(detail.collapsed);
+                return;
+            }
+            const main = document.getElementById('main-content');
+            setCollapsed(main?.classList.contains('sidebar-collapsed') ?? false);
+        };
+        window.addEventListener(sidebarCollapseSyncEvent, onSync);
+        return () => window.removeEventListener(sidebarCollapseSyncEvent, onSync);
     }, []);
 
     const toggle = useCallback(() => {
-        const main = mainEl();
+        const main = document.getElementById('main-content');
         if (!main) return;
         const next = !main.classList.contains('sidebar-collapsed');
-        main.classList.toggle('sidebar-collapsed', next);
-        writeBrandStorage(AppBrandKey.sidebarCollapsed, next ? '1' : '0');
+        applySidebarCollapsed(next);
         setCollapsed(next);
     }, []);
 

@@ -18,7 +18,8 @@
     "build:front": "NODE_OPTIONS=--max-old-space-size=4096 vite build --config front/vite.config.ts",
     "build:prod": "npm run build:front",
     "preview": "vite preview",
-    "test": "node --test platform/tests/wallet-plastic.test.js platform/tests/motor/viagens/trips-engine.test.js platform/tests/motor/viagens/solar.test.js platform/tests/motor/dinheiro/split-net.test.js platform/tests/motor/dinheiro/dashboard-facets.test.js platform/tests/motor/dinheiro/cash-heatmap.test.js platform/tests/motor/dinheiro/calendar-month.test.js platform/tests/motor/dinheiro/chart-month-balance.test.js platform/tests/motor/dinheiro/expected-split-gain-rows.test.js platform/tests/motor/conta/profile-rules.test.js",
+    "test": "node --test platform/tests/wallet-plastic.test.js platform/tests/motor/viagens/trips-engine.test.js platform/tests/motor/viagens/miles-wallet.test.js platform/tests/motor/viagens/flight-ledger.test.js platform/tests/motor/milhas/convert.test.js platform/tests/motor/milhas/catalog.test.js platform/tests/motor/milhas/purchase.test.js platform/tests/motor/milhas/ledger.test.js platform/tests/motor/milhas/emission.test.js platform/tests/motor/milhas/club.test.js platform/tests/motor/viagens/solar.test.js platform/tests/motor/dinheiro/split-net.test.js platform/tests/motor/dinheiro/dashboard-facets.test.js platform/tests/motor/dinheiro/cash-heatmap.test.js platform/tests/motor/dinheiro/calendar-month.test.js platform/tests/motor/dinheiro/chart-month-balance.test.js platform/tests/motor/dinheiro/expected-split-gain-rows.test.js platform/tests/motor/conta/profile-rules.test.js",
+    "db:miles": "node -e \"import('fs').then(fs=>import('pg').then(({default:pg})=>{const c=new pg.Client({connectionString:process.env.DATABASE_URL});c.connect().then(()=>c.query(fs.readFileSync('platform/prisma/migrations/20261117010000_miles/migration_pg.sql','utf8'))).then(()=>{console.log('miles migration ok');return c.end()}).catch(e=>{console.error(e);process.exit(1)});}))\"",
     "db:trips": "node -e \"import('fs').then(fs=>import('pg').then(({default:pg})=>{const c=new pg.Client({connectionString:process.env.DATABASE_URL});c.connect().then(()=>c.query(fs.readFileSync('platform/prisma/migrations/20261116140000_trips/migration_pg.sql','utf8'))).then(()=>{console.log('trips migration ok');return c.end()}).catch(e=>{console.error(e);process.exit(1)});}))\"",
     "restore:account": "node platform/scripts/restore-account-sqlserver-to-supabase.mjs",
     "restore:account:sqlcmd": "node platform/scripts/sqlcmd-upsert-account.mjs",
@@ -37,10 +38,12 @@
   "author": "Victor Alves",
   "license": "ISC",
   "dependencies": {
+    "@vitejs/plugin-react": "^5.0.4",
     "bcryptjs": "^2.4.3",
     "chart.js": "^4.4.4",
     "chartjs-chart-treemap": "^3.1.0",
     "cors": "^2.8.5",
+    "decimal.js": "^10.6.0",
     "dotenv": "^17.4.0",
     "express": "^4.21.2",
     "express-session": "^1.18.1",
@@ -53,8 +56,7 @@
     "react-map-gl": "^8.1.3",
     "react-router-dom": "^7.18.5",
     "recharts": "^3.10.1",
-    "vite": "^7.1.6",
-    "@vitejs/plugin-react": "^5.0.4"
+    "vite": "^7.1.6"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",

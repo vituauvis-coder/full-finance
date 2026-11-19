@@ -22,6 +22,31 @@ function deepMergeManual(base, patch) {
     return out;
 }
 
+function coercePrefsObject(value) {
+    let raw = value;
+    if (raw == null || raw === '') return {};
+    if (typeof raw === 'string') {
+        try {
+            raw = JSON.parse(raw);
+        } catch {
+            return {};
+        }
+    }
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return {};
+    return { ...raw };
+}
+
+/** Junta PATCH de preferências sem apagar milhas, chips ou caixa. */
+export function mergeFinancePreferences(existing, patch) {
+    const a = coercePrefsObject(existing);
+    const b = coercePrefsObject(patch);
+    const out = { ...a, ...b };
+    if (b.manualCashOut && typeof b.manualCashOut === 'object') {
+        out.manualCashOut = { ...(a.manualCashOut && typeof a.manualCashOut === 'object' ? a.manualCashOut : {}), ...b.manualCashOut };
+    }
+    return out;
+}
+
 export function getFinancePreferences(userProfile) {
     let raw = userProfile?.financePreferences;
     if (raw == null || raw === '') {

@@ -100,5 +100,6 @@ export function gainSummaryMomStates(
 }
 
 export function gainSummaryMomWhenHint(): GainSummaryMom {
+    const hidden = { kind: 'hidden' as const };
     return { received: hidden, pending: hidden, topCategory: hidden };
 }

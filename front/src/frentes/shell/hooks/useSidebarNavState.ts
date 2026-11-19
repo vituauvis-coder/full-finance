@@ -5,8 +5,7 @@ export type SidebarGroupId = (typeof SIDEBAR_GROUPS)[number]['id'];
 
 export function useSidebarNavState(pageId: string | undefined) {
     const [open, setOpen] = useState<Record<SidebarGroupId, boolean>>({
-        dinheiro: true,
-        viagens: false
+        dinheiro: true
     });
 
     useEffect(() => {

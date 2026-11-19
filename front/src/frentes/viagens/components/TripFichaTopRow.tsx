@@ -1,0 +1,47 @@
+import { useMemo } from 'react';
+import type { Trip } from '../types';
+import type { TripDraft } from './ViagemFicha';
+import { TripCalendarCard } from './TripCalendarCard';
+import { TripChecklistPanel } from './TripChecklistPanel';
+import { TripResumoPanel } from './TripResumoPanel';
+import '../styles/trip-ficha-top.css';
+
+type Props = {
+    trip: Trip;
+    draft: TripDraft;
+    onPatch: (fn: (d: TripDraft) => TripDraft) => void;
+    scenarioCount?: number;
+    onOpenSimulador?: () => void;
+};
+
+export function TripFichaTopRow({ trip, draft, onPatch, scenarioCount = 0, onOpenSimulador }: Props) {
+    const checks = draft.payload.checks ?? [];
+    const documents = draft.payload.documents ?? [];
+    const destinations = draft.payload.destinations ?? [];
+
+    const nextTaskDayKey = useMemo(() => {
+        for (const c of checks) {
+            if (c.done) continue;
+            const raw = c.dueOn ?? c.due_on;
+            const key = raw?.trim().slice(0, 10);
+            if (key && /^\d{4}-\d{2}-\d{2}$/.test(key)) return key;
+        }
+        return null;
+    }, [checks]);
+
+    return (
+        <div className="viagens-ficha-top">
+            <TripCalendarCard
+                startsOn={draft.startsOn}
+                endsOn={draft.endsOn}
+                nextTaskDayKey={nextTaskDayKey}
+                scenarioCount={scenarioCount}
+                onOpenSimulador={onOpenSimulador}
+                onStartsChange={(value) => onPatch((d) => ({ ...d, startsOn: value }))}
+                onEndsChange={(value) => onPatch((d) => ({ ...d, endsOn: value }))}
+            />
+            <TripResumoPanel trip={trip} draft={draft} destinations={destinations} />
+            <TripChecklistPanel checks={checks} documents={documents} onPatch={onPatch} />
+        </div>
+    );
+}

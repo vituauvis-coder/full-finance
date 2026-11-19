@@ -1,0 +1,238 @@
+/* Ficha da viagem: sem faixa «Viagens» do portal; toolbar própria */
+
+.page-content.page-content--dashboard-modern:has(#viagens-page) {
+    background: #161618;
+    color: #f4f4f6;
+}
+
+.page-content.page-content--dashboard-modern:has(#viagens-page) > .app-ambient-bg {
+    display: none;
+}
+
+.page-content.page-content--dashboard-modern:has(#viagens-page.viagens-page--ficha) > .app-header {
+    display: none;
+}
+
+.page-content.page-content--dashboard-modern:has(#viagens-page.viagens-page--ficha) .screen-swap {
+    margin-top: 0;
+}
+
+#viagens-page.viagens-page--ficha {
+    padding-top: 0.25rem;
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100dvh - 3.5rem);
+}
+
+#viagens-page.viagens-page--ficha .viagens-ficha__header {
+    display: block;
+    margin: 0;
+    padding: 0 0 0.65rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+#viagens-page .viagens-ficha__chrome {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1rem;
+}
+
+#viagens-page .viagens-ficha__chrome-left {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+#viagens-page .viagens-ficha__identity {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.3rem;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+#viagens-page .viagens-ficha__chrome-right {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.45rem;
+    flex-shrink: 0;
+}
+
+#viagens-page .viagens-back--icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.1rem;
+    height: 2.1rem;
+    padding: 0;
+    border-radius: 0.55rem;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--text-color);
+    cursor: pointer;
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease;
+    flex-shrink: 0;
+}
+
+#viagens-page .viagens-back--icon:hover {
+    border-color: color-mix(in srgb, var(--viagens-accent) 45%, var(--border-color));
+    background: color-mix(in srgb, var(--viagens-accent) 10%, var(--bg-color));
+}
+
+#viagens-page .viagens-back--icon .app-icon {
+    font-size: 1.15rem;
+}
+
+/* theme .viagens-ficha__title usa flex:1 e 2rem+ — neutraliza na ficha */
+#viagens-page.viagens-page--ficha .viagens-ficha__title {
+    flex: 0 0 auto;
+    flex-grow: 0;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    font-size: 1.125rem;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+#viagens-page .viagens-trip-status {
+    --trip-status: var(--v-ouro, #f2c94c);
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 2.35rem;
+    padding: 0.28rem 0.7rem 0.28rem 0.38rem;
+    border-radius: 0.75rem;
+    border: 1px solid color-mix(in srgb, var(--trip-status) 48%, var(--border-color));
+    background:
+        linear-gradient(135deg, color-mix(in srgb, var(--trip-status) 22%, transparent), transparent 62%),
+        color-mix(in srgb, var(--trip-status) 10%, var(--bg-color));
+    color: var(--trip-status);
+    min-width: 10.5rem;
+    box-shadow: 0 1px 10px color-mix(in srgb, var(--trip-status) 18%, transparent);
+}
+
+#viagens-page .viagens-trip-status:focus-within {
+    box-shadow:
+        0 0 0 2px color-mix(in srgb, var(--trip-status) 40%, transparent),
+        0 1px 10px color-mix(in srgb, var(--trip-status) 18%, transparent);
+}
+
+#viagens-page .viagens-trip-status--em_curso {
+    --trip-status: var(--v-turquesa, #2ec4b6);
+}
+
+#viagens-page .viagens-trip-status--realizada {
+    --trip-status: var(--v-coral, #ff5a36);
+}
+
+#viagens-page .viagens-trip-status__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.7rem;
+    height: 1.7rem;
+    border-radius: 0.5rem;
+    background: color-mix(in srgb, var(--trip-status) 18%, var(--bg-color));
+    color: var(--trip-status);
+    flex-shrink: 0;
+}
+
+#viagens-page .viagens-trip-status__icon .app-icon {
+    font-size: 1.05rem;
+}
+
+#viagens-page .viagens-trip-status__copy {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.02rem;
+    min-width: 0;
+    line-height: 1.15;
+}
+
+#viagens-page .viagens-trip-status__kicker {
+    font-size: 0.5625rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--text-color) 52%, var(--trip-status));
+}
+
+#viagens-page .viagens-trip-status__name {
+    font-size: 0.8125rem;
+    font-weight: 800;
+    color: var(--text-color);
+    white-space: nowrap;
+}
+
+#viagens-page .viagens-trip-status__chev {
+    display: inline-flex;
+    margin-left: auto;
+    color: color-mix(in srgb, var(--text-color) 55%, var(--trip-status));
+}
+
+#viagens-page .viagens-trip-status__chev .app-icon {
+    font-size: 1.05rem;
+}
+
+#viagens-page .viagens-trip-status__select {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    margin: 0;
+    border: 0;
+    font-size: 1rem;
+}
+
+#viagens-page .viagens-ficha__delete {
+    width: 2.1rem;
+    height: 2.1rem;
+    padding: 0;
+    border-color: color-mix(in srgb, var(--destructive-color, #e85d4c) 35%, var(--border-color));
+    color: color-mix(in srgb, var(--destructive-color, #e85d4c) 90%, var(--text-color));
+}
+
+#viagens-page .viagens-ficha__save-hint {
+    font-size: 0.6875rem;
+    color: var(--text-light);
+    white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+    #viagens-page.viagens-page--ficha .viagens-ficha__header {
+        padding-left: 3.35rem;
+    }
+}
+
+@media (max-width: 720px) {
+    #viagens-page .viagens-ficha__chrome {
+        flex-wrap: wrap;
+    }
+
+    #viagens-page .viagens-ficha__chrome-right {
+        width: 100%;
+        margin-top: 0;
+        justify-content: flex-end;
+    }
+
+    #viagens-page .viagens-ficha__save-hint {
+        display: none;
+    }
+
+    #viagens-page.viagens-page--ficha .viagens-ficha__title {
+        font-size: 1rem;
+    }
+}

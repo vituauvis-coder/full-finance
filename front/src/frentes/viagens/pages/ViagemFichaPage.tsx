@@ -1,16 +1,32 @@
+import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { deleteTrip } from '../api/trips';
 import { ViagensBackControl } from '../components/ViagensBackControl';
 import { ViagensPortalSection } from '../components/ViagensPortalSection';
-import { ViagemFicha, tripToDraft, type TripDraft } from '../components/ViagemFicha';
+import { ViagemFicha, type TripDraft } from '../components/ViagemFicha';
+import type { FichaModuloId } from '../components/ViagemModulos';
+import { TripSimuladorOverlay } from '../components/TripSimuladorOverlay';
+import { TripStatusControl } from '../components/TripStatusControl';
 import { useTripAutosave } from '../hooks/useTripAutosave';
 import { ScreenLoader } from '../../../components/ui/ScreenLoader';
+import { MaterialIcon } from '../../../components/icons/MaterialIcon';
+import '../styles/viagens-ficha-toolbar.css';
 import '../theme/viagens-theme.css';
 
 export function ViagemFichaPage() {
     const { tripId } = useParams<{ tripId: string }>();
     const navigate = useNavigate();
-    const { trip, scenarioWinnerId, error, saveError, saving, onDraftChange } = useTripAutosave(tripId);
+    const { trip, draft, scenarioWinnerId, error, saveError, saving, onDraftChange } = useTripAutosave(tripId);
+    const [simOpen, setSimOpen] = useState(false);
+    const [fichaModulo, setFichaModulo] = useState<FichaModuloId | null>(null);
+
+    const scenarioCount = useMemo(() => {
+        if (!trip) return 0;
+        const list = trip.payload.time_scenarios ?? trip.payload.timeScenarios ?? [];
+        return list.length;
+    }, [trip]);
+
+    const simDraft = draft;
 
     async function handleDelete() {
         if (!tripId || !window.confirm('Apagar esta viagem?')) return;
@@ -18,33 +34,25 @@ export function ViagemFichaPage() {
         navigate('/viagens');
     }
 
-    function patchTitle(title: string) {
-        if (!trip) return;
-        const base: TripDraft = {
-            title,
-            startsOn: trip.startsOn ?? '',
-            endsOn: trip.endsOn ?? '',
-            statusOverride: trip.statusOverride ?? '',
-            budgetCaps: trip.budgetCaps,
-            payload: trip.payload
-        };
-        onDraftChange(base);
+    function patchDraft(patch: Partial<TripDraft>) {
+        if (!draft) return;
+        onDraftChange({ ...draft, ...patch });
     }
 
     if (error && !trip) {
         return (
-            <ViagensPortalSection>
+            <ViagensPortalSection ficha>
                 <div className="viagens-root viagens-ficha">
                     <p role="alert">{error}</p>
-                    <ViagensBackControl label="Atlas" onClick={() => navigate('/viagens')} />
+                    <ViagensBackControl label="Voltar às viagens" iconOnly onClick={() => navigate('/viagens')} />
                 </div>
             </ViagensPortalSection>
         );
     }
 
-    if (!trip) {
+    if (!trip || !draft) {
         return (
-            <ViagensPortalSection>
+            <ViagensPortalSection ficha>
                 <div className="viagens-root viagens-ficha">
                     <ScreenLoader label="Carregando ficha" />
                 </div>
@@ -52,34 +60,78 @@ export function ViagemFichaPage() {
         );
     }
 
+    const statusOverride = draft.statusOverride ?? '';
+
     return (
-        <ViagensPortalSection>
+        <ViagensPortalSection ficha>
             <div className="viagens-root">
                 <div className="viagens-ficha">
                     <header className="viagens-ficha__header">
-                        <ViagensBackControl label="Atlas" onClick={() => navigate('/viagens')} />
-                        <input
-                            className="viagens-ficha__title"
-                            value={trip.title}
-                            onChange={(e) => patchTitle(e.target.value)}
-                            aria-label="Título da viagem"
-                        />
-                        <span className={`viagens-status-pill viagens-status-pill--${trip.effectiveStatus ?? 'planejada'}`}>
-                            {trip.effectiveStatus ?? 'planejada'}
-                        </span>
-                        {saving ? <span className="viagens-muted">Salvando…</span> : null}
+                        <div className="viagens-ficha__chrome">
+                            <div className="viagens-ficha__chrome-left">
+                                <ViagensBackControl
+                                    label={fichaModulo ? 'Voltar' : 'Voltar às viagens'}
+                                    iconOnly
+                                    onClick={() => {
+                                        if (fichaModulo) setFichaModulo(null);
+                                        else navigate('/viagens');
+                                    }}
+                                />
+                                <div className="viagens-ficha__identity">
+                                    <input
+                                        className="viagens-ficha__title"
+                                        value={draft.title}
+                                        onChange={(e) => patchDraft({ title: e.target.value })}
+                                        aria-label="Título da viagem"
+                                    />
+                                </div>
+                            </div>
+                            <div className="viagens-ficha__chrome-right" aria-label="Ações da viagem">
+                                {saving ? (
+                                    <span className="viagens-ficha__save-hint" aria-live="polite">
+                                        Salvando…
+                                    </span>
+                                ) : null}
+                                <TripStatusControl
+                                    trip={trip}
+                                    statusOverride={statusOverride}
+                                    onChange={(value) => patchDraft({ statusOverride: value })}
+                                />
+                                <button
+                                    type="button"
+                                    className="viagens-btn viagens-btn--ghost viagens-btn--icon viagens-ficha__delete"
+                                    title="Apagar viagem"
+                                    aria-label="Apagar viagem"
+                                    onClick={() => void handleDelete()}
+                                >
+                                    <MaterialIcon name="delete" variant="app" opticalSize={20} />
+                                </button>
+                            </div>
+                        </div>
                     </header>
                     {saveError ? (
                         <p role="alert" className="viagens-toast viagens-toast--error">
                             {saveError}
                         </p>
                     ) : null}
-                    <ViagemFicha trip={trip} onChange={onDraftChange} scenarioWinnerId={scenarioWinnerId} />
-                    <div className="viagens-ficha__footer-actions">
-                        <button type="button" className="viagens-btn viagens-btn--ghost" onClick={() => void handleDelete()}>
-                            Apagar viagem
-                        </button>
-                    </div>
+                    <ViagemFicha
+                        trip={trip}
+                        draft={draft}
+                        onChange={onDraftChange}
+                        scenarioWinnerId={scenarioWinnerId}
+                        modulo={fichaModulo}
+                        onModuloChange={setFichaModulo}
+                        scenarioCount={scenarioCount}
+                        onOpenSimulador={() => setSimOpen(true)}
+                    />
+                    {simOpen && simDraft ? (
+                        <TripSimuladorOverlay
+                            draft={simDraft}
+                            scenarioWinnerId={scenarioWinnerId}
+                            onClose={() => setSimOpen(false)}
+                            onDraftChange={onDraftChange}
+                        />
+                    ) : null}
                 </div>
             </div>
         </ViagensPortalSection>

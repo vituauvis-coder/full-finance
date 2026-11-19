@@ -1,0 +1,22 @@
+---
+description: Proibir deploy e publicação em produção sem autorização explícita do usuário
+alwaysApply: true
+---
+
+# Sem deploy sem permissão
+
+**Em hipótese alguma** executar deploy, publicar alterações em produção ou ações equivalentes **sem permissão explícita** do usuário na conversa.
+
+Inclui, entre outras:
+
+- Deploy em produção (Vercel, Netlify, Railway, Fly.io, AWS, GCP, etc.)
+- `vercel deploy --prod`, `firebase deploy`, `npx clasp deploy`, `gh workflow run` de release
+- Publicar web app, subir para lojas (App Store, Play Store)
+- `git push` ou merge que o usuário não pediu, quando o objetivo for publicar
+- Rodar pipelines ou scripts cujo efeito principal seja colocar código no ar
+
+**Permitido sem pedir autorização de deploy:** desenvolver localmente, testar, lint, build local, commits e PRs quando o usuário pedir explicitamente.
+
+Antes de qualquer passo de publicação, **parar e pedir confirmação clara**.
+
+Esta regra prevalece sobre regras de projeto que peçam “deploy direto” ou publicação automática.

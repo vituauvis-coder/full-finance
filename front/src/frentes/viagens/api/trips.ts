@@ -37,8 +37,32 @@ export function deleteTrip(id: string): Promise<{ ok: boolean }> {
     return apiFetch(`/api/trips/${id}`, { method: 'DELETE' });
 }
 
+export type TaxFxQuotes = {
+    rates: Record<string, number>;
+    asOf: string | null;
+    source: string;
+    stale?: boolean;
+};
+
+export function fetchTaxFxQuotes(): Promise<TaxFxQuotes> {
+    return apiFetch('/api/trips/fx-quotes');
+}
+
 export function geocodeSearch(q: string): Promise<{ hits: GeocodeHit[] }> {
     return apiFetch(`/api/trips/geocode/search?q=${encodeURIComponent(q)}`);
+}
+
+export type AirportHit = {
+    iata?: string;
+    name: string;
+    city: string;
+    country?: string;
+    label: string;
+    kind?: string;
+};
+
+export function searchAirports(q: string): Promise<{ hits: AirportHit[] }> {
+    return apiFetch(`/api/trips/airports/search?q=${encodeURIComponent(q)}`);
 }
 
 export function snapshotScenario(body: {

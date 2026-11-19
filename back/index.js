@@ -51,6 +51,7 @@ import {
 import { AppBrand, AppBrandKey } from '../legacy-web/js/core/app-brand.js';
 import { getInstallmentDueDates } from '../legacy-web/js/core/credit-installments.js';
 import { isLoanExpense } from '../motor/dinheiro/loan-expense.js';
+import { mergeFinancePreferences } from '../motor/dinheiro/finance-preferences.js';
 import { buildPendingCashOutItems } from '../legacy-web/js/features/finance/pending-cash-outs.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -2997,10 +2998,10 @@ app.patch('/api/profile', requireAuth, async (req, res) => {
     if (financePreferences !== undefined) {
         if (financePreferences === null || financePreferences === '') {
             data.financePreferences = null;
-        } else if (typeof financePreferences === 'string') {
-            data.financePreferences = financePreferences;
         } else {
-            data.financePreferences = JSON.stringify(financePreferences);
+            data.financePreferences = JSON.stringify(
+                mergeFinancePreferences(u.financePreferences, financePreferences)
+            );
         }
     }
     

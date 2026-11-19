@@ -6,6 +6,8 @@ import {
     visits
 } from '../../motor/viagens/trips-engine.js';
 import { snapshot, snapshots, winner } from '../../motor/viagens/trip-scenario-engine.js';
+import { airportLabel, searchAirportsCatalog } from '../../motor/viagens/airports-catalog.js';
+import { fetchTaxFxQuotes } from '../../motor/viagens/fx-quotes.js';
 
 function mergePayload(serverPayload, clientPayload) {
     if (!clientPayload || typeof clientPayload !== 'object') return serverPayload ?? {};
@@ -47,6 +49,56 @@ export function registerTripsRoutes(app, { requireAuth }) {
             return res.json({ snapshot: snapshot(scenario) });
         }
         return res.status(400).json({ error: 'scenario ou scenarios obrigatório' });
+    });
+
+    app.get('/api/trips/airports/search', requireAuth, async (req, res) => {
+        const q = String(req.query.q ?? '').trim();
+        if (q.length < 1) return res.json({ hits: [] });
+        const catalog = searchAirportsCatalog(q, 8).map((a) => ({
+            iata: a.iata,
+            name: a.name,
+            city: a.city,
+            country: a.country,
+            label: airportLabel(a),
+            kind: 'airport'
+        }));
+        if (catalog.length >= 4 || q.length < 2) {
+            return res.json({ hits: catalog });
+        }
+        try {
+            const url = new URL('https://nominatim.openstreetmap.org/search');
+            url.searchParams.set('q', /aeroporto|airport/i.test(q) ? q : `${q} airport`);
+            url.searchParams.set('format', 'json');
+            url.searchParams.set('limit', '6');
+            const response = await fetch(url, {
+                headers: { 'User-Agent': 'MeuMalote/1.0 (viagens)' }
+            });
+            const data = await response.json();
+            const extra = (data ?? []).map((item) => {
+                const city = item.display_name?.split(',')[0] ?? item.name ?? q;
+                return {
+                    iata: '',
+                    name: city,
+                    city,
+                    country: item.display_name?.split(',').at(-1)?.trim() ?? '',
+                    label: city,
+                    kind: 'place',
+                    latitude: Number(item.lat),
+                    longitude: Number(item.lon)
+                };
+            });
+            const seen = new Set(catalog.map((h) => h.label.toLowerCase()));
+            const merged = [...catalog];
+            for (const hit of extra) {
+                if (seen.has(hit.label.toLowerCase())) continue;
+                seen.add(hit.label.toLowerCase());
+                merged.push(hit);
+            }
+            res.json({ hits: merged.slice(0, 8) });
+        } catch (err) {
+            console.error('[airports]', err);
+            res.json({ hits: catalog });
+        }
     });
 
     app.get('/api/trips/geocode/search', requireAuth, async (req, res) => {
@@ -120,6 +172,16 @@ export function registerTripsRoutes(app, { requireAuth }) {
         } catch (e) {
             console.error('PUT /api/trips/:id', e);
             res.status(500).json({ error: 'Erro ao salvar viagem' });
+        }
+    });
+
+    app.get('/api/trips/fx-quotes', requireAuth, async (_req, res) => {
+        try {
+            const quotes = await fetchTaxFxQuotes(globalThis.fetch);
+            res.json(quotes);
+        } catch (e) {
+            console.error('GET /api/trips/fx-quotes', e);
+            res.status(502).json({ error: 'Cotações indisponíveis' });
         }
     });
 

@@ -25,7 +25,7 @@
     min-height: 100dvh;
     max-height: 100dvh;
     overflow: hidden;
-    background: #020610;
+    background: var(--v-noite, #121214);
 }
 
 #viagens-page .viagens-nova-screen__globe {
@@ -63,8 +63,8 @@
     padding: 0.45rem 0.85rem;
     font-size: 0.8125rem;
     font-weight: 600;
-    color: rgba(246, 230, 200, 0.94);
-    background: rgba(11, 31, 51, 0.78);
+    color: var(--v-tinta, #f4f4f6);
+    background: color-mix(in srgb, var(--v-painel, #1c1c20) 88%, transparent);
     border: 1px solid rgba(46, 196, 182, 0.35);
     border-radius: 999px;
     pointer-events: none;

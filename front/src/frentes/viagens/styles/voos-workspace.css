@@ -1,0 +1,3959 @@
+/* Tela Voos + Casa das milhas */
+
+.voos-page {
+    gap: 0.85rem;
+}
+
+.voos-page__title {
+    margin: 0;
+    font-size: 1.65rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--v-tinta);
+}
+
+.voos-page__trip {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--v-legenda);
+}
+
+.voos-home {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding-bottom: 2rem;
+}
+
+.voos-home__block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+}
+
+.voos-board {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.voos-board__head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.voos-board__head h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    letter-spacing: -0.03em;
+}
+
+.voos-empty--board {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+    padding: 1.25rem 1.15rem 1.35rem;
+}
+
+.voos-empty__icon {
+    display: inline-flex;
+    color: var(--v-turquesa);
+    margin-bottom: 0.35rem;
+}
+
+.voos-segment--solo {
+    background: color-mix(in srgb, var(--v-campo) 40%, var(--v-janela));
+}
+
+.voos-home__head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.voos-home__head h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    letter-spacing: -0.03em;
+}
+
+.voos-resumo {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(16.5rem, 0.78fr);
+    align-items: stretch;
+    gap: 0.65rem;
+}
+
+.voos-resumo__col {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: 0.8rem 0.85rem 0.85rem;
+    border-radius: 1.1rem;
+    border: 1px solid var(--v-borda);
+    background: var(--v-painel);
+    min-width: 0;
+}
+
+.voos-resumo__col--miles {
+    background: var(--v-painel);
+    border-color: color-mix(in srgb, var(--v-turquesa) 35%, var(--v-borda));
+    color: var(--v-tinta);
+}
+
+.voos-resumo__col h2 {
+    margin: 0 0 0.55rem;
+    font-size: 1.08rem;
+    letter-spacing: -0.03em;
+}
+
+.voos-resumo__col-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.55rem;
+    margin-bottom: 0.55rem;
+}
+
+.voos-resumo__col-head h2 {
+    margin: 0;
+}
+
+.voos-resumo__tools {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-shrink: 0;
+}
+
+.voos-resumo__tool {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.32rem;
+    height: 1.85rem;
+    padding: 0 0.75rem 0 0.5rem;
+    border: 0;
+    border-radius: 999px;
+    background: var(--v-turquesa);
+    color: #121214;
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.voos-resumo__tool:hover {
+    filter: brightness(1.07);
+}
+
+.voos-resumo__col--miles h2 {
+    color: var(--v-tinta);
+}
+
+.voos-resumo__col--miles .pontos-kicker {
+    color: var(--v-turquesa);
+}
+
+.voos-resumo__stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.55rem;
+    margin: 0;
+}
+
+.voos-resumo__stats div {
+    padding: 0.5rem 0.6rem;
+    border-radius: 0.75rem;
+    background: var(--v-campo);
+    border: 1px solid var(--v-borda);
+}
+
+.voos-resumo__stats dt {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--v-legenda);
+}
+
+.voos-resumo__stats dd {
+    margin: 0.15rem 0 0;
+    font-size: 1.05rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+.voos-resumo__hint {
+    margin: 0.7rem 0 0;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    color: var(--v-legenda);
+}
+
+.voos-scene {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    gap: 0.55rem;
+    min-height: 0;
+}
+
+.voos-scene__legs {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+    flex: 1 1 auto;
+    min-height: 0;
+    align-items: stretch;
+}
+
+.voos-scene__legs:has(.voos-scene__leg:nth-child(2)) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.voos-scene__leg {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 0.65rem;
+    min-width: 0;
+    height: 100%;
+    min-height: 7.4rem;
+    padding: 0.85rem 0.95rem 0.8rem;
+    border-radius: 0.95rem;
+    background: var(--v-janela);
+    border: 1px solid var(--v-borda);
+}
+
+.voos-scene__leg.is-picked {
+    border-color: color-mix(in srgb, var(--v-turquesa) 42%, var(--v-borda));
+    background: color-mix(in srgb, var(--v-turquesa) 8%, var(--v-janela));
+}
+
+.voos-scene__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.55rem;
+}
+
+.voos-scene__kicker {
+    margin: 0;
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--v-legenda);
+}
+
+.voos-scene__main {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.voos-scene__main strong {
+    min-width: 0;
+    font-size: 0.98rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.25;
+}
+
+.voos-scene__cost {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    text-align: right;
+    gap: 0.08rem;
+    flex: 0 0 auto;
+}
+
+.voos-scene__cost span {
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--v-legenda);
+}
+
+.voos-scene__cost b {
+    font-size: 1.22rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.045em;
+    line-height: 1.05;
+}
+
+.voos-scene__tag {
+    font-style: normal;
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 0.18rem 0.48rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--v-ouro) 16%, transparent);
+    color: var(--v-ouro);
+}
+
+.voos-scene__tag.is-on {
+    background: color-mix(in srgb, var(--v-turquesa) 18%, transparent);
+    color: var(--v-turquesa);
+}
+
+.voos-scene__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin: auto 0 0;
+    padding: 0.55rem 0 0;
+    list-style: none;
+    border-top: 1px solid color-mix(in srgb, var(--v-tinta) 8%, transparent);
+}
+
+.voos-scene__chips li {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.28rem 0.58rem;
+    border-radius: 999px;
+    background: var(--v-campo);
+    color: var(--v-tinta);
+}
+
+.voos-scene__total {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.4rem 0.75rem;
+    flex: 0 0 auto;
+    padding: 0.55rem 0.75rem;
+    border-radius: 0.85rem;
+    border: 1px solid color-mix(in srgb, var(--v-ouro) 32%, var(--v-borda));
+    background: color-mix(in srgb, var(--v-ouro) 8%, var(--v-janela));
+}
+
+.voos-scene__total > div {
+    display: flex;
+    align-items: baseline;
+    gap: 0.65rem;
+}
+
+.voos-scene__total span {
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--v-legenda);
+}
+
+.voos-scene__total strong {
+    font-size: 1.15rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.04em;
+    color: var(--v-ouro);
+}
+
+.voos-scene__total ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.voos-scene__total li {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    padding: 0.16rem 0.42rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--v-tinta) 8%, transparent);
+    color: var(--v-legenda);
+}
+
+.voos-resumo__col--miles .voos-resumo__hint {
+    color: var(--v-legenda);
+}
+
+.voos-tabs {
+    display: inline-flex;
+    gap: 0.25rem;
+    padding: 0.2rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--v-campo) 80%, transparent);
+    border: 1px solid var(--v-borda);
+    width: fit-content;
+}
+
+.voos-tabs button {
+    border: 0;
+    background: transparent;
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 700;
+    padding: 0.45rem 0.95rem;
+    border-radius: 999px;
+    color: var(--v-legenda);
+    cursor: pointer;
+}
+
+.voos-tabs button.is-on {
+    background: var(--v-turquesa);
+    color: #fff;
+}
+
+.voos-empty,
+.voos-segment,
+.voos-miles-card,
+.voos-compare,
+.voos-values {
+    background: var(--v-painel);
+    border: 1px solid var(--v-borda);
+    border-radius: 1rem;
+    padding: 0.9rem 1rem;
+}
+
+.voos-empty p,
+.voos-muted {
+    margin: 0;
+    color: var(--v-legenda);
+    font-size: 0.84rem;
+    line-height: 1.4;
+}
+
+.voos-empty p + p {
+    margin-top: 0.35rem;
+}
+
+.voos-empty .voos-add-segment {
+    margin-top: 0.85rem;
+}
+
+.voos-sims {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    padding-bottom: 2rem;
+}
+
+.voos-segment {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding: 0.75rem 0.85rem 0.85rem;
+}
+
+.voos-segment__head {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem 0.5rem;
+    min-height: 2.35rem;
+}
+
+.voos-segment__plane {
+    color: var(--v-turquesa);
+    display: inline-flex;
+    flex-shrink: 0;
+}
+
+.voos-segment__head .voos-segment__title {
+    box-sizing: border-box;
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 8rem;
+    max-width: none;
+    height: 2.25rem;
+    padding: 0.32rem 0.8rem;
+    font-size: 0.98rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    background: var(--v-campo);
+}
+
+.voos-segment__best {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem 0.55rem;
+    flex: 0 0 auto;
+    width: max-content;
+    max-width: min(100%, 22rem);
+    min-width: 0;
+    margin: 0 0 0 auto;
+    padding: 0.32rem 0.75rem;
+    border-radius: 0.75rem;
+    background: var(--v-janela);
+    border: 1px solid var(--v-borda);
+}
+
+.voos-segment__best span {
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--v-legenda);
+    white-space: nowrap;
+}
+
+.voos-segment__best b {
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--v-tinta);
+    white-space: nowrap;
+}
+
+.voos-segment__best strong {
+    font-size: 0.98rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.03em;
+    color: var(--v-turquesa);
+    white-space: nowrap;
+}
+
+.voos-segment__tools {
+    display: flex;
+    align-items: center;
+    gap: 0.28rem;
+    flex-shrink: 0;
+    margin-left: 0;
+}
+
+.voos-segment__tools .voos-icon-btn--oceano {
+    background: var(--v-turquesa);
+    color: #121214;
+}
+
+.voos-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.5rem;
+}
+
+.voos-kpis div {
+    padding: 0.55rem 0.7rem;
+    border-radius: 0.7rem;
+    background: var(--v-campo);
+    border: 1px solid var(--v-borda);
+    min-width: 0;
+}
+
+.voos-kpis span {
+    display: block;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--v-tinta) 42%, transparent);
+}
+
+.voos-kpis strong {
+    display: block;
+    margin-top: 0.15rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--v-tinta);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.voos-kpis div:first-child strong {
+    color: var(--v-turquesa);
+}
+
+.voos-sim-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(22.5rem, 100%), 1fr));
+    gap: 0.7rem;
+    padding: 0.15rem 0 0.35rem;
+}
+
+.voos-sim-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 0;
+    padding: 0.85rem 0.9rem 0.9rem;
+    border-radius: 0.9rem;
+    background: var(--v-painel);
+    border: 1px solid var(--v-borda);
+    transition: border-color 0.16s ease, transform 0.16s ease, background 0.16s ease;
+}
+
+.voos-sim-card:hover {
+    border-color: color-mix(in srgb, var(--v-turquesa) 38%, var(--v-borda));
+    transform: translateY(-1px);
+}
+
+.voos-sim-card--chosen {
+    background: color-mix(in srgb, var(--v-turquesa) 12%, var(--v-painel));
+    border-color: color-mix(in srgb, var(--v-turquesa) 50%, var(--v-borda));
+}
+
+.voos-sim-card--discarded {
+    opacity: 0.62;
+}
+
+.voos-sim-card--list {
+    width: 100%;
+}
+
+.voos-sim-card__head {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.voos-sim-card__code {
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.16rem 0.42rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--v-tinta) 8%, transparent);
+    color: var(--v-legenda);
+}
+
+.voos-sim-card__code.is-best {
+    background: color-mix(in srgb, var(--v-turquesa) 16%, transparent);
+    color: var(--v-turquesa);
+}
+
+.voos-sim-card__spacer {
+    flex: 1;
+}
+
+.voos-sim-card__body {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.45rem;
+    width: 100%;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+}
+
+.voos-sim-card__title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.voos-sim-card__chips,
+.voos-miles-add,
+.voos-compare__flights {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.voos-sim-card__when {
+    margin: 0;
+    font-size: 0.72rem;
+    color: var(--v-legenda);
+}
+
+.voos-when-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.22rem;
+    width: 100%;
+}
+
+.voos-when {
+    display: grid;
+    grid-template-columns: 2.1rem minmax(0, 1fr);
+    gap: 0.1rem 0.38rem;
+    align-items: center;
+    width: 100%;
+    padding: 0.22rem 0.42rem 0.24rem;
+    border-radius: 0.65rem;
+    background: var(--v-janela);
+    border: 1px solid var(--v-borda);
+}
+
+.voos-when--out {
+    border-color: color-mix(in srgb, var(--v-turquesa) 28%, var(--v-borda));
+}
+
+.voos-when--in {
+    border-color: color-mix(in srgb, var(--v-ouro) 28%, var(--v-borda));
+}
+
+.voos-when__kicker {
+    font-size: 0.52rem;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--v-legenda);
+}
+
+.voos-when--out .voos-when__kicker {
+    color: var(--v-turquesa);
+}
+
+.voos-when--in .voos-when__kicker {
+    color: var(--v-ouro);
+}
+
+.voos-when__times {
+    display: grid;
+    grid-template-columns: auto minmax(2.2rem, 1fr) auto;
+    align-items: center;
+    gap: 0.18rem 0.32rem;
+    min-width: 0;
+}
+
+.voos-when__end {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    min-width: 0;
+}
+
+.voos-when__end.is-arr {
+    align-items: flex-end;
+    text-align: right;
+}
+
+.voos-when__end strong {
+    font-size: 0.74rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+}
+
+.voos-when__end span {
+    font-size: 0.54rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--v-legenda);
+}
+
+.voos-when__path {
+    display: flex;
+    align-items: center;
+    gap: 0.18rem;
+    min-width: 0;
+}
+
+.voos-when__path i {
+    flex: 1 1 auto;
+    min-width: 0.3rem;
+    height: 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--v-tinta) 16%, transparent);
+}
+
+.voos-when__path em {
+    flex: 0 0 auto;
+    margin: 0;
+    font-style: normal;
+    font-size: 0.5rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--v-legenda);
+    padding: 0.06rem 0.28rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--v-tinta) 7%, transparent);
+}
+
+.voos-sim-card__cost {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+.voos-sim-card--chosen .voos-sim-card__cost {
+    color: var(--v-turquesa);
+}
+
+.voos-sim-card__cheap {
+    margin-left: 0.3rem;
+    color: var(--v-turquesa);
+    font-size: 0.8rem;
+    font-style: normal;
+}
+
+.voos-sim-ledger {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.4rem;
+    width: 100%;
+}
+
+.voos-sim-path {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+    padding: 0.5rem 0.55rem 0.55rem;
+    border-radius: 0.75rem;
+    background: var(--v-campo);
+    border: 1px solid var(--v-borda);
+    text-align: left;
+}
+
+.voos-sim-path--solo {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.12rem 0.7rem;
+    align-items: start;
+    width: 100%;
+    padding: 0.58rem 0.68rem 0.6rem;
+}
+
+.voos-sim-path--solo .voos-sim-path__brl {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
+    font-size: 1.42rem;
+}
+
+.voos-sim-path--solo .voos-sim-path__qty {
+    grid-column: 1;
+}
+
+.voos-sim-path--solo .voos-sim-meter,
+.voos-sim-path--solo .voos-sim-stats,
+.voos-sim-path--solo .voos-sim-path__perks {
+    grid-column: 1 / -1;
+}
+
+.voos-sim-path.is-win {
+    border-color: color-mix(in srgb, var(--v-turquesa) 48%, var(--v-borda));
+    background: color-mix(in srgb, var(--v-turquesa) 10%, var(--v-campo));
+}
+
+.voos-sim-path__kicker {
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--v-legenda);
+}
+
+.voos-sim-path__brl {
+    font-size: 1.35rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.04em;
+    line-height: 1.1;
+    color: var(--v-ouro);
+}
+
+.voos-sim-path__qty {
+    margin-top: 0.05rem;
+    font-size: 0.72rem;
+    font-style: normal;
+    font-weight: 700;
+    color: var(--v-legenda);
+}
+
+.voos-sim-meter {
+    display: block;
+    width: 100%;
+    height: 0.28rem;
+    margin: 0.2rem 0 0.15rem;
+    border-radius: 99px;
+    background: color-mix(in srgb, var(--v-tinta) 10%, transparent);
+    overflow: hidden;
+}
+
+.voos-sim-meter > span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--v-turquesa);
+}
+
+.voos-sim-meter.is-short {
+    background: color-mix(in srgb, var(--v-coral) 22%, transparent);
+}
+
+.voos-sim-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.28rem 0.4rem;
+    width: 100%;
+    margin: 0.2rem 0 0;
+}
+
+.voos-sim-stats div {
+    min-width: 0;
+}
+
+.voos-sim-stats dt {
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--v-legenda);
+}
+
+.voos-sim-stats dd {
+    margin: 0.08rem 0 0;
+    font-size: 0.78rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--v-tinta);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.voos-sim-stats .is-out dd {
+    color: var(--v-coral);
+}
+
+.voos-sim-stats .is-ok dd {
+    color: var(--v-turquesa);
+}
+
+.voos-sim-path__perks {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.12rem;
+}
+
+.voos-sim-path__club {
+    font: inherit;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    padding: 0.18rem 0.48rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--v-turquesa) 16%, transparent);
+    color: var(--v-turquesa);
+    white-space: nowrap;
+}
+
+.voos-sim-path__pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-top: 0.2rem;
+}
+
+.voos-sim-path__pills span {
+    font: inherit;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    padding: 0.12rem 0.4rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--v-turquesa) 16%, transparent);
+    color: var(--v-turquesa);
+}
+
+.voos-sim-card__day {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+    width: 100%;
+    margin: 0.1rem 0 0;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--v-legenda);
+}
+
+.voos-sim-card__day strong {
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--v-tinta);
+    font-variant-numeric: tabular-nums;
+}
+
+.voos-sim-card--chosen .voos-sim-card__day strong {
+    color: var(--v-turquesa);
+}
+
+.voos-pax {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    padding: 0.18rem 0.35rem 0.18rem 0.4rem;
+    border-radius: 999px;
+    border: 1px solid var(--v-borda);
+    background: var(--v-campo);
+    color: var(--v-tinta);
+    white-space: nowrap;
+}
+
+.voos-pax strong {
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+    min-width: 0.9rem;
+    text-align: center;
+}
+
+.voos-pax span {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--v-legenda);
+}
+
+.voos-pax button {
+    width: 1.35rem;
+    height: 1.35rem;
+    border: 0;
+    border-radius: 999px;
+    background: var(--v-janela);
+    color: var(--v-tinta);
+    font: inherit;
+    font-size: 0.95rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.voos-pax button:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.voo-pay__hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(10.5rem, 0.85fr);
+    gap: 0.55rem 0.85rem;
+    align-items: stretch;
+    margin: 0.15rem 0 0.1rem;
+    padding: 0.65rem 0.75rem 0.7rem;
+    min-height: 6.4rem;
+    border-radius: 0.85rem;
+    background: var(--v-janela);
+    border: 1px solid color-mix(in srgb, var(--v-ouro) 34%, var(--v-borda));
+}
+
+.voo-pay__hero-main {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-end;
+    text-align: right;
+    gap: 0.12rem;
+    min-width: 0;
+}
+
+.voo-pay__hero-main > span:first-child {
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--v-legenda);
+}
+
+.voo-pay__hero-main > strong {
+    font-size: 1.7rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.045em;
+    line-height: 1.05;
+    color: var(--v-ouro);
+}
+
+.voo-pay__hero-pills {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.28rem;
+    margin-top: 0.35rem;
+}
+
+.voo-pay__hero-pills > span {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--v-legenda);
+    padding: 0.18rem 0.45rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--v-tinta) 7%, transparent);
+}
+
+.voo-pay__sum {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.28rem;
+    margin: 0;
+    min-width: 0;
+}
+
+.voo-pay__sum > div {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    min-width: 0;
+}
+
+.voo-pay__sum > div::after {
+    content: '';
+    order: 2;
+    flex: 1 1 auto;
+    min-width: 0.7rem;
+    border-bottom: 1px dashed color-mix(in srgb, var(--v-tinta) 16%, transparent);
+    transform: translateY(-0.28em);
+    pointer-events: none;
+}
+
+.voo-pay__sum dt {
+    order: 1;
+    margin: 0;
+    flex: 0 1 auto;
+    min-width: 0;
+    font-size: 0.68rem;
+    font-weight: 650;
+    color: var(--v-legenda);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.voo-pay__sum dd {
+    order: 3;
+    margin: 0;
+    flex: 0 0 auto;
+    font-size: 0.78rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--v-tinta);
+    white-space: nowrap;
+}
+
+.voo-pay__sum .is-out dd {
+    color: var(--v-coral);
+}
+
+.voo-pay__sum .is-mute dd {
+    color: var(--v-legenda);
+    font-weight: 650;
+}
+
+.voo-pay__bonus {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-width: 0;
+    padding: 0.42rem 0.55rem 0.42rem 0.7rem;
+    border-radius: 0.85rem;
+    border: 1px solid var(--v-borda);
+    background: var(--v-janela);
+}
+
+.voo-pay__bonus.is-on {
+    border-color: color-mix(in srgb, var(--v-turquesa) 48%, var(--v-borda));
+    background: color-mix(in srgb, var(--v-turquesa) 10%, var(--v-janela));
+}
+
+.voo-pay__bonus-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.08rem;
+    min-width: 0;
+}
+
+.voo-pay__bonus-copy span {
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--v-legenda);
+}
+
+.voo-pay__bonus-copy strong {
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--v-tinta);
+}
+
+.voo-pay__bonus.is-on .voo-pay__bonus-copy strong {
+    color: var(--v-turquesa);
+}
+
+.voo-pay__bonus.is-compact {
+    margin: 0;
+    padding: 0;
+    gap: 0;
+    border: 0;
+    background: transparent;
+    border-radius: 0;
+}
+
+.voo-pay__bonus.is-compact.is-on {
+    border: 0;
+    background: transparent;
+}
+
+.voo-pay__bonus.is-compact .voo-pay__mode {
+    padding: 0.06rem;
+}
+
+.voo-pay__bonus.is-compact .voo-pay__mode button {
+    padding: 0.12rem 0.42rem;
+    font-size: 0.58rem;
+}
+
+.voos-sim-path .voo-pay__bonus.is-compact {
+    width: max-content;
+    max-width: 100%;
+    margin: 0;
+    padding: 0.06rem;
+    border: 1px solid var(--v-borda);
+    border-radius: 999px;
+    background: var(--v-janela);
+    flex: 0 0 auto;
+}
+
+.voos-sim-path .voo-pay__bonus.is-compact.is-on {
+    border-color: color-mix(in srgb, var(--v-turquesa) 48%, var(--v-borda));
+    background: color-mix(in srgb, var(--v-turquesa) 10%, var(--v-janela));
+}
+
+.voo-pay__hero--cash {
+    border-color: color-mix(in srgb, var(--v-ouro) 34%, var(--v-borda));
+}
+
+.voo-pay__hero--cash .voo-pay__hero-main > strong {
+    color: var(--v-ouro);
+}
+
+.voo-pay__hero--cash.is-win {
+    border-color: color-mix(in srgb, var(--v-turquesa) 38%, var(--v-borda));
+}
+
+.voo-pay__hero--cash.is-win .voo-pay__hero-main > strong {
+    color: var(--v-turquesa);
+}
+
+.voo-pay__vs {
+    display: flex;
+    align-items: center;
+    margin: 0;
+    min-width: 0;
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.35;
+    color: var(--v-legenda);
+}
+
+.voo-pay__vs.is-ok {
+    color: var(--v-turquesa);
+}
+
+.voo-pay__vs.is-out {
+    color: var(--v-coral);
+}
+
+.voos-capsule,
+.voos-insight,
+.voos-pill,
+.voos-leg-tag {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 0.22rem 0.55rem;
+    border: 0;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.voos-capsule--candidata {
+    background: color-mix(in srgb, var(--v-oceano) 16%, transparent);
+    color: var(--v-oceano);
+}
+
+.voos-capsule--escolhida {
+    background: color-mix(in srgb, var(--v-turquesa) 22%, transparent);
+    color: var(--v-turquesa);
+}
+
+.voos-choose {
+    display: inline-flex;
+    align-items: center;
+    height: 1.55rem;
+    padding: 0 0.65rem;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--v-turquesa) 32%, var(--v-borda));
+    background: transparent;
+    color: var(--v-turquesa);
+    font: inherit;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+}
+
+.voos-choose.is-on {
+    background: var(--v-turquesa);
+    border-color: var(--v-turquesa);
+    color: #121214;
+}
+
+.voos-capsule--descartada {
+    background: color-mix(in srgb, var(--v-tinta) 10%, transparent);
+    color: var(--v-legenda);
+}
+
+.voos-insight {
+    cursor: default;
+}
+
+.voos-insight--recomendado {
+    background: color-mix(in srgb, var(--v-tinta) 8%, transparent);
+    color: color-mix(in srgb, var(--v-tinta) 70%, transparent);
+}
+
+.voos-insight--melhor_rota {
+    background: color-mix(in srgb, var(--v-oceano) 14%, transparent);
+    color: var(--v-oceano);
+}
+
+.voos-insight--escala_longa {
+    background: color-mix(in srgb, var(--v-ouro) 22%, transparent);
+    color: var(--v-ouro);
+}
+
+.voos-insight--visto_transito,
+.voos-insight--custo_elevado {
+    background: color-mix(in srgb, var(--v-coral) 16%, transparent);
+    color: var(--v-coral);
+}
+
+.voos-pill {
+    background: color-mix(in srgb, var(--v-tinta) 6%, transparent);
+    color: var(--v-tinta);
+}
+
+.voos-pill--oceano {
+    background: color-mix(in srgb, var(--v-oceano) 12%, transparent);
+    color: var(--v-oceano);
+}
+
+.voos-pill--turquesa {
+    background: color-mix(in srgb, var(--v-turquesa) 14%, transparent);
+    color: var(--v-turquesa);
+}
+
+.voos-pill--pax {
+    gap: 0.22rem;
+    padding-left: 0.4rem;
+    padding-right: 0.48rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.voos-pill--pax .app-icon {
+    font-size: 0.92rem;
+    line-height: 1;
+}
+
+.voos-leg-rows {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    color: color-mix(in srgb, var(--v-tinta) 72%, transparent);
+}
+
+.voos-leg-rows li {
+    display: flex;
+    gap: 0.35rem;
+    align-items: baseline;
+}
+
+.voos-leg-tag--outbound {
+    background: color-mix(in srgb, var(--v-oceano) 12%, transparent);
+    color: var(--v-oceano);
+}
+
+.voos-leg-tag--inbound {
+    background: color-mix(in srgb, var(--v-turquesa) 14%, transparent);
+    color: var(--v-turquesa);
+}
+
+.voos-icon-btn {
+    width: 1.85rem;
+    height: 1.85rem;
+    border-radius: 999px;
+    border: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--v-tinta) 8%, transparent);
+    color: var(--v-tinta);
+    cursor: pointer;
+}
+
+.voos-icon-btn--oceano {
+    background: color-mix(in srgb, var(--v-oceano) 12%, transparent);
+    color: var(--v-oceano);
+}
+
+.voos-icon-btn--wait {
+    outline: 1px dashed var(--v-turquesa);
+    outline-offset: 2px;
+    color: var(--v-turquesa);
+    background: color-mix(in srgb, var(--v-turquesa) 14%, transparent);
+}
+
+.voos-icon-btn--coral {
+    background: color-mix(in srgb, var(--v-coral) 12%, transparent);
+    color: var(--v-coral);
+}
+
+a.voos-icon-btn {
+    text-decoration: none;
+}
+
+.voos-icon-btn:disabled {
+    opacity: 0.38;
+    cursor: not-allowed;
+}
+
+.voos-add-sim,
+.voos-add-segment {
+    border: 0;
+    background: color-mix(in srgb, var(--v-turquesa) 10%, transparent);
+    color: var(--v-turquesa);
+    font: inherit;
+    font-weight: 700;
+    font-size: 0.85rem;
+    padding: 0.7rem 0.9rem;
+    border-radius: 0.75rem;
+    cursor: pointer;
+}
+
+.voos-add-segment {
+    border-radius: 999px;
+    width: fit-content;
+}
+
+.voos-add-sim {
+    width: 100%;
+}
+
+.voos-sims__foot {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+}
+
+.voos-text-btn {
+    border: 0;
+    background: none;
+    color: var(--v-oceano);
+    font: inherit;
+    font-weight: 700;
+    font-size: 0.8rem;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: none;
+}
+
+.voos-text-btn--danger {
+    color: var(--v-coral);
+}
+
+.voos-undo {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: 0.7rem;
+    background: color-mix(in srgb, var(--v-oceano) 10%, transparent);
+    font-size: 0.8rem;
+}
+
+.voos-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2400;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 1.5rem 1rem 2.15rem;
+    overflow: auto;
+    background: color-mix(in srgb, var(--v-noite, #121214) 72%, transparent);
+    backdrop-filter: blur(5px);
+}
+
+.voos-editor {
+    width: min(640px, 100%);
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem 1.1rem 1.15rem;
+    border-radius: 1.1rem;
+    border: 1px solid var(--v-borda);
+    background: var(--v-painel);
+    color: var(--v-tinta);
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.48);
+}
+
+.voos-editor__head,
+.voos-editor__row,
+.voos-editor__foot,
+.voos-editor__block-head,
+.voos-miles__intro {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.55rem;
+}
+
+.voos-editor__head {
+    flex-wrap: wrap;
+}
+
+.voos-editor__head-pills,
+.voos-editor__head-actions {
+    display: flex;
+    gap: 0.35rem;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.voos-field {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+}
+
+.voos-field > span {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--v-legenda);
+}
+
+.voos-field--grow {
+    flex: 1;
+}
+
+.voos-editor__grid,
+.voos-values__grid,
+.voos-compare__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+}
+
+.voos-notes {
+    min-height: 4.5rem;
+    resize: vertical;
+}
+
+.voos-roundtrip {
+    border: 1px solid var(--v-borda);
+    background: var(--v-campo);
+    color: var(--v-tinta);
+    border-radius: 0.75rem;
+    padding: 0.7rem 0.9rem;
+    font: inherit;
+    font-weight: 700;
+    font-size: 0.8rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.voos-roundtrip.is-on {
+    background: color-mix(in srgb, var(--v-turquesa) 14%, transparent);
+    border-color: color-mix(in srgb, var(--v-turquesa) 45%, var(--v-borda));
+    color: var(--v-turquesa);
+}
+
+.voos-values__kicker,
+.voos-miles h2,
+.voos-compare h3 {
+    margin: 0 0 0.45rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: color-mix(in srgb, var(--v-tinta) 72%, transparent);
+}
+
+.voos-miles h2 {
+    font-size: 1.15rem;
+    color: var(--v-tinta);
+}
+
+.voos-compare h3 {
+    font-size: 0.95rem;
+    color: var(--v-tinta);
+}
+
+.voos-values__final {
+    margin: 0.55rem 0 0;
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--v-legenda);
+}
+
+.voos-values__final strong {
+    color: var(--v-turquesa);
+    font-size: 1rem;
+}
+
+.voos-conn-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    max-width: none;
+}
+
+.voos-conn-list li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 4.6rem auto;
+    gap: 0.3rem;
+    align-items: end;
+}
+
+.voos-field--min {
+    width: 4.6rem;
+}
+
+.voos-suggest {
+    position: absolute;
+    z-index: 16;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    min-width: 16.5rem;
+    margin: 0;
+    padding: 0.28rem;
+    list-style: none;
+    background: #323238;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 0.8rem;
+    overflow: hidden;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
+}
+
+.voos-suggest button {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 2.55rem minmax(0, 1fr);
+    gap: 0.45rem;
+    align-items: center;
+    text-align: left;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    color: var(--v-tinta);
+    padding: 0.42rem 0.5rem;
+    border-radius: 0.55rem;
+    cursor: pointer;
+}
+
+.voos-suggest button b {
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    color: var(--v-turquesa);
+}
+
+.voos-suggest button b.is-muted {
+    color: var(--v-legenda);
+}
+
+.voos-suggest button span {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 0.08rem;
+}
+
+.voos-suggest button strong {
+    font-size: 0.8rem;
+    font-weight: 650;
+    color: var(--v-tinta);
+}
+
+.voos-suggest button small {
+    color: rgba(244, 244, 246, 0.72);
+    font-size: 0.68rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.voos-suggest button.is-plain {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.voos-suggest button:hover,
+.voos-suggest button:focus-visible {
+    background: color-mix(in srgb, var(--v-turquesa) 18%, #323238);
+    outline: none;
+}
+
+.voos-miles {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    padding-bottom: 2rem;
+}
+
+.voos-miles__intro p {
+    margin: 0.25rem 0 0;
+    max-width: 42rem;
+    color: var(--v-legenda);
+    font-size: 0.84rem;
+    line-height: 1.4;
+}
+
+.voos-miles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    gap: 0.7rem;
+}
+
+.voos-miles-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.voos-miles-card--esfera {
+    border-color: color-mix(in srgb, var(--v-coral) 40%, var(--v-borda));
+    background: color-mix(in srgb, var(--v-coral) 8%, var(--v-janela));
+}
+
+.voos-miles-card.is-selected {
+    outline: 2px solid color-mix(in srgb, var(--v-turquesa) 55%, transparent);
+}
+
+.voos-miles-card__pick {
+    border: 0;
+    background: none;
+    text-align: left;
+    font: inherit;
+    font-weight: 800;
+    font-size: 0.95rem;
+    cursor: pointer;
+    padding: 0;
+    color: inherit;
+}
+
+.voos-compare__result {
+    margin-top: 0.7rem;
+    padding: 0.75rem 0.85rem;
+    border-radius: 0.75rem;
+    background: var(--v-janela);
+    border: 1px solid var(--v-borda);
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    font-size: 0.84rem;
+}
+
+.voos-compare__result p {
+    margin: 0;
+}
+
+.voos-compare__result--points {
+    border-color: color-mix(in srgb, var(--v-turquesa) 45%, var(--v-borda));
+}
+
+.voos-compare__result--cash {
+    border-color: color-mix(in srgb, var(--v-ouro) 45%, var(--v-borda));
+}
+
+.voos-compare__verdict {
+    font-weight: 800;
+}
+
+.voos-editor--voo {
+    width: min(70rem, calc(100vw - 2.5rem));
+    max-height: calc(100dvh - 2rem);
+    overflow: visible;
+    gap: 0.65rem;
+    padding: 0.85rem 1rem 0.85rem;
+    margin: 0;
+}
+
+.voos-editor__identity {
+    min-width: 0;
+}
+
+.voos-editor__identity .pontos-kicker {
+    margin: 0 0 0.1rem;
+}
+
+.voos-editor__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    min-height: 0;
+}
+
+.voos-editor__col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 0;
+    padding: 0.7rem 0.8rem 0.75rem;
+    border-radius: 0.9rem;
+    border: 1px solid var(--v-borda);
+    background: var(--v-campo);
+}
+
+.voos-editor__col-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.voos-editor__col-head .pontos-kicker,
+.voos-editor__col > .pontos-kicker {
+    margin: 0;
+}
+
+.voos-editor__quiet {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--v-legenda);
+}
+
+.voos-editor__block--conn .voos-editor__block-head {
+    min-height: 1.4rem;
+}
+
+.voos-editor__foot-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.85rem;
+    min-width: 0;
+}
+
+.voos-editor--voo .voos-editor__foot .viagens-btn {
+    width: auto;
+    min-width: 8.5rem;
+    margin-left: auto;
+    padding: 0.48rem 1.15rem;
+    font-size: 0.84rem;
+    border-radius: 0.7rem;
+}
+
+.voos-editor--voo .voos-roundtrip {
+    padding: 0.32rem 0.7rem;
+    font-size: 0.72rem;
+    border-radius: 999px;
+}
+
+.voos-seg {
+    display: inline-flex;
+    padding: 0.1rem;
+    border-radius: 999px;
+    border: 1px solid var(--v-borda);
+    background: var(--v-janela);
+}
+
+.voos-seg button {
+    border: 0;
+    background: transparent;
+    color: var(--v-legenda);
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    padding: 0.28rem 0.7rem;
+    border-radius: 999px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.voos-seg button.is-on {
+    background: color-mix(in srgb, var(--v-turquesa) 18%, transparent);
+    color: var(--v-turquesa);
+}
+
+.voos-leg__route {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 2.45rem minmax(0, 1fr) auto;
+    gap: 0.4rem;
+    align-items: end;
+}
+
+.voos-leg__rt {
+    width: 2.45rem;
+    height: 2.45rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.75rem;
+    border: 1px solid var(--v-borda);
+    background: var(--v-janela);
+    color: var(--v-legenda);
+    cursor: pointer;
+}
+
+.voos-leg__rt.is-on {
+    border-color: color-mix(in srgb, var(--v-turquesa) 50%, var(--v-borda));
+    background: color-mix(in srgb, var(--v-turquesa) 16%, var(--v-janela));
+    color: var(--v-turquesa);
+}
+
+.voos-leg__dates {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4rem;
+}
+
+.voos-leg__when {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    min-width: 0;
+    padding: 0.4rem 0.5rem 0.45rem;
+    border-radius: 0.8rem;
+    border: 1px solid var(--v-borda);
+    background: var(--v-janela);
+}
+
+.voos-leg__when.is-off {
+    opacity: 0.42;
+}
+
+.voos-leg__when-head {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 1.2rem;
+}
+
+.voos-leg__when-head .voos-text-btn {
+    margin-left: auto;
+}
+
+.voos-leg__tag {
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--v-turquesa);
+}
+
+.voos-leg__when-head em {
+    font-size: 0.68rem;
+    font-style: normal;
+    font-weight: 700;
+    color: var(--v-legenda);
+}
+
+.voos-leg__when-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.35rem;
+}
+
+.voos-bags {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.4rem;
+}
+
+.voos-bag {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
+    padding: 0.38rem 0.5rem;
+    border-radius: 0.8rem;
+    border: 1px solid var(--v-borda);
+    background: var(--v-janela);
+    color: var(--v-legenda);
+}
+
+.voos-bag__copy {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+}
+
+.voos-bag__kg {
+    font-size: 0.92rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--v-tinta);
+    letter-spacing: -0.03em;
+}
+
+.voos-bag small {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--v-legenda);
+}
+
+.voos-bag__qty {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.18rem;
+}
+
+.voos-bag__qty strong {
+    min-width: 0.9rem;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    color: var(--v-tinta);
+}
+
+.voos-bag__qty button {
+    width: 1.3rem;
+    height: 1.3rem;
+    border: 0;
+    border-radius: 999px;
+    background: var(--v-campo);
+    color: var(--v-tinta);
+    font: inherit;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.voos-bag__qty button:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.voos-bag.is-on {
+    border-color: color-mix(in srgb, var(--v-turquesa) 45%, var(--v-borda));
+    background: color-mix(in srgb, var(--v-turquesa) 10%, var(--v-janela));
+    color: var(--v-turquesa);
+}
+
+.voos-bag.is-on .voos-bag__kg,
+.voos-bag.is-on .voos-bag__qty strong {
+    color: var(--v-tinta);
+}
+
+.voos-editor__leg .voos-pax {
+    background: var(--v-janela);
+    align-self: end;
+    height: 2.45rem;
+    box-sizing: border-box;
+}
+
+.voos-editor__leg .voos-icon-btn {
+    align-self: end;
+}
+
+.voos-editor--voo .voos-editor__grid {
+    gap: 0.45rem;
+}
+
+.voos-editor__grid--4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.voos-editor__leg,
+.voo-pay {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 0;
+    padding: 0.6rem 0.8rem 0.65rem;
+    border-radius: 0.9rem;
+    border: 1px solid var(--v-borda);
+    background: var(--v-campo);
+}
+
+.voos-editor__meta {
+    display: grid;
+    grid-template-columns: minmax(8rem, 12rem) minmax(0, 1fr);
+    gap: 0.45rem;
+    align-items: end;
+}
+
+.voos-editor__meta:has(.voos-field--city) {
+    grid-template-columns: minmax(8rem, 11rem) minmax(0, 1fr) 8.5rem;
+}
+
+.voos-field--city {
+    width: 8.5rem;
+}
+
+.voos-editor__leg-tools {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    justify-content: flex-end;
+}
+
+.voos-editor__leg {
+    overflow: visible;
+}
+
+.voo-pay--points {
+    border-color: color-mix(in srgb, var(--v-turquesa) 42%, var(--v-borda));
+}
+
+.voo-pay--cash {
+    border-color: color-mix(in srgb, var(--v-ouro) 36%, var(--v-borda));
+}
+
+.voo-pay__lock > .voo-pay__pane {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 0;
+}
+
+.voo-pay__swap {
+    display: grid;
+}
+
+.voo-pay__swap > .voo-pay__pane {
+    grid-area: 1 / 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 0;
+}
+
+.voo-pay__swap > .voo-pay__pane > .voo-pay__hero {
+    flex: 1 1 auto;
+}
+
+.voo-pay__compare {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.38rem;
+    min-height: 3.05rem;
+    padding: 0.45rem 0.7rem;
+    border-radius: 0.75rem;
+    background: var(--v-janela);
+    border: 1px solid var(--v-borda);
+}
+
+.voo-pay__compare-row {
+    display: grid;
+    grid-template-columns: 6.7rem minmax(0, 1fr) auto;
+    gap: 0.5rem;
+    align-items: center;
+    min-width: 0;
+}
+
+.voo-pay__compare-row span {
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--v-legenda);
+}
+
+.voo-pay__compare-track {
+    display: block;
+    min-width: 0;
+    height: 0.42rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--v-tinta) 10%, transparent);
+    overflow: hidden;
+}
+
+.voo-pay__compare-bar {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--v-tinta) 28%, transparent);
+    max-width: 100%;
+    transition: width 0.25s ease;
+}
+
+.voo-pay__compare-row.is-on .voo-pay__compare-bar {
+    background: var(--v-turquesa);
+}
+
+.voo-pay__compare-row.is-out .voo-pay__compare-bar {
+    background: var(--v-coral);
+}
+
+.voo-pay__compare-row strong {
+    font-size: 0.8rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.voo-pay__head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.45rem 0.65rem;
+    min-height: 1.85rem;
+}
+
+.voo-pay__head .pontos-kicker {
+    margin: 0;
+}
+
+.voo-pay__tabs {
+    margin-left: auto;
+}
+
+.voo-pay__tabs button {
+    padding: 0.3rem 0.78rem;
+    font-size: 0.74rem;
+}
+
+.voo-pay__mode {
+    display: inline-flex;
+    padding: 0.12rem;
+    border-radius: 999px;
+    border: 1px solid var(--v-borda);
+    background: var(--v-janela);
+}
+
+.voo-pay__mode button {
+    border: 0;
+    background: transparent;
+    color: var(--v-legenda);
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    padding: 0.28rem 0.75rem;
+    border-radius: 999px;
+    cursor: pointer;
+}
+
+.voo-pay__mode button.is-on {
+    background: var(--v-turquesa);
+    color: #fff;
+}
+
+.voo-pay__fx {
+    margin: 0 0 0 auto;
+    max-width: 42%;
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--v-legenda);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.voo-pay__label {
+    margin: 0.15rem 0 0;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--v-turquesa);
+}
+
+.voo-pay__badge {
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 0.22rem 0.55rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--v-ouro) 18%, transparent);
+    color: var(--v-ouro);
+}
+
+.voo-pay__badge.is-ok {
+    background: color-mix(in srgb, var(--v-turquesa) 18%, transparent);
+    color: var(--v-turquesa);
+}
+
+.voo-pay__badge.is-cash {
+    background: color-mix(in srgb, var(--v-coral) 16%, transparent);
+    color: var(--v-coral);
+}
+
+.voo-pay__grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.45rem;
+    align-items: stretch;
+}
+
+.voo-pay__grid--in,
+.voo-pay__grid--cash {
+    grid-template-columns: 1fr 1fr;
+}
+
+.voo-pay__grid--fare {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: end;
+}
+
+.voo-pay__grid--fare.has-bonus {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.2fr) minmax(6.8rem, 0.62fr);
+}
+
+.voo-pay__grid--fare .voos-field > span {
+    white-space: nowrap;
+}
+
+.voo-pay__tax .voo-pay__amount-ccy {
+    grid-template-columns: minmax(0, 1fr) 4.1rem;
+}
+
+.voo-pay__tax .voo-pay__tax-leg {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+    cursor: help;
+    text-decoration: underline dotted;
+    text-underline-offset: 0.12em;
+    text-decoration-color: color-mix(in srgb, var(--v-turquesa) 45%, transparent);
+}
+
+.voo-pay__tax .voo-pay__tax-leg::after {
+    content: attr(data-conv-hint);
+    position: absolute;
+    z-index: 30;
+    left: 0;
+    top: calc(100% + 0.35rem);
+    width: max-content;
+    max-width: 15rem;
+    padding: 0.4rem 0.55rem;
+    font-size: 0.62rem;
+    font-weight: 650;
+    font-style: normal;
+    line-height: 1.4;
+    letter-spacing: 0;
+    text-transform: none;
+    text-decoration: none;
+    white-space: normal;
+    color: var(--v-janela);
+    background: color-mix(in srgb, var(--v-tinta) 92%, black);
+    border-radius: 0.45rem;
+    box-shadow: 0 6px 16px color-mix(in srgb, var(--v-tinta) 22%, transparent);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.12s ease, visibility 0.12s ease;
+}
+
+.voo-pay__tax .voo-pay__tax-leg:hover::after,
+.voo-pay__tax .voo-pay__tax-leg:focus-visible::after {
+    opacity: 1;
+    visibility: visible;
+}
+
+.voo-pay__bonus-field select.viagens-field {
+    min-width: 0;
+}
+
+.voo-pay__grid--stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.voo-pay__grid > * {
+    min-height: 3.05rem;
+    min-width: 0;
+}
+
+.voo-pay__grid--stats > * {
+    min-height: 2.45rem;
+}
+
+.voo-pay__grid--cash .voo-pay__stat--total,
+.voo-pay__grid--cash .voo-pay__stat:last-child {
+    min-height: 2.7rem;
+}
+
+.voo-pay .voo-pay__bonus:not(.is-compact) {
+    margin-top: 0.05rem;
+}
+
+.voos-field:has(.voos-suggest),
+.voos-dt:has(.voos-dt__pop) {
+    z-index: 20;
+}
+
+.voos-dt > span {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.35rem;
+}
+
+.voos-dt__hint {
+    margin: 0;
+    font-style: normal;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--v-turquesa);
+}
+
+.voos-dt__trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.4rem;
+    text-align: left;
+    cursor: pointer;
+    color: var(--v-tinta);
+}
+
+.voos-dt__trigger.is-empty {
+    color: var(--v-legenda);
+}
+
+.voos-dt__pop {
+    position: absolute;
+    z-index: 24;
+    top: calc(100% + 6px);
+    left: 0;
+    display: grid;
+    grid-template-columns: minmax(14.5rem, 1fr) 5.4rem;
+    gap: 0.55rem;
+    width: 21.5rem;
+    padding: 0.7rem;
+    border-radius: 0.95rem;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: #2e2e34;
+    box-shadow: 0 22px 48px rgba(0, 0, 0, 0.5);
+    color: var(--v-tinta);
+}
+
+.voos-leg__when-grid > .voos-dt:last-of-type .voos-dt__pop {
+    left: auto;
+    right: 0;
+}
+
+.voos-dt__nav {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-bottom: 0.4rem;
+}
+
+.voos-dt__nav p {
+    flex: 1;
+    margin: 0;
+    text-align: center;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.voos-dt__nav-btn {
+    width: 1.7rem;
+    height: 1.7rem;
+    border: 1px solid var(--v-borda);
+    border-radius: 0.5rem;
+    background: transparent;
+    color: var(--v-tinta);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.voos-dt__week,
+.voos-dt__grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.12rem;
+}
+
+.voos-dt__week {
+    margin-bottom: 0.2rem;
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--v-legenda);
+    text-align: center;
+}
+
+.voos-dt__day {
+    width: 100%;
+    aspect-ratio: 1;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--v-tinta);
+    font: inherit;
+    font-size: 0.72rem;
+    cursor: pointer;
+}
+
+.voos-dt__day.is-empty {
+    visibility: hidden;
+}
+
+.voos-dt__day.is-trip {
+    background: color-mix(in srgb, var(--v-turquesa) 16%, transparent);
+}
+
+.voos-dt__day.is-today {
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--v-ouro) 70%, transparent);
+}
+
+.voos-dt__day.is-on {
+    background: var(--v-turquesa);
+    color: #101114;
+    font-weight: 800;
+}
+
+.voos-dt__day:hover:not(:disabled):not(.is-on) {
+    background: color-mix(in srgb, var(--v-turquesa) 22%, transparent);
+}
+
+.voos-dt__day:disabled {
+    opacity: 0.28;
+    cursor: not-allowed;
+}
+
+.voos-dt__side {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    min-width: 0;
+    min-height: 0;
+}
+
+.voos-dt__time-label {
+    margin: 0;
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--v-legenda);
+}
+
+.voos-dt__times {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    overflow-y: auto;
+    max-height: 11.5rem;
+    padding-right: 0.1rem;
+}
+
+.voos-dt__times button {
+    border: 0;
+    border-radius: 0.45rem;
+    background: transparent;
+    color: var(--v-tinta);
+    font: inherit;
+    font-size: 0.72rem;
+    font-variant-numeric: tabular-nums;
+    padding: 0.28rem 0.2rem;
+    cursor: pointer;
+}
+
+.voos-dt__times button.is-on,
+.voos-dt__times button:hover {
+    background: color-mix(in srgb, var(--v-turquesa) 18%, transparent);
+}
+
+.voos-dt__times button.is-on {
+    color: var(--v-turquesa);
+    font-weight: 800;
+}
+
+.voos-dt__exact {
+    color-scheme: dark;
+    min-height: 1.85rem;
+    padding: 0.2rem 0.35rem;
+    font-size: 0.75rem;
+}
+
+.voo-pay__stack,
+.voo-pay__extra {
+    display: grid;
+}
+
+.voo-pay__stack > .voo-pay__pane,
+.voo-pay__extra > .voo-pay__pane {
+    grid-area: 1 / 1;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.45rem;
+    align-items: stretch;
+}
+
+.voo-pay__pane:not(.is-on) {
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.voo-pay__stack .voo-pay__pane > * {
+    min-height: 3.45rem;
+}
+
+.voo-pay__extra {
+    min-height: 2.7rem;
+}
+
+.voo-pay__amount-ccy {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 4.5rem;
+    gap: 0.35rem;
+}
+
+.voo-pay__empty,
+.voo-pay__hint--extra {
+    grid-column: 1 / -1;
+}
+
+.voo-pay__empty,
+.voo-pay__hint {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    color: var(--v-legenda);
+    font-size: 0.8rem;
+    line-height: 1.35;
+}
+
+.voo-pay__stat {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.12rem;
+    min-width: 0;
+    padding: 0.32rem 0.55rem;
+    border-radius: 0.75rem;
+    background: var(--v-janela);
+    border: 1px solid var(--v-borda);
+}
+
+.voo-pay__stat span {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--v-legenda);
+}
+
+.voo-pay__stat strong {
+    font-size: 0.92rem;
+    font-variant-numeric: tabular-nums;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.voo-pay__stat--quiet strong {
+    font-size: 0.84rem;
+    font-weight: 650;
+    color: var(--v-legenda);
+}
+
+.voo-pay__stat--total {
+    border-color: color-mix(in srgb, var(--v-tinta) 18%, var(--v-borda));
+}
+
+.voo-pay__stat--total strong {
+    font-size: 1.12rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+}
+
+.voo-pay__stat.is-out {
+    border-color: color-mix(in srgb, var(--v-coral) 40%, var(--v-borda));
+}
+
+.voo-pay__stat.is-ok {
+    border-color: color-mix(in srgb, var(--v-turquesa) 40%, var(--v-borda));
+}
+
+.voos-editor--voo .viagens-field {
+    min-height: 2.05rem;
+    padding: 0.32rem 0.55rem;
+    font-size: 0.8125rem;
+}
+
+.voos-editor--voo .voo-miles,
+.voos-editor--voo .voo-miles--on {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    border-radius: 0;
+    gap: 0.5rem;
+}
+
+.voos-editor--voo .voo-miles__head {
+    align-items: center;
+}
+
+.voos-editor--voo .voo-miles__head h3,
+.voos-editor--voo .voo-miles:not(.voo-miles--on) .voo-miles__hint,
+.voos-editor--voo .pontos-hint {
+    display: none;
+}
+
+.voos-editor--voo .voo-miles__head .pontos-kicker {
+    margin: 0;
+}
+
+.voos-editor--voo .voo-miles__insight {
+    grid-template-columns: 1fr 1fr;
+}
+
+.voos-editor--voo .voo-miles__insight div {
+    padding: 0.32rem 0.45rem;
+}
+
+.voos-editor--voo .voos-values__final {
+    margin: 0.2rem 0 0;
+}
+
+.voos-editor__section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    padding: 0.85rem 0.9rem 0.95rem;
+    border-radius: 1rem;
+    border: 1px solid var(--v-borda);
+    background: color-mix(in srgb, var(--v-campo) 70%, var(--v-painel));
+}
+
+.voos-editor__section-head h3 {
+    margin: 0.1rem 0 0;
+    font-size: 1.02rem;
+    letter-spacing: -0.02em;
+}
+
+.voos-values--embedded {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    border-radius: 0;
+}
+
+.voos-editor--voo h2 {
+    margin: 0;
+    font-size: 1.12rem;
+    letter-spacing: -0.03em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+@media (max-width: 900px) {
+    .voos-overlay {
+        align-items: flex-start;
+        overflow: auto;
+    }
+
+    .voos-editor--voo {
+        width: min(42rem, calc(100vw - 1.5rem));
+        max-height: none;
+        overflow: visible;
+        margin: 0.25rem 0 1rem;
+    }
+
+    .voos-editor__body {
+        grid-template-columns: 1fr;
+    }
+
+    .voos-leg__route {
+        grid-template-columns: minmax(0, 1fr) 2.45rem minmax(0, 1fr) auto;
+    }
+
+    .voos-leg__dates,
+    .voos-editor__meta,
+    .voos-editor__meta:has(.voos-field--city) {
+        grid-template-columns: 1fr;
+        max-width: none;
+    }
+
+    .voos-field--city {
+        width: auto;
+    }
+
+    .voo-pay__hero {
+        grid-template-columns: 1fr;
+    }
+}
+
+.carteira-sheet {
+    --pontos-brand: var(--v-turquesa);
+    position: relative;
+    width: min(58rem, calc(100vw - 2.5rem));
+    max-height: calc(100dvh - 2rem);
+    overflow: auto;
+    gap: 0.65rem;
+    padding: 0.85rem 1rem 0.9rem;
+    box-shadow:
+        inset 4px 0 0 var(--pontos-brand),
+        0 18px 48px rgba(0, 0, 0, 0.48);
+}
+
+.carteira-sheet h2 {
+    margin: 0;
+    font-size: 1.12rem;
+    letter-spacing: -0.03em;
+}
+
+.carteira-sheet__meta {
+    margin: 0.12rem 0 0;
+    font-size: 0.78rem;
+    color: var(--v-legenda);
+}
+
+.carteira-sheet__body {
+    display: grid;
+    grid-template-columns: minmax(15.5rem, 1fr) minmax(16rem, 1.08fr);
+    gap: 0.65rem;
+    min-height: 0;
+}
+
+.carteira-sheet__switch {
+    grid-column: 1 / -1;
+    display: inline-flex;
+    width: fit-content;
+    padding: 0.12rem;
+    border-radius: 999px;
+    border: 1px solid var(--v-borda);
+    background: var(--v-janela);
+}
+
+.carteira-sheet__switch button {
+    border: 0;
+    background: transparent;
+    color: var(--v-legenda);
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.28rem 0.75rem;
+    border-radius: 999px;
+    cursor: pointer;
+    transition:
+        background 0.16s ease,
+        color 0.16s ease,
+        transform 0.16s ease;
+}
+
+.carteira-sheet__switch button:hover {
+    color: var(--v-tinta);
+}
+
+.carteira-sheet__switch button.is-on {
+    background: var(--v-turquesa);
+    color: #fff;
+}
+
+.carteira-sheet__figure {
+    margin: 0.1rem 0 0.55rem;
+    font-size: 1.85rem;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
+
+.carteira-sheet__figure small {
+    margin-left: 0.4rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--v-legenda);
+}
+
+.carteira-sheet__stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+}
+
+.carteira-sheet__stats div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
+    min-width: 0;
+    padding: 0.4rem 0.55rem;
+    border-radius: 0.75rem;
+    background: var(--v-janela);
+    border: 1px solid var(--v-borda);
+    transition:
+        transform 0.16s ease,
+        border-color 0.16s ease,
+        box-shadow 0.16s ease;
+}
+
+.carteira-sheet__stats div:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--v-turquesa) 42%, var(--v-borda));
+    box-shadow: 0 8px 16px color-mix(in srgb, var(--v-turquesa) 12%, transparent);
+}
+
+.carteira-sheet__stats span {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--v-legenda);
+}
+
+.carteira-sheet__stats strong {
+    font-size: 0.92rem;
+    font-variant-numeric: tabular-nums;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.carteira-sheet__move {
+    grid-column: 1 / -1;
+}
+
+.carteira-sheet__tools {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.carteira-sheet__tools .voos-icon-btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+    transform: none;
+}
+
+.carteira-log {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.carteira-log li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    gap: 0.45rem 0.55rem;
+    align-items: center;
+    padding: 0.5rem 0.65rem;
+    border-radius: 0.75rem;
+    background: var(--v-janela);
+    border: 1px solid var(--v-borda);
+}
+
+.carteira-log__drop {
+    width: 1.55rem;
+    height: 1.55rem;
+    opacity: 0.55;
+}
+
+.carteira-log li:hover .carteira-log__drop,
+.carteira-log li:focus-within .carteira-log__drop {
+    opacity: 1;
+}
+
+.carteira-log__tag {
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 0.22rem 0.45rem;
+    border-radius: 999px;
+    white-space: nowrap;
+    background: var(--v-campo);
+    color: var(--v-legenda);
+}
+
+.carteira-log__tag--in {
+    color: var(--v-turquesa);
+    background: color-mix(in srgb, var(--v-turquesa) 14%, transparent);
+}
+
+.carteira-log__tag--out {
+    color: var(--v-coral);
+    background: color-mix(in srgb, var(--v-coral) 14%, transparent);
+}
+
+.carteira-log__tag--fx {
+    color: var(--v-ouro);
+    background: color-mix(in srgb, var(--v-ouro) 16%, transparent);
+}
+
+.carteira-log__copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.08rem;
+    min-width: 0;
+}
+
+.carteira-log__copy strong {
+    font-size: 0.82rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.carteira-log__copy em {
+    font-style: normal;
+    font-size: 0.68rem;
+    color: var(--v-legenda);
+}
+
+.carteira-log b {
+    font-variant-numeric: tabular-nums;
+    font-size: 0.92rem;
+    white-space: nowrap;
+}
+
+.carteira-log .is-in {
+    color: var(--v-turquesa);
+}
+
+.carteira-log .is-out {
+    color: var(--v-coral);
+}
+
+.carteira-log__empty {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.85rem 0.7rem;
+    border-radius: 0.75rem;
+    border: 1px dashed var(--v-borda);
+    color: var(--v-legenda);
+}
+
+.carteira-log__empty p {
+    margin: 0;
+    font-size: 0.82rem;
+}
+
+.carteira-pop-scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.1rem;
+    background: color-mix(in srgb, var(--v-noite) 72%, transparent);
+    border-radius: inherit;
+}
+
+.carteira-pop-scrim.is-fixed {
+    position: fixed;
+    z-index: 2500;
+    border-radius: 0;
+    padding: 1.25rem;
+}
+
+.carteira-pop {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    width: min(24.5rem, 100%);
+    padding: 0.85rem 0.95rem 0.95rem;
+    border-radius: 1rem;
+    border: 1px solid var(--v-borda);
+    background: var(--v-painel);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.42);
+}
+
+.carteira-pop--fx {
+    width: min(30rem, 100%);
+}
+
+.carteira-pop--calc {
+    width: min(52rem, calc(100vw - 2rem));
+    max-height: min(46rem, calc(100dvh - 2rem));
+    overflow: auto;
+    gap: 1rem;
+    padding: 1.15rem 1.25rem 1.3rem;
+    border-radius: 1.25rem;
+    border-color: color-mix(in srgb, var(--v-turquesa) 38%, var(--v-borda));
+    background:
+        radial-gradient(90% 70% at 100% 0%, color-mix(in srgb, var(--v-turquesa) 14%, transparent), transparent 58%),
+        var(--v-painel);
+    box-shadow:
+        0 22px 56px rgba(0, 0, 0, 0.5),
+        inset 4px 0 0 var(--v-turquesa);
+}
+
+.carteira-pop--calc h3 {
+    font-size: 1.28rem;
+}
+
+.carteira-pop__save {
+    border: 0;
+    border-radius: 999px;
+    height: 2rem;
+    padding: 0 0.95rem;
+    background: var(--v-turquesa);
+    color: #121214;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.carteira-pop__save:hover {
+    filter: brightness(1.07);
+}
+
+.voo-pay__lock {
+    display: flex;
+    flex-direction: column;
+    gap: inherit;
+    min-width: 0;
+    min-inline-size: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.voo-pay__lock:disabled {
+    opacity: 1;
+}
+
+.voo-pay--view .viagens-field,
+.voo-pay--view .pontos-input {
+    opacity: 1;
+    color: var(--v-tinta);
+    -webkit-text-fill-color: var(--v-tinta);
+    background: var(--v-janela);
+    cursor: default;
+}
+
+.voo-pay--view select.viagens-field {
+    appearance: none;
+    background-image: none;
+    padding-right: 0.7rem;
+}
+
+.carteira-pop--calc .voo-pay {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    border-radius: 0;
+    gap: 0.7rem;
+}
+
+.carteira-pop--calc .voo-pay__grid {
+    gap: 0.65rem;
+}
+
+.carteira-pop--calc .voo-pay__grid > * {
+    min-height: 3.45rem;
+}
+
+.carteira-pop--calc .viagens-field,
+.carteira-pop--calc .pontos-input {
+    min-height: 2.45rem;
+    padding: 0.45rem 0.7rem;
+    font-size: 0.9rem;
+}
+
+.carteira-pop--calc .voo-pay__stat {
+    min-height: 3.1rem;
+    padding: 0.5rem 0.7rem;
+}
+
+.carteira-pop--calc .voo-pay__stat strong {
+    font-size: 1.08rem;
+}
+
+.carteira-pop--calc .voo-pay__hero {
+    margin-top: 0.2rem;
+    padding: 0.9rem 1rem;
+    min-height: 6.2rem;
+}
+
+.carteira-pop--calc .voo-pay__hero-main > strong {
+    font-size: 2rem;
+}
+
+.carteira-pop--calc .voo-pay__sum dt {
+    font-size: 0.74rem;
+}
+
+.carteira-pop--calc .voo-pay__sum dd {
+    font-size: 0.88rem;
+}
+
+.carteira-pop--calc-history {
+    width: min(26rem, 100%);
+}
+
+.carteira-pop--calc-history .carteira-log li {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.miles-calc-save {
+    display: flex;
+    flex-direction: column;
+    gap: 0.08rem;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.miles-calc-save strong {
+    font-size: 0.85rem;
+}
+
+.miles-calc-save em {
+    font-style: normal;
+    font-size: 0.68rem;
+    color: var(--v-legenda);
+}
+
+.carteira-pop header > div {
+    flex: 1;
+    min-width: 0;
+}
+
+.carteira-pop header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.carteira-pop h3 {
+    margin: 0;
+    flex: 1;
+    font-size: 1.05rem;
+    letter-spacing: -0.03em;
+}
+
+.carteira-pop .viagens-btn {
+    width: auto;
+    align-self: flex-end;
+}
+
+.carteira-pop__pair {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 0.45rem;
+    align-items: end;
+}
+
+.carteira-pop__preview {
+    margin: 0;
+    padding: 0.45rem 0.6rem;
+    border-radius: 0.7rem;
+    background: var(--v-janela);
+    font-size: 0.82rem;
+    color: var(--v-legenda);
+    font-variant-numeric: tabular-nums;
+}
+
+.carteira-pop__preview strong {
+    color: var(--v-turquesa);
+}
+
+.carteira-pop .pontos-ratio-custom,
+.carteira-pop .pontos-ratio-box > .voos-field,
+.carteira-pop .pontos-hint {
+    display: none;
+}
+
+.carteira-sheet .wallet-benefits {
+    margin: 0;
+    padding: 0.6rem 0.8rem 0.7rem;
+    border: 1px solid var(--v-borda);
+    border-radius: 0.9rem;
+    background: var(--v-campo);
+    gap: 0.5rem;
+}
+
+.carteira-sheet .wallet-benefits__head {
+    min-height: 1.85rem;
+    align-items: center;
+}
+
+.carteira-sheet .wallet-benefits__badges {
+    display: flex;
+    gap: 0.3rem;
+    margin-left: auto;
+}
+
+.carteira-sheet .wallet-benefits__bonus > span,
+.carteira-sheet .wallet-benefits__club > span {
+    display: block;
+    margin: 0 0 0.25rem;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--v-legenda);
+}
+
+.carteira-sheet .wallet-benefits__grid {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.45rem;
+    align-items: end;
+}
+
+.carteira-sheet .wallet-benefits__grid.is-club {
+    grid-template-columns: auto minmax(0, 1fr);
+}
+
+.carteira-sheet .wallet-benefits__club-fields {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0.45rem;
+    align-items: end;
+}
+
+.carteira-sheet .wallet-benefits__club-fields .voos-field:last-child {
+    grid-column: 1 / -1;
+}
+
+.carteira-sheet .pontos-chip {
+    min-height: 1.85rem;
+    padding: 0.22rem 0.6rem;
+    font-size: 0.72rem;
+    transition:
+        transform 0.15s ease,
+        border-color 0.15s ease,
+        background 0.15s ease;
+}
+
+.carteira-sheet .pontos-chip:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--v-turquesa) 45%, var(--v-borda));
+}
+
+.carteira-sheet .voo-pay__mode {
+    width: fit-content;
+}
+
+.carteira-sheet .voo-pay__mode button {
+    transition:
+        background 0.16s ease,
+        color 0.16s ease,
+        transform 0.16s ease;
+}
+
+.carteira-sheet .voo-pay__mode button:hover:not(.is-on) {
+    color: var(--v-tinta);
+}
+
+.carteira-sheet .pontos-seg button {
+    font-size: 0.72rem;
+    padding: 0.28rem 0.75rem;
+}
+
+.carteira-sheet .pontos-seg button:hover:not(.is-on) {
+    color: var(--v-tinta);
+}
+
+.carteira-sheet__form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.carteira-sheet__form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+}
+
+.carteira-sheet__form-grid--3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.carteira-sheet__fx {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    gap: 0.55rem;
+    align-items: start;
+}
+
+.carteira-sheet .pontos-ratio-box > .voos-field,
+.carteira-sheet .pontos-ratio-custom {
+    display: none;
+}
+
+.carteira-sheet .pontos-hint {
+    font-size: 0.68rem;
+}
+
+.carteira-sheet .pontos-stage {
+    padding: 0.65rem 0.75rem;
+}
+
+.carteira-sheet .pontos-stage__col strong {
+    font-size: 1.2rem;
+}
+
+.carteira-sheet .pontos-swap {
+    transition:
+        transform 0.16s ease,
+        background 0.16s ease;
+}
+
+.carteira-sheet .pontos-swap:hover {
+    transform: scale(1.08);
+    background: color-mix(in srgb, var(--v-turquesa) 28%, transparent);
+}
+
+.carteira-sheet__foot {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.carteira-sheet__foot .viagens-btn {
+    width: auto;
+    min-width: 8.5rem;
+    padding: 0.48rem 1.15rem;
+    font-size: 0.84rem;
+    border-radius: 0.7rem;
+}
+
+.carteira-sheet__foot .viagens-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+}
+
+.carteira-sheet .viagens-btn--ghost {
+    width: auto;
+    transition:
+        transform 0.16s ease,
+        border-color 0.16s ease;
+}
+
+.carteira-sheet .viagens-btn--ghost:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--v-turquesa) 40%, var(--v-borda));
+}
+
+.carteira-sheet__empty {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    min-height: 4.2rem;
+    color: var(--v-legenda);
+}
+
+.carteira-sheet__empty p {
+    margin: 0;
+}
+
+.carteira-sheet__feed {
+    gap: 0.4rem;
+}
+
+.carteira-sheet__feed li {
+    padding: 0.5rem 0.65rem;
+    border-radius: 0.75rem;
+    border-bottom: 0;
+    background: var(--v-janela);
+    border: 1px solid var(--v-borda);
+    transition:
+        transform 0.15s ease,
+        border-color 0.15s ease;
+}
+
+.carteira-sheet__feed li:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--v-turquesa) 35%, var(--v-borda));
+}
+
+.carteira-sheet .voos-icon-btn {
+    transition:
+        transform 0.15s ease,
+        background 0.15s ease;
+}
+
+.carteira-sheet .voos-icon-btn:hover {
+    transform: scale(1.08);
+}
+
+.carteira-sheet .viagens-field,
+.carteira-sheet .pontos-input {
+    min-height: 2.05rem;
+    padding: 0.32rem 0.55rem;
+    font-size: 0.8125rem;
+}
+
+@media (max-width: 560px) {
+    .carteira-sheet {
+        width: min(42rem, calc(100vw - 1.5rem));
+    }
+
+    .carteira-sheet__body,
+    .carteira-sheet__fx,
+    .carteira-sheet__form-grid--3,
+    .carteira-sheet .wallet-benefits__grid,
+    .carteira-sheet .wallet-benefits__grid.is-club,
+    .carteira-sheet .wallet-benefits__club-fields {
+        grid-template-columns: 1fr;
+    }
+
+    .carteira-sheet__move {
+        grid-column: auto;
+    }
+}
+
+.carteira-resumo {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+}
+
+.carteira-resumo__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8.4rem, 1fr));
+    gap: 0.5rem;
+    flex: 1 1 auto;
+    width: 100%;
+    align-items: stretch;
+}
+
+.carteira-mini {
+    --pontos-brand: var(--v-turquesa);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.12rem;
+    min-height: 0;
+    height: 100%;
+    padding: 0.7rem 0.7rem 0.65rem;
+    border: 1px solid color-mix(in srgb, var(--pontos-brand) 38%, var(--v-borda));
+    border-radius: 1.05rem;
+    background:
+        radial-gradient(120% 90% at 110% -10%, color-mix(in srgb, var(--pontos-brand) 18%, transparent), transparent 55%),
+        var(--v-painel);
+    color: var(--v-tinta);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    appearance: none;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+    transition:
+        transform 0.18s ease,
+        box-shadow 0.18s ease,
+        border-color 0.18s ease;
+}
+
+.carteira-mini::after {
+    content: '';
+    position: absolute;
+    inset: -40% auto auto -20%;
+    width: 70%;
+    height: 90%;
+    background: linear-gradient(120deg, transparent, color-mix(in srgb, #fff 18%, transparent), transparent);
+    transform: translateX(-40%);
+    animation: carteira-shine 5.5s ease-in-out infinite;
+    animation-delay: var(--shine-delay, 0s);
+    pointer-events: none;
+}
+
+@keyframes carteira-shine {
+    0%,
+    55% {
+        transform: translateX(-50%) rotate(12deg);
+        opacity: 0;
+    }
+    70% {
+        opacity: 0.7;
+    }
+    100% {
+        transform: translateX(180%) rotate(12deg);
+        opacity: 0;
+    }
+}
+
+.carteira-mini:hover,
+.carteira-mini:focus-visible {
+    transform: translateY(-3px) scale(1.015);
+    border-color: color-mix(in srgb, var(--pontos-brand) 58%, var(--v-borda));
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.06) inset,
+        0 12px 24px color-mix(in srgb, var(--pontos-brand) 18%, transparent);
+    outline: none;
+}
+
+.carteira-mini__unit {
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--v-legenda);
+}
+
+.carteira-mini__saldo {
+    font-size: 1.28rem;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+
+.carteira-mini__name,
+.carteira-mini__issuer {
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.carteira-mini__issuer {
+    opacity: 0.72;
+    font-weight: 600;
+}
+
+.carteira-mini__bar {
+    margin-top: auto;
+    display: block;
+    width: 100%;
+    height: 0.28rem;
+    margin-top: 0.45rem;
+    border-radius: 99px;
+    background: color-mix(in srgb, #fff 16%, transparent);
+    overflow: hidden;
+}
+
+.carteira-mini__bar > span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--pontos-brand);
+    transition: width 0.55s ease;
+}
+
+.carteira-mini__perks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.28rem;
+    margin-top: 0.15rem;
+}
+
+.carteira-mini__perks em {
+    font-style: normal;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 0.12rem 0.4rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--v-turquesa) 18%, transparent);
+    color: var(--v-turquesa);
+}
+
+.carteira-mini__need {
+    margin-top: 0.28rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--v-legenda);
+}
+
+.carteira-mini__need.is-out {
+    color: var(--v-coral);
+}
+
+.carteira-mini__need.is-ok {
+    color: var(--v-turquesa);
+}
+
+.carteira-mini__open {
+    position: absolute;
+    top: 0.7rem;
+    right: 0.7rem;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #161618;
+    background: var(--v-ouro);
+    border-radius: 999px;
+    padding: 0.18rem 0.45rem;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition:
+        opacity 0.18s ease,
+        transform 0.18s ease;
+}
+
+.carteira-mini:hover .carteira-mini__open,
+.carteira-mini:focus-visible .carteira-mini__open {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.carteira-mini--add {
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    min-height: 8.1rem;
+    background: var(--v-painel);
+    border-style: dashed;
+    border-color: color-mix(in srgb, var(--v-turquesa) 35%, var(--v-borda));
+    box-shadow: none;
+    color: var(--v-turquesa);
+}
+
+.carteira-mini--add::after {
+    display: none;
+}
+
+.voo-miles {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    padding: 0.85rem 0.9rem 0.95rem;
+    border-radius: 1rem;
+    border: 1px solid var(--v-borda);
+    background: color-mix(in srgb, var(--v-janela) 70%, transparent);
+}
+
+.voo-miles--on {
+    border-color: color-mix(in srgb, var(--v-turquesa) 42%, var(--v-borda));
+    background: color-mix(in srgb, var(--v-turquesa) 8%, var(--v-janela));
+}
+
+.voo-miles__tax {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 0;
+}
+
+.voo-miles__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.7rem;
+    flex-wrap: wrap;
+}
+
+.voo-miles__head h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    letter-spacing: -0.02em;
+}
+
+.voo-miles__hint {
+    margin: 0;
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: var(--v-legenda);
+}
+
+.voo-miles__insight {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.45rem;
+}
+
+.voo-miles__insight div {
+    padding: 0.5rem 0.55rem;
+    border-radius: 0.75rem;
+    background: var(--v-janela);
+    border: 1px solid var(--v-borda);
+}
+
+.voo-miles__insight span {
+    display: block;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--v-legenda);
+}
+
+.voo-miles__insight strong {
+    display: block;
+    margin-top: 0.15rem;
+    font-size: 0.92rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.voo-miles__insight .is-out {
+    border-color: color-mix(in srgb, var(--v-coral) 40%, var(--v-borda));
+}
+
+.voo-miles__insight .is-ok {
+    border-color: color-mix(in srgb, var(--v-turquesa) 40%, var(--v-borda));
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+#viagens-page .viagens-secao--launch {
+    display: flex;
+    width: 100%;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    padding: 0;
+    font: inherit;
+    text-align: left;
+}
+
+#viagens-page .viagens-secao--launch .viagens-secao__head {
+    width: 100%;
+    border-bottom: 0;
+}
+
+#viagens-page .viagens-secao--launch .viagens-secao__meta {
+    margin-left: auto;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-light);
+}
+
+#viagens-page .viagens-secao--launch .viagens-secao__chevron {
+    color: var(--text-light);
+    display: inline-flex;
+}
+
+@media (max-width: 800px) {
+    .voos-resumo {
+        grid-template-columns: 1fr;
+    }
+
+    .voos-segment__head {
+        flex-wrap: wrap;
+    }
+
+    .voos-segment__head .voos-segment__title {
+        flex: 1 1 auto;
+        width: auto;
+        max-width: none;
+    }
+
+    .voos-segment__best {
+        flex: 1 1 auto;
+        margin-left: 0;
+        justify-content: flex-end;
+        order: 3;
+        width: auto;
+        max-width: none;
+    }
+
+    .voos-scene__legs:has(.voos-scene__leg:nth-child(2)) {
+        grid-template-columns: 1fr;
+    }
+
+    .voos-kpis,
+    .voos-editor__grid,
+    .voos-values__grid,
+    .voos-compare__grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 560px) {
+    .voos-kpis,
+    .voos-editor__grid,
+    .voos-values__grid,
+    .voos-compare__grid,
+    .voos-sim-ledger {
+        grid-template-columns: 1fr;
+    }
+
+    .voos-conn-list li,
+    .voos-leg__when-grid,
+    .voos-bags,
+    .voos-editor__meta,
+    .voos-editor__meta:has(.voos-field--city) {
+        grid-template-columns: 1fr;
+        max-width: none;
+    }
+
+    .voo-miles__insight {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .voo-pay__grid--in,
+    .voo-pay__grid--cash,
+    .voo-pay__grid--fare,
+    .voo-pay__grid--fare.has-bonus,
+    .voo-pay__grid--stats,
+    .voo-pay__hero,
+    .voo-pay__compare-row {
+        grid-template-columns: 1fr;
+    }
+
+    .voo-pay__compare-row {
+        gap: 0.22rem;
+    }
+
+    .voo-pay__compare-row .voo-pay__compare-track {
+        grid-row: 2;
+        grid-column: 1 / -1;
+    }
+
+    .voo-pay__compare-row strong {
+        grid-row: 1;
+        grid-column: 2;
+        justify-self: end;
+    }
+
+    .voo-pay__tabs {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .voo-pay__tabs button {
+        flex: 1;
+    }
+}

@@ -8,12 +8,19 @@ import type {
     TripDocItem,
     TripExpense,
     TripLeg,
+    TripFlightSegment,
     TripPayload,
     TripStay
 } from '../types';
 import { routeStops } from '@motor/viagens/trip-places.js';
+import { budgets } from '@motor/viagens/trips-engine.js';
 import { ViagemMiniMap } from './ViagemMiniMap';
+import { tripFlightSegments } from '@motor/viagens/flight-simulation.js';
 import { ViagemSecaoCard } from './ViagemSecaoCard';
+import { ViagemModuloPanel, ViagemModulos, type FichaModuloId } from './ViagemModulos';
+import { TripFichaTopRow } from './TripFichaTopRow';
+import { TripOrcamentoPanel } from './orcamento/TripOrcamentoPanel';
+import '../styles/orcamento-workspace.css';
 import { formatBRL } from '../utils/map-utils';
 import '../styles/viagens-ficha-form.css';
 import '../styles/viagens-ficha-cadastro.css';
@@ -40,11 +47,7 @@ function EssentialCadastroShell({ isCadastro, children }: { isCadastro: boolean;
             </article>
         );
     }
-    return (
-        <ViagemSecaoCard title="Destinos & roteiro" seal="coral">
-            {children}
-        </ViagemSecaoCard>
-    );
+    return <>{children}</>;
 }
 
 export type TripDraft = {
@@ -60,10 +63,16 @@ type Props = {
     trip: Trip;
     onChange: (draft: TripDraft) => void;
     scenarioWinnerId?: string | null;
-    /** Rascunho controlado (ex.: /viagens/nova) — evita estado duplicado. */
+    /** Rascunho controlado pelo pai (ficha salva ou /viagens/nova). */
     draft?: TripDraft;
+    /** Layout de cadastro em /viagens/nova — não usar na ficha de viagem salva. */
+    cadastro?: boolean;
     /** Globo fullscreen renderizado fora da ficha (ViagemNovaPage). */
     externalGlobe?: boolean;
+    modulo?: FichaModuloId | null;
+    onModuloChange?: (id: FichaModuloId | null) => void;
+    scenarioCount?: number;
+    onOpenSimulador?: () => void;
 };
 
 function emptyPayload(): TripPayload {
@@ -81,22 +90,47 @@ function emptyPayload(): TripPayload {
     };
 }
 
+function normalizeBudgetCaps(raw: Record<string, unknown> | undefined): Record<string, number> {
+    const out: Record<string, number> = {};
+    for (const [key, value] of Object.entries(raw ?? {})) {
+        const n = Number(value);
+        if (Number.isFinite(n) && n >= 0) out[key] = n;
+    }
+    return out;
+}
+
 export function tripToDraft(trip: Trip): TripDraft {
+    const rawCaps =
+        trip.budgetCaps ??
+        (trip as Trip & { budget_caps?: Record<string, unknown> }).budget_caps;
     return {
         title: trip.title,
         startsOn: trip.startsOn ?? '',
         endsOn: trip.endsOn ?? '',
         statusOverride: trip.statusOverride ?? '',
-        budgetCaps: { ...trip.budgetCaps },
+        budgetCaps: normalizeBudgetCaps(rawCaps as Record<string, unknown> | undefined),
         payload: { ...emptyPayload(), ...trip.payload }
     };
 }
 
-export function ViagemFicha({ trip, onChange, scenarioWinnerId, draft: controlledDraft, externalGlobe = false }: Props) {
+export function ViagemFicha({
+    trip,
+    onChange,
+    draft: controlledDraft,
+    cadastro = false,
+    externalGlobe = false,
+    modulo,
+    onModuloChange,
+    scenarioCount = 0,
+    onOpenSimulador
+}: Props) {
     const [internalDraft, setInternalDraft] = useState(() => tripToDraft(trip));
     const draft = controlledDraft ?? internalDraft;
     const [geoQ, setGeoQ] = useState('');
     const [geoHits, setGeoHits] = useState<GeocodeHit[]>([]);
+    const [internalModulo, setInternalModulo] = useState<FichaModuloId | null>(null);
+    const fichaModulo = onModuloChange ? (modulo ?? null) : internalModulo;
+    const setFichaModulo = onModuloChange ?? setInternalModulo;
 
     const patch = useCallback(
         (fn: (d: TripDraft) => TripDraft) => {
@@ -163,8 +197,8 @@ export function ViagemFicha({ trip, onChange, scenarioWinnerId, draft: controlle
         }));
     }
 
-    const flightSegments = draft.payload.flight_segments ?? draft.payload.flightSegments ?? [];
-    const isCadastro = controlledDraft != null;
+    const flightSegments = tripFlightSegments(draft.payload) as TripFlightSegment[];
+    const isCadastro = cadastro;
 
     const periodoGridCadastro = (
         <div className="viagens-form-grid viagens-form-grid--2 viagens-form-grid--cadastro-datas">
@@ -191,67 +225,86 @@ export function ViagemFicha({ trip, onChange, scenarioWinnerId, draft: controlle
         </div>
     );
 
-    const periodoGrid = (
-        <div className="viagens-form-grid viagens-form-grid--3">
-            <div className="viagens-form-field">
-                <label htmlFor="trip-start">Início</label>
-                <input
-                    id="trip-start"
-                    type="date"
-                    className="viagens-field"
-                    value={draft.startsOn}
-                    onChange={(e) => patch((d) => ({ ...d, startsOn: e.target.value }))}
-                />
-            </div>
-            <div className="viagens-form-field">
-                <label htmlFor="trip-end">Fim</label>
-                <input
-                    id="trip-end"
-                    type="date"
-                    className="viagens-field"
-                    value={draft.endsOn}
-                    onChange={(e) => patch((d) => ({ ...d, endsOn: e.target.value }))}
-                />
-            </div>
-            <div className="viagens-form-field">
-                <label htmlFor="status-override">Status</label>
-                <select
-                    id="status-override"
-                    className="viagens-field"
-                    value={draft.statusOverride}
-                    onChange={(e) => patch((d) => ({ ...d, statusOverride: e.target.value }))}
-                >
-                    <option value="">Automático (datas)</option>
-                    <option value="planejada">Planejada</option>
-                    <option value="em_curso">Em curso</option>
-                    <option value="realizada">Realizada</option>
-                </select>
-            </div>
-        </div>
+    const goal = Number(draft.payload.tripGoal ?? draft.payload.trip_goal ?? 0) || 0;
+    const piggy = Number(draft.payload.piggyBank ?? draft.payload.piggy_bank ?? 0) || 0;
+    const budgetRows = useMemo(
+        () => budgets({ payload: draft.payload, budgetCaps: draft.budgetCaps }),
+        [draft.payload, draft.budgetCaps]
     );
 
     const orcamentoCore = (
         <>
-            <p className="viagens-form-subhead">Tetos por categoria</p>
             <div className="viagens-form-grid viagens-form-grid--2">
-                {BUILTIN_CATS.map((cat) => (
-                    <div key={cat} className="viagens-form-field">
-                        <label htmlFor={`cap-${cat}`}>Teto · {CAT_LABELS[cat]}</label>
-                        <input
-                            id={`cap-${cat}`}
-                            type="number"
-                            className="viagens-field"
-                            min={0}
-                            value={draft.budgetCaps[cat] ?? ''}
-                            onChange={(e) =>
-                                patch((d) => ({
-                                    ...d,
-                                    budgetCaps: { ...d.budgetCaps, [cat]: Number(e.target.value) || 0 }
-                                }))
-                            }
-                        />
-                    </div>
-                ))}
+                <div className="viagens-form-field">
+                    <label htmlFor="trip-goal">Meta (R$)</label>
+                    <input
+                        id="trip-goal"
+                        type="number"
+                        className="viagens-field"
+                        min={0}
+                        value={goal || ''}
+                        onChange={(e) => {
+                            const v = Number(e.target.value) || 0;
+                            patch((d) => ({
+                                ...d,
+                                payload: { ...d.payload, tripGoal: v, trip_goal: v }
+                            }));
+                        }}
+                    />
+                </div>
+                <div className="viagens-form-field">
+                    <label htmlFor="trip-piggy">Cofrinho (R$)</label>
+                    <input
+                        id="trip-piggy"
+                        type="number"
+                        className="viagens-field"
+                        min={0}
+                        value={piggy || ''}
+                        onChange={(e) => {
+                            const v = Number(e.target.value) || 0;
+                            patch((d) => ({
+                                ...d,
+                                payload: { ...d.payload, piggyBank: v, piggy_bank: v }
+                            }));
+                        }}
+                    />
+                </div>
+            </div>
+            <p className="viagens-form-subhead">Tetos por categoria</p>
+            <div className="viagens-form-stack">
+                {budgetRows.map((row) => {
+                    const cat = row.category as (typeof BUILTIN_CATS)[number];
+                    const label = CAT_LABELS[cat] ?? row.category;
+                    const cap = row.cap;
+                    const used = row.spent;
+                    const pct = cap > 0 ? Math.min(100, (used / cap) * 100) : 0;
+                    return (
+                        <div key={row.category} className="viagens-form-field">
+                            <label htmlFor={`cap-${row.category}`}>Teto · {label}</label>
+                            <input
+                                id={`cap-${row.category}`}
+                                type="number"
+                                className="viagens-field"
+                                min={0}
+                                value={draft.budgetCaps[row.category] ?? ''}
+                                onChange={(e) =>
+                                    patch((d) => ({
+                                        ...d,
+                                        budgetCaps: { ...d.budgetCaps, [row.category]: Number(e.target.value) || 0 }
+                                    }))
+                                }
+                            />
+                            <span className="viagens-muted">
+                                {formatBRL(used)} / {formatBRL(cap)}
+                            </span>
+                            {cap > 0 ? (
+                                <div className="viagens-cap-bar">
+                                    <div className="viagens-cap-bar__fill" style={{ width: `${pct}%` }} />
+                                </div>
+                            ) : null}
+                        </div>
+                    );
+                })}
             </div>
             <p className="viagens-form-subhead">Lançamentos</p>
             <ExpenseBlock
@@ -262,9 +315,8 @@ export function ViagemFicha({ trip, onChange, scenarioWinnerId, draft: controlle
         </>
     );
 
-    return (
-        <div className={isCadastro ? 'viagens-ficha-cadastro viagens-ficha-accordion' : 'viagens-ficha-accordion'}>
-            <EssentialCadastroShell isCadastro={isCadastro}>
+    const destinosCore = (
+        <>
                 {isCadastro ? (
                     <>
                         <p className="viagens-form-subhead">Quando</p>
@@ -452,172 +504,99 @@ export function ViagemFicha({ trip, onChange, scenarioWinnerId, draft: controlle
                         </button>
                     </div>
                 ) : null}
-            </EssentialCadastroShell>
+        </>
+    );
 
-            {!isCadastro ? (
-                <ViagemSecaoCard title="Período & orçamento" seal="ouro">
-                    {periodoGrid}
-                    {orcamentoCore}
-                </ViagemSecaoCard>
-            ) : (
-                <ViagemSecaoCard title="Opcional · orçamento e logística" seal="ouro" defaultOpen={false}>
-                    {orcamentoCore}
-                    <p className="viagens-form-subhead">Voos</p>
-                    <div className="viagens-form-stack">
-                        {flightSegments.map((seg) => (
-                            <div key={seg.id} className="viagens-form-check-row">
-                                <span>{seg.title ?? 'Trecho'}</span>
-                            </div>
-                        ))}
-                    </div>
-                    <div className="viagens-form-actions">
-                        <button
-                            type="button"
-                            className="viagens-btn viagens-btn--ghost"
-                            onClick={() =>
-                                patch((d) => ({
-                                    ...d,
-                                    payload: {
-                                        ...d.payload,
-                                        flight_segments: [
-                                            ...flightSegments,
-                                            { id: crypto.randomUUID(), title: 'Novo trecho', simulations: [] }
-                                        ]
-                                    }
-                                }))
-                            }
-                        >
-                            + Trecho
-                        </button>
-                    </div>
-                    <p className="viagens-form-subhead">Hospedagens</p>
-                    <StayBlock
-                        stays={draft.payload.stays ?? []}
-                        destOptions={destOptions}
-                        onChange={(stays) => patch((d) => ({ ...d, payload: { ...d.payload, stays } }))}
+    const hospedagensCore = (
+        <>
+            <p className="viagens-form-subhead">Hospedagens</p>
+            <StayBlock
+                stays={draft.payload.stays ?? []}
+                destOptions={destOptions}
+                onChange={(stays) => patch((d) => ({ ...d, payload: { ...d.payload, stays } }))}
+            />
+            <p className="viagens-form-subhead">Trechos terrestres</p>
+            <LegBlock
+                legs={draft.payload.legs ?? []}
+                destOptions={destOptions}
+                onChange={(legs) => patch((d) => ({ ...d, payload: { ...d.payload, legs } }))}
+            />
+        </>
+    );
+
+    return (
+        <>
+            {!isCadastro && fichaModulo == null ? (
+                <div className="viagens-ficha-home">
+                    <TripFichaTopRow
+                        trip={trip}
+                        draft={draft}
+                        onPatch={patch}
+                        scenarioCount={scenarioCount}
+                        onOpenSimulador={onOpenSimulador}
                     />
-                    <p className="viagens-form-subhead">Trechos terrestres</p>
-                    <LegBlock
-                        legs={draft.payload.legs ?? []}
-                        destOptions={destOptions}
-                        onChange={(legs) => patch((d) => ({ ...d, payload: { ...d.payload, legs } }))}
-                    />
-                </ViagemSecaoCard>
-            )}
-
-            {!isCadastro ? (
-            <>
-            <ViagemSecaoCard title="Voos" seal="turquesa" defaultOpen={false}>
-                <div className="viagens-form-stack">
-                    {flightSegments.map((seg) => (
-                        <div key={seg.id} className="viagens-form-check-row">
-                            <span>{seg.title ?? 'Trecho'}</span>
-                        </div>
-                    ))}
+                    <ViagemModulos tripId={trip.id} onOpen={setFichaModulo} />
                 </div>
-                <div className="viagens-form-actions">
-                    <button
-                        type="button"
-                        className="viagens-btn viagens-btn--ghost"
-                        onClick={() =>
-                            patch((d) => ({
-                                ...d,
-                                payload: {
-                                    ...d.payload,
-                                    flight_segments: [
-                                        ...flightSegments,
-                                        { id: crypto.randomUUID(), title: 'Novo trecho', simulations: [] }
-                                    ]
-                                }
-                            }))
-                        }
-                    >
-                        + Trecho
-                    </button>
-                </div>
-            </ViagemSecaoCard>
-
-            <ViagemSecaoCard title="Hospedagens & transporte" seal="oceano" defaultOpen={false}>
-                <p className="viagens-form-subhead">Hospedagens</p>
-                <StayBlock
-                    stays={draft.payload.stays ?? []}
-                    destOptions={destOptions}
-                    onChange={(stays) => patch((d) => ({ ...d, payload: { ...d.payload, stays } }))}
-                />
-                <p className="viagens-form-subhead">Trechos terrestres</p>
-                <LegBlock
-                    legs={draft.payload.legs ?? []}
-                    destOptions={destOptions}
-                    onChange={(legs) => patch((d) => ({ ...d, payload: { ...d.payload, legs } }))}
-                />
-            </ViagemSecaoCard>
-            </>
             ) : null}
 
-            <ViagemSecaoCard
-                title={isCadastro ? 'Opcional · documentos e checklist' : 'Documentos & checklist'}
-                seal="oceano"
-                defaultOpen={false}
-            >
-                <p className="viagens-form-subhead">Documentos</p>
-                <ChecklistBlock
-                    items={draft.payload.documents ?? []}
-                    onChange={(documents) => patch((d) => ({ ...d, payload: { ...d.payload, documents } }))}
-                    addLabel="Documento"
-                />
-                <p className="viagens-form-subhead">Checklist</p>
-                <ChecklistBlock
-                    items={draft.payload.checks ?? []}
-                    onChange={(checks) => patch((d) => ({ ...d, payload: { ...d.payload, checks } }))}
-                    addLabel="Item"
-                />
-            </ViagemSecaoCard>
-
-            {!isCadastro ? (
-            <>
-            <ViagemSecaoCard title="Cenários de tempo" seal="turquesa" defaultOpen={false}>
-                <p className="viagens-muted">
-                    Motor web com paridade parcial vs Mac. Vencedor atual: {scenarioWinnerId ?? '—'}
-                </p>
-                {(draft.payload.time_scenarios ?? draft.payload.timeScenarios ?? []).map((sc) => (
-                    <div key={sc.id} className="viagens-list-item">
-                        <span>{sc.title ?? sc.id}</span>
-                        <label>
-                            <input
-                                type="radio"
-                                name="chosen-scenario"
-                                checked={
-                                    (draft.payload.chosen_time_scenario_id ?? draft.payload.chosenTimeScenarioId) ===
-                                    sc.id
-                                }
-                                onChange={() =>
+            {isCadastro ? (
+                <div className="viagens-ficha-cadastro viagens-ficha-accordion viagens-ficha__sections">
+                    <EssentialCadastroShell isCadastro>{destinosCore}</EssentialCadastroShell>
+                    <ViagemSecaoCard title="Opcional · orçamento e logística" seal="ouro" defaultOpen={false}>
+                        {orcamentoCore}
+                        <p className="viagens-form-subhead">Voos</p>
+                        <div className="viagens-form-stack">
+                            {flightSegments.map((seg) => (
+                                <div key={seg.id} className="viagens-form-check-row">
+                                    <span>{seg.title ?? 'Trecho'}</span>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="viagens-form-actions">
+                            <button
+                                type="button"
+                                className="viagens-btn viagens-btn--ghost"
+                                onClick={() =>
                                     patch((d) => ({
                                         ...d,
                                         payload: {
                                             ...d.payload,
-                                            chosen_time_scenario_id: sc.id,
-                                            chosenTimeScenarioId: sc.id
+                                            flight_segments: [
+                                                ...flightSegments,
+                                                { id: crypto.randomUUID(), title: 'Novo trecho', simulations: [] }
+                                            ]
                                         }
                                     }))
                                 }
-                            />{' '}
-                            Adotado na ficha
-                        </label>
-                    </div>
-                ))}
-            </ViagemSecaoCard>
-
-            <ViagemSecaoCard title="Resumo" seal="oceano" defaultOpen={false}>
-                <p>
-                    Total gasto: <strong>{formatBRL(trip.tripTotal ?? 0)}</strong>
-                </p>
-                <p className="viagens-muted">
-                    {trip.cityCount ?? 0} cidades · status {trip.effectiveStatus ?? '—'}
-                </p>
-            </ViagemSecaoCard>
-            </>
+                            >
+                                + Trecho
+                            </button>
+                        </div>
+                        {hospedagensCore}
+                    </ViagemSecaoCard>
+                    <ViagemSecaoCard title="Opcional · documentos" seal="oceano" defaultOpen={false}>
+                        <p className="viagens-muted">Na ficha salva, use o ícone de documentos no checklist.</p>
+                        <ChecklistBlock
+                            items={draft.payload.documents ?? []}
+                            onChange={(documents) => patch((d) => ({ ...d, payload: { ...d.payload, documents } }))}
+                            addLabel="Documento"
+                        />
+                    </ViagemSecaoCard>
+                </div>
+            ) : fichaModulo === 'orcamento' ? (
+                <TripOrcamentoPanel
+                    trip={trip}
+                    draft={draft}
+                    onPatch={patch}
+                    onBack={() => setFichaModulo(null)}
+                />
+            ) : fichaModulo ? (
+                <ViagemModuloPanel modulo={fichaModulo} onBack={() => setFichaModulo(null)}>
+                    {fichaModulo === 'roteiros' ? destinosCore : null}
+                    {fichaModulo === 'hospedagens' ? hospedagensCore : null}
+                </ViagemModuloPanel>
             ) : null}
-        </div>
+        </>
     );
 }
 

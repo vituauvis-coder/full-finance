@@ -113,6 +113,7 @@ export function ViagemNovaPage() {
                         <ViagemFicha
                             trip={localTrip}
                             draft={draft}
+                            cadastro
                             onChange={setDraft}
                             scenarioWinnerId={null}
                             externalGlobe
