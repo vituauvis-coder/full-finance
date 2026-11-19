@@ -5,7 +5,7 @@ Tudo que **não** é código de produto (`front`, `back`, `motor`, `legacy-web`)
 | Pasta | Uso |
 |--------|-----|
 | `admin/` | Painel administrativo estático (`/admin`) |
-| `data/` | Uploads locais (`data/uploads`) |
+| `data/` | Uploads locais (`data/uploads`); backups diários do dev em `data/backups/daily/` (gitignored) |
 | `docs/` | Documentação do projeto |
 | `prisma/` | Schema legado + migrations SQL Postgres |
 | `scripts/` | Dev, migrações, seeds, debug |

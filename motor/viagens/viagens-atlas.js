@@ -1,6 +1,8 @@
 /** Paridade com `ViagensAtlas.swift`. */
 export const VIAGENS_HOME = {
-    name: 'Recife',
+    /** Sigla exibida no mapa (aeroporto de saída). */
+    name: 'REC',
+    iata: 'REC',
     latitude: -8.0476,
     longitude: -34.877
 };

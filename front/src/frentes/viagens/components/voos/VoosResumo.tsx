@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { originPointsNeeded } from '@motor/milhas/convert.js';
 import { flightLedger, optionScore, tripFlightScenario, usesMilesPath } from '@motor/viagens/flight-ledger.js';
 import {
@@ -203,6 +204,14 @@ export function VoosResumo({ tripId, payload }: Props) {
                 <div className="voos-resumo__col-head">
                     <h2>Carteira</h2>
                     <div className="voos-resumo__tools">
+                        <Link
+                            to="/viagens/milhas"
+                            className="voos-resumo__tool voos-resumo__tool--link"
+                            title="Central de milhas"
+                        >
+                            <MaterialIcon name="loyalty" variant="app" opticalSize={18} />
+                            Central
+                        </Link>
                         <button
                             type="button"
                             className="voos-resumo__tool"

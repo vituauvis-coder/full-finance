@@ -10,6 +10,7 @@ import {
     parseDecimal,
     type MilesProgram
 } from './pontos-format';
+import { programMilheiro, saldoEmReais } from '../../domain/milhas-cmp';
 
 export function PontosAlert({ children }: { children: ReactNode }) {
     if (!children) return null;
@@ -270,27 +271,48 @@ export function Segmented({
 export function ProgramStrip({
     programs,
     selectedId,
-    onSelect
+    onSelect,
+    variant = 'default'
 }: {
     programs: MilesProgram[];
     selectedId?: string;
     onSelect?: (id: string) => void;
+    variant?: 'default' | 'strip';
 }) {
     if (programs.length === 0) {
         return <p className="voos-muted">Nenhum programa ainda.</p>;
     }
+    const wrapCls = variant === 'strip' ? 'pontos-wallets pontos-wallets--strip' : 'pontos-wallets';
     return (
-        <div className="pontos-wallets">
+        <div className={wrapCls}>
             {programs.map((p) => {
                 const on = selectedId === p.id;
-                const meta = [
-                    p.issuer || null,
-                    p.available != null ? `livre ${formatPts(p.available)}` : null
-                ].filter(Boolean);
+                const cmp = programMilheiro(p);
+                const saldoBrl = saldoEmReais(p);
+                const meta =
+                    variant === 'strip'
+                        ? [
+                              p.householdId ? 'Casa' : null,
+                              cmp != null ? `CMP ${formatBRL(cmp)}` : null,
+                              saldoBrl != null ? formatBRL(saldoBrl) : null
+                          ].filter(Boolean)
+                        : [
+                              p.householdId ? 'Casa' : null,
+                              p.holderUserName ? `Titular: ${p.holderUserName}` : null,
+                              p.issuer || null,
+                              cmp != null ? `CMP ${formatBRL(cmp)}` : null,
+                              saldoBrl != null ? `Saldo ${formatBRL(saldoBrl)}` : null,
+                              p.available != null ? `livre ${formatPts(p.available)}` : null
+                          ].filter(Boolean);
                 const inner = (
                     <>
                         <span className="pontos-wallet__brand">{unitLabel(p.unit || 'pontos', 2)}</span>
                         <strong>{formatPts(p.balance)}</strong>
+                        {cmp != null ? (
+                            <span className="pontos-wallet__cmp">
+                                {formatBRL(cmp)} <small>/ milheiro</small>
+                            </span>
+                        ) : null}
                         <span className="pontos-wallet__name">{p.name}</span>
                         {meta.length ? <span className="pontos-wallet__meta">{meta.join(' · ')}</span> : null}
                     </>

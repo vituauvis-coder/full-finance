@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { MILES_PROGRAM_PRESETS, WALLET_UNITS, defaultUnitForBrand } from '@motor/milhas/catalog.js';
 import { MaterialIcon } from '../../../../components/icons/MaterialIcon';
-import { Chip, ChipRow, PtsField, TextField } from './PontosFields';
+import { apiFetch } from '../../../../lib/http';
+import { Chip, ChipRow, PtsField, SelectField, TextField } from './PontosFields';
 import type { MilesProgram } from './pontos-format';
 
 export type WalletDraft = {
@@ -12,7 +13,11 @@ export type WalletDraft = {
     notes: string;
     expiresOn: string;
     balance?: number;
+    householdShared?: boolean;
+    holderUserId?: string | null;
 };
+
+type HouseholdMember = { id: string; name?: string; email?: string };
 
 type Props = {
     title: string;
@@ -32,6 +37,15 @@ export function PontosWalletEditor({ title, initial, showBalance, balance = 0, b
     const [notes, setNotes] = useState(initial?.notes ?? '');
     const [expiresOn, setExpiresOn] = useState((initial?.expiresOn ?? '').slice(0, 10));
     const [saldo, setSaldo] = useState(balance);
+    const [householdShared, setHouseholdShared] = useState(Boolean(initial?.householdId));
+    const [holderUserId, setHolderUserId] = useState(initial?.holderUserId ?? '');
+    const [members, setMembers] = useState<HouseholdMember[]>([]);
+
+    useEffect(() => {
+        void apiFetch<{ members?: HouseholdMember[] }>('/api/household')
+            .then((data) => setMembers(Array.isArray(data.members) ? data.members : []))
+            .catch(() => setMembers([]));
+    }, []);
 
     function applyPreset(presetBrand: string) {
         const meta = MILES_PROGRAM_PRESETS.find((p) => p.brand === presetBrand);
@@ -52,7 +66,9 @@ export function PontosWalletEditor({ title, initial, showBalance, balance = 0, b
             issuer: issuer.trim(),
             notes: notes.trim(),
             expiresOn,
-            balance: showBalance ? saldo : undefined
+            balance: showBalance ? saldo : undefined,
+            householdShared: showBalance ? householdShared : undefined,
+            holderUserId: showBalance && householdShared && holderUserId ? holderUserId : null
         });
     }
 
@@ -112,7 +128,33 @@ export function PontosWalletEditor({ title, initial, showBalance, balance = 0, b
                     </label>
                 </div>
                 <TextField label="Notas" value={notes} onChange={setNotes} placeholder="Clube, cartão, vencimento de pontos…" />
-                {showBalance ? <PtsField label="Saldo" value={saldo} onChange={setSaldo} /> : null}
+                {showBalance ? (
+                    <>
+                        <label className="voos-field pontos-household-share">
+                            <input
+                                type="checkbox"
+                                checked={householdShared}
+                                onChange={(e) => setHouseholdShared(e.target.checked)}
+                            />
+                            <span>Compartilhada com a casa (mesmo saldo nos logins da família)</span>
+                        </label>
+                        {householdShared && members.length > 0 ? (
+                            <SelectField
+                                label="Titular do programa"
+                                value={holderUserId}
+                                onChange={setHolderUserId}
+                            >
+                                <option value="">Selecione…</option>
+                                {members.map((m) => (
+                                    <option key={m.id} value={m.id}>
+                                        {m.name?.trim() || m.email || m.id}
+                                    </option>
+                                ))}
+                            </SelectField>
+                        ) : null}
+                        <PtsField label="Saldo" value={saldo} onChange={setSaldo} />
+                    </>
+                ) : null}
                 <div className="voos-editor__foot">
                     <button type="button" className="viagens-btn viagens-btn--ghost" onClick={onClose}>
                         Cancelar

@@ -273,7 +273,13 @@ export function CarteiraSheet({ tripId, programId, onClose, onChanged }: Props) 
                     unit: draft.unit,
                     issuer: draft.issuer,
                     notes: draft.notes,
-                    expiresOn: draft.expiresOn || null
+                    expiresOn: draft.expiresOn || null,
+                    ...(draft.householdShared !== undefined
+                        ? {
+                              householdShared: draft.householdShared,
+                              holderUserId: draft.holderUserId ?? undefined
+                          }
+                        : {})
                 });
                 if (draft.balance != null && draft.balance !== selected.balance) {
                     await setMilesBalance(selected.id, draft.balance);

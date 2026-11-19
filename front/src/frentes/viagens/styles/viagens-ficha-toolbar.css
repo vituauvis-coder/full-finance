@@ -1,11 +1,11 @@
 /* Ficha da viagem: sem faixa «Viagens» do portal; toolbar própria */
 
-.page-content.page-content--dashboard-modern:has(#viagens-page) {
+[data-theme='dark'] .page-content.page-content--dashboard-modern:has(#viagens-page) {
     background: #161618;
     color: #f4f4f6;
 }
 
-.page-content.page-content--dashboard-modern:has(#viagens-page) > .app-ambient-bg {
+[data-theme='dark'] .page-content.page-content--dashboard-modern:has(#viagens-page) > .app-ambient-bg {
     display: none;
 }
 
@@ -53,6 +53,14 @@
     gap: 0.3rem;
     flex: 1 1 auto;
     min-width: 0;
+}
+
+#viagens-page .viagens-ficha__creator {
+    margin: 0;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: color-mix(in srgb, var(--text-color) 58%, transparent);
+    line-height: 1.3;
 }
 
 #viagens-page .viagens-ficha__chrome-right {

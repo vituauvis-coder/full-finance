@@ -3,10 +3,12 @@ export type SidebarLeaf = {
     page: string;
     icon: string;
     label: string;
+    /** Só ativo na rota exata (ex.: atlas em /viagens). */
+    end?: boolean;
 };
 
 export type SidebarGroupConfig = {
-    id: 'dinheiro';
+    id: 'dinheiro' | 'viagens';
     label: string;
     icon: string;
     items: readonly SidebarLeaf[];
@@ -17,13 +19,6 @@ export const SIDEBAR_DASHBOARD: SidebarLeaf = {
     page: 'dashboard',
     icon: 'dashboard',
     label: 'Dashboard'
-};
-
-export const SIDEBAR_VIAGENS: SidebarLeaf = {
-    to: '/viagens',
-    page: 'viagens',
-    icon: 'flight',
-    label: 'Viagens'
 };
 
 export const SIDEBAR_FERRAMENTAS: SidebarLeaf = {
@@ -45,6 +40,15 @@ export const SIDEBAR_GROUPS: readonly SidebarGroupConfig[] = [
             { to: '/dinheiro/carteira', page: 'wallet', icon: 'account_balance_wallet', label: 'Carteira' },
             { to: '/dinheiro/cofrinhos', page: 'cofrinhos', icon: 'savings', label: 'Cofrinhos' },
             { to: '/dinheiro/dividas', page: 'debts', icon: 'warning', label: 'Dívidas' }
+        ]
+    },
+    {
+        id: 'viagens',
+        label: 'Viagens',
+        icon: 'flight',
+        items: [
+            { to: '/viagens', page: 'viagens', icon: 'map', label: 'Viagens', end: true },
+            { to: '/viagens/milhas', page: 'viagens-milhas', icon: 'loyalty', label: 'Milhas' }
         ]
     }
 ] as const;

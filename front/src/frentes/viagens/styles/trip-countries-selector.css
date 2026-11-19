@@ -1,0 +1,139 @@
+.trip-countries {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+}
+
+.trip-countries__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.4rem;
+}
+
+.trip-countries__empty {
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: color-mix(in srgb, var(--text-color) 48%, transparent);
+    font-style: italic;
+}
+
+.trip-countries__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: color-mix(in srgb, var(--v-turquesa, #2ec4b6) 88%, var(--text-color));
+    background: color-mix(in srgb, var(--v-turquesa, #2ec4b6) 12%, var(--bg-color));
+    border: 1px solid color-mix(in srgb, var(--v-turquesa, #2ec4b6) 28%, transparent);
+}
+
+.trip-countries__chip-remove {
+    appearance: none;
+    border: none;
+    background: transparent;
+    color: inherit;
+    opacity: 0.65;
+    font-size: 0.85rem;
+    line-height: 1;
+    padding: 0 0.1rem;
+    cursor: pointer;
+}
+
+.trip-countries__chip-remove:hover {
+    opacity: 1;
+}
+
+.trip-countries__add {
+    appearance: none;
+    border: none;
+    background: transparent;
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: color-mix(in srgb, var(--text-color) 55%, transparent);
+    padding: 0.1rem 0.25rem;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.trip-countries__add:hover {
+    color: var(--v-turquesa, #2ec4b6);
+}
+
+.trip-countries__hint {
+    margin: 0.35rem 0 0;
+    font-size: 0.68rem;
+    color: color-mix(in srgb, var(--text-color) 50%, transparent);
+}
+
+.trip-countries__hint-btn {
+    appearance: none;
+    border: none;
+    background: none;
+    padding: 0.1rem 0.2rem;
+    margin: 0 0.1rem;
+    font: inherit;
+    font-weight: 600;
+    color: var(--v-turquesa, #2ec4b6);
+    cursor: pointer;
+    border-radius: 6px;
+}
+
+.trip-countries__hint-btn:hover {
+    background: color-mix(in srgb, var(--v-turquesa, #2ec4b6) 10%, transparent);
+}
+
+.trip-countries__popover {
+    position: absolute;
+    z-index: 30;
+    top: calc(100% + 0.35rem);
+    left: 0;
+    min-width: min(16rem, 100%);
+    padding: 0.5rem;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+}
+
+.trip-countries__search {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.4rem 0.55rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-light);
+    color: var(--text-color);
+    font-size: 0.8rem;
+    margin-bottom: 0.35rem;
+}
+
+.trip-countries__suggest {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 11rem;
+    overflow-y: auto;
+}
+
+.trip-countries__suggest button {
+    display: flex;
+    width: 100%;
+    text-align: left;
+    align-items: center;
+    padding: 0.4rem 0.45rem;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-color);
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.trip-countries__suggest button:hover {
+    background: color-mix(in srgb, var(--v-turquesa, #2ec4b6) 12%, transparent);
+}

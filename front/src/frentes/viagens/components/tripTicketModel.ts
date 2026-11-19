@@ -1,5 +1,7 @@
 import type { Trip, TripStatus } from '../types';
-import { formatTripDateRange } from '../utils/trip-dates';
+import { formatTripTicketDay } from '../utils/trip-dates';
+import { toApiDayKey } from '@motor/viagens/calendar-format.js';
+import { resolveTripCountries } from '@motor/viagens/trip-countries.js';
 
 export function tripTicketStatus(trip: Trip): TripStatus {
     const s = trip.effectiveStatus;
@@ -24,11 +26,43 @@ export function tripTicketRoute(trip: Trip): string {
         .join(' → ');
 }
 
-export function tripTicketDates(trip: Trip): string {
-    return formatTripDateRange(trip.startsOn, trip.endsOn);
+/** Países para o bilhete (seleção ou roteiro). */
+export function tripTicketCountries(trip: Trip): string[] {
+    return resolveTripCountries(trip.payload, trip.payload?.destinations ?? []);
+}
+
+
+export type TripTicketLegDates = {
+    ida: string;
+    volta: string;
+};
+
+/** Ida e volta no estilo passagem aérea. */
+export function tripTicketLegDates(trip: Trip): TripTicketLegDates {
+    const startKey = toApiDayKey(trip.startsOn);
+    const endKey = toApiDayKey(trip.endsOn);
+    const ida = formatTripTicketDay(trip.startsOn) ?? '—';
+
+    if (!endKey) {
+        return { ida, volta: '—' };
+    }
+    if (startKey && endKey === startKey) {
+        return { ida, volta: '—' };
+    }
+    const volta = formatTripTicketDay(trip.endsOn) ?? '—';
+    return { ida, volta };
 }
 
 export function tripTicketRef(trip: Trip): string {
     const raw = trip.id.replace(/-/g, '').slice(-8).toUpperCase();
     return raw || '00000000';
+}
+
+/** Nome de exibição de quem criou a viagem. */
+export function tripCreatorLabel(trip: Trip): string | null {
+    const name = trip.creator?.name?.trim();
+    if (name) return name;
+    const email = trip.creator?.email?.trim();
+    if (email) return email.split('@')[0] ?? email;
+    return null;
 }

@@ -12,6 +12,14 @@ function statusLabel(s) {
     return 'PLANEJADA';
 }
 
+function creatorLabel(trip) {
+    const name = trip.creator?.name?.trim();
+    if (name) return name;
+    const email = trip.creator?.email?.trim();
+    if (email) return email.split('@')[0] || email;
+    return '';
+}
+
 function cityLine(trip) {
     return (trip.payload?.destinations ?? [])
         .map((d) => d.name?.trim())
@@ -26,6 +34,7 @@ export function renderTrilhoHtml(trips) {
             : trips
                   .map((t, i) => {
                       const title = t.title?.trim() || 'Nova viagem';
+                      const by = creatorLabel(t);
                       const cities = cityLine(t);
                       const frac = t.capUsedFraction ?? 0;
                       const over = frac > 1;
@@ -35,7 +44,7 @@ export function renderTrilhoHtml(trips) {
                     <h3 class="viagens-tag__title">${escapeHtml(title)}</h3>
                     <span class="viagens-stamp ${stampClass(t.effectiveStatus)}">${statusLabel(t.effectiveStatus)}</span>
                 </div>
-                <p class="viagens-tag__meta">${formatTripDateRange(t.startsOn, t.endsOn)}</p>
+                <p class="viagens-tag__meta">${formatTripDateRange(t.startsOn, t.endsOn)}${by ? ` · ${escapeHtml(by)}` : ''}</p>
                 ${cities ? `<p class="viagens-tag__meta">${escapeHtml(cities)}</p>` : ''}
                 <div class="viagens-cap-bar" role="progressbar" aria-valuenow="${Math.round(Math.min(100, frac * 100))}">
                     <div class="viagens-cap-bar__fill ${over ? 'viagens-cap-bar__fill--over' : ''}"
@@ -47,7 +56,7 @@ export function renderTrilhoHtml(trips) {
     return `
         <aside class="viagens-casa__trail" aria-label="Trilho de viagens">
             <div class="viagens-trail-header">
-                <h2>Suas viagens</h2>
+                <h2>Viagens</h2>
                 <button type="button" class="viagens-btn viagens-btn--ghost viagens-trail-new" id="viagens-btn-new">Nova viagem</button>
             </div>
             <div class="viagens-trail-scroll">${cards}</div>

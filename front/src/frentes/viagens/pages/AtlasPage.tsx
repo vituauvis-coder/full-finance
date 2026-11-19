@@ -42,10 +42,6 @@ export function AtlasPage() {
                         {error}
                     </p>
                 ) : null}
-                <p className="viagens-page-lead">
-                    <strong>Seu atlas</strong> — Saindo de Recife: pins nos destinos, linhas tracejadas até sua casa. O
-                    trilho à direita guarda as viagens.
-                </p>
                 {loading ? (
                     <ScreenLoader label="Carregando atlas" />
                 ) : (

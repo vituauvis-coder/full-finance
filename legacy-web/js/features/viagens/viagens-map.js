@@ -120,7 +120,6 @@ function renderMarkers(overlay, visits, onOpenTrip, map, spanLat = VIAGENS_GLOBE
     const homeEl = document.createElement('div');
     homeEl.className = 'viagens-home-badge';
     homeEl.innerHTML = `
-        <span class="viagens-home-badge__icon" aria-hidden="true">🧳</span>
         <span class="viagens-home-badge__label">${VIAGENS_HOME.name}</span>`;
     const homeMarker = new maplibregl.Marker({ element: homeEl, anchor: 'center' })
         .setLngLat([VIAGENS_HOME.longitude, VIAGENS_HOME.latitude])

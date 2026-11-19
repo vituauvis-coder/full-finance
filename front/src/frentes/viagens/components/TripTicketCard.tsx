@@ -1,15 +1,18 @@
 import type { Trip } from '../types';
 import {
-    tripTicketDates,
+    tripTicketCountries,
+    tripTicketLegDates,
     tripTicketRef,
     tripTicketRoute,
     tripTicketStatus,
     tripTicketStatusLabel,
-    tripTicketTitle
+    tripTicketTitle,
+    tripCreatorLabel
 } from './tripTicketModel';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { tripTicketArtCandidate } from './tripTicketArt';
+import { CountryFlag } from './CountryFlag';
 import './TripTicketCard.css';
 
 type Props = {
@@ -50,6 +53,9 @@ export function TripTicketCard({ trip }: Props) {
     const showArt = artVisible && artCandidate;
 
     const title = tripTicketTitle(trip);
+    const creator = tripCreatorLabel(trip);
+    const { ida, volta } = tripTicketLegDates(trip);
+    const countries = tripTicketCountries(trip);
 
     const openTrip = useCallback(() => {
         if (!trip.id) return;
@@ -80,13 +86,33 @@ export function TripTicketCard({ trip }: Props) {
             <div className="trip-ticket__main">
                 <div className="trip-ticket__header">
                     <span className="trip-ticket__label">Passagem</span>
-                    <span className="trip-ticket__status">{tripTicketStatusLabel(status)}</span>
+                    <span className="trip-ticket__header-end">
+                        {creator ? (
+                            <span className="trip-ticket__creator" title={`Criada por ${creator}`}>
+                                {creator}
+                            </span>
+                        ) : null}
+                        <span className="trip-ticket__status">{tripTicketStatusLabel(status)}</span>
+                    </span>
                 </div>
                 <h3 className="trip-ticket__destination">{title}</h3>
+                {countries.length > 0 ? (
+                    <div className="trip-ticket__countries" aria-label={`Países: ${countries.join(', ')}`}>
+                        {countries.map((c) => (
+                            <CountryFlag key={c} label={c} size="ticket" className="country-flag country-flag--ticket" />
+                        ))}
+                    </div>
+                ) : null}
                 <dl className="trip-ticket__fields">
-                    <div className="trip-ticket__field">
-                        <dt>Datas</dt>
-                        <dd>{tripTicketDates(trip)}</dd>
+                    <div className="trip-ticket__field trip-ticket__field--legs">
+                        <p className="trip-ticket__leg">
+                            <span className="trip-ticket__leg-kicker">Ida:</span>
+                            <span className="trip-ticket__leg-date">{ida}</span>
+                        </p>
+                        <p className="trip-ticket__leg">
+                            <span className="trip-ticket__leg-kicker">Volta:</span>
+                            <span className="trip-ticket__leg-date">{volta}</span>
+                        </p>
                     </div>
                     {route ? (
                         <div className="trip-ticket__field trip-ticket__field--route">

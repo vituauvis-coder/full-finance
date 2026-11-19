@@ -18,6 +18,9 @@ export type MilesProgram = {
     clubPointsPerMonth?: number;
     clubBonusPerMonth?: number;
     buyMilheiro?: string;
+    householdId?: string | null;
+    holderUserId?: string | null;
+    holderUserName?: string | null;
 };
 
 export type ConversionRate = {

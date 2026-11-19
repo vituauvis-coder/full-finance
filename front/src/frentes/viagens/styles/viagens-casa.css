@@ -22,10 +22,20 @@
     animation: viagens-card-in 0.45s ease backwards;
 }
 
+[data-theme='dark'] #viagens-page .viagens-trail-item .trip-ticket {
+    transform: translateZ(0);
+}
+
 #viagens-page .viagens-trail-scroll .trip-ticket {
     width: 100%;
-    /* Bilhete sempre “papel” — não herda fundo escuro do portal */
+}
+
+:root:not([data-theme='dark']) #viagens-page .viagens-trail-scroll .trip-ticket {
     color-scheme: light;
+}
+
+[data-theme='dark'] #viagens-page .viagens-trail-scroll .trip-ticket {
+    color-scheme: dark;
 }
 
 #viagens-page .viagens-root > .screen-loader--page {

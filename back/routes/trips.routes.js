@@ -18,7 +18,7 @@ function mergePayload(serverPayload, clientPayload) {
 export function registerTripsRoutes(app, { requireAuth }) {
     app.get('/api/trips', requireAuth, async (req, res) => {
         try {
-            const rows = await repo.listTrips(req.session.userId);
+            const rows = await repo.listTrips();
             const trips = sortedTrips(rows).map((row) => enrichTripSummary(row));
             const visitList = visits(rows);
             res.json({ trips, visits: visitList });
@@ -129,7 +129,7 @@ export function registerTripsRoutes(app, { requireAuth }) {
 
     app.get('/api/trips/:id', requireAuth, async (req, res) => {
         try {
-            const row = await repo.getTrip(req.session.userId, req.params.id);
+            const row = await repo.getTrip(req.params.id);
             if (!row) return res.status(404).json({ error: 'Não encontrada' });
             const trip = normalizeTrip(row);
             const timeScenarios = trip.payload?.timeScenarios ?? trip.payload?.time_scenarios ?? [];
@@ -151,7 +151,7 @@ export function registerTripsRoutes(app, { requireAuth }) {
     app.put('/api/trips/:id', requireAuth, async (req, res) => {
         try {
             const body = req.body ?? {};
-            const existing = await repo.getTrip(req.session.userId, req.params.id);
+            const existing = await repo.getTrip(req.params.id);
             if (!existing) return res.status(404).json({ error: 'Não encontrada' });
 
             const serverPayload =
@@ -159,7 +159,7 @@ export function registerTripsRoutes(app, { requireAuth }) {
             const mergedPayload =
                 body.payload != null ? mergePayload(serverPayload, body.payload) : null;
 
-            const row = await repo.updateTrip(req.session.userId, req.params.id, {
+            const row = await repo.updateTrip(req.params.id, {
                 title: body.title,
                 starts_on: body.startsOn ?? body.starts_on ?? null,
                 ends_on: body.endsOn ?? body.ends_on ?? null,
@@ -187,7 +187,7 @@ export function registerTripsRoutes(app, { requireAuth }) {
 
     app.delete('/api/trips/:id', requireAuth, async (req, res) => {
         try {
-            const ok = await repo.deleteTrip(req.session.userId, req.params.id);
+            const ok = await repo.deleteTrip(req.params.id);
             if (!ok) return res.status(404).json({ error: 'Não encontrada' });
             res.json({ ok: true });
         } catch (e) {

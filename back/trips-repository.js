@@ -1,24 +1,27 @@
 import { query } from './db.js';
 
-const SELECT_FIELDS = `id, user_id, title, starts_on, ends_on, status_override, budget_caps, payload, created_at, updated_at`;
+const TRIP_COLUMNS = `t.id, t.user_id, t.title, t.starts_on, t.ends_on, t.status_override, t.budget_caps, t.payload, t.created_at, t.updated_at`;
+const CREATOR_JOIN = `LEFT JOIN users u ON u.id = t.user_id`;
+const SELECT_FIELDS = `${TRIP_COLUMNS}, u.name AS creator_name, u.email AS creator_email`;
 
-export async function listTrips(userId) {
+/** Viagens são compartilhadas entre todos os usuários autenticados. */
+export async function listTrips() {
     const { rows } = await query(
         `SELECT ${SELECT_FIELDS}
-         FROM trips
-         WHERE user_id = $1
-         ORDER BY updated_at DESC`,
-        [userId]
+         FROM trips t
+         ${CREATOR_JOIN}
+         ORDER BY t.updated_at DESC`
     );
     return rows;
 }
 
-export async function getTrip(userId, tripId) {
+export async function getTrip(tripId) {
     const { rows } = await query(
         `SELECT ${SELECT_FIELDS}
-         FROM trips
-         WHERE user_id = $1 AND id = $2`,
-        [userId, tripId]
+         FROM trips t
+         ${CREATOR_JOIN}
+         WHERE t.id = $1`,
+        [tripId]
     );
     return rows[0] ?? null;
 }
@@ -27,26 +30,24 @@ export async function createTrip(userId, { title = 'Nova viagem' } = {}) {
     const { rows } = await query(
         `INSERT INTO trips (user_id, title, budget_caps, payload)
          VALUES ($1, $2, '{}'::jsonb, '{}'::jsonb)
-         RETURNING ${SELECT_FIELDS}`,
+         RETURNING id`,
         [userId, title]
     );
-    return rows[0];
+    return await getTrip(rows[0].id);
 }
 
-export async function updateTrip(userId, tripId, patch) {
-    const { rows } = await query(
+export async function updateTrip(tripId, patch) {
+    const { rowCount } = await query(
         `UPDATE trips
-         SET title = COALESCE($3, title),
-             starts_on = COALESCE($4, starts_on),
-             ends_on = COALESCE($5, ends_on),
-             status_override = $6,
-             budget_caps = COALESCE($7::jsonb, budget_caps),
-             payload = COALESCE($8::jsonb, payload),
+         SET title = COALESCE($2, title),
+             starts_on = COALESCE($3, starts_on),
+             ends_on = COALESCE($4, ends_on),
+             status_override = $5,
+             budget_caps = COALESCE($6::jsonb, budget_caps),
+             payload = COALESCE($7::jsonb, payload),
              updated_at = NOW()
-         WHERE user_id = $1 AND id = $2
-         RETURNING ${SELECT_FIELDS}`,
+         WHERE id = $1`,
         [
-            userId,
             tripId,
             patch.title ?? null,
             patch.starts_on ?? null,
@@ -56,10 +57,11 @@ export async function updateTrip(userId, tripId, patch) {
             patch.payload != null ? JSON.stringify(patch.payload) : null
         ]
     );
-    return rows[0] ?? null;
+    if (!rowCount) return null;
+    return await getTrip(tripId);
 }
 
-export async function deleteTrip(userId, tripId) {
-    const { rowCount } = await query(`DELETE FROM trips WHERE user_id = $1 AND id = $2`, [userId, tripId]);
+export async function deleteTrip(tripId) {
+    const { rowCount } = await query(`DELETE FROM trips WHERE id = $1`, [tripId]);
     return rowCount > 0;
 }

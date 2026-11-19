@@ -40,52 +40,75 @@
     padding-bottom: 0;
 }
 
-.page-content.page-content--dashboard-modern:has(#viagens-page) {
+[data-theme='dark'] .page-content.page-content--dashboard-modern:has(#viagens-page) {
     background: #161618;
     color: #f4f4f6;
 }
 
-.page-content.page-content--dashboard-modern:has(#viagens-page) > .app-ambient-bg {
+[data-theme='dark'] .page-content.page-content--dashboard-modern:has(#viagens-page) > .app-ambient-bg {
     display: none;
 }
 
-.page-content.page-content--dashboard-modern:has(#viagens-page) > .app-header {
+[data-theme='dark'] .page-content.page-content--dashboard-modern:has(#viagens-page) > .app-header {
     background-color: #1c1c20;
     border-color: rgba(255, 255, 255, 0.1);
     box-shadow: none;
     color: #f4f4f6;
 }
 
-.page-content.page-content--dashboard-modern:has(#viagens-page) > .app-header .header-page-title {
+[data-theme='dark'] .page-content.page-content--dashboard-modern:has(#viagens-page) > .app-header .header-page-title {
     color: #f4f4f6;
 }
 
-.page-content.page-content--dashboard-modern:has(#viagens-page) > .app-header .header-page-emoji {
+[data-theme='dark'] .page-content.page-content--dashboard-modern:has(#viagens-page) > .app-header .header-page-emoji {
     background: rgba(255, 255, 255, 0.06);
     border-color: rgba(255, 255, 255, 0.1);
 }
 
-.page-content.page-content--dashboard-modern:has(#viagens-page) > .app-header .header-page-emoji .app-icon {
+[data-theme='dark'] .page-content.page-content--dashboard-modern:has(#viagens-page) > .app-header .header-page-emoji .app-icon {
     color: #2ec4b6;
 }
 
-/* Paleta Viagens (Mac) — noite, turquesa, ouro, coral. Não herda o teal genérico do malote. */
+/* Paleta Viagens — acompanha data-theme do portal */
 #viagens-page {
-    --v-noite: #121214;
     --v-coral: #ff5a36;
     --v-turquesa: #2ec4b6;
     --v-areia: #f6e6c8;
+    --v-ouro: #c9a227;
+    --v-oceano: #2aa8a0;
+    --v-noite: #0b1f33;
+    --v-janela: #f2f2f7;
+    --v-painel: #ffffff;
+    --v-campo: rgba(0, 0, 0, 0.04);
+    --v-borda: rgba(0, 0, 0, 0.08);
+    --v-tinta: #1c2230;
+    --v-legenda: #5c6573;
+    --viagens-accent: #2ec4b6;
+    --viagens-accent-strong: #1a8f85;
+    --viagens-accent-muted: #7ee8dc;
+    --viagens-accent-soft: rgba(46, 196, 182, 0.14);
+    --bg-color: var(--v-janela);
+    --bg-light: var(--v-painel);
+    --text-color: var(--v-tinta);
+    --text-light: var(--v-legenda);
+    --border-color: var(--v-borda);
+    --warning-color: #c9a227;
+    --destructive-color: #ff5a36;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 6px 20px rgba(0, 0, 0, 0.05);
+    color: var(--v-tinta);
+    background: var(--v-janela);
+}
+
+[data-theme='dark'] #viagens-page {
+    --v-noite: #121214;
     --v-ouro: #f2c94c;
     --v-tinta: #f4f4f6;
-    --v-oceano: #2aa8a0;
     --v-janela: #161618;
     --v-painel: #1c1c20;
     --v-campo: rgba(255, 255, 255, 0.06);
     --v-borda: rgba(255, 255, 255, 0.1);
     --v-legenda: rgba(244, 244, 246, 0.58);
-    --viagens-accent: #2ec4b6;
     --viagens-accent-strong: #2ec4b6;
-    --viagens-accent-muted: #7ee8dc;
     --viagens-accent-soft: rgba(46, 196, 182, 0.18);
     --bg-color: #161618;
     --bg-light: #1c1c20;
@@ -93,26 +116,11 @@
     --text-light: rgba(244, 244, 246, 0.58);
     --border-color: rgba(255, 255, 255, 0.1);
     --warning-color: #f2c94c;
-    --destructive-color: #ff5a36;
     --shadow: none;
-    color: var(--v-tinta);
     background: #161618;
 }
 
 #viagens-page .viagens-root {
-    --v-coral: #ff5a36;
-    --v-turquesa: #2ec4b6;
-    --v-oceano: #2aa8a0;
-    --v-ouro: #f2c94c;
-    --v-janela: #161618;
-    --v-painel: #1c1c20;
-    --v-areia: #f6e6c8;
-    --v-tinta: #f4f4f6;
-    --v-legenda: rgba(244, 244, 246, 0.58);
-    --v-borda: rgba(255, 255, 255, 0.1);
-    --v-noite: #121214;
-    --v-campo: rgba(255, 255, 255, 0.06);
-    --shadow: none;
     min-height: auto;
     background: var(--v-janela);
     color: var(--v-tinta);

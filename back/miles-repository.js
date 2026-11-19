@@ -20,6 +20,10 @@ const CLUB_SQL = fs.readFileSync(
     path.join(__dirname, '../platform/prisma/migrations/20261117193000_wallet_club_subscription/migration_pg.sql'),
     'utf8'
 );
+const HOUSEHOLD_SQL = fs.readFileSync(
+    path.join(__dirname, '../platform/prisma/migrations/20261119180000_miles_household/migration_pg.sql'),
+    'utf8'
+);
 
 let schemaReady = false;
 
@@ -45,6 +49,14 @@ export async function ensureMilesSchema() {
     await query(CLUB_SQL);
     await query(`ALTER TABLE miles_emission_sims ADD COLUMN IF NOT EXISTS flight_simulation_id TEXT`);
     await query(`ALTER TABLE miles_programs ADD COLUMN IF NOT EXISTS club_bonus_per_month BIGINT NOT NULL DEFAULT 0`);
+    await query(HOUSEHOLD_SQL);
+}
+
+function visibleProgramsSql(uidParam = '$1', tableAlias = 'p') {
+    const col = (name) => (tableAlias ? `${tableAlias}.${name}` : name);
+    return `(${col('user_id')} = ${uidParam} OR ${col('household_id')} IN (
+        SELECT household_id FROM household_members WHERE user_id = ${uidParam}
+    ))`;
 }
 
 function mapProgram(row) {
@@ -65,6 +77,9 @@ function mapProgram(row) {
         clubPointsPerMonth: Number(row.club_points_per_month) || 0,
         clubBonusPerMonth: Number(row.club_bonus_per_month) || 0,
         buyMilheiro: String(row.buy_milheiro ?? '0'),
+        householdId: row.household_id ?? null,
+        holderUserId: row.holder_user_id ?? null,
+        holderUserName: row.holder_user_name ?? null,
         createdAt: row.created_at,
         updatedAt: row.updated_at
     };
@@ -106,6 +121,7 @@ function mapMovement(row) {
         occurredOn: row.occurred_on,
         source: row.source,
         notes: row.notes,
+        recordedByName: row.recorded_by_name ?? null,
         createdAt: row.created_at
     };
 }
@@ -154,14 +170,24 @@ function mapSim(row, options = []) {
 
 export async function listPrograms(userId) {
     const { rows } = await query(
-        `SELECT * FROM miles_programs WHERE user_id = $1 ORDER BY created_at ASC`,
+        `SELECT p.*, hu.name AS holder_user_name
+         FROM miles_programs p
+         LEFT JOIN users hu ON hu.id = p.holder_user_id
+         WHERE ${visibleProgramsSql('$1')}
+         ORDER BY p.household_id NULLS LAST, p.created_at ASC`,
         [userId]
     );
     return rows.map(mapProgram);
 }
 
 export async function getProgram(userId, id) {
-    const { rows } = await query(`SELECT * FROM miles_programs WHERE user_id = $1 AND id = $2`, [userId, id]);
+    const { rows } = await query(
+        `SELECT p.*, hu.name AS holder_user_name
+         FROM miles_programs p
+         LEFT JOIN users hu ON hu.id = p.holder_user_id
+         WHERE p.id = $2 AND ${visibleProgramsSql('$1')}`,
+        [userId, id]
+    );
     return mapProgram(rows[0]);
 }
 
@@ -193,6 +219,8 @@ export async function insertProgram(userId, { brand, name, issuer, unit, expires
 export async function updateProgram(userId, id, patch) {
     const current = await getProgram(userId, id);
     if (!current) return null;
+    const householdId = patch.householdId;
+    const holderUserId = patch.holderUserId;
     const expires =
         patch.expiresOn === undefined ? current.expiresOn : patch.expiresOn === '' ? null : patch.expiresOn;
     const clubActive = patch.clubActive === undefined ? current.clubActive : Boolean(patch.clubActive);
@@ -214,8 +242,10 @@ export async function updateProgram(userId, id, patch) {
              club_started_on = $12,
              club_points_per_month = COALESCE($13, club_points_per_month),
              club_bonus_per_month = COALESCE($14, club_bonus_per_month),
+             household_id = CASE WHEN $15::text = 'unchanged' THEN household_id WHEN $15::text = 'null' THEN NULL ELSE $15::uuid END,
+             holder_user_id = CASE WHEN $16::text = 'unchanged' THEN holder_user_id WHEN $16::text = 'null' THEN NULL ELSE $16::uuid END,
              updated_at = NOW()
-         WHERE user_id = $1 AND id = $2
+         WHERE id = $2 AND ${visibleProgramsSql('$1', '')}
          RETURNING *`,
         [
             userId,
@@ -231,10 +261,14 @@ export async function updateProgram(userId, id, patch) {
             patch.buyMilheiro == null ? null : Number(patch.buyMilheiro),
             clubStartedOn,
             patch.clubPointsPerMonth == null ? null : Math.max(0, Math.round(Number(patch.clubPointsPerMonth) || 0)),
-            patch.clubBonusPerMonth == null ? null : Math.max(0, Math.round(Number(patch.clubBonusPerMonth) || 0))
+            patch.clubBonusPerMonth == null ? null : Math.max(0, Math.round(Number(patch.clubBonusPerMonth) || 0)),
+            householdId === undefined ? 'unchanged' : householdId == null ? 'null' : householdId,
+            holderUserId === undefined ? 'unchanged' : holderUserId == null ? 'null' : holderUserId
         ]
     );
-    return mapProgram(rows[0]);
+    const row = rows[0];
+    if (!row) return null;
+    return getProgram(userId, row.id);
 }
 
 export async function listRates(userId) {
@@ -280,13 +314,16 @@ export async function listClubCreditDates(userId, programId) {
 
 export async function listMovements(userId, { programId, limit = 80 } = {}) {
     const params = [userId];
-    let sql = `SELECT * FROM miles_movements WHERE user_id = $1`;
+    let sql = `SELECT m.*, u.name AS recorded_by_name
+         FROM miles_movements m
+         LEFT JOIN users u ON u.id = m.user_id
+         WHERE m.program_id IN (SELECT p.id FROM miles_programs p WHERE ${visibleProgramsSql('$1')})`;
     if (programId) {
         params.push(programId);
-        sql += ` AND program_id = $2`;
+        sql += ` AND m.program_id = $2`;
     }
     params.push(Math.min(200, Math.max(1, Number(limit) || 80)));
-    sql += ` ORDER BY occurred_on DESC, created_at DESC LIMIT $${params.length}`;
+    sql += ` ORDER BY m.occurred_on DESC, m.created_at DESC LIMIT $${params.length}`;
     const { rows } = await query(sql, params);
     return rows.map(mapMovement);
 }
@@ -327,7 +364,14 @@ export async function insertMovement(userId, body, clientQuery = query) {
 }
 
 export async function getMovement(userId, id) {
-    const { rows } = await query(`SELECT * FROM miles_movements WHERE user_id = $1 AND id = $2`, [userId, id]);
+    const { rows } = await query(
+        `SELECT m.*, u.name AS recorded_by_name
+         FROM miles_movements m
+         LEFT JOIN users u ON u.id = m.user_id
+         JOIN miles_programs p ON p.id = m.program_id
+         WHERE m.id = $2 AND ${visibleProgramsSql('$1')}`,
+        [userId, id]
+    );
     return mapMovement(rows[0]);
 }
 
@@ -339,12 +383,21 @@ export async function deleteMovement(userId, id) {
         const q = (text, params) => client.query(text, params);
 
         if (current.transferGroupId) {
-            await q(`DELETE FROM miles_movements WHERE user_id = $1 AND transfer_group_id = $2`, [
-                userId,
-                current.transferGroupId
-            ]);
+            await q(
+                `DELETE FROM miles_movements m
+                 USING miles_programs p
+                 WHERE m.program_id = p.id
+                   AND m.transfer_group_id = $2
+                   AND ${visibleProgramsSql('$1')}`,
+                [userId, current.transferGroupId]
+            );
         } else {
-            await q(`DELETE FROM miles_movements WHERE user_id = $1 AND id = $2`, [userId, id]);
+            await q(
+                `DELETE FROM miles_movements m
+                 USING miles_programs p
+                 WHERE m.id = $2 AND m.program_id = p.id AND ${visibleProgramsSql('$1')}`,
+                [userId, id]
+            );
         }
 
         const isClubCredit =

@@ -1,4 +1,13 @@
+import { resolveFlightPlace } from '@motor/viagens/flight-route-geo.js';
 import type { MapVisit } from '../types';
+
+/** Nome curto no mapa: preferência pela sigla IATA quando existir no catálogo. */
+export function mapAirportBadgeLabel(place: string | null | undefined, fallback = '—') {
+    const raw = place?.trim() ?? '';
+    if (!raw) return fallback;
+    const resolved = resolveFlightPlace(raw);
+    return resolved?.label ?? raw;
+}
 
 function roundedPoint(lat: number, lng: number) {
     return { lat: Math.round(lat * 10000), lng: Math.round(lng * 10000) };

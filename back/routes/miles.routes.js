@@ -18,6 +18,7 @@ import {
     isWalletUnit,
     presetByBrand
 } from '../../motor/milhas/catalog.js';
+import { ensureHouseholdForUser, validateHolderUserId } from '../household.js';
 import * as repo from '../miles-repository.js';
 
 const SIMPLE_TYPES = ['acumulo', 'compra', 'bonus', 'emissao', 'expiracao', 'ajuste'];
@@ -209,10 +210,23 @@ export function registerMilesRoutes(app, { requireAuth }) {
             if (body.name != null && !String(body.name).trim()) {
                 return res.status(400).json({ error: 'Dê um nome à carteira' });
             }
-            const program = await repo.updateProgram(req.session.userId, req.params.id, {
+            const patch = {
                 ...body,
                 name: body.name != null ? String(body.name).trim() : undefined
-            });
+            };
+            if (body.householdShared === true) {
+                patch.householdId = await ensureHouseholdForUser(req.session.userId);
+                if (body.holderUserId) {
+                    patch.holderUserId = await validateHolderUserId(body.holderUserId, req.session.userId);
+                } else {
+                    patch.holderUserId = req.session.userId;
+                }
+            } else if (body.householdShared === false) {
+                patch.householdId = null;
+                patch.holderUserId = null;
+            }
+            delete patch.householdShared;
+            const program = await repo.updateProgram(req.session.userId, req.params.id, patch);
             if (!program) return res.status(404).json({ error: 'Programa não encontrado' });
             await ensureClubCredits(req.session.userId);
             const [fresh] = (await programsWithBalance(req.session.userId)).filter((p) => p.id === program.id);

@@ -4,7 +4,8 @@ import { routeStops } from '@motor/viagens/trip-places.js';
 import { VIAGENS_HOME } from '@motor/viagens/viagens-atlas.js';
 import type { TripDestination, TripStatus } from '../types';
 import { bindMapLabelsPtBr, ensureMapLibreWorker, mapStyleForTheme } from '../utils/maplibre-setup';
-import { ViagensPin } from './ViagensPin';
+import { ViagensPlaceBadge } from './ViagensPlaceBadge';
+import { mapAirportBadgeLabel } from '../utils/map-utils';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 ensureMapLibreWorker();
@@ -75,11 +76,11 @@ export function ViagemMiniMap({ destinations, status = 'planejada', onTapCoord }
                     />
                 </Source>
                 <Marker longitude={VIAGENS_HOME.longitude} latitude={VIAGENS_HOME.latitude} anchor="center">
-                    <span className="viagens-home-badge__icon">🧳</span>
+                    <ViagensPlaceBadge name={VIAGENS_HOME.name} />
                 </Marker>
-                {stops.map((d, i) => (
-                    <Marker key={d.id} longitude={d.longitude} latitude={d.latitude} anchor="bottom">
-                        <ViagensPin status={status} size="sm" index={i} isPrincipal={d.isPrincipal} />
+                {stops.map((d) => (
+                    <Marker key={d.id} longitude={d.longitude} latitude={d.latitude} anchor="center">
+                        <ViagensPlaceBadge name={mapAirportBadgeLabel(d.name)} />
                     </Marker>
                 ))}
             </Map>

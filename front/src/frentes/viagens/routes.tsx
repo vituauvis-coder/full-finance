@@ -2,6 +2,7 @@ import { Navigate, Route, useParams } from 'react-router-dom';
 import { AtlasPage } from './pages/AtlasPage';
 import { ViagemFichaPage } from './pages/ViagemFichaPage';
 import { ViagemVoosPage } from './pages/ViagemVoosPage';
+import { MilhasHubPage } from './pages/MilhasHubPage';
 import { PontosEmissaoEditPage } from './pages/pontos/PontosEmissaoEditPage';
 
 function RedirectToVoos() {
@@ -12,6 +13,7 @@ function RedirectToVoos() {
 export const viagensRoutes = (
     <Route path="viagens">
         <Route index element={<AtlasPage />} />
+        <Route path="milhas" element={<MilhasHubPage />} />
         <Route path="nova" element={<Navigate to="/viagens" replace />} />
         <Route path=":tripId/voos" element={<ViagemVoosPage />}>
             <Route path="pontos/emissao/:simId" element={<PontosEmissaoEditPage />} />

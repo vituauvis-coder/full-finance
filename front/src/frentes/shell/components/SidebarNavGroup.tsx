@@ -31,7 +31,7 @@ export function SidebarNavGroup({ group, expanded, onToggle }: Props) {
             <ul className="sidebar-submenu app-sidebar__submenu" hidden={!expanded}>
                 {group.items.map((item) => (
                     <li key={item.to}>
-                        <SidebarNavLink to={item.to} icon={item.icon} label={item.label} sub />
+                        <SidebarNavLink to={item.to} icon={item.icon} label={item.label} sub end={item.end} />
                     </li>
                 ))}
             </ul>

@@ -7,12 +7,14 @@ export type LegacyPageId =
     | 'cofrinhos'
     | 'debts'
     | 'viagens'
+    | 'viagens-milhas'
     | 'tools'
     | 'profile';
 
 export function legacyPageIdFromPath(pathname: string): LegacyPageId | null {
     if (pathname.startsWith('/perfil')) return 'profile';
     if (pathname.startsWith('/dashboard')) return 'dashboard';
+    if (pathname.startsWith('/viagens/milhas')) return 'viagens-milhas';
     if (pathname.startsWith('/viagens')) return 'viagens';
     if (pathname.startsWith('/ferramentas')) return 'tools';
     if (pathname.startsWith('/dinheiro/entradas')) return 'gains';
@@ -36,6 +38,7 @@ export const LEGACY_PAGE_HEADERS: Record<
     cofrinhos: { icon: 'fa-piggy-bank', title: 'Cofrinhos', headerClass: 'app-header--cofrinhos' },
     debts: { icon: 'fa-triangle-exclamation', title: 'Dívidas', headerClass: 'app-header--debts' },
     viagens: { icon: 'fa-map', materialIcon: 'flight', title: 'Viagens', headerClass: 'app-header--viagens' },
+    'viagens-milhas': { icon: 'fa-map', materialIcon: 'loyalty', title: 'Milhas', headerClass: 'app-header--viagens' },
     tools: { icon: 'fa-tools', title: 'Ferramentas' },
     profile: { icon: 'fa-user', materialIcon: 'person', title: 'Meu Perfil' }
 };

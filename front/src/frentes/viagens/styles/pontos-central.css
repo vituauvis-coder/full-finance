@@ -5,6 +5,118 @@
     padding-bottom: 2.5rem;
 }
 
+.pontos-hub-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+}
+
+#milhas-page .summary-cards.movements-summary {
+    margin-bottom: 0.35rem;
+}
+
+/* KPI Milhas — mesmo formato dos cards de Dinheiro, paleta Viagens (painel branco + turquesa) */
+#milhas-page .summary-cards.movements-summary .movement-summary-card {
+    background: var(--v-painel, #ffffff);
+    border: 1px solid var(--v-borda);
+    border-radius: 1.15rem;
+    box-shadow: none;
+}
+
+#milhas-page .summary-cards.movements-summary .card-icon,
+#milhas-page .summary-cards.movements-summary .card-icon.balance,
+#milhas-page .summary-cards.movements-summary .card-icon.income,
+#milhas-page .summary-cards.movements-summary .card-icon.expense,
+#milhas-page .summary-cards.movements-summary .card-icon.projection,
+#milhas-page .summary-cards.movements-summary .card-icon.savings {
+    background: color-mix(in srgb, var(--v-turquesa) 12%, var(--v-painel, #fff)) !important;
+    color: var(--v-turquesa) !important;
+}
+
+#milhas-page .summary-cards.movements-summary .card-content h3 {
+    color: var(--v-legenda, #6e6e73);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: 0.72rem;
+}
+
+#milhas-page .summary-cards.movements-summary .movement-summary-card__value {
+    color: var(--v-tinta);
+    font-weight: 800;
+}
+
+#milhas-page .summary-cards.movements-summary .card-metric-hint {
+    color: var(--v-legenda, #6e6e73);
+}
+
+[data-theme='dark'] #milhas-page .summary-cards.movements-summary .movement-summary-card {
+    background: var(--v-painel, #1c1c20);
+    border-color: var(--v-borda);
+}
+
+[data-theme='dark'] #milhas-page .summary-cards.movements-summary .card-icon,
+[data-theme='dark'] #milhas-page .summary-cards.movements-summary .card-icon.savings {
+    background: color-mix(in srgb, var(--v-turquesa) 18%, var(--v-painel, #1c1c20)) !important;
+    color: var(--v-turquesa) !important;
+}
+
+.pontos-calc-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.pontos-calc-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
+}
+
+@media (max-width: 800px) {
+    .pontos-calc-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.pontos-calc-grid h3 {
+    margin: 0 0 0.35rem;
+    font-size: 1rem;
+}
+
+.pontos-calc-verdict {
+    margin-top: 0.65rem;
+    font-size: 0.82rem;
+    line-height: 1.45;
+}
+
+.pontos-calc-verdict p {
+    margin: 0.25rem 0;
+}
+
+.pontos-household-share {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    font-size: 0.82rem;
+    line-height: 1.4;
+    margin: 0.25rem 0;
+}
+
+.pontos-household-share input {
+    margin-top: 0.2rem;
+}
+
+.pontos-calc-verdict__tag {
+    margin-top: 0.5rem !important;
+    padding: 0.5rem 0.65rem;
+    border-radius: 0.65rem;
+    font-weight: 800;
+    background: color-mix(in srgb, var(--v-ouro, #f0c14b) 16%, transparent);
+    color: var(--v-ouro, #c49a2e);
+}
+
 .pontos-hub {
     display: grid;
     grid-template-columns: minmax(15.5rem, 19rem) minmax(0, 1fr);
@@ -438,6 +550,30 @@ button.pontos-wallet {
 .pontos-wallet__name {
     font-size: 0.8rem;
     font-weight: 700;
+}
+
+.pontos-wallet__cmp {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--v-legenda);
+    font-variant-numeric: tabular-nums;
+}
+
+.pontos-wallet__cmp small {
+    font-weight: 500;
+    opacity: 0.85;
+}
+
+.pontos-score em {
+    display: block;
+    margin-top: 0.2rem;
+    font-size: 0.72rem;
+    font-style: normal;
+    color: var(--v-legenda);
+}
+
+.pontos-score--milheiro {
+    margin-top: 0.5rem;
 }
 
 .pontos-wallet__meta {
@@ -971,4 +1107,227 @@ button.pontos-wallet {
         justify-content: center;
         text-align: center;
     }
+}
+
+/* —— Central de milhas (hub global): um canvas, abas, rail horizontal —— */
+#milhas-page.milhas-hub,
+#milhas-page .milhas-hub {
+    gap: 1.1rem;
+}
+
+#milhas-page .milhas-canvas {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    padding: 1.15rem 1.2rem 1.35rem;
+    border-radius: 1.35rem;
+    border: 1px solid var(--v-borda);
+    background: color-mix(in srgb, var(--v-painel, #fff) 92%, var(--v-turquesa) 8%);
+    box-shadow: 0 1px 0 color-mix(in srgb, var(--v-borda) 80%, transparent);
+}
+
+[data-theme='dark'] #milhas-page .milhas-canvas {
+    background: color-mix(in srgb, var(--v-painel, #1c1c20) 94%, var(--v-turquesa) 6%);
+}
+
+#milhas-page .milhas-canvas__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.65rem 1rem;
+}
+
+#milhas-page .milhas-canvas__head h1 {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--v-tinta);
+}
+
+#milhas-page .milhas-canvas__head p {
+    margin: 0.2rem 0 0;
+    font-size: 0.84rem;
+    color: var(--v-legenda);
+    max-width: 36rem;
+    line-height: 1.45;
+}
+
+#milhas-page .milhas-canvas__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+#milhas-page .milhas-canvas__empty {
+    margin: 0.25rem 0 0;
+}
+
+#milhas-page .pontos-wallets--strip {
+    margin: 0 -0.15rem;
+    padding-bottom: 0.15rem;
+}
+
+#milhas-page .pontos-wallets--strip .pontos-wallet {
+    flex: 0 0 10.5rem;
+    padding: 0.7rem 0.8rem;
+    border-radius: 0.95rem;
+    background: var(--v-painel);
+}
+
+#milhas-page .pontos-wallets--strip .pontos-wallet strong {
+    font-size: 1.15rem;
+}
+
+#milhas-page .pontos-wallets--strip .pontos-wallet__meta {
+    font-size: 0.68rem;
+}
+
+#milhas-page .milhas-spotlight {
+    --pontos-brand: var(--v-turquesa);
+    padding: 1rem 1.05rem;
+    border-radius: 1.15rem;
+    border: 1px solid color-mix(in srgb, var(--pontos-brand) 28%, var(--v-borda));
+    background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--pontos-brand) 14%, var(--v-painel)) 0%,
+        var(--v-painel) 55%
+    );
+}
+
+#milhas-page .milhas-spotlight__main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 0.5rem 1rem;
+    align-items: end;
+}
+
+@media (max-width: 720px) {
+    #milhas-page .milhas-spotlight__main {
+        grid-template-columns: 1fr;
+        align-items: start;
+    }
+}
+
+#milhas-page .milhas-spotlight__unit {
+    display: block;
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--v-legenda);
+}
+
+#milhas-page .milhas-spotlight h2 {
+    margin: 0.1rem 0 0;
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+}
+
+#milhas-page .milhas-spotlight__meta {
+    margin: 0.2rem 0 0;
+    font-size: 0.78rem;
+    color: var(--v-legenda);
+}
+
+#milhas-page .milhas-spotlight__balance {
+    text-align: right;
+}
+
+#milhas-page .milhas-spotlight__balance strong {
+    display: block;
+    font-size: 1.85rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.04em;
+    line-height: 1.05;
+}
+
+#milhas-page .milhas-spotlight__brl {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--v-turquesa);
+    margin-top: 0.15rem;
+}
+
+#milhas-page .milhas-spotlight__edit {
+    align-self: start;
+}
+
+#milhas-page .milhas-spotlight__stats {
+    margin-top: 0.85rem;
+    gap: 0.45rem;
+}
+
+#milhas-page .milhas-spotlight__stats div {
+    background: color-mix(in srgb, var(--v-painel) 70%, transparent);
+}
+
+#milhas-page .milhas-spotlight__notes {
+    margin: 0.65rem 0 0;
+    font-size: 0.8rem;
+    color: var(--v-legenda);
+}
+
+#milhas-page .milhas-pane {
+    padding: 0.95rem 1rem;
+    border-radius: 1rem;
+    border: 1px solid var(--v-borda);
+    background: var(--v-painel);
+}
+
+#milhas-page .milhas-pane--form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+#milhas-page .milhas-pane--feed {
+    padding-top: 0.65rem;
+    padding-bottom: 0.5rem;
+}
+
+#milhas-page .milhas-pane--tools {
+    border: 0;
+    padding: 0;
+    background: transparent;
+}
+
+#milhas-page .milhas-tools {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+#milhas-page .milhas-tools .pontos-seg {
+    background: var(--v-janela);
+}
+
+#milhas-page .milhas-details {
+    border-radius: 0.9rem;
+    border: 1px dashed color-mix(in srgb, var(--v-turquesa) 35%, var(--v-borda));
+    background: color-mix(in srgb, var(--v-janela) 80%, transparent);
+    padding: 0.35rem 0.65rem 0.65rem;
+}
+
+#milhas-page .milhas-details > summary {
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--v-legenda);
+    padding: 0.45rem 0.15rem;
+    list-style-position: outside;
+}
+
+#milhas-page .milhas-details .wallet-benefits {
+    border: 0;
+    padding: 0;
+    background: transparent;
+}
+
+#milhas-page .milhas-details .wallet-benefits__head .pontos-kicker {
+    display: none;
 }

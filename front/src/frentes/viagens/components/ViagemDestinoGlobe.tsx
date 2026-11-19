@@ -3,7 +3,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Map, { Layer, Marker, NavigationControl, Source, type MapRef } from 'react-map-gl/maplibre';
 import { routeStops } from '@motor/viagens/trip-places.js';
 import { VIAGENS_GLOBE, VIAGENS_HOME } from '@motor/viagens/viagens-atlas.js';
-import type { TripDestination, TripStatus } from '../types';
+import type { Trip, TripDestination, TripPayload, TripStatus } from '../types';
+import { applyMapRoutePaint, bindMapRoutePaint, mapRoutePaint } from '../utils/map-route-paint';
+import { flightRoutesForMap } from '../utils/map-routes';
 import {
     applyGlobeRealisticEarth,
     bindAtlasStyleTuning,
@@ -15,7 +17,8 @@ import {
 } from '../utils/maplibre-setup';
 import { realtimeSunSnapshot } from '../utils/realtimeSun';
 import { GLOBE_RASTER_BEFORE_ID } from '../utils/nightShadeImage';
-import { ViagensPin } from './ViagensPin';
+import { ViagensPlaceBadge } from './ViagensPlaceBadge';
+import { mapAirportBadgeLabel } from '../utils/map-utils';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 ensureMapLibreWorker();
@@ -24,11 +27,12 @@ const GLOBE_ZOOM = 2.85;
 
 type Props = {
     destinations: TripDestination[];
+    tripPayload?: TripPayload;
     status?: TripStatus;
     onTapCoord?: (lat: number, lng: number) => void;
 };
 
-export function ViagemDestinoGlobe({ destinations, status = 'planejada', onTapCoord }: Props) {
+export function ViagemDestinoGlobe({ destinations, tripPayload, status = 'planejada', onTapCoord }: Props) {
     const mapRef = useRef<MapRef>(null);
     const frameRef = useRef<HTMLDivElement>(null);
     const tunedRef = useRef(false);
@@ -36,7 +40,11 @@ export function ViagemDestinoGlobe({ destinations, status = 'planejada', onTapCo
     const [sunOverlay] = useState(() => realtimeSunSnapshot());
     const stops = useMemo(() => routeStops(destinations), [destinations]);
 
-    const hopGeo = useMemo(() => {
+    const routeLegs = useMemo(() => {
+        if (tripPayload?.flight_segments?.length || tripPayload?.flightSegments?.length) {
+            const trip = { id: 'local', payload: tripPayload } as Trip;
+            return flightRoutesForMap([trip], []);
+        }
         const coords: [number, number][] = [[VIAGENS_HOME.longitude, VIAGENS_HOME.latitude]];
         for (const d of stops) coords.push([d.longitude, d.latitude]);
         if (stops.length > 0) coords.push([VIAGENS_HOME.longitude, VIAGENS_HOME.latitude]);
@@ -44,12 +52,15 @@ export function ViagemDestinoGlobe({ destinations, status = 'planejada', onTapCo
         for (let i = 0; i < coords.length - 1; i++) {
             features.push({
                 type: 'Feature',
-                properties: {},
+                properties: { leg: 'ida' },
                 geometry: { type: 'LineString', coordinates: [coords[i], coords[i + 1]] }
             });
         }
-        return { type: 'FeatureCollection' as const, features };
-    }, [stops]);
+        return {
+            ida: { type: 'FeatureCollection' as const, features },
+            volta: { type: 'FeatureCollection' as const, features: [] }
+        };
+    }, [stops, tripPayload]);
 
     useEffect(() => {
         const el = frameRef.current;
@@ -72,6 +83,7 @@ export function ViagemDestinoGlobe({ destinations, status = 'planejada', onTapCo
             bindAtlasStyleTuning(map, () => 'globe');
         }
         scheduleMapResize(map);
+        applyMapRoutePaint(map, 'destino');
     }, []);
 
     useEffect(() => {
@@ -87,7 +99,13 @@ export function ViagemDestinoGlobe({ destinations, status = 'planejada', onTapCo
         });
     }, [stops]);
 
-  const onMapClick = useCallback(
+    useEffect(() => {
+        const map = mapRef.current?.getMap();
+        if (!map) return;
+        return bindMapRoutePaint(map, 'destino');
+    }, [routeLegs, mapStyle]);
+
+    const onMapClick = useCallback(
         (ev: { lngLat: { lat: number; lng: number } }) => {
             onTapCoord?.(ev.lngLat.lat, ev.lngLat.lng);
         },
@@ -138,27 +156,46 @@ export function ViagemDestinoGlobe({ destinations, status = 'planejada', onTapCo
                         paint={{ 'raster-opacity': 1, 'raster-fade-duration': 0 }}
                     />
                 </Source>
-                {hopGeo.features.length > 0 ? (
-                    <Source id="destino-routes" type="geojson" data={hopGeo}>
+                {routeLegs.ida.features.length > 0 ? (
+                    <Source id="destino-routes-ida" type="geojson" data={routeLegs.ida}>
                         <Layer
-                            id="destino-routes-line"
+                            id="destino-routes-ida-glow"
                             type="line"
-                            paint={{
-                                'line-color': 'rgba(46, 196, 182, 0.95)',
-                                'line-width': 2.5,
-                                'line-dasharray': [1.6, 1.1]
-                            }}
+                            layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+                            paint={mapRoutePaint.idaGlow}
+                        />
+                        <Layer
+                            id="destino-routes-ida-core"
+                            type="line"
+                            layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+                            paint={mapRoutePaint.idaCore}
+                        />
+                    </Source>
+                ) : null}
+                {routeLegs.volta.features.length > 0 ? (
+                    <Source id="destino-routes-volta" type="geojson" data={routeLegs.volta}>
+                        <Layer
+                            id="destino-routes-volta-glow"
+                            type="line"
+                            layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+                            paint={mapRoutePaint.voltaGlow}
+                        />
+                        <Layer
+                            id="destino-routes-volta-core"
+                            type="line"
+                            layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+                            paint={mapRoutePaint.voltaCore}
                         />
                     </Source>
                 ) : null}
                 <Marker longitude={VIAGENS_HOME.longitude} latitude={VIAGENS_HOME.latitude} anchor="center">
-                    <span className="viagens-home-badge__icon" title="Recife">
-                        🧳
-                    </span>
+                    <div className="viagens-home-badge">
+                        <ViagensPlaceBadge name={VIAGENS_HOME.name} />
+                    </div>
                 </Marker>
-                {stops.map((d, i) => (
-                    <Marker key={d.id} longitude={d.longitude} latitude={d.latitude} anchor="bottom">
-                        <ViagensPin status={status} size="sm" index={i} isPrincipal={d.isPrincipal} />
+                {stops.map((d) => (
+                    <Marker key={d.id} longitude={d.longitude} latitude={d.latitude} anchor="center">
+                        <ViagensPlaceBadge name={mapAirportBadgeLabel(d.name)} />
                     </Marker>
                 ))}
             </Map>

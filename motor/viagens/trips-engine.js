@@ -1,4 +1,10 @@
-import { dayKey, parseDayKey, startOfDayInLifeOS, inclusiveDayCount as calInclusive } from './calendar-format.js';
+import {
+    dayKey,
+    parseDayKey,
+    startOfDayInLifeOS,
+    toApiDayKey,
+    inclusiveDayCount as calInclusive
+} from './calendar-format.js';
 import { isHomeDestination } from './trip-places.js';
 
 export const TRIP_STATUSES = ['planejada', 'em_curso', 'realizada'];
@@ -264,15 +270,25 @@ export function flightCompare(simulations = []) {
     };
 }
 
+function tripCreator(row) {
+    const id = row.user_id ?? row.userId;
+    if (!id) return null;
+    const name = row.creator_name ?? row.creatorName ?? null;
+    const email = row.creator_email ?? row.creatorEmail ?? null;
+    if (!name && !email) return { id, name: null, email: null };
+    return { id, name, email };
+}
+
 /** Normaliza row do Postgres para objeto de domínio. */
 export function normalizeTrip(row) {
     if (!row) return null;
     return {
         id: row.id,
         userId: row.user_id,
+        creator: tripCreator(row),
         title: row.title ?? 'Nova viagem',
-        startsOn: row.starts_on ?? null,
-        endsOn: row.ends_on ?? null,
+        startsOn: toApiDayKey(row.starts_on ?? row.startsOn),
+        endsOn: toApiDayKey(row.ends_on ?? row.endsOn),
         statusOverride: row.status_override ?? null,
         budgetCaps: typeof row.budget_caps === 'object' ? row.budget_caps : {},
         payload: typeof row.payload === 'object' ? row.payload : {},

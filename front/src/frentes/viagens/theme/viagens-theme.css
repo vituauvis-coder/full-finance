@@ -15,22 +15,10 @@
 }
 
 .viagens-root {
-    --v-noite: #121214;
-    --v-coral: #ff5a36;
-    --v-turquesa: #2ec4b6;
-    --v-areia: #f6e6c8;
-    --v-ouro: #f2c94c;
-    --v-tinta: #f4f4f6;
-    --v-oceano: #2aa8a0;
-    --v-janela: #161618;
-    --v-painel: #1c1c20;
-    --v-campo: rgba(255, 255, 255, 0.06);
-    --v-borda: rgba(255, 255, 255, 0.1);
-    --v-legenda: rgba(244, 244, 246, 0.58);
-    min-height: 100vh;
-    background: var(--v-janela);
-    color: var(--v-tinta);
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+  background: var(--v-janela, #f2f2f7);
+  color: var(--v-tinta, #1c2230);
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
 }
 
 .shell--viagens {
@@ -113,7 +101,8 @@
     font-family: inherit;
 }
 
-.viagens-home-badge {
+.viagens-home-badge,
+.viagens-place-marker {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -121,25 +110,47 @@
     pointer-events: none;
 }
 
-.viagens-home-badge__icon {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: var(--v-oceano);
-    border: 1.4px solid var(--v-ouro);
-    display: grid;
-    place-items: center;
-    font-size: 11px;
-    color: var(--v-areia);
+.viagens-place-marker--interactive {
+    pointer-events: auto;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
 }
 
-.viagens-home-badge__label {
+.viagens-home-badge__dot {
+    display: block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--v-turquesa);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.45);
+}
+
+.viagens-home-badge__label,
+.viagens-place-badge__label {
     font-size: 9px;
-    font-weight: 600;
-    color: rgba(246, 230, 200, 0.92);
-    background: rgba(11, 31, 51, 0.65);
-    padding: 3px 7px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--v-tinta);
+    background: rgba(22, 22, 24, 0.82);
+    border: 1px solid var(--v-borda);
+    padding: 4px 8px;
     border-radius: 999px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    white-space: nowrap;
+    max-width: 11rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.viagens-place-marker--interactive:hover .viagens-place-badge__label,
+.viagens-place-marker--interactive:focus-visible .viagens-place-badge__label {
+    border-color: color-mix(in srgb, var(--v-turquesa) 35%, var(--v-borda));
+    background: rgba(22, 28, 30, 0.92);
 }
 
 .viagens-cluster-badge {

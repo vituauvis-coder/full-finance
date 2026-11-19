@@ -10,6 +10,8 @@ import { TripStatusControl } from '../components/TripStatusControl';
 import { useTripAutosave } from '../hooks/useTripAutosave';
 import { ScreenLoader } from '../../../components/ui/ScreenLoader';
 import { MaterialIcon } from '../../../components/icons/MaterialIcon';
+import { TripCountriesSelector } from '../components/TripCountriesSelector';
+import { tripCreatorLabel } from '../components/tripTicketModel';
 import '../styles/viagens-ficha-toolbar.css';
 import '../theme/viagens-theme.css';
 
@@ -61,6 +63,7 @@ export function ViagemFichaPage() {
     }
 
     const statusOverride = draft.statusOverride ?? '';
+    const creator = tripCreatorLabel(trip);
 
     return (
         <ViagensPortalSection ficha>
@@ -83,6 +86,22 @@ export function ViagemFichaPage() {
                                         value={draft.title}
                                         onChange={(e) => patchDraft({ title: e.target.value })}
                                         aria-label="Título da viagem"
+                                    />
+                                    {creator ? (
+                                        <p className="viagens-ficha__creator">Criada por {creator}</p>
+                                    ) : null}
+                                    <TripCountriesSelector
+                                        payload={draft.payload}
+                                        destinations={draft.payload.destinations ?? []}
+                                        onChange={(tripCountries) =>
+                                            patchDraft({
+                                                payload: {
+                                                    ...draft.payload,
+                                                    tripCountries,
+                                                    trip_countries: tripCountries
+                                                }
+                                            })
+                                        }
                                     />
                                 </div>
                             </div>

@@ -23,11 +23,30 @@ export function dayKey(date) {
 }
 
 export function parseDayKey(key) {
-    if (!key || typeof key !== 'string') return null;
+    if (key == null || key === '') return null;
+    if (key instanceof Date) {
+        return Number.isNaN(key.getTime()) ? null : startOfDayInLifeOS(key);
+    }
+    if (typeof key !== 'string') return null;
     const trimmed = key.trim().slice(0, 10);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return null;
     const d = startOfDayInLifeOS(trimmed);
     return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/** Normaliza DATE do Postgres, ISO ou YYYY-MM-DD para chave de dia. */
+export function toApiDayKey(raw) {
+    if (raw == null || raw === '') return null;
+    if (raw instanceof Date) {
+        return Number.isNaN(raw.getTime()) ? null : dayKey(raw);
+    }
+    if (typeof raw === 'string') {
+        const d10 = raw.trim().slice(0, 10);
+        if (/^\d{4}-\d{2}-\d{2}$/.test(d10)) return d10;
+        const parsed = new Date(raw);
+        return Number.isNaN(parsed.getTime()) ? null : dayKey(parsed);
+    }
+    return null;
 }
 
 export function monthAndYear(forMonthKey) {

@@ -160,11 +160,22 @@ export interface TripPayload {
     chosenTimeScenarioId?: string | null;
     scenario_criteria?: unknown[];
     scenarioCriteria?: unknown[];
+    /** Países da viagem (seleção manual; senão infere do roteiro). */
+    tripCountries?: string[];
+    trip_countries?: string[];
     [key: string]: unknown;
+}
+
+export interface TripCreator {
+    id: string;
+    name: string | null;
+    email?: string | null;
 }
 
 export interface Trip {
     id: string;
+    userId?: string;
+    creator?: TripCreator | null;
     title: string;
     startsOn: string | null;
     endsOn: string | null;

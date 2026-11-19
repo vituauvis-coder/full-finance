@@ -13,7 +13,7 @@ export function ViagensTrilho({ trips }: Props) {
     return (
         <aside className="viagens-casa__trail" aria-label="Trilho de viagens">
             <div className="viagens-trail-header">
-                <h2>Suas viagens</h2>
+                <h2>Viagens</h2>
                 <button
                     type="button"
                     className="viagens-btn viagens-btn--ghost viagens-trail-new"

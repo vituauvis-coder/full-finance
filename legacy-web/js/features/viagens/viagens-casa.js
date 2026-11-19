@@ -23,7 +23,6 @@ export async function renderViagensCasa(host) {
 
     host.innerHTML = `
         <div class="viagens-root">
-            <p class="viagens-page-lead"><strong>Seu atlas</strong> — Saindo de Recife: pins nos destinos, linhas tracejadas até sua casa. O trilho à direita guarda as viagens.</p>
             <div class="viagens-casa-layout">
                 <main class="viagens-casa-main">
                     <div id="viagens-map-host"></div>

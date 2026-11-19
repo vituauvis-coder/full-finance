@@ -146,6 +146,11 @@
     cursor: pointer;
 }
 
+.voos-resumo__tool--link {
+    text-decoration: none;
+    color: inherit;
+}
+
 .voos-resumo__tool:hover {
     filter: brightness(1.07);
 }

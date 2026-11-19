@@ -1,0 +1,301 @@
+/* Layout estilo atlas (mapa + trilho), abas estilo módulos da ficha */
+
+#milhas-page .milhas-casa-layout {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    min-height: min(72vh, 52rem);
+    border-radius: 1.35rem;
+    overflow: hidden;
+    border: 1px solid var(--v-borda);
+    background: var(--v-painel);
+    box-shadow: 0 1px 0 color-mix(in srgb, var(--v-borda) 70%, transparent);
+}
+
+#milhas-page .milhas-casa-main {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 1rem 1.15rem 1.25rem;
+    gap: 0.85rem;
+    background: color-mix(in srgb, var(--v-painel) 94%, var(--v-turquesa) 6%);
+}
+
+#milhas-page .milhas-casa__trail {
+    width: 100%;
+    max-width: min(22rem, 34vw);
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid var(--v-borda);
+    background: var(--v-janela);
+}
+
+#milhas-page .milhas-trail-header {
+    padding: 1rem 1rem 0.5rem;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 0.5rem 0.65rem;
+}
+
+#milhas-page .milhas-trail-header h2 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    grid-column: 2;
+}
+
+#milhas-page .milhas-trail-header__icon {
+    grid-row: span 2;
+    width: 2.25rem;
+    height: 2.25rem;
+    display: grid;
+    place-items: center;
+    border-radius: 0.75rem;
+    background: color-mix(in srgb, var(--v-turquesa) 16%, var(--v-painel));
+    color: var(--v-turquesa);
+}
+
+#milhas-page .milhas-trail-new {
+    grid-column: 3;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.78rem;
+    padding: 0.4rem 0.65rem;
+}
+
+#milhas-page .milhas-trail-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem 0.85rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+#milhas-page .milhas-trail-empty {
+    text-align: center;
+    padding: 1.5rem 0.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.65rem;
+    color: var(--v-legenda);
+}
+
+#milhas-page .milhas-trail-empty p {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--v-tinta);
+}
+
+#milhas-page .milhas-trail-item {
+    animation: viagens-card-in 0.42s ease backwards;
+}
+
+#milhas-page .milhas-trail-scroll .carteira-mini {
+    width: 100%;
+}
+
+#milhas-page .milhas-trail-scroll .carteira-mini.is-on {
+    border-color: color-mix(in srgb, var(--pontos-brand) 72%, var(--v-borda));
+    box-shadow:
+        0 0 0 2px color-mix(in srgb, var(--pontos-brand) 22%, transparent),
+        0 14px 28px color-mix(in srgb, var(--pontos-brand) 20%, transparent);
+    transform: translateY(-2px);
+}
+
+#milhas-page .milhas-trail-scroll .carteira-mini.is-on .carteira-mini__open {
+    opacity: 1;
+    transform: none;
+}
+
+#milhas-page .milhas-hub-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
+}
+
+#milhas-page .milhas-hub-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.65rem 0.75rem;
+    border-radius: 1rem;
+    border: 1px solid var(--v-borda);
+    background: var(--v-painel);
+    color: var(--v-tinta);
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: left;
+    transition:
+        transform 0.15s ease,
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+#milhas-page .milhas-hub-tab__icon {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.65rem;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    background: color-mix(in srgb, var(--v-legenda) 10%, var(--v-janela));
+    color: var(--v-legenda);
+}
+
+#milhas-page .milhas-hub-tab--turquesa.is-on .milhas-hub-tab__icon {
+    background: color-mix(in srgb, var(--v-turquesa) 18%, var(--v-painel));
+    color: var(--v-turquesa);
+}
+
+#milhas-page .milhas-hub-tab--ouro.is-on .milhas-hub-tab__icon {
+    background: color-mix(in srgb, var(--v-ouro) 22%, var(--v-painel));
+    color: var(--v-ouro);
+}
+
+#milhas-page .milhas-hub-tab--oceano.is-on .milhas-hub-tab__icon {
+    background: color-mix(in srgb, #3b82b0 20%, var(--v-painel));
+    color: #3b82b0;
+}
+
+#milhas-page .milhas-hub-tab.is-on {
+    border-color: color-mix(in srgb, var(--v-turquesa) 45%, var(--v-borda));
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--v-turquesa) 12%, transparent);
+    transform: translateY(-1px);
+}
+
+#milhas-page .milhas-hub-tab:focus-visible {
+    outline: 2px solid var(--v-turquesa);
+    outline-offset: 2px;
+}
+
+#milhas-page .milhas-canvas__body {
+    flex: 1;
+    min-height: 0;
+}
+
+#milhas-page .milhas-casa__placeholder {
+    flex: 1;
+    justify-content: center;
+    min-height: 12rem;
+    color: var(--v-turquesa);
+}
+
+#milhas-page .milhas-casa__placeholder p {
+    margin: 0.35rem 0 0;
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--v-tinta);
+}
+
+#milhas-page .milhas-spotlight {
+    position: relative;
+    overflow: hidden;
+}
+
+#milhas-page .milhas-spotlight__glow {
+    position: absolute;
+    inset: -30% -20% auto auto;
+    width: 55%;
+    height: 120%;
+    background: radial-gradient(circle, color-mix(in srgb, var(--pontos-brand) 22%, transparent), transparent 70%);
+    pointer-events: none;
+}
+
+#milhas-page .milhas-spotlight__badge {
+    display: inline-grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    margin-bottom: 0.25rem;
+    border-radius: 0.65rem;
+    background: color-mix(in srgb, var(--pontos-brand) 16%, var(--v-painel));
+    color: var(--pontos-brand);
+}
+
+#milhas-page .milhas-spotlight__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    background: color-mix(in srgb, var(--v-turquesa) 14%, transparent);
+    color: var(--v-turquesa);
+    margin-right: 0.35rem;
+}
+
+#milhas-page .milhas-spotlight__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.35rem;
+    margin: 0.25rem 0 0;
+    font-size: 0.78rem;
+    color: var(--v-legenda);
+}
+
+#milhas-page .milhas-spotlight__cap {
+    margin-top: 0.45rem;
+    max-width: 14rem;
+    margin-left: auto;
+}
+
+#milhas-page .milhas-spotlight__cap-label {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--v-legenda);
+    text-align: right;
+}
+
+#milhas-page .milhas-spotlight__edit {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+@media (max-width: 900px) {
+    #milhas-page .milhas-casa-layout {
+        flex-direction: column-reverse;
+        min-height: 0;
+    }
+
+    #milhas-page .milhas-casa__trail {
+        max-width: none;
+        border-left: 0;
+        border-top: 1px solid var(--v-borda);
+        max-height: 16rem;
+    }
+
+    #milhas-page .milhas-trail-scroll {
+        flex-direction: row;
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
+
+    #milhas-page .milhas-trail-scroll .carteira-mini {
+        flex: 0 0 11rem;
+    }
+}
+
+@media (max-width: 560px) {
+    #milhas-page .milhas-hub-tabs {
+        grid-template-columns: 1fr;
+    }
+
+    #milhas-page .milhas-hub-tab__label {
+        flex: 1;
+    }
+}

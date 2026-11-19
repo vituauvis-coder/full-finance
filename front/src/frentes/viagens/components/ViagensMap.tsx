@@ -4,8 +4,12 @@ import Map, { Layer, Marker, NavigationControl, Source, type MapRef } from 'reac
 import { cluster as clusterVisits } from '@motor/viagens/trips-engine.js';
 import { VIAGENS_GLOBE, VIAGENS_HOME } from '@motor/viagens/viagens-atlas.js';
 import type { MapVisit, Trip } from '../types';
-import { displayCoordinate } from '../utils/map-utils';
-import { hopLineFeatures } from '../utils/map-routes';
+import { displayCoordinate, mapAirportBadgeLabel } from '../utils/map-utils';
+import { resolveTripCountries } from '@motor/viagens/trip-countries.js';
+import { flightArrivalPoints } from '@motor/viagens/flight-route-geo.js';
+import { buildCountryHighlightCollection } from '../utils/countryHighlightsGeo';
+import { applyMapRoutePaint, bindMapRoutePaint, mapRoutePaint } from '../utils/map-route-paint';
+import { flightRoutesForMap } from '../utils/map-routes';
 import {
     loadViagensMapView,
     persistViagensMapView,
@@ -36,7 +40,7 @@ const SUN_REFRESH_MS = 60_000;
 ensureMapLibreWorker();
 import { HoverTicket } from './HoverTicket';
 import { ViagensMapViewToggle } from './ViagensMapViewToggle';
-import { ViagensPin } from './ViagensPin';
+import { ViagensPlaceBadge } from './ViagensPlaceBadge';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 const VIEW_ZOOM: Record<ViagensMapView, number> = {
@@ -69,7 +73,36 @@ export function ViagensMap({ trips, visits, onOpenTrip }: Props) {
     const [nightShadeUrl, setNightShadeUrl] = useState<string | null>(null);
     const nightShadeUrlRef = useRef<string | null>(null);
 
-    const hopGeo = useMemo(() => hopLineFeatures(trips, visits), [trips, visits]);
+    const routeLegs = useMemo(() => flightRoutesForMap(trips, visits), [trips, visits]);
+
+    const highlightCountryLabels = useMemo(() => {
+        const seen = new Set<string>();
+        const out: string[] = [];
+        for (const trip of trips) {
+            for (const c of resolveTripCountries(trip.payload, trip.payload?.destinations ?? [])) {
+                const k = c.toLowerCase();
+                if (seen.has(k)) continue;
+                seen.add(k);
+                out.push(c);
+            }
+        }
+        return out;
+    }, [trips]);
+
+    const [countryGeo, setCountryGeo] = useState<GeoJSON.FeatureCollection>(() => ({
+        type: 'FeatureCollection',
+        features: []
+    }));
+
+    useEffect(() => {
+        let cancelled = false;
+        void buildCountryHighlightCollection(highlightCountryLabels).then((geo) => {
+            if (!cancelled) setCountryGeo(geo);
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, [highlightCountryLabels]);
 
     const clusters = useMemo(() => clusterVisits(visits, spanLat), [visits, spanLat]);
 
@@ -132,6 +165,12 @@ export function ViagensMap({ trips, visits, onOpenTrip }: Props) {
         return () => map.off('idle', fixOrder);
     }, [nightShadeUrl, mapStyle, mapView]);
 
+    useEffect(() => {
+        const map = mapRef.current?.getMap();
+        if (!map) return;
+        return bindMapRoutePaint(map, 'viagens');
+    }, [routeLegs, mapStyle]);
+
     const bindMap = useCallback((map: MapLibreMap) => {
         map.on('moveend', () => {
             const b = map.getBounds();
@@ -152,6 +191,7 @@ export function ViagensMap({ trips, visits, onOpenTrip }: Props) {
         applyGlobeRealisticEarth(map);
         void refreshAtlasSun();
         scheduleMapResize(map);
+        applyMapRoutePaint(map, 'viagens');
     }, [bindMap, mapView, refreshAtlasSun]);
 
     const applyMapView = useCallback((view: ViagensMapView) => {
@@ -199,16 +239,30 @@ export function ViagensMap({ trips, visits, onOpenTrip }: Props) {
     }, [spanLat]);
 
     const singlePins = useMemo(() => {
-        const out: { visit: MapVisit; lat: number; lng: number; index: number }[] = [];
+        const out: { visit: MapVisit; lat: number; lng: number }[] = [];
         clusters.forEach((c) => {
             if (!c || c.visits.length !== 1) return;
             const visit = c.visits[0];
             const coord = displayCoordinate(visit, visits);
-            const index = visits.findIndex((v) => v.id === visit.id);
-            out.push({ visit, lat: coord.lat, lng: coord.lng, index: index >= 0 ? index : 0 });
+            out.push({ visit, lat: coord.lat, lng: coord.lng });
         });
         return out;
     }, [clusters, visits]);
+
+    const visitCoordKeys = useMemo(
+        () =>
+            new Set(
+                visits.map((v) => `${Math.round(v.destination.longitude * 100)}:${Math.round(v.destination.latitude * 100)}`)
+            ),
+        [visits]
+    );
+
+    const flightArrivals = useMemo(() => {
+        return flightArrivalPoints(trips).filter((arrival) => {
+            const key = `${Math.round(arrival.lng * 100)}:${Math.round(arrival.lat * 100)}`;
+            return !visitCoordKeys.has(key);
+        });
+    }, [trips, visitCoordKeys]);
 
     return (
         <div
@@ -277,23 +331,54 @@ export function ViagensMap({ trips, visits, onOpenTrip }: Props) {
                         />
                     </Source>
                 ) : null}
-                <Source id="viagens-routes" type="geojson" data={hopGeo}>
-                    <Layer
-                        id="viagens-routes-line"
-                        type="line"
-                        paint={{
-                            'line-color': 'rgba(46, 196, 182, 0.85)',
-                            'line-width': 1.8,
-                            'line-dasharray': [2, 1.5]
-                        }}
-                    />
-                </Source>
+                {countryGeo.features.length > 0 ? (
+                    <Source id="viagens-countries" type="geojson" data={countryGeo}>
+                        <Layer
+                            id="viagens-countries-fill"
+                            type="fill"
+                            paint={{
+                                'fill-color': 'rgba(46, 196, 182, 0.38)',
+                                'fill-opacity': 0.42,
+                                'fill-outline-color': 'rgba(46, 196, 182, 0.45)'
+                            }}
+                        />
+                    </Source>
+                ) : null}
+                {routeLegs.ida.features.length > 0 ? (
+                    <Source id="viagens-routes-ida" type="geojson" data={routeLegs.ida}>
+                        <Layer
+                            id="viagens-routes-ida-glow"
+                            type="line"
+                            layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+                            paint={mapRoutePaint.idaGlow}
+                        />
+                        <Layer
+                            id="viagens-routes-ida-core"
+                            type="line"
+                            layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+                            paint={mapRoutePaint.idaCore}
+                        />
+                    </Source>
+                ) : null}
+                {routeLegs.volta.features.length > 0 ? (
+                    <Source id="viagens-routes-volta" type="geojson" data={routeLegs.volta}>
+                        <Layer
+                            id="viagens-routes-volta-glow"
+                            type="line"
+                            layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+                            paint={mapRoutePaint.voltaGlow}
+                        />
+                        <Layer
+                            id="viagens-routes-volta-core"
+                            type="line"
+                            layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+                            paint={mapRoutePaint.voltaCore}
+                        />
+                    </Source>
+                ) : null}
                 <Marker longitude={VIAGENS_HOME.longitude} latitude={VIAGENS_HOME.latitude} anchor="center">
                     <div className="viagens-home-badge">
-                        <span className="viagens-home-badge__icon" aria-hidden>
-                            🧳
-                        </span>
-                        <span className="viagens-home-badge__label">{VIAGENS_HOME.name}</span>
+                        <ViagensPlaceBadge name={VIAGENS_HOME.name} />
                     </div>
                 </Marker>
                 {clusters.map((c, ci) => {
@@ -311,33 +396,44 @@ export function ViagensMap({ trips, visits, onOpenTrip }: Props) {
                         </Marker>
                     );
                 })}
-                {singlePins.map(({ visit, lat, lng, index }) => {
+                {singlePins.map(({ visit, lat, lng }) => {
                     const isHov = hovered?.visit.id === visit.id;
+                    const cityName = mapAirportBadgeLabel(visit.destination.name, visit.hover.placeName);
                     return (
-                        <Marker key={visit.id} longitude={lng} latitude={lat} anchor="bottom">
-                            <div
-                                className="viagens-pin-marker"
-                                onMouseEnter={() => setHovered({ visit })}
-                                onMouseLeave={() => setHovered((h) => (h?.visit.id === visit.id ? null : h))}
-                            >
+                        <Marker key={visit.id} longitude={lng} latitude={lat} anchor="center">
+                            <div className="viagens-pin-marker">
                                 {isHov ? <HoverTicket hover={visit.hover} /> : null}
                                 <button
                                     type="button"
+                                    className="viagens-place-marker viagens-place-marker--interactive"
+                                    onMouseEnter={() => setHovered({ visit })}
+                                    onMouseLeave={() => setHovered((h) => (h?.visit.id === visit.id ? null : h))}
                                     onClick={() => onOpenTrip(visit.tripId)}
-                                    aria-label={`${visit.destination.name}, ${visit.tripTitle}`}
-                                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                                    aria-label={`${cityName}, ${visit.tripTitle}`}
                                 >
-                                    <ViagensPin
-                                        status={visit.status}
-                                        hovering={isHov}
-                                        index={index}
-                                        isPrincipal={visit.destination.isPrincipal}
-                                    />
+                                    <ViagensPlaceBadge name={cityName} />
                                 </button>
                             </div>
                         </Marker>
                     );
                 })}
+                {flightArrivals.map((arrival) => (
+                    <Marker
+                        key={`${arrival.tripId}-${arrival.lng}-${arrival.lat}-${arrival.label}`}
+                        longitude={arrival.lng}
+                        latitude={arrival.lat}
+                        anchor="center"
+                    >
+                        <button
+                            type="button"
+                            className="viagens-place-marker viagens-place-marker--interactive"
+                            onClick={() => onOpenTrip(arrival.tripId)}
+                            aria-label={`Destino ${arrival.label}`}
+                        >
+                            <ViagensPlaceBadge name={arrival.label} />
+                        </button>
+                    </Marker>
+                ))}
             </Map>
         </div>
     );

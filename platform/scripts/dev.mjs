@@ -7,6 +7,7 @@ import { spawn } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { envWithPgToolsPath, logPgToolsPathHint } from './pg-tools-path.mjs';
+import { runDailyDevBackupIfDue } from './dev-daily-backup.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, '../..');
@@ -32,6 +33,8 @@ function findFreePort(start, end) {
         tryPort(start);
     });
 }
+
+await runDailyDevBackupIfDue();
 
 const preferred = Number(process.env.PORT) || 3003;
 const port = await findFreePort(preferred, preferred + 40);
