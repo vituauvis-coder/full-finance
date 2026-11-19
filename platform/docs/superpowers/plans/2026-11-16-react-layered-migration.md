@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-16  
 **Status:** Proposta inicial (não executar tudo de uma vez)  
-**Repo:** único (`full-finance` → produto **Meu Mundo**)  
+**Repo:** único (`meu-mundo` — produto **Meu Mundo**; remoto GitHub pode ainda ser `full-finance`)  
 **Referências:** `docs/STACK.md`, `meu-mundo/client` + `meu-mundo/server`, spec antiga `2026-05-20-architecture-modernization-design.md` (atualizada pela decisão de React)
 
 ---
@@ -66,7 +66,7 @@ npm run build        # build do front + nada obrigatório no back
 ## Arquitetura alvo (um repo)
 
 ```
-full-finance/
+meu-mundo/
 ├── front/                         # SISTEMA FRONT
 │   ├── index.html
 │   ├── vite.config.ts

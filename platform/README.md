@@ -11,4 +11,4 @@ Tudo que **não** é código de produto (`front`, `back`, `motor`, `legacy-web`)
 | `scripts/` | Dev, migrações, seeds, debug |
 | `tests/` | `node --test` |
 | `public/` | Assets estáticos do Vite (legado) |
-| `archive/` | Artefatos antigos (prints, previews, protótipos) |
+| `archive/` | Previews HTML estáticos (`preview/`) e `env.sample` de referência |

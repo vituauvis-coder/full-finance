@@ -1,0 +1,20 @@
+---
+description: Camadas do front, motor de regras e tamanho de arquivo
+globs: front/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Front — qualidade e arquitetura
+
+Leia e siga [`front/docs/CODE_QUALITY.md`](../../front/docs/CODE_QUALITY.md).
+
+## Resumo obrigatório
+
+- **Regra de negócio pura** → `motor/<domínio>/` + teste em `platform/tests/motor/`. No front, só adaptadores finos (`lib/` ou `domain/`).
+- **Por frente** (`frentes/<nome>/`): `pages/` · `components/` · `hooks/` · `context/` · `domain/` · `api/` · `types/` · `styles/`.
+- **Página** compõe; não duplicar fetch se `FinanceDataProvider` já cobre.
+- **Arquivo** alvo ~250 linhas; teto ~400 — quebrar em subcomponentes, hooks ou utils.
+- **Comentários** só para invariantes não óbvios; não narrar o óbvio.
+- Dashboard: inventário em [`front/docs/DASHBOARD.md`](../../front/docs/DASHBOARD.md).
+
+Antes de concluir: `npm run build:front` e, se mexeu no motor, `npm test`.

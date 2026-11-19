@@ -75,6 +75,8 @@ typings/
 # dotenv environment variables file
 .env
 .env.test
+# Guias privados com credenciais (não commitar)
+GUIA-COLABORADORA-PRIVADO.md
 # Cópia local sem ponto (não commitar segredos)
 env
 
@@ -92,6 +94,20 @@ out
 # Nuxt.js build / generate output
 .nuxt
 dist
+/front/dist/
+/legacy-web/dist/
+
+# Archive orphan (só node_modules local; não versionar se recriar)
+/platform/archive/client-life/
+
+# Cursor — versionar só regras do projeto (settings locais ficam fora do Git)
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/**
+
+# Superpowers — estado local (dados em ~/cursor-state/ via symlink)
+.superpowers
+.superpowers/
 
 # Gatsby files
 .cache/
