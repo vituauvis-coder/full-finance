@@ -52,15 +52,11 @@ export function CarteiraResumo({ programs, needs, onOpen }: Props) {
                                 </span>
                             ) : null}
                             {program.issuer ? <span className="carteira-mini__issuer">{program.issuer}</span> : null}
-                            <span className="carteira-mini__bar" aria-hidden>
+                            <span
+                                className={`carteira-mini__bar${gap > 0 ? ' is-out' : needed > 0 ? ' is-ok' : ''}`}
+                                aria-hidden
+                            >
                                 <span style={{ width: `${pct}%` }} />
-                            </span>
-                            <span className={`carteira-mini__need${gap > 0 ? ' is-out' : needed > 0 ? ' is-ok' : ''}`}>
-                                {needed > 0
-                                    ? gap > 0
-                                        ? `Faltam ${formatPts(gap)} para a viagem`
-                                        : 'Cobre a viagem'
-                                    : 'Livre nesta viagem'}
                             </span>
                             <span className="carteira-mini__open">Abrir</span>
                         </button>

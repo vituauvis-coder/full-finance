@@ -60,8 +60,13 @@ export function patchMilesProgram(id: string, body: Record<string, unknown>) {
     return milesFetch(`/api/miles/programs/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
 }
 
-export function fetchMilesDashboard(tripId?: string) {
-    const q = tripId ? `?tripId=${encodeURIComponent(tripId)}` : '';
+export function fetchMilesDashboard(tripId?: string, opts?: { excludeFlightSimulationId?: string }) {
+    const parts: string[] = [];
+    if (tripId) parts.push(`tripId=${encodeURIComponent(tripId)}`);
+    if (opts?.excludeFlightSimulationId) {
+        parts.push(`excludeFlightSimulationId=${encodeURIComponent(opts.excludeFlightSimulationId)}`);
+    }
+    const q = parts.length ? `?${parts.join('&')}` : '';
     return milesFetch(`/api/miles/dashboard${q}`);
 }
 

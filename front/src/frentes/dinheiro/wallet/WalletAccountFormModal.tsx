@@ -28,6 +28,7 @@ export function WalletAccountFormModal({
     const [balance, setBalance] = useState('');
     const [limit, setLimit] = useState('');
     const [dueDay, setDueDay] = useState('');
+    const [closeDay, setCloseDay] = useState('');
     const [linkedAccountId, setLinkedAccountId] = useState('');
     const [error, setError] = useState('');
     const [busy, setBusy] = useState(false);
@@ -40,6 +41,7 @@ export function WalletAccountFormModal({
             setBalance(String(editing.balance ?? ''));
             setLimit(String((editing as Account & { limit?: number }).limit ?? ''));
             setDueDay(String((editing as Account & { dueDay?: number }).dueDay ?? ''));
+            setCloseDay(String((editing as Account & { closeDay?: number }).closeDay ?? ''));
             setLinkedAccountId(String((editing as Account & { linkedAccountId?: string }).linkedAccountId ?? ''));
             const t = String(editing.type ?? '');
             if (t.includes('credito') || t.includes('crédito')) setKind('credit');
@@ -50,6 +52,7 @@ export function WalletAccountFormModal({
             setBalance('');
             setLimit('');
             setDueDay('10');
+            setCloseDay('1');
             setKind(defaultKind === 'credit' ? 'credit' : 'bank');
             setLinkedAccountId(defaultLinkedBankId ?? '');
         }
@@ -69,7 +72,8 @@ export function WalletAccountFormModal({
             initialBalance: balance ? parseFloat(balance) : 0,
             linkedAccountId: linkedAccountId || null,
             limit: limit ? parseFloat(limit) : null,
-            dueDay: dueDay ? parseInt(dueDay, 10) : null
+            dueDay: dueDay ? parseInt(dueDay, 10) : null,
+            closeDay: closeDay ? parseInt(closeDay, 10) : null
         };
         if (!payload.name) {
             setError('Informe o nome.');
@@ -113,6 +117,16 @@ export function WalletAccountFormModal({
                         <label>
                             Limite
                             <input type="number" step="0.01" value={limit} onChange={(e) => setLimit(e.target.value)} />
+                        </label>
+                        <label>
+                            Dia de fechamento (corte)
+                            <input
+                                type="number"
+                                min={1}
+                                max={31}
+                                value={closeDay}
+                                onChange={(e) => setCloseDay(e.target.value)}
+                            />
                         </label>
                         <label>
                             Dia de vencimento

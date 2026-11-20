@@ -49,7 +49,7 @@ test('compare flags lowest outlay, economic and best value', () => {
     assert.equal(rows.options[0].id, 'A');
 });
 
-test('club wallet values current points from the monthly fee, not paid history', () => {
+test('dashboard milheiro prefers weighted acquisition from extrato when present', () => {
     const dash = buildDashboard({
         programs: [
             {
@@ -74,5 +74,5 @@ test('club wallet values current points from the monthly fee, not paid history',
         reservedSims: []
     });
     assert.equal(Number(dash.programs[0].invested), 800);
-    assert.equal(Number(dash.programs[0].milheiro), 32);
+    assert.equal(Number(dash.programs[0].milheiro), 35);
 });

@@ -416,6 +416,7 @@ export function CarteiraSheet({ tripId, programId, onClose, onChanged }: Props) 
                             onSaved={(next) => {
                                 setPrograms((list) => list.map((p) => (p.id === next.id ? { ...p, ...next } : p)));
                                 bump();
+                                notifyWalletChanged();
                                 void load();
                             }}
                         />

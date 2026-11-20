@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
     BAGGAGE_OPTIONS,
     emptyBaggage,
@@ -16,7 +16,7 @@ import {
     flightDurationLabel,
     shiftKeepingDuration
 } from '../../domain/flightDisplay';
-import { fetchEmissions, fetchMilesDashboard, fetchMilesPrograms } from '../../api/miles';
+import { fetchEmissions, fetchMilesDashboard, fetchMilesPrograms, WALLET_CHANGED } from '../../api/miles';
 import type { ConversionRate, MilesProgram } from '../../pages/pontos/pontos-format';
 import type { TripDestination, TripFlightConnection, TripFlightMiles, TripFlightSimulation } from '../../types';
 import { AirportSuggestField } from './AirportSuggestField';
@@ -186,20 +186,17 @@ export function FlightEditorModal({
         return () => window.removeEventListener('paste', onPaste);
     }, [open, awaitingQuote, simulation, onChange]);
 
-    useEffect(() => {
-        if (!open) {
-            setWalletsReady(false);
-            return;
-        }
-        let cancelled = false;
+    const loadWallets = useCallback(() => {
+        const flightId = simulation?.id;
         setWalletsReady(false);
-        void Promise.all([
+        return Promise.all([
             fetchMilesPrograms(),
-            fetchMilesDashboard(tripId).catch(() => ({ programs: [] })),
+            fetchMilesDashboard(tripId, flightId ? { excludeFlightSimulationId: flightId } : undefined).catch(() => ({
+                programs: []
+            })),
             fetchEmissions(tripId)
         ])
             .then(([p, dash, e]) => {
-                if (cancelled) return;
                 const listed = (p.programs ?? []) as MilesProgram[];
                 const dashRows = ((dash as { programs?: MilesProgram[] }).programs ?? []) as MilesProgram[];
                 const byId = new Map(dashRows.map((row) => [row.id, row]));
@@ -217,7 +214,9 @@ export function FlightEditorModal({
                             clubPointsPerMonth: prog.clubPointsPerMonth ?? row?.clubPointsPerMonth,
                             clubBonusPerMonth: prog.clubBonusPerMonth ?? row?.clubBonusPerMonth,
                             buyMilheiro: buy > 0 ? String(buy) : prog.buyMilheiro ?? row?.buyMilheiro,
-                            milheiro: buy > 0 ? String(buy) : String(row?.milheiro ?? prog.milheiro ?? ''),
+                            milheiro: String(row?.milheiro ?? prog.milheiro ?? (buy > 0 ? buy : '')),
+                            acquisitionMilheiro: row?.acquisitionMilheiro ?? prog.acquisitionMilheiro,
+                            acquisitionBuckets: row?.acquisitionBuckets ?? prog.acquisitionBuckets,
                             available: row?.available ?? prog.available ?? prog.balance
                         };
                     })
@@ -229,16 +228,30 @@ export function FlightEditorModal({
                 );
             })
             .catch(() => {
-                if (!cancelled) {
-                    setPrograms([]);
-                    setRates([]);
-                    setWalletsReady(true);
-                }
+                setPrograms([]);
+                setRates([]);
+                setWalletsReady(true);
             });
+    }, [simulation?.id, tripId]);
+
+    useEffect(() => {
+        if (!open) {
+            setWalletsReady(false);
+            return;
+        }
+        let cancelled = false;
+        void loadWallets().then(() => {
+            if (cancelled) return;
+        });
+        const onWallet = () => {
+            void loadWallets();
+        };
+        window.addEventListener(WALLET_CHANGED, onWallet);
         return () => {
             cancelled = true;
+            window.removeEventListener(WALLET_CHANGED, onWallet);
         };
-    }, [open, tripId]);
+    }, [open, loadWallets]);
 
     if (!open || !simulation) return null;
 

@@ -2,7 +2,7 @@ import Decimal from 'decimal.js';
 import { originPointsNeeded } from './convert.js';
 import { purchaseCost } from './purchase.js';
 import { clubInvested, clubMilheiro, clubPricesStock } from './club.js';
-import { acquisitionMilheiro, programBalance } from './ledger.js';
+import { acquisitionBuckets, acquisitionMilheiro, programBalance } from './ledger.js';
 
 function dec(n) {
     const d = new Decimal(n ?? 0);
@@ -96,11 +96,13 @@ export function originNeededForSim(sim, option) {
     });
 }
 
-export function committedPoints({ reservedSims, programId, excludeSimId }) {
+export function committedPoints({ reservedSims, programId, excludeSimId, excludeFlightSimulationId }) {
     let n = 0;
     for (const sim of reservedSims ?? []) {
         if ((sim.originProgramId ?? sim.origin_program_id) !== programId) continue;
         if (excludeSimId && sim.id === excludeSimId) continue;
+        const flightId = sim.flightSimulationId ?? sim.flight_simulation_id;
+        if (excludeFlightSimulationId && flightId === excludeFlightSimulationId) continue;
         const options = sim.options ?? [];
         const chosen =
             options.find((o) => o.id === (sim.chosenOptionId ?? sim.chosen_option_id)) ??
@@ -111,14 +113,20 @@ export function committedPoints({ reservedSims, programId, excludeSimId }) {
     return n;
 }
 
-export function buildDashboard({ programs, movements, reservedSims, recentLimit = 8 }) {
+export function buildDashboard({ programs, movements, reservedSims, recentLimit = 8, excludeFlightSimulationId }) {
     const rows = (programs ?? []).map((p) => {
         const balance = programBalance(movements, p.id);
         const acquired = acquisitionMilheiro(movements, p.id);
         const declared = Number(p.buyMilheiro ?? p.buy_milheiro) || 0;
         const clubRate = clubMilheiro(p, balance);
-        const milheiro = clubRate > 0 ? new Decimal(clubRate) : declared > 0 ? new Decimal(declared) : acquired;
-        const committed = committedPoints({ reservedSims, programId: p.id });
+        const milheiro = acquired.gt(0)
+            ? acquired
+            : clubRate > 0
+              ? new Decimal(clubRate)
+              : declared > 0
+                ? new Decimal(declared)
+                : new Decimal(0);
+        const committed = committedPoints({ reservedSims, programId: p.id, excludeFlightSimulationId });
         const invested = clubPricesStock(p)
             ? new Decimal(clubInvested(p, balance))
             : (movements ?? []).reduce((acc, m) => {
@@ -127,11 +135,20 @@ export function buildDashboard({ programs, movements, reservedSims, recentLimit 
                   if (raw == null || raw === '') return acc;
                   return acc.plus(dec(raw));
               }, new Decimal(0));
+        const buckets = acquisitionBuckets(movements, p.id).map((b) => ({
+            key: b.key,
+            label: b.label,
+            points: Math.round(b.points),
+            amountBrl: b.amountBrl.toString(),
+            milheiro: b.milheiro.toString()
+        }));
         return {
             ...p,
             balance,
             committed,
             available: Math.max(0, balance - committed),
+            acquisitionMilheiro: acquired,
+            acquisitionBuckets: buckets,
             milheiro,
             invested
         };

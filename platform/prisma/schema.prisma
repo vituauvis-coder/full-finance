@@ -117,6 +117,10 @@ model Expense {
   splitRequestId    String? @unique @db.NVarChar(36)
   /** Saída pool de origem quando esta linha é aporte alocado a uma caixinha. */
   allocationParentId String? @db.NVarChar(36)
+  /** Viagem Malote quando a saída foi criada/espelhada a partir do orçamento da viagem. */
+  tripId           String? @db.NVarChar(36) @map("trip_id")
+  /** ID do TripExpense na payload da viagem (espelho). */
+  tripExpenseId    String? @db.NVarChar(36) @map("trip_expense_id")
 
   user             User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   account          Account  @relation(fields: [accountId], references: [id], onDelete: NoAction, onUpdate: NoAction)

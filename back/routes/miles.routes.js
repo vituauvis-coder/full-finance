@@ -4,6 +4,7 @@ import { convertPoints } from '../../motor/milhas/convert.js';
 import { purchaseCost } from '../../motor/milhas/purchase.js';
 import { money2 } from '../../motor/milhas/purchase.js';
 import {
+    acquisitionBuckets,
     acquisitionMilheiro,
     movementDelta,
     programBalance,
@@ -133,11 +134,26 @@ async function programsWithBalance(userId) {
         const acquired = acquisitionMilheiro(movements, p.id);
         const declared = Number(p.buyMilheiro) || 0;
         const clubRate = clubMilheiro(p, balance);
-        const milheiro = clubRate > 0 ? clubRate : declared > 0 ? declared : acquired;
+        const milheiro = acquired.gt(0)
+            ? acquired
+            : clubRate > 0
+              ? new Decimal(clubRate)
+              : declared > 0
+                ? new Decimal(declared)
+                : new Decimal(0);
+        const buckets = acquisitionBuckets(movements, p.id).map((b) => ({
+            key: b.key,
+            label: b.label,
+            points: Math.round(b.points),
+            amountBrl: b.amountBrl.toString(),
+            milheiro: b.milheiro.toString()
+        }));
         return {
             ...p,
             balance,
-            milheiro: new Decimal(milheiro).toString(),
+            acquisitionMilheiro: acquired.gt(0) ? acquired.toString() : '0',
+            acquisitionBuckets: buckets,
+            milheiro: milheiro.toString(),
             invested: clubPricesStock(p) ? String(clubInvested(p, balance)) : undefined
         };
     });
@@ -228,6 +244,9 @@ export function registerMilesRoutes(app, { requireAuth }) {
             delete patch.householdShared;
             const program = await repo.updateProgram(req.session.userId, req.params.id, patch);
             if (!program) return res.status(404).json({ error: 'Programa não encontrado' });
+            if (body.clubFeeBrl != null) {
+                await repo.syncClubFeeOnMovements(req.session.userId, program.id, program.clubFeeBrl);
+            }
             await ensureClubCredits(req.session.userId);
             const [fresh] = (await programsWithBalance(req.session.userId)).filter((p) => p.id === program.id);
             res.json({ program: fresh ?? program });
@@ -392,7 +411,10 @@ export function registerMilesRoutes(app, { requireAuth }) {
             await ensureClubCredits(userId);
             const movements = await repo.listMovements(userId, { limit: 200 });
             const reservedSims = await repo.listReservedSims(userId);
-            const dash = buildDashboard({ programs, movements, reservedSims });
+            const excludeFlightSimulationId = req.query.excludeFlightSimulationId
+                ? String(req.query.excludeFlightSimulationId)
+                : undefined;
+            const dash = buildDashboard({ programs, movements, reservedSims, excludeFlightSimulationId });
             const tripReserved = req.query.tripId
                 ? reservedSims.filter((s) => s.tripId === req.query.tripId)
                 : reservedSims;
@@ -400,6 +422,8 @@ export function registerMilesRoutes(app, { requireAuth }) {
                 programs: dash.programs.map((p) => ({
                     ...p,
                     milheiro: p.milheiro.toString(),
+                    acquisitionMilheiro: p.acquisitionMilheiro?.toString?.() ?? '0',
+                    acquisitionBuckets: p.acquisitionBuckets ?? [],
                     invested: p.invested.toString()
                 })),
                 recent: dash.recent,

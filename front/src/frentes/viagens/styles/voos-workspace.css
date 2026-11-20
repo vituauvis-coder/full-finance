@@ -83,7 +83,7 @@
 
 .voos-resumo {
     display: grid;
-    grid-template-columns: minmax(0, 1.55fr) minmax(16.5rem, 0.78fr);
+    grid-template-columns: minmax(16.5rem, 0.78fr) minmax(0, 1.55fr);
     align-items: stretch;
     gap: 0.65rem;
 }

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import type { Movement } from '../../lib/types/finance';
+import { getExpensePerInstallmentDisplayAmount } from '@motor/dinheiro/credit-installments.js';
+import type { Account, Movement } from '../../lib/types/finance';
 import { formatBRL } from '../../lib/format';
 import { formatMovementDate } from '../../lib/movementList';
 import type { DataTableColumn } from '../ui/DataTable';
@@ -25,6 +26,8 @@ type GainsOpts = BaseOpts & {
 
 type ExpensesOpts = BaseOpts & {
     kind: 'expense';
+    accounts?: Account[];
+    expenseDisplayDate?: (m: Movement) => Date;
     statusLabel: (m: Movement) => string;
     onToggleStatus?: (m: Movement) => void;
     statusToggleBusy?: (id: string) => boolean;
@@ -45,7 +48,13 @@ export function buildMovementTableColumns(opts: GainsOpts | ExpensesOpts): DataT
             header: 'Data',
             sortKey: 'date',
             cellClassName: 'movement-td-compact',
-            render: (m) => formatMovementDate(m)
+            render: (m) => {
+                const d =
+                    opts.kind === 'expense' && opts.expenseDisplayDate
+                        ? opts.expenseDisplayDate(m)
+                        : new Date((m.date as string) ?? '');
+                return formatMovementDate({ ...m, date: d.toISOString() });
+            }
         },
         {
             id: 'description',
@@ -62,6 +71,11 @@ export function buildMovementTableColumns(opts: GainsOpts | ExpensesOpts): DataT
             render: (m) => m.category || '—'
         }
     ];
+
+    const accountById =
+        opts.kind === 'expense' && opts.accounts
+            ? new Map(opts.accounts.map((a) => [a.id, a]))
+            : null;
 
     if (opts.kind === 'expense') {
         cols.push({
@@ -88,7 +102,23 @@ export function buildMovementTableColumns(opts: GainsOpts | ExpensesOpts): DataT
             sortKey: 'amount',
             align: 'right',
             cellClassName: amountClass,
-            render: (m) => formatBRL(Number(m.amount) || 0, currency)
+            render: (m) => {
+                const acc = m.accountId && accountById ? accountById.get(m.accountId) : undefined;
+                const display =
+                    opts.kind === 'expense'
+                        ? getExpensePerInstallmentDisplayAmount(m, acc)
+                        : Number(m.amount) || 0;
+                const total = Number(m.amount) || 0;
+                const title =
+                    opts.kind === 'expense' && display < total - 0.001
+                        ? `Total da compra: ${formatBRL(total, currency)}`
+                        : undefined;
+                return (
+                    <span title={title}>
+                        {formatBRL(display, currency)}
+                    </span>
+                );
+            }
         },
         {
             id: 'status',

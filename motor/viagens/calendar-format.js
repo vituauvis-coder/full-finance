@@ -13,6 +13,13 @@ export function lifeOSCalendarParts(date) {
 }
 
 export function startOfDayInLifeOS(date) {
+    if (typeof date === 'string') {
+        const trimmed = date.trim().slice(0, 10);
+        if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+            const out = new Date(`${trimmed}T12:00:00-03:00`);
+            return Number.isNaN(out.getTime()) ? new Date(NaN) : out;
+        }
+    }
     const { year, month, day } = lifeOSCalendarParts(date);
     return new Date(`${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T12:00:00-03:00`);
 }

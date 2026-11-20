@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+    acquisitionBuckets,
     acquisitionMilheiro,
+    allocateOwnedAcquisition,
     programBalance,
     setBalanceAdjustment
 } from '../../../../motor/milhas/ledger.js';
@@ -37,4 +39,41 @@ test('acquisition milheiro uses paid purchases and valued adjustments', () => {
     ];
     const m = acquisitionMilheiro(movements, esfera);
     assert.equal(m.toString(), '14');
+});
+
+test('acquisition milheiro blends club acumulo and compra lots', () => {
+    const movements = [
+        { programId: esfera, type: 'acumulo', points: 25000, amountBrl: '799', source: 'clube' },
+        { programId: esfera, type: 'compra', points: 103000, amountBrl: '3605' }
+    ];
+    const m = acquisitionMilheiro(movements, esfera);
+    assert.equal(m.toFixed(2), '34.41');
+});
+
+test('acquisition buckets split assinatura and compra', () => {
+    const movements = [
+        { programId: esfera, type: 'acumulo', points: 25000, amountBrl: '800' },
+        { programId: esfera, type: 'compra', points: 103000, amountBrl: '3605' }
+    ];
+    const buckets = acquisitionBuckets(movements, esfera);
+    assert.equal(buckets.length, 2);
+    const sub = buckets.find((b) => b.key === 'assinatura');
+    const buy = buckets.find((b) => b.key === 'compra');
+    assert.equal(sub.points, 25000);
+    assert.equal(sub.amountBrl.toString(), '800');
+    assert.equal(buy.points, 103000);
+    assert.equal(buy.amountBrl.toString(), '3605');
+});
+
+test('allocate owned cost proportional to paid lots', () => {
+    const movements = [
+        { programId: esfera, type: 'acumulo', points: 25000, amountBrl: '800' },
+        { programId: esfera, type: 'compra', points: 103000, amountBrl: '3605' }
+    ];
+    const buckets = acquisitionBuckets(movements, esfera);
+    const split = allocateOwnedAcquisition(buckets, 128000);
+    assert.equal(split.lines.length, 2);
+    assert.equal(Number(split.totalBrl.toFixed(2)), 4405);
+    assert.equal(split.lines.find((l) => l.key === 'assinatura')?.amountBrl, 800);
+    assert.equal(Number(split.lines.find((l) => l.key === 'compra')?.amountBrl.toFixed(2)), 3605);
 });

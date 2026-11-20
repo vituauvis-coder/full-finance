@@ -8,6 +8,7 @@ import {
 import { snapshot, snapshots, winner } from '../../motor/viagens/trip-scenario-engine.js';
 import { airportLabel, searchAirportsCatalog } from '../../motor/viagens/airports-catalog.js';
 import { fetchTaxFxQuotes } from '../../motor/viagens/fx-quotes.js';
+import { syncTripExpensesToFinance } from '../trip-finance-sync.js';
 
 function mergePayload(serverPayload, clientPayload) {
     if (!clientPayload || typeof clientPayload !== 'object') return serverPayload ?? {};
@@ -159,7 +160,7 @@ export function registerTripsRoutes(app, { requireAuth }) {
             const mergedPayload =
                 body.payload != null ? mergePayload(serverPayload, body.payload) : null;
 
-            const row = await repo.updateTrip(req.params.id, {
+            let row = await repo.updateTrip(req.params.id, {
                 title: body.title,
                 starts_on: body.startsOn ?? body.starts_on ?? null,
                 ends_on: body.endsOn ?? body.ends_on ?? null,
@@ -168,10 +169,24 @@ export function registerTripsRoutes(app, { requireAuth }) {
                 payload: mergedPayload
             });
             if (!row) return res.status(404).json({ error: 'Não encontrada' });
-            res.json({ trip: enrichTripSummary(row) });
+
+            const uid = req.session.userId;
+            const tripId = req.params.id;
+            let payload =
+                typeof row.payload === 'object' && row.payload != null ? { ...row.payload } : {};
+            const sync = await syncTripExpensesToFinance(uid, tripId, payload);
+            if (sync.changed) {
+                payload = { ...payload, expenses: sync.expenses };
+                row = (await repo.updateTrip(tripId, { payload })) ?? { ...row, payload };
+            }
+
+            res.json({
+                trip: enrichTripSummary(row),
+                financeSyncWarnings: sync.warnings?.length ? sync.warnings : undefined
+            });
         } catch (e) {
             console.error('PUT /api/trips/:id', e);
-            res.status(500).json({ error: 'Erro ao salvar viagem' });
+            res.status(500).json({ error: e.message || 'Erro ao salvar viagem' });
         }
     });
 

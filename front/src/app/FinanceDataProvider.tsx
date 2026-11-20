@@ -55,6 +55,14 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
         void refresh();
     }, [refresh]);
 
+    useEffect(() => {
+        const onFinanceChanged = () => {
+            void refresh();
+        };
+        window.addEventListener('finance:data-changed', onFinanceChanged);
+        return () => window.removeEventListener('finance:data-changed', onFinanceChanged);
+    }, [refresh]);
+
     const value = useMemo(() => ({ loading, error, data, refresh }), [loading, error, data, refresh]);
 
     return <FinanceDataContext.Provider value={value}>{children}</FinanceDataContext.Provider>;

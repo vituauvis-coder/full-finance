@@ -73,6 +73,7 @@ type Props = {
     onModuloChange?: (id: FichaModuloId | null) => void;
     scenarioCount?: number;
     onOpenSimulador?: () => void;
+    onFlushSave?: () => void | Promise<void>;
 };
 
 function emptyPayload(): TripPayload {
@@ -122,7 +123,8 @@ export function ViagemFicha({
     modulo,
     onModuloChange,
     scenarioCount = 0,
-    onOpenSimulador
+    onOpenSimulador,
+    onFlushSave
 }: Props) {
     const [internalDraft, setInternalDraft] = useState(() => tripToDraft(trip));
     const draft = controlledDraft ?? internalDraft;
@@ -528,6 +530,7 @@ export function ViagemFicha({
         <>
             {!isCadastro && fichaModulo == null ? (
                 <div className="viagens-ficha-home">
+                    <ViagemModulos tripId={trip.id} onOpen={setFichaModulo} />
                     <TripFichaTopRow
                         trip={trip}
                         draft={draft}
@@ -535,7 +538,6 @@ export function ViagemFicha({
                         scenarioCount={scenarioCount}
                         onOpenSimulador={onOpenSimulador}
                     />
-                    <ViagemModulos tripId={trip.id} onOpen={setFichaModulo} />
                 </div>
             ) : null}
 
@@ -588,7 +590,7 @@ export function ViagemFicha({
                     trip={trip}
                     draft={draft}
                     onPatch={patch}
-                    onBack={() => setFichaModulo(null)}
+                    onFlushSave={onFlushSave}
                 />
             ) : fichaModulo ? (
                 <ViagemModuloPanel modulo={fichaModulo} onBack={() => setFichaModulo(null)}>

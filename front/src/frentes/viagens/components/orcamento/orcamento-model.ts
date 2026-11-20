@@ -1,4 +1,5 @@
 import { forecast } from '@motor/viagens/trip-reserve-pace-engine.js';
+import { paymentBreakdown, sumCofrinhoSpent } from '@motor/viagens/trip-expense-payment.js';
 import { budgets, spent, tripTotal } from '@motor/viagens/trips-engine.js';
 import { monthAndYear } from '@motor/viagens/calendar-format.js';
 import type { TripDraft } from '../ViagemFicha';
@@ -85,6 +86,16 @@ export function monthShortPt(monthKey: string): string {
         .replace(/^\w/, (c) => c.toUpperCase());
 }
 
+export function depositsByMonthKey(deposits: PiggyDeposit[]): Record<string, number> {
+    const out: Record<string, number> = {};
+    for (const d of deposits) {
+        const key = d.monthKey ?? (d.recordedOn?.trim().slice(0, 7) || '');
+        if (!key) continue;
+        out[key] = (out[key] ?? 0) + Math.max(0, Number(d.amount) || 0);
+    }
+    return out;
+}
+
 export function currentMonthDepositTotal(deposits: PiggyDeposit[], currentMonthKey: string): number {
     return deposits
         .filter((d) => {
@@ -121,7 +132,11 @@ export function buildOrcamentoSnapshot(draft: TripDraft, now = new Date()) {
     const goalFromCaps = goal <= 0 && totalCaps > 0;
     const deposits = readDeposits(draft.payload);
     const saved = cofrinhoSalvo(draft.payload);
-    const spentTotal = tripTotal({ payload: draft.payload, budgetCaps: draft.budgetCaps });
+    const tripRef = { payload: draft.payload, budgetCaps: draft.budgetCaps };
+    const spentTotal = tripTotal(tripRef);
+    const expensePay = paymentBreakdown(tripRef);
+    const cofrinhoUsed = sumCofrinhoSpent(draft.payload.expenses ?? []);
+    const cofrinhoRemaining = Math.max(0, saved - cofrinhoUsed);
     const stillToSave = Math.max(0, effectiveGoal - saved);
     const spentVsGoalPct =
         effectiveGoal > 0 ? Math.min(100, Math.round((spentTotal / effectiveGoal) * 100)) : 0;
@@ -136,15 +151,17 @@ export function buildOrcamentoSnapshot(draft: TripDraft, now = new Date()) {
 
     const categoryRows = ORCAMENTO_CATEGORIES.map((def) => {
         const cap = capAmount(draft, def.id);
-        const used = spent({ payload: draft.payload, budgetCaps: draft.budgetCaps }, { category: def.id });
+        const used = spent(tripRef, { category: def.id });
+        const pay = paymentBreakdown(tripRef, { category: def.id });
         const pct = cap > 0 ? Math.min(100, Math.round((used / cap) * 100)) : 0;
-        return { ...def, cap, used, pct };
+        return { ...def, cap, used, pct, pay };
     });
 
     const custom = draft.payload.budgetCustomCategories ?? draft.payload.budget_custom_categories ?? [];
     for (const c of custom) {
         const cap = capAmount(draft, c.id);
-        const used = spent({ payload: draft.payload, budgetCaps: draft.budgetCaps }, { customCategoryId: c.id });
+        const used = spent(tripRef, { customCategoryId: c.id });
+        const pay = paymentBreakdown(tripRef, { customCategoryId: c.id });
         const pct = cap > 0 ? Math.min(100, Math.round((used / cap) * 100)) : 0;
         categoryRows.push({
             id: c.id as OrcamentoCategoryId,
@@ -152,9 +169,12 @@ export function buildOrcamentoSnapshot(draft: TripDraft, now = new Date()) {
             icon: 'folder',
             cap,
             used,
-            pct
+            pct,
+            pay
         });
     }
+
+    categoryRows.sort((a, b) => b.used - a.used || a.label.localeCompare(b.label, 'pt-BR'));
 
     const engineRows = budgets({ payload: draft.payload, budgetCaps: draft.budgetCaps });
 
@@ -164,8 +184,11 @@ export function buildOrcamentoSnapshot(draft: TripDraft, now = new Date()) {
         effectiveGoal,
         goalFromCaps,
         saved,
+        cofrinhoUsed,
+        cofrinhoRemaining,
         stillToSave,
         spentTotal,
+        expensePay,
         spentVsGoalPct,
         savedPct,
         deposits,

@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { SIDEBAR_GROUPS, leafPageIds } from '../config/sidebarNav';
+import { SIDEBAR_GROUPS } from '../config/sidebarNav';
 
 export type SidebarGroupId = (typeof SIDEBAR_GROUPS)[number]['id'];
 
-export function useSidebarNavState(pageId: string | undefined) {
+export function useSidebarNavState(pageId: string | null | undefined) {
     const [open, setOpen] = useState<Record<SidebarGroupId, boolean>>({
-        dinheiro: true,
+        financas: true,
         viagens: true
     });
 
@@ -14,9 +14,7 @@ export function useSidebarNavState(pageId: string | undefined) {
         setOpen((prev) => {
             const next = { ...prev };
             for (const group of SIDEBAR_GROUPS) {
-                if (leafPageIds(group).includes(pageId)) {
-                    next[group.id] = true;
-                }
+                if (group.pages.includes(pageId)) next[group.id] = true;
             }
             return next;
         });
@@ -26,5 +24,9 @@ export function useSidebarNavState(pageId: string | undefined) {
         setOpen((prev) => ({ ...prev, [id]: !prev[id] }));
     };
 
-    return { open, toggle };
+    const reveal = (id: SidebarGroupId) => {
+        setOpen((prev) => ({ ...prev, [id]: true }));
+    };
+
+    return { open, toggle, reveal };
 }

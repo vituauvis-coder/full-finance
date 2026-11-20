@@ -1,0 +1,2726 @@
+/* Portal em document.body — precisa da mesma paleta que #viagens-page */
+.viagens-simulador-overlay {
+    --v-coral: #ff5a36;
+    --v-turquesa: #2ec4b6;
+    --v-areia: #f6e6c8;
+    --v-ouro: #c9a227;
+    --v-oceano: #2aa8a0;
+    --v-noite: #0b1f33;
+    --v-janela: #f2f2f7;
+    --v-painel: #ffffff;
+    --v-campo: #ececee;
+    --v-borda: rgba(0, 0, 0, 0.08);
+    --v-tinta: #1c2230;
+    --v-legenda: #5c6573;
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    /* left via inline style — respeita sidebar do portal */
+    z-index: 900;
+    background: var(--v-janela);
+    color: var(--v-tinta);
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    overflow: hidden;
+}
+
+[data-theme='dark'] .viagens-simulador-overlay {
+    --v-noite: #121214;
+    --v-ouro: #f2c94c;
+    --v-tinta: #f4f4f6;
+    --v-janela: #161618;
+    --v-painel: #1c1c20;
+    --v-campo: #242428;
+    --v-borda: rgba(255, 255, 255, 0.1);
+    --v-legenda: rgba(244, 244, 246, 0.58);
+}
+
+.viagens-simulador-overlay .viagens-muted {
+    color: var(--v-legenda);
+}
+
+.viagens-simulador-overlay.viagens-root {
+    min-height: 0;
+    height: 100%;
+}
+
+.viagens-simulador-skip {
+    position: absolute;
+    left: -9999px;
+}
+
+.viagens-simulador__head {
+    flex-shrink: 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 18px 24px 12px;
+    border-bottom: 1px solid var(--v-borda);
+    background: var(--v-janela);
+}
+
+.viagens-simulador__head-text h2 {
+    margin: 0;
+    font-size: 1.75rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+}
+
+.viagens-simulador__head-text p {
+    margin: 2px 0 0;
+    font-size: 0.8125rem;
+    color: var(--v-legenda);
+}
+
+.viagens-simulador-shell {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+    min-width: 0;
+    width: 100%;
+    max-width: none;
+    overflow: hidden;
+}
+
+/* —— Rail —— */
+.viagens-sim-rail {
+    width: 308px;
+    min-width: 308px;
+    max-width: 308px;
+    flex-shrink: 0;
+    background: var(--v-painel);
+    border-right: 1px solid var(--v-borda);
+    padding: 20px 18px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.viagens-sim-rail__title {
+    margin: 0;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.viagens-sim-rail__toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.viagens-sim-rail__novo,
+.viagens-sim-rail__criterios {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: none;
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.viagens-sim-rail__novo {
+    background: var(--v-oceano, #1e6f8f);
+    color: #fff;
+}
+
+.viagens-sim-rail__criterios {
+    background: var(--v-janela);
+    color: var(--v-tinta);
+    border: 1px solid var(--v-borda);
+}
+
+.viagens-sim-rail__list {
+    flex: 1;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-bottom: 12px;
+    -webkit-overflow-scrolling: touch;
+}
+
+.viagens-sim-eval {
+    text-align: left;
+    border: 1.5px solid var(--v-borda);
+    border-radius: 16px;
+    padding: 14px;
+    background: var(--v-janela);
+    cursor: pointer;
+    font-family: inherit;
+    color: var(--v-tinta);
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
+}
+
+.viagens-sim-eval--on {
+    border-color: color-mix(in srgb, var(--v-oceano) 55%, var(--v-borda));
+    background: color-mix(in srgb, var(--v-oceano) 12%, var(--v-janela));
+}
+
+.viagens-sim-eval--winner {
+    border-color: color-mix(in srgb, var(--v-ouro) 70%, var(--v-borda));
+}
+
+.viagens-sim-eval__head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.viagens-sim-eval__head strong {
+    font-size: 0.875rem;
+}
+
+.viagens-sim-eval__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 10px;
+}
+
+.viagens-sim-eval__kpi {
+    min-width: 0;
+}
+
+.viagens-sim-eval__kpi-value {
+    display: block;
+    font-size: clamp(1.05rem, 4.5vw, 1.375rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.viagens-sim-eval__kpi-label {
+    font-size: 0.5625rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--v-legenda);
+    line-height: 1.25;
+}
+
+.viagens-sim-eval__wide {
+    margin-top: 8px;
+    word-break: break-word;
+}
+
+.viagens-sim-eval__wide .viagens-sim-eval__kpi-value {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    white-space: normal;
+    text-overflow: unset;
+    overflow: visible;
+    line-height: 1.35;
+}
+
+.viagens-sim-eval__kpi--turquesa .viagens-sim-eval__kpi-value {
+    color: var(--v-turquesa);
+}
+.viagens-sim-eval__kpi--coral .viagens-sim-eval__kpi-value {
+    color: var(--v-coral);
+}
+.viagens-sim-eval__kpi--ouro .viagens-sim-eval__kpi-value {
+    color: var(--v-ouro, #c9a227);
+}
+.viagens-sim-eval__kpi--oceano .viagens-sim-eval__kpi-value {
+    color: var(--v-oceano);
+}
+
+/* —— Main —— */
+.viagens-simulador-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--v-janela);
+}
+
+.viagens-sim-workspace {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 24px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.viagens-sim-workspace__identity {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+}
+
+.viagens-sim-workspace__name {
+    flex: 1;
+    min-width: 160px;
+    border: none;
+    background: transparent;
+    font-size: 1rem;
+    font-weight: 700;
+    font-family: inherit;
+    color: var(--v-tinta);
+}
+
+.viagens-sim-workspace__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.viagens-sim-workspace__choose {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: none;
+    border-radius: 999px;
+    padding: 7px 12px;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    color: var(--v-turquesa);
+    background: color-mix(in srgb, var(--v-turquesa) 14%, transparent);
+}
+
+.viagens-sim-workspace__choose--on {
+    color: var(--v-coral);
+    background: color-mix(in srgb, var(--v-coral) 14%, transparent);
+}
+
+.viagens-sim-icon-btn {
+    border: none;
+    background: var(--v-painel);
+    border-radius: 10px;
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    color: var(--v-oceano);
+    border: 1px solid var(--v-borda);
+}
+
+.viagens-sim-icon-btn--danger {
+    color: var(--v-coral);
+}
+
+/* Explorer */
+.viagens-sim-explorer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 12px;
+    padding: 0;
+    background: transparent;
+    align-items: stretch;
+    height: auto;
+    max-height: none;
+    min-height: 0;
+    overflow: visible;
+}
+
+.viagens-sim-explorer__main,
+.viagens-sim-resumo-panel {
+    min-width: 0;
+    height: auto;
+    max-height: min(20.25rem, 40vh);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 14px 10px;
+    background: var(--v-painel);
+    border: 1px solid var(--v-borda);
+    border-radius: 14px;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.viagens-sim-explorer__head.viagens-resumo__head {
+    margin: 0 0 2px;
+}
+
+.viagens-simulador-overlay .viagens-resumo__title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--v-tinta);
+}
+
+.viagens-simulador-overlay .viagens-resumo__title .app-icon {
+    color: var(--v-coral);
+    font-size: 0.95rem;
+}
+
+/* Paridade com TripResumoPanel (#viagens-page) — overlay está fora do #viagens-page */
+.viagens-simulador-overlay .viagens-sim-resumo__stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.4rem;
+    margin: 0;
+    flex: 0 0 auto;
+}
+
+.viagens-simulador-overlay .viagens-resumo-stat {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
+    padding: 0.38rem 0.48rem;
+    min-height: 2.45rem;
+    border: 1px solid var(--v-borda);
+    border-radius: 0.65rem;
+    background: var(--v-janela);
+    color: inherit;
+    text-align: left;
+}
+
+.viagens-simulador-overlay .viagens-resumo-stat__icon {
+    display: inline-flex;
+    flex-shrink: 0;
+}
+
+.viagens-simulador-overlay .viagens-resumo-stat--oceano .viagens-resumo-stat__icon {
+    color: var(--v-oceano);
+}
+
+.viagens-simulador-overlay .viagens-resumo-stat--turquesa .viagens-resumo-stat__icon {
+    color: var(--v-turquesa);
+}
+
+.viagens-simulador-overlay .viagens-resumo-stat--coral .viagens-resumo-stat__icon {
+    color: var(--v-coral);
+}
+
+.viagens-simulador-overlay .viagens-resumo-stat--ouro .viagens-resumo-stat__icon {
+    color: var(--v-ouro);
+}
+
+.viagens-simulador-overlay .viagens-resumo-stat__copy {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.15;
+}
+
+.viagens-simulador-overlay .viagens-resumo-stat__value {
+    font-size: 0.8125rem;
+    font-weight: 800;
+    color: var(--v-tinta);
+    font-variant-numeric: tabular-nums;
+}
+
+.viagens-simulador-overlay .viagens-resumo-stat__unit {
+    font-weight: 650;
+}
+
+.viagens-simulador-overlay .viagens-resumo-stat__label {
+    font-size: 0.5625rem;
+    font-weight: 600;
+    color: color-mix(in srgb, var(--v-tinta) 45%, transparent);
+}
+
+.viagens-sim-resumo__destinos {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 0;
+    padding-top: 8px;
+    padding-bottom: 2px;
+    border-top: 1px solid var(--v-borda);
+}
+
+.viagens-sim-resumo__destinos-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--v-oceano);
+}
+
+.viagens-simulador-overlay .viagens-sim-resumo__destinos-title .app-icon {
+    color: var(--v-turquesa);
+}
+
+.viagens-sim-resumo__hint {
+    margin: 0;
+    font-size: 0.75rem;
+}
+
+.viagens-sim-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+}
+
+.viagens-sim-chip {
+    border: none;
+    border-radius: 999px;
+    padding: 7px 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: var(--v-painel);
+    cursor: pointer;
+    font-family: inherit;
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.viagens-sim-chip--on {
+    background: var(--v-oceano);
+    color: #fff;
+}
+
+.viagens-sim-trail {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+}
+
+.viagens-sim-trail__item {
+    display: contents;
+}
+
+.viagens-sim-trail__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid var(--v-borda);
+    border-radius: 999px;
+    padding: 5px 10px;
+    background: var(--v-painel);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.viagens-sim-trail__chip--on {
+    border-color: var(--v-oceano);
+    background: color-mix(in srgb, var(--v-oceano) 12%, var(--v-painel));
+}
+
+.viagens-sim-trail__days {
+    color: var(--v-oceano);
+    font-weight: 700;
+}
+
+.viagens-sim-trail__link {
+    opacity: 0.35;
+    padding: 0 2px;
+}
+
+/* Calendar */
+.viagens-sim-cal {
+    background: var(--v-painel);
+    border: 1px solid var(--v-borda);
+    border-radius: 14px;
+    padding: 12px 14px 10px;
+    min-width: 0;
+    height: 100%;
+    max-height: min(21rem, 42vh);
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.viagens-simulador-overlay .viagens-sim-cal__head .app-icon {
+    color: var(--v-oceano);
+}
+
+.viagens-sim-cal__head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--v-oceano);
+    margin-bottom: 6px;
+    flex-shrink: 0;
+}
+
+.viagens-sim-cal__ferias-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    margin: 0 0 8px;
+    padding: 8px 10px;
+    border: 1px solid color-mix(in srgb, var(--v-coral) 35%, var(--v-borda));
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--v-coral) 10%, var(--v-janela));
+    color: var(--v-tinta);
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-align: left;
+    cursor: pointer;
+}
+
+.viagens-sim-cal__ferias-btn .app-icon:first-child {
+    color: var(--v-coral);
+    flex-shrink: 0;
+}
+
+.viagens-sim-cal__ferias-text {
+    flex: 1;
+    min-width: 0;
+    line-height: 1.35;
+}
+
+.viagens-sim-cal__ferias-btn .app-icon:last-child {
+    color: var(--v-legenda);
+    flex-shrink: 0;
+}
+
+.viagens-sim-cal__months {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding-right: 4px;
+    margin-right: -2px;
+    margin-bottom: 6px;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+}
+
+.viagens-sim-cal__range {
+    margin-left: auto;
+    font-size: 0.6875rem;
+    font-weight: 600;
+}
+
+.viagens-sim-cal__month {
+    margin-bottom: 6px;
+}
+
+.viagens-sim-cal__month-title {
+    margin: 0 0 4px;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: var(--v-legenda);
+}
+
+.viagens-sim-cal__week,
+.viagens-sim-cal__grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 4px;
+    font-size: 0.75rem;
+    text-align: center;
+}
+
+.viagens-sim-cal__week span {
+    opacity: 0.42;
+    font-weight: 700;
+    font-size: 0.625rem;
+    text-transform: uppercase;
+}
+
+.viagens-sim-cal__cell {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    min-height: 2.15rem;
+    padding: 2px 1px 3px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+    border: none;
+    font-family: inherit;
+    background: transparent;
+    transition:
+        transform 0.14s ease,
+        box-shadow 0.14s ease,
+        opacity 0.14s ease,
+        filter 0.14s ease;
+}
+
+.viagens-sim-cal__cell--empty {
+    visibility: hidden;
+}
+
+.viagens-sim-cal__cell--layers {
+    color: var(--v-tinta);
+}
+
+.viagens-sim-cal__cell--hit {
+    cursor: pointer;
+}
+
+.viagens-sim-cal__cell--hit:hover,
+.viagens-sim-cal__cell--hit:focus-visible,
+.viagens-sim-cal__cell--hovered {
+    transform: translateY(-1px) scale(1.06);
+    z-index: 2;
+    box-shadow:
+        0 4px 14px color-mix(in srgb, var(--v-tinta) 12%, transparent),
+        inset 0 0 0 1.5px color-mix(in srgb, var(--v-tinta) 14%, transparent);
+}
+
+.viagens-sim-cal__cell--hit:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--v-oceano) 55%, transparent);
+    outline-offset: 1px;
+}
+
+.viagens-sim-cal__cell-day {
+    font-size: 0.6875rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.viagens-sim-cal__cell-icons {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    max-width: 100%;
+    flex-wrap: wrap;
+    line-height: 1;
+}
+
+.viagens-sim-cal__ico {
+    display: inline-flex;
+    font-size: 0.5625rem !important;
+    opacity: 0.95;
+}
+
+.viagens-sim-cal__ico--coral {
+    color: var(--v-coral);
+}
+
+.viagens-sim-cal__ico--turquesa {
+    color: var(--v-turquesa);
+}
+
+.viagens-sim-cal__ico--ouro {
+    color: var(--v-ouro);
+}
+
+.viagens-sim-cal__ico--oceano {
+    color: var(--v-oceano);
+}
+
+.viagens-sim-cal__cell-stack {
+    display: flex;
+    width: 100%;
+    max-width: 1.65rem;
+    height: 3px;
+    margin-top: 2px;
+    border-radius: 99px;
+    overflow: hidden;
+    gap: 1px;
+}
+
+.viagens-sim-cal__cell-stack-seg {
+    flex: 1 1 0;
+    min-width: 2px;
+    border-radius: 1px;
+}
+
+.viagens-sim-cal__cell-stack-seg--coral {
+    background: var(--v-coral);
+}
+
+.viagens-sim-cal__cell-stack-seg--turquesa {
+    background: var(--v-turquesa);
+}
+
+.viagens-sim-cal__cell-stack-seg--ouro {
+    background: var(--v-ouro);
+}
+
+.viagens-sim-cal__cell-stack-seg--oceano {
+    background: var(--v-oceano);
+}
+
+.viagens-sim-cal--legend-vacation .viagens-sim-cal__cell--hit:not([data-vacation]),
+.viagens-sim-cal--legend-tourism .viagens-sim-cal__cell--hit:not([data-tourism]),
+.viagens-sim-cal--legend-brHoliday .viagens-sim-cal__cell--hit:not([data-br-holiday]),
+.viagens-sim-cal--legend-remote .viagens-sim-cal__cell--hit:not([data-remote]),
+.viagens-sim-cal--legend-travel .viagens-sim-cal__cell--hit:not([data-travel]) {
+    opacity: 0.2;
+    filter: saturate(0.35);
+    transform: scale(0.94);
+}
+
+.viagens-sim-cal--legend-vacation .viagens-sim-cal__cell--hit[data-vacation],
+.viagens-sim-cal--legend-tourism .viagens-sim-cal__cell--hit[data-tourism],
+.viagens-sim-cal--legend-brHoliday .viagens-sim-cal__cell--hit[data-br-holiday],
+.viagens-sim-cal--legend-remote .viagens-sim-cal__cell--hit[data-remote],
+.viagens-sim-cal--legend-travel .viagens-sim-cal__cell--hit[data-travel] {
+    opacity: 1;
+    filter: none;
+    transform: scale(1.04);
+    box-shadow: 0 2px 10px color-mix(in srgb, var(--v-tinta) 10%, transparent);
+}
+
+.viagens-sim-cal--day-hover .viagens-sim-cal__cell--hit:not(.viagens-sim-cal__cell--hovered) {
+    opacity: 0.55;
+}
+
+.viagens-sim-cal__legend {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 4px;
+    margin-top: auto;
+    padding-top: 6px;
+    border-top: 1px solid var(--v-borda);
+    flex-shrink: 0;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+    font-size: 0.5rem;
+    font-weight: 600;
+    color: var(--v-legenda);
+}
+
+.viagens-sim-cal__legend-pill {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    gap: 2px;
+    padding: 2px 5px 2px 3px;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--v-borda) 80%, transparent);
+    background: color-mix(in srgb, var(--v-janela) 55%, transparent);
+    color: var(--v-legenda);
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: 700;
+    line-height: 1.15;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+        background 0.12s ease,
+        border-color 0.12s ease,
+        color 0.12s ease,
+        transform 0.12s ease;
+}
+
+.viagens-sim-cal__legend-label {
+    color: inherit;
+}
+
+.viagens-sim-cal__legend-pill:hover,
+.viagens-sim-cal__legend-pill:focus-visible {
+    border-color: color-mix(in srgb, var(--v-oceano) 40%, var(--v-borda));
+    background: color-mix(in srgb, var(--v-oceano) 10%, var(--v-janela));
+    color: var(--v-tinta);
+}
+
+.viagens-sim-cal__legend-pill--focus {
+    border-color: color-mix(in srgb, var(--v-oceano) 50%, var(--v-borda));
+    background: color-mix(in srgb, var(--v-oceano) 14%, var(--v-painel));
+    color: var(--v-tinta);
+    box-shadow: 0 1px 6px color-mix(in srgb, var(--v-oceano) 14%, transparent);
+}
+
+/* Seletor de data (férias) — alinhado ao Orçamento */
+.viagens-sim-date {
+    position: relative;
+    width: 100%;
+}
+
+.viagens-sim-date__trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.35rem;
+    width: 100%;
+    min-height: 2.1rem;
+    padding: 0.42rem 0.55rem;
+    border-radius: 0.55rem;
+    border: 1px solid color-mix(in srgb, var(--v-borda) 70%, transparent);
+    background: var(--v-janela);
+    color: var(--v-tinta);
+    font-size: 0.75rem;
+    font-weight: 700;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.viagens-sim-date__trigger.is-empty {
+    color: color-mix(in srgb, var(--v-tinta) 45%, transparent);
+    font-weight: 650;
+}
+
+.viagens-sim-date__trigger .app-icon {
+    color: var(--v-turquesa);
+    flex-shrink: 0;
+}
+
+.viagens-sim-date__pop {
+    position: absolute;
+    top: calc(100% + 0.35rem);
+    left: 0;
+    z-index: 200;
+    width: min(14.5rem, 92vw);
+    padding: 0.5rem 0.55rem 0.6rem;
+    border-radius: 0.65rem;
+    border: 1px solid color-mix(in srgb, var(--v-turquesa) 28%, var(--v-borda));
+    background: var(--v-painel);
+    box-shadow:
+        0 10px 28px color-mix(in srgb, var(--v-noite, #121214) 48%, transparent),
+        0 0 0 1px color-mix(in srgb, var(--v-turquesa) 12%, transparent);
+    box-sizing: border-box;
+}
+
+.viagens-sim-date__scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 10240;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: default;
+}
+
+.viagens-sim-date__pop--portal {
+    position: fixed;
+    z-index: 10250;
+    pointer-events: auto;
+    overflow: visible;
+    padding-bottom: 0.7rem;
+    --v-turquesa: #2ec4b6;
+    --v-coral: #ff5a36;
+    color: var(--v-tinta, #1c2230);
+    background: var(--v-painel, #ffffff);
+    border-color: color-mix(in srgb, var(--v-turquesa) 28%, var(--v-borda, rgba(0, 0, 0, 0.08)));
+}
+
+[data-theme='dark'] .viagens-sim-date__pop--portal {
+    --v-painel: #1c1c20;
+    --v-tinta: #f4f4f6;
+    --v-borda: rgba(255, 255, 255, 0.1);
+}
+
+.viagens-sim-date__day.is-on {
+    color: #fff !important;
+    background: var(--v-turquesa) !important;
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--v-turquesa) 65%, #000);
+}
+
+.viagens-sim-date__nav {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 0.25rem;
+    margin-bottom: 0.35rem;
+}
+
+.viagens-sim-date__nav p {
+    margin: 0;
+    font-size: 0.6875rem;
+    font-weight: 800;
+    text-align: center;
+}
+
+.viagens-sim-date__nav-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.7rem;
+    height: 1.7rem;
+    padding: 0;
+    border: none;
+    border-radius: 0.45rem;
+    background: color-mix(in srgb, var(--v-tinta) 6%, transparent);
+    color: var(--v-tinta);
+    cursor: pointer;
+}
+
+.viagens-sim-date__week {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.12rem;
+    margin-bottom: 0.2rem;
+    font-size: 0.5rem;
+    font-weight: 750;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--v-tinta) 45%, transparent);
+    text-align: center;
+}
+
+.viagens-sim-date__grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.14rem;
+}
+
+.viagens-sim-date__day {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 1.75rem;
+    aspect-ratio: 1;
+    padding: 0;
+    border: none;
+    border-radius: 0.45rem;
+    font-size: 0.6875rem;
+    font-weight: 750;
+    font-variant-numeric: tabular-nums;
+    color: var(--v-tinta);
+    background: transparent;
+    cursor: pointer;
+}
+
+.viagens-sim-date__day.is-empty {
+    pointer-events: none;
+}
+
+.viagens-sim-date__day.is-today {
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--v-turquesa) 55%, transparent);
+}
+
+.viagens-sim-date__day:hover:not(.is-on) {
+    background: color-mix(in srgb, var(--v-turquesa) 14%, transparent);
+}
+
+.viagens-sim-ferias__field--date {
+    min-width: 0;
+}
+
+.viagens-sim-ferias__date-hint {
+    margin: -2px 0 0;
+    font-size: 0.625rem;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.viagens-sim-ferias-sheet .viagens-sim-ferias__card {
+    overflow: visible;
+}
+
+/* Férias (popup em portal) */
+.viagens-sim-sheet--portal {
+    position: fixed;
+    inset: 0;
+    z-index: 10120;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: max(12px, env(safe-area-inset-top)) 16px max(12px, env(safe-area-inset-bottom));
+}
+
+.viagens-sim-sheet__backdrop {
+    position: fixed;
+    inset: 0;
+    border: none;
+    cursor: pointer;
+    background: color-mix(in srgb, var(--v-noite, #0b1f33) 55%, transparent);
+    backdrop-filter: blur(4px);
+}
+
+.viagens-sim-sheet--portal .viagens-sim-sheet__panel {
+    position: relative;
+    z-index: 1;
+    top: auto;
+    left: auto;
+    transform: none;
+    max-height: min(88vh, 640px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    color: var(--v-tinta);
+    --v-coral: #ff5a36;
+    --v-turquesa: #2ec4b6;
+    --v-ouro: #c9a227;
+    --v-oceano: #2aa8a0;
+    --v-janela: #f2f2f7;
+    --v-painel: #ffffff;
+    --v-borda: rgba(0, 0, 0, 0.08);
+    --v-legenda: #5c6573;
+    --v-tinta: #1c2230;
+}
+
+[data-theme='dark'] .viagens-sim-sheet--portal .viagens-sim-sheet__panel {
+    --v-janela: #161618;
+    --v-painel: #1c1c20;
+    --v-tinta: #f4f4f6;
+    --v-legenda: rgba(244, 244, 246, 0.58);
+    --v-borda: rgba(255, 255, 255, 0.1);
+}
+
+.viagens-sim-ferias-sheet.viagens-sim-sheet__panel {
+    padding: 16px 18px 14px;
+}
+
+.viagens-sim-ferias-sheet .viagens-sim-sheet__head {
+    align-items: flex-start;
+    margin-bottom: 8px;
+    gap: 10px;
+}
+
+.viagens-sim-ferias-sheet .viagens-sim-sheet__head h3 {
+    font-size: 0.9375rem;
+}
+
+.viagens-sim-ferias-sheet__lede {
+    margin: 2px 0 0;
+    font-size: 0.6875rem;
+    line-height: 1.3;
+}
+
+.viagens-sim-sheet__close {
+    display: inline-grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 10px;
+    background: var(--v-janela);
+    border: 1px solid var(--v-borda);
+    cursor: pointer;
+    color: var(--v-legenda);
+    flex-shrink: 0;
+}
+
+.viagens-sim-ferias-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.viagens-sim-ferias__cta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 14px 16px;
+    border: 1px dashed color-mix(in srgb, var(--v-coral) 45%, var(--v-borda));
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--v-coral) 8%, var(--v-janela));
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    color: var(--v-tinta);
+}
+
+.viagens-sim-ferias__cta .app-icon {
+    color: var(--v-coral);
+}
+
+.viagens-sim-ferias__cta strong {
+    display: block;
+    font-size: 0.875rem;
+}
+
+.viagens-sim-ferias__cta small {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.6875rem;
+    color: var(--v-legenda);
+    font-weight: 600;
+}
+
+.viagens-sim-ferias__presets {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.viagens-sim-ferias__preset {
+    border: 1px solid var(--v-borda);
+    border-radius: 10px;
+    padding: 6px 4px;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    background: var(--v-painel);
+    color: var(--v-tinta);
+    text-align: center;
+}
+
+.viagens-sim-ferias__preset.is-on {
+    border-color: color-mix(in srgb, var(--v-coral) 50%, var(--v-borda));
+    background: color-mix(in srgb, var(--v-coral) 16%, var(--v-janela));
+    color: var(--v-coral);
+}
+
+.viagens-sim-ferias__card {
+    background: var(--v-janela);
+    border: 1px solid var(--v-borda);
+    border-radius: 12px;
+    padding: 10px 12px;
+}
+
+.viagens-sim-ferias__card-head {
+    margin: 0 0 8px;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: var(--v-legenda);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.viagens-sim-ferias__grid--main {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 0.85fr);
+    gap: 8px;
+    align-items: end;
+}
+
+.viagens-sim-ferias__field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 0.625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--v-legenda);
+}
+
+.viagens-sim-ferias__field input[type='number'] {
+    border: 1px solid var(--v-borda);
+    border-radius: 10px;
+    padding: 7px 8px;
+    font-family: inherit;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: normal;
+    color: var(--v-tinta);
+    background: var(--v-painel);
+}
+
+.viagens-sim-ferias__stepper {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.viagens-sim-ferias__stepper button {
+    width: 30px;
+    height: 34px;
+    border-radius: 10px;
+    border: 1px solid var(--v-borda);
+    background: var(--v-painel);
+    cursor: pointer;
+    font-weight: 700;
+    color: var(--v-oceano);
+}
+
+.viagens-sim-ferias__stepper input {
+    width: 2.6rem;
+    height: 34px;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.viagens-sim-ferias__end-box {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    min-height: 34px;
+    padding: 0 10px;
+    border-radius: 10px;
+    border: 1px solid color-mix(in srgb, var(--v-coral) 35%, var(--v-borda));
+    background: color-mix(in srgb, var(--v-coral) 10%, var(--v-painel));
+    font-size: 0.8125rem;
+    font-weight: 800;
+    color: var(--v-coral);
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.viagens-sim-ferias__extras {
+    display: grid;
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.35fr);
+    gap: 8px;
+    align-items: stretch;
+}
+
+.viagens-sim-ferias__remove {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    border: none;
+    background: transparent;
+    color: var(--v-coral);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.viagens-sim-ferias__balance {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 10px;
+    border-radius: 12px;
+    background: var(--v-janela);
+    border: 1px solid var(--v-borda);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.viagens-sim-ferias__balance-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--v-legenda);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: 0.5625rem;
+}
+
+.viagens-sim-ferias__balance-label .app-icon {
+    color: var(--v-ouro);
+}
+
+.viagens-sim-ferias__balance-input {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.viagens-sim-ferias__balance-input input {
+    width: 3.25rem;
+    border: 1px solid var(--v-borda);
+    border-radius: 8px;
+    padding: 5px 6px;
+    font-family: inherit;
+    font-weight: 800;
+    font-size: 0.8125rem;
+    background: var(--v-painel);
+    color: var(--v-tinta);
+}
+
+.viagens-sim-ferias__balance-input > span {
+    color: var(--v-legenda);
+    font-weight: 600;
+}
+
+.viagens-sim-ferias__auth {
+    margin: 0;
+    padding: 8px 10px;
+    border: 1px solid var(--v-borda);
+    border-radius: 12px;
+    background: var(--v-janela);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+}
+
+.viagens-sim-ferias__auth-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin: 0;
+    font-size: 0.5625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--v-legenda);
+}
+
+.viagens-sim-ferias__auth-label .app-icon {
+    color: var(--v-turquesa);
+}
+
+.viagens-sim-ferias__auth-options {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 5px;
+}
+
+.viagens-sim-ferias__auth-opt {
+    border: 1px solid var(--v-borda);
+    border-radius: 8px;
+    padding: 6px 4px;
+    font-size: 0.625rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    background: var(--v-painel);
+    color: var(--v-tinta);
+}
+
+.viagens-sim-ferias__auth-opt.is-on {
+    background: var(--v-turquesa);
+    border-color: transparent;
+    color: #fff;
+}
+
+.viagens-sim-ferias__auth--authorized .viagens-sim-ferias__auth-opt.is-on {
+    background: var(--v-ouro);
+}
+
+.viagens-sim-ferias__auth--not_allowed .viagens-sim-ferias__auth-opt.is-on {
+    background: var(--v-coral);
+}
+
+.viagens-sim-ferias__notes {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: var(--v-legenda);
+}
+
+.viagens-sim-ferias__notes textarea {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid var(--v-borda);
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-family: inherit;
+    font-size: 0.8125rem;
+    resize: vertical;
+    min-height: 52px;
+    background: var(--v-painel);
+    color: var(--v-tinta);
+}
+
+.viagens-sim-ferias__foot {
+    display: flex;
+    justify-content: stretch;
+    padding-top: 2px;
+}
+
+.viagens-sim-ferias__done {
+    border: none;
+    border-radius: 999px;
+    padding: 10px 16px;
+    width: 100%;
+    font-size: 0.8125rem;
+    font-weight: 800;
+    cursor: pointer;
+    font-family: inherit;
+    background: var(--v-coral);
+    color: #fff;
+}
+
+@media (max-width: 520px) {
+    .viagens-sim-ferias__grid--main {
+        grid-template-columns: 1fr;
+        align-items: stretch;
+    }
+
+    .viagens-sim-ferias__extras {
+        grid-template-columns: 1fr;
+    }
+
+    .viagens-sim-ferias__presets {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* Destinos — trilho gráfico + faixa de detalhe */
+.viagens-sim-destinos {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1 1 auto;
+    min-height: 0;
+    justify-content: flex-end;
+}
+
+.viagens-sim-destinos__config-hint {
+    margin: 0 0 4px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    font-size: 0.5625rem;
+    line-height: 1.35;
+    color: var(--v-tinta);
+    background: color-mix(in srgb, var(--v-ouro) 14%, var(--v-painel));
+    border: 1px solid color-mix(in srgb, var(--v-ouro) 35%, var(--v-borda));
+}
+
+.viagens-sim-rota-rail {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    width: 100%;
+    padding: 10px 10px 12px;
+    border-radius: 10px;
+    background: linear-gradient(
+        165deg,
+        color-mix(in srgb, var(--v-oceano) 10%, var(--v-painel)) 0%,
+        color-mix(in srgb, var(--v-painel) 70%, var(--v-janela)) 55%,
+        var(--v-janela) 100%
+    );
+    border: 1px solid color-mix(in srgb, var(--v-borda) 80%, transparent);
+    box-sizing: border-box;
+}
+
+.viagens-sim-rota-rail--with-home .viagens-sim-rota-rail__leg {
+    flex: 1 1 0;
+    min-width: 0.65rem;
+    max-width: none;
+}
+
+.viagens-sim-rota-rail--with-home .viagens-sim-rota-rail__node:not(.viagens-sim-rota-rail__node--home) {
+    max-width: 4rem;
+}
+
+.viagens-sim-rota-rail__leg {
+    position: relative;
+    flex: 1 1 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0.85rem;
+    max-width: 4.25rem;
+    margin-top: 1.05rem;
+    height: 1.35rem;
+    opacity: 0.55;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.viagens-sim-rota-rail__leg.is-live {
+    opacity: 1;
+}
+
+.viagens-sim-rota-rail__leg-track {
+    position: absolute;
+    left: 2px;
+    right: 2px;
+    top: 50%;
+    height: 3px;
+    transform: translateY(-50%);
+    border-radius: 99px;
+    overflow: hidden;
+    background: color-mix(in srgb, var(--v-legenda) 22%, var(--v-borda));
+}
+
+.viagens-sim-rota-rail__leg-glow {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--v-coral) 35%, transparent),
+        var(--v-turquesa),
+        color-mix(in srgb, var(--v-oceano) 55%, var(--v-turquesa))
+    );
+    transform: scaleX(0.25);
+    transform-origin: left center;
+    transition: transform 0.25s ease;
+}
+
+.viagens-sim-rota-rail__leg.is-live .viagens-sim-rota-rail__leg-glow {
+    transform: scaleX(1);
+}
+
+.viagens-sim-rota-rail__leg-icon {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 999px;
+    background: var(--v-janela);
+    border: 1px solid var(--v-borda);
+    box-shadow: 0 1px 4px color-mix(in srgb, var(--v-tinta) 12%, transparent);
+    transition: border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.viagens-sim-rota-rail__leg-icon .app-icon {
+    color: var(--v-legenda);
+    font-size: 0.75rem;
+    transform: rotate(90deg);
+}
+
+.viagens-sim-rota-rail__leg.is-live .viagens-sim-rota-rail__leg-icon {
+    border-color: color-mix(in srgb, var(--v-turquesa) 55%, var(--v-borda));
+    transform: scale(1.08);
+}
+
+.viagens-sim-rota-rail__leg.is-live .viagens-sim-rota-rail__leg-icon .app-icon {
+    color: var(--v-turquesa);
+}
+
+.viagens-sim-rota-rail__node {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    flex: 0 1 calc((100% - (var(--sim-rota-n, 3) - 1) * 1.75rem) / var(--sim-rota-n, 3));
+    min-width: 2.5rem;
+    max-width: 4.25rem;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-family: inherit;
+    color: var(--v-tinta);
+    text-align: center;
+    z-index: 1;
+}
+
+.viagens-sim-rota-rail__ring {
+    position: absolute;
+    top: 0.15rem;
+    width: 2.15rem;
+    height: 2.15rem;
+    border-radius: 999px;
+    border: 2px solid transparent;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    pointer-events: none;
+}
+
+.viagens-sim-rota-rail__pin {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 2.15rem;
+    height: 2.15rem;
+    border-radius: 999px;
+    border: 2px solid var(--v-borda);
+    background: var(--v-janela);
+    transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.viagens-sim-rota-rail__node--coral .viagens-sim-rota-rail__pin .app-icon {
+    color: var(--v-coral);
+}
+
+.viagens-sim-rota-rail__node--oceano .viagens-sim-rota-rail__pin .app-icon {
+    color: var(--v-oceano);
+}
+
+.viagens-sim-rota-rail__node--turquesa .viagens-sim-rota-rail__pin .app-icon {
+    color: var(--v-turquesa);
+}
+
+.viagens-sim-rota-rail__node--ouro .viagens-sim-rota-rail__pin .app-icon {
+    color: var(--v-ouro);
+}
+
+.viagens-sim-rota-rail__node.is-hover .viagens-sim-rota-rail__pin,
+.viagens-sim-rota-rail__node.is-on .viagens-sim-rota-rail__pin {
+    transform: scale(1.06);
+    border-color: color-mix(in srgb, var(--v-turquesa) 65%, var(--v-borda));
+    background: color-mix(in srgb, var(--v-turquesa) 8%, var(--v-janela));
+}
+
+.viagens-sim-rota-rail__node.is-on .viagens-sim-rota-rail__ring {
+    border-color: color-mix(in srgb, var(--v-turquesa) 50%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--v-turquesa) 18%, transparent);
+}
+
+.viagens-sim-rota-rail__node.is-hover .viagens-sim-rota-rail__ring {
+    transform: scale(1.12);
+    border-color: color-mix(in srgb, var(--v-turquesa) 35%, transparent);
+}
+
+.viagens-sim-rota-rail__node--home {
+    flex: 0 1 calc((100% - (var(--sim-rota-n, 3) - 1) * 1.75rem) / var(--sim-rota-n, 3));
+    min-width: 2.35rem;
+    max-width: 3.5rem;
+    cursor: default;
+    pointer-events: none;
+    user-select: none;
+}
+
+.viagens-sim-rota-rail__node--home .viagens-sim-rota-rail__pin {
+    width: 2rem;
+    height: 2rem;
+    border-color: color-mix(in srgb, var(--v-legenda) 28%, var(--v-borda));
+    background: color-mix(in srgb, var(--v-legenda) 8%, var(--v-janela));
+}
+
+.viagens-sim-rota-rail__node--home .viagens-sim-rota-rail__pin .app-icon {
+    color: color-mix(in srgb, var(--v-legenda) 78%, var(--v-tinta));
+}
+
+.viagens-sim-rota-rail__node--home .viagens-sim-rota-rail__label {
+    font-weight: 750;
+    color: color-mix(in srgb, var(--v-tinta) 72%, transparent);
+}
+
+.viagens-sim-rota-rail__node--home .viagens-sim-rota-rail__sub {
+    color: var(--v-legenda);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-size: 0.5rem;
+}
+
+.viagens-sim-rota-rail__label {
+    width: 100%;
+    font-size: clamp(0.5rem, 2vw, 0.6875rem);
+    font-weight: 800;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+}
+
+.viagens-sim-rota-rail__node.is-hover .viagens-sim-rota-rail__label {
+    color: var(--v-turquesa);
+}
+
+.viagens-sim-rota-rail__sub {
+    margin-top: 1px;
+    font-size: 0.5625rem;
+    font-weight: 800;
+    line-height: 1.2;
+    color: var(--v-coral);
+}
+
+.viagens-sim-rota-rail__node.is-transit .viagens-sim-rota-rail__sub {
+    color: var(--v-legenda);
+    font-weight: 700;
+}
+
+.viagens-sim-lugar {
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.viagens-sim-lugar--strip {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: var(--v-janela);
+    border: 1px solid var(--v-borda);
+}
+
+.viagens-sim-lugar--preview {
+    border-color: color-mix(in srgb, var(--v-turquesa) 40%, var(--v-borda));
+    background: color-mix(in srgb, var(--v-turquesa) 7%, var(--v-janela));
+}
+
+.viagens-sim-lugar__strip-main {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.viagens-sim-lugar__dot {
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 999px;
+    background: var(--v-turquesa);
+    flex-shrink: 0;
+}
+
+.viagens-sim-lugar__dot.is-transit {
+    background: var(--v-legenda);
+}
+
+.viagens-sim-lugar__strip-main strong {
+    font-size: 0.6875rem;
+    font-weight: 800;
+}
+
+.viagens-sim-lugar__continent {
+    font-size: 0.5625rem;
+    font-weight: 600;
+    color: var(--v-legenda);
+}
+
+.viagens-sim-lugar__strip-metrics {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px 8px;
+    margin-left: auto;
+}
+
+.viagens-sim-lugar__metric {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.5625rem;
+    font-weight: 700;
+    color: var(--v-tinta);
+    white-space: nowrap;
+}
+
+.viagens-sim-lugar__metric .app-icon {
+    color: var(--v-legenda);
+}
+
+.viagens-sim-lugar__metric--turquesa {
+    color: var(--v-turquesa);
+}
+
+.viagens-sim-lugar__metric--turquesa .app-icon {
+    color: var(--v-turquesa);
+}
+
+.viagens-sim-lugar__metric--oceano {
+    color: var(--v-oceano);
+}
+
+.viagens-sim-lugar__metric--oceano .app-icon {
+    color: var(--v-oceano);
+}
+
+.viagens-sim-lugar__metric--ouro {
+    color: var(--v-ouro);
+}
+
+.viagens-sim-lugar__metric--ouro .app-icon {
+    color: var(--v-ouro);
+}
+
+.viagens-sim-destinos--empty {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 8px;
+    padding: 1.25rem 0.5rem;
+    border-radius: 12px;
+    background: var(--v-janela);
+    border: 1px dashed var(--v-borda);
+}
+
+.viagens-sim-destinos--empty .app-icon {
+    color: var(--v-oceano);
+    opacity: 0.65;
+}
+
+.viagens-sim-destinos__filters {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: thin;
+}
+
+.viagens-sim-destinos__filter {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+    flex-shrink: 0;
+    border: 1px solid var(--v-borda);
+    border-radius: 12px;
+    padding: 6px 10px;
+    font-size: 0.6875rem;
+    font-weight: 800;
+    cursor: pointer;
+    font-family: inherit;
+    background: var(--v-janela);
+    color: var(--v-tinta);
+}
+
+.viagens-sim-destinos__filter span {
+    font-size: 0.5625rem;
+    font-weight: 600;
+    color: var(--v-legenda);
+}
+
+.viagens-sim-destinos__filter.is-on {
+    border-color: color-mix(in srgb, var(--v-oceano) 45%, var(--v-borda));
+    background: color-mix(in srgb, var(--v-oceano) 14%, var(--v-janela));
+    color: var(--v-oceano);
+}
+
+.viagens-sim-destinos__track {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 4px;
+    overflow-x: auto;
+    padding: 4px 2px 6px;
+    scrollbar-width: thin;
+}
+
+.viagens-sim-destinos__seg {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.viagens-sim-destinos__arrow {
+    opacity: 0.35;
+    color: var(--v-oceano);
+}
+
+.viagens-sim-destino-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    min-width: 7.5rem;
+    padding: 10px 12px;
+    border: 1.5px solid var(--v-borda);
+    border-radius: 14px;
+    background: var(--v-janela);
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    color: var(--v-tinta);
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.viagens-sim-destino-card:hover {
+    transform: translateY(-1px);
+}
+
+.viagens-sim-destino-card.is-on {
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--v-oceano) 18%, transparent);
+    transform: translateY(-2px);
+}
+
+.viagens-sim-destino-card--coral.is-on {
+    border-color: color-mix(in srgb, var(--v-coral) 55%, var(--v-borda));
+}
+
+.viagens-sim-destino-card--oceano.is-on {
+    border-color: color-mix(in srgb, var(--v-oceano) 55%, var(--v-borda));
+}
+
+.viagens-sim-destino-card--turquesa.is-on {
+    border-color: color-mix(in srgb, var(--v-turquesa) 55%, var(--v-borda));
+}
+
+.viagens-sim-destino-card--ouro.is-on {
+    border-color: color-mix(in srgb, var(--v-ouro) 55%, var(--v-borda));
+}
+
+.viagens-sim-destino-card__kicker {
+    font-size: 0.5625rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--v-legenda);
+}
+
+.viagens-sim-destino-card__name {
+    font-size: 0.8125rem;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.viagens-sim-destino-card__meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+    font-size: 0.625rem;
+    font-weight: 700;
+    color: var(--v-oceano);
+}
+
+.viagens-sim-destino-card__meta .app-icon {
+    color: var(--v-turquesa);
+}
+
+.viagens-sim-destinos__layovers {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.viagens-sim-destinos__layovers-label {
+    font-size: 0.5625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--v-legenda);
+}
+
+.viagens-sim-destinos__layover {
+    border: 1px dashed var(--v-borda);
+    border-radius: 999px;
+    padding: 4px 8px;
+    font-size: 0.625rem;
+    font-weight: 700;
+    background: var(--v-janela);
+    cursor: pointer;
+    font-family: inherit;
+    color: var(--v-legenda);
+}
+
+.viagens-sim-destinos__layover.is-on {
+    border-style: solid;
+    border-color: var(--v-oceano);
+    color: var(--v-oceano);
+}
+
+.viagens-sim-destinos__detail {
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--v-oceano) 10%, var(--v-janela));
+    border: 1px solid color-mix(in srgb, var(--v-oceano) 22%, var(--v-borda));
+}
+
+.viagens-sim-destinos__detail header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.viagens-sim-destinos__detail header .app-icon {
+    color: var(--v-coral);
+}
+
+.viagens-sim-destinos__detail header p {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    gap: 2px;
+}
+
+.viagens-sim-destinos__detail header strong {
+    font-size: 0.875rem;
+}
+
+.viagens-sim-destinos__detail header span {
+    font-size: 0.625rem;
+    font-weight: 600;
+    color: var(--v-legenda);
+}
+
+.viagens-sim-destinos__detail dl {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 0;
+}
+
+.viagens-sim-destinos__detail dt {
+    margin: 0;
+    font-size: 0.5625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--v-legenda);
+}
+
+.viagens-sim-destinos__detail dd {
+    margin: 2px 0 0;
+    font-size: 0.8125rem;
+    font-weight: 800;
+    color: var(--v-tinta);
+}
+
+/* Trechos */
+.viagens-sim-trechos {
+    background: var(--v-painel);
+    border: 1px solid var(--v-borda);
+    border-radius: 16px;
+    padding: 16px 18px;
+}
+
+.viagens-sim-trechos__title {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--v-tinta);
+}
+
+.viagens-simulador-overlay .viagens-sim-trechos__title .app-icon {
+    color: var(--v-oceano);
+}
+
+.viagens-sim-trechos__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.viagens-sim-trechos__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.viagens-sim-trechos__ficha,
+.viagens-sim-trechos__add {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: none;
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    background: var(--v-painel);
+    color: var(--v-turquesa);
+}
+
+.viagens-sim-trechos__ficha--on {
+    background: var(--v-turquesa);
+    color: #fff;
+}
+
+.viagens-sim-trechos__ficha-count {
+    display: inline-grid;
+    place-items: center;
+    min-width: 1.1rem;
+    height: 1.1rem;
+    padding: 0 4px;
+    border-radius: 999px;
+    font-size: 0.5625rem;
+    font-weight: 800;
+    background: rgba(255, 255, 255, 0.22);
+}
+
+/* Popup — voos da ficha por trecho */
+.viagens-sim-voos-pick__lede {
+    margin: 2px 0 0;
+    font-size: 0.6875rem;
+    line-height: 1.35;
+}
+
+.viagens-sim-voos-pick__list {
+    list-style: none;
+    margin: 0 0 12px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-height: min(52vh, 420px);
+    overflow-y: auto;
+}
+
+.viagens-sim-voos-pick__segment-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 0.8125rem;
+}
+
+.viagens-sim-voos-pick__segment-idx {
+    display: inline-grid;
+    place-items: center;
+    width: 1.35rem;
+    height: 1.35rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--v-oceano) 18%, var(--v-janela));
+    color: var(--v-oceano);
+    font-size: 0.625rem;
+    font-weight: 800;
+}
+
+.viagens-sim-voos-pick__options {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.viagens-sim-voos-pick__option {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 10px;
+    align-items: start;
+    padding: 10px 12px;
+    border: 1px solid var(--v-borda);
+    border-radius: 12px;
+    background: var(--v-janela);
+    cursor: pointer;
+    font-family: inherit;
+    color: var(--v-tinta);
+}
+
+.viagens-sim-voos-pick__option input {
+    margin-top: 4px;
+    accent-color: var(--v-turquesa);
+}
+
+.viagens-sim-voos-pick__option.is-on {
+    border-color: color-mix(in srgb, var(--v-turquesa) 50%, var(--v-borda));
+    background: color-mix(in srgb, var(--v-turquesa) 10%, var(--v-janela));
+}
+
+.viagens-sim-voos-pick__option--chosen.is-on {
+    border-color: color-mix(in srgb, var(--v-oceano) 45%, var(--v-borda));
+}
+
+.viagens-sim-voos-pick__route {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 800;
+}
+
+.viagens-sim-voos-pick__schedule {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--v-legenda);
+}
+
+.viagens-sim-voos-pick__label {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.625rem;
+    color: var(--v-legenda);
+}
+
+.viagens-sim-voos-pick__status {
+    font-size: 0.5625rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 4px 7px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.viagens-sim-voos-pick__status--escolhida {
+    background: color-mix(in srgb, var(--v-oceano) 16%, var(--v-painel));
+    color: var(--v-oceano);
+}
+
+.viagens-sim-voos-pick__status--candidata {
+    background: color-mix(in srgb, var(--v-ouro) 18%, var(--v-painel));
+    color: var(--v-ouro);
+}
+
+.viagens-sim-voos-pick__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding-top: 4px;
+}
+
+.viagens-sim-voos-pick__detach {
+    border: none;
+    background: transparent;
+    color: var(--v-coral);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.viagens-sim-voos-pick__foot .viagens-sim-ferias__done {
+    width: auto;
+    flex: 1 1 auto;
+    min-width: 10rem;
+}
+
+/* Popup — detalhe do trecho (view) */
+.viagens-sim-hop-view {
+    width: min(28rem, calc(100vw - 24px));
+    max-height: min(88vh, 640px);
+    overflow-y: auto;
+}
+
+.viagens-sim-hop-view__body {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 4px 0 8px;
+}
+
+.viagens-sim-hop-view__section h4 {
+    margin: 0 0 8px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--v-oceano);
+}
+
+.viagens-sim-hop-view__when {
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: var(--v-painel);
+    border: 1px solid var(--v-borda);
+}
+
+.viagens-sim-hop-view__when-kicker {
+    display: block;
+    font-size: 0.5625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--v-legenda);
+    margin-bottom: 4px;
+}
+
+.viagens-sim-hop-view__when p {
+    margin: 0;
+    font-size: 0.8125rem;
+    font-weight: 700;
+}
+
+.viagens-sim-hop-view__duration {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.6875rem;
+    color: var(--v-turquesa);
+    font-weight: 700;
+}
+
+.viagens-sim-hop-view__geo {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 8px 0 0;
+    font-size: 0.6875rem;
+    color: var(--v-legenda);
+}
+
+.viagens-sim-hop-view__sim-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.viagens-sim-hop-view__sim-head h4 {
+    margin: 0;
+}
+
+.viagens-sim-hop-view__status {
+    font-size: 0.5625rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    border-radius: 999px;
+}
+
+.viagens-sim-hop-view__status--escolhida {
+    background: color-mix(in srgb, var(--v-oceano) 16%, var(--v-painel));
+    color: var(--v-oceano);
+}
+
+.viagens-sim-hop-view__status--candidata {
+    background: color-mix(in srgb, var(--v-ouro) 18%, var(--v-painel));
+    color: var(--v-ouro);
+}
+
+.viagens-sim-hop-view__sim-title {
+    margin: 0 0 4px;
+    font-size: 0.875rem;
+    font-weight: 800;
+}
+
+.viagens-sim-hop-view__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 8px 0 10px;
+    font-size: 0.625rem;
+    font-weight: 700;
+}
+
+.viagens-sim-hop-view__chips span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: var(--v-painel);
+    border: 1px solid var(--v-borda);
+}
+
+.viagens-sim-hop-view__legs {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+    font-size: 0.6875rem;
+}
+
+.viagens-sim-hop-view__legs li {
+    display: flex;
+    gap: 8px;
+    padding: 6px 0;
+    border-top: 1px solid var(--v-borda);
+}
+
+.viagens-sim-hop-view__legs li span {
+    font-weight: 800;
+    color: var(--v-oceano);
+    min-width: 2.5rem;
+}
+
+.viagens-sim-hop-view__notes {
+    margin: 8px 0 0;
+    font-size: 0.6875rem;
+    line-height: 1.4;
+    color: var(--v-tinta);
+}
+
+.viagens-sim-hop-view__manual {
+    margin: 0;
+    font-size: 0.6875rem;
+    line-height: 1.4;
+}
+
+.viagens-sim-hop-view__foot {
+    padding-top: 4px;
+}
+
+.viagens-sim-trechos__empty-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.viagens-sim-trechos__sync {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: none;
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    background: var(--v-janela);
+    color: var(--v-oceano);
+    border: 1px solid var(--v-borda);
+}
+
+.viagens-sim-trechos__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 10px;
+    max-height: min(22rem, 40vh);
+    overflow-y: auto;
+}
+
+.viagens-sim-trechos__card {
+    position: relative;
+    background: var(--v-janela);
+    border: 1px solid var(--v-borda);
+    border-radius: 12px;
+    padding: 12px 12px 10px;
+    transition: border-color 0.15s ease;
+}
+
+.viagens-sim-trechos__card--openable {
+    cursor: pointer;
+}
+
+.viagens-sim-trechos__card--openable:hover {
+    border-color: color-mix(in srgb, var(--v-turquesa) 38%, var(--v-borda));
+}
+
+.viagens-sim-trechos__card--openable:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--v-turquesa) 55%, transparent);
+    outline-offset: 2px;
+}
+
+.viagens-sim-trechos__card--linked {
+    border-color: color-mix(in srgb, var(--v-turquesa) 45%, var(--v-borda));
+}
+
+.viagens-sim-trechos__card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.viagens-sim-trechos__card-tools {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.viagens-sim-trechos__route {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 0.8125rem;
+    min-width: 0;
+}
+
+.viagens-sim-trechos__route .app-icon {
+    color: var(--v-oceano);
+}
+
+.viagens-sim-trechos__index {
+    display: inline-grid;
+    place-items: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--v-oceano) 18%, transparent);
+    color: var(--v-oceano);
+    font-size: 0.625rem;
+    font-weight: 800;
+}
+
+.viagens-sim-trechos__edit-btn {
+    border: none;
+    border-radius: 8px;
+    padding: 4px 8px;
+    font-size: 0.625rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    background: var(--v-painel);
+    color: var(--v-oceano);
+    border: 1px solid var(--v-borda);
+}
+
+.viagens-sim-trechos__edit-btn.is-on {
+    background: var(--v-oceano);
+    color: #fff;
+    border-color: transparent;
+}
+
+.viagens-sim-trechos__schedule {
+    margin: 6px 0 0;
+    font-size: 0.6875rem;
+    opacity: 0.55;
+    font-variant-numeric: tabular-nums;
+}
+
+.viagens-sim-trechos__meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    font-size: 0.625rem;
+}
+
+.viagens-sim-trechos__tag {
+    background: color-mix(in srgb, var(--v-turquesa) 14%, var(--v-painel));
+    color: var(--v-oceano);
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-weight: 700;
+}
+
+.viagens-sim-trechos__remove {
+    display: inline-grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 8px;
+    background: var(--v-painel);
+    border: 1px solid var(--v-borda);
+    cursor: pointer;
+    color: var(--v-coral);
+}
+
+.viagens-sim-trechos__fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--v-borda);
+}
+
+.viagens-sim-trechos__field-wide {
+    grid-column: 1 / -1;
+}
+
+.viagens-sim-trechos__fields label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.625rem;
+}
+
+.viagens-sim-trechos__fields input {
+    border: 1px solid var(--v-borda);
+    border-radius: 8px;
+    padding: 6px;
+    font-family: inherit;
+    font-size: 0.75rem;
+}
+
+.viagens-sim-conflict {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: var(--v-coral);
+    margin: 8px 0 0;
+}
+
+.viagens-sim-empty {
+    padding: 48px 24px;
+    text-align: center;
+}
+
+/* Criteria sheet */
+.viagens-sim-criteria__backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.25);
+    border: none;
+    z-index: 901;
+    cursor: pointer;
+}
+
+.viagens-sim-criteria__panel {
+    position: fixed;
+    z-index: 902;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(420px, 92vw);
+    max-height: 80vh;
+    overflow: auto;
+    background: var(--v-painel);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
+}
+
+.viagens-sim-criteria__panel header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.viagens-sim-criteria__list {
+    list-style: none;
+    margin: 16px 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.viagens-sim-criteria__list li {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 10px;
+    align-items: center;
+    font-size: 0.8125rem;
+}
+
+.viagens-sim-sheet__panel {
+    position: fixed;
+    z-index: 902;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(420px, 92vw);
+    max-height: 82vh;
+    overflow: auto;
+    background: var(--v-painel);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
+    border: 1px solid var(--v-borda);
+}
+
+.viagens-sim-sheet__panel--wide {
+    width: min(520px, 94vw);
+}
+
+.viagens-sim-sheet__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.viagens-sim-sheet__head h3 {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.viagens-sim-sheet__head .app-icon {
+    color: var(--v-coral);
+}
+
+.viagens-simulador-overlay .viagens-sim-trail__chip .app-icon {
+    color: var(--v-oceano);
+}
+
+@media (max-width: 960px) {
+    .viagens-simulador-shell {
+        flex-direction: column;
+    }
+    .viagens-sim-rail {
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+        max-height: 42vh;
+        border-right: none;
+        border-bottom: 1px solid var(--v-borda);
+    }
+    .viagens-sim-explorer {
+        grid-template-columns: 1fr;
+    }
+    .viagens-sim-explorer {
+        min-height: 0;
+    }
+}

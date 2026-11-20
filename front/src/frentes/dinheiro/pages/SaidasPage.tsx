@@ -8,7 +8,8 @@ import { MovementListFilterDrawer } from '../../../components/finance/MovementLi
 import { useFinanceData } from '../../../app/FinanceDataProvider';
 import { formatBRL } from '../../../lib/format';
 import { defaultCivilYear, defaultPeriod, getPeriodDateBounds, MONTH_NAMES, monthIndexFromPeriod } from '../../../lib/period';
-import { accountName, filterMovementsInPeriod, type ListFilter } from '../../../lib/movementList';
+import { accountName, type ListFilter } from '../../../lib/movementList';
+import { expenseRowDisplayDate, filterExpensesInPeriod } from '../../../lib/filterExpensesInPeriod';
 import { EXPENSE_TREEMAP_PALETTE } from '../../../lib/treemapData';
 import { buildExpenseTreemapBlocks } from '../../../lib/expenseTreemap';
 import { useTablePagination } from '../../../hooks/useTablePagination';
@@ -68,7 +69,7 @@ export function SaidasPage() {
 
     const filtered = useMemo(() => {
         if (!data) return [];
-        return filterMovementsInPeriod(data.userExpenses, period, year, {
+        return filterExpensesInPeriod(data.userExpenses, data.userAccounts, period, year, {
             q: listFilters?.searchQ ?? '',
             paymentStatus,
             accountId: drawer?.accountId || undefined,
@@ -87,6 +88,14 @@ export function SaidasPage() {
     const accountById = useMemo(
         () => new Map((data?.userAccounts ?? []).map((a) => [a.id, a])),
         [data?.userAccounts]
+    );
+
+    const expenseDisplayDate = useCallback(
+        (m: Movement) => {
+            const acc = m.accountId ? accountById.get(m.accountId) : undefined;
+            return expenseRowDisplayDate(m, acc, period, year);
+        },
+        [accountById, period, year]
     );
 
     const { sortKey, sortDir, toggleSort, sortRows } = useMovementSort<ExpenseSortKey>(
@@ -330,6 +339,8 @@ export function SaidasPage() {
                 idPrefix="expenses"
                 rows={rows}
                 currency={currency}
+                expenseAccounts={data.userAccounts}
+                expenseDisplayDate={expenseDisplayDate}
                 accountLabel={(id) => accountName(data.userAccounts, id)}
                 statusLabel={(m) => (m.isPaid === false ? 'Pendente' : 'Pago')}
                 onToggleStatus={(m) => void onToggleStatus(m)}

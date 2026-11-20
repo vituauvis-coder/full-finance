@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { patchMilesProgram } from '../../api/miles';
+import { notifyWalletChanged, patchMilesProgram } from '../../api/miles';
 import { Chip, ChipRow, DecimalField, PontosAlert, PtsField } from './PontosFields';
 import { BONUS_PRESETS, milesError, type MilesProgram } from './pontos-format';
 
@@ -75,6 +75,7 @@ export function WalletBenefits({ program, onSaved }: Props) {
                         milheiro: saved.milheiro ?? program.milheiro,
                         invested: saved.invested ?? program.invested
                     });
+                    notifyWalletChanged();
                 })
                 .catch((err: unknown) => setError(milesError(err)));
         }, 420);

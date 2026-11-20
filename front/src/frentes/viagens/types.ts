@@ -12,6 +12,8 @@ export interface TripDestination {
     kind?: string | null;
 }
 
+export type TripExpensePaymentMethod = 'pix' | 'credit_card';
+
 export interface TripExpense {
     id: string;
     amount: number;
@@ -20,6 +22,20 @@ export interface TripExpense {
     destinationId?: string | null;
     description?: string;
     spentOn?: string;
+    paymentMethod?: TripExpensePaymentMethod;
+    payment_method?: TripExpensePaymentMethod;
+    /** Parcelas no cartão (1 = à vista no cartão). */
+    installments?: number;
+    installment_count?: number;
+    /** Conta cartão (Dinheiro) quando paymentMethod = credit_card. */
+    accountId?: string | null;
+    account_id?: string | null;
+    /** Saída espelhada no módulo Dinheiro. */
+    financeExpenseId?: string | null;
+    finance_expense_id?: string | null;
+    /** Valor saiu do cofrinho da viagem (Pix; não confunde com forma de pagamento). */
+    paidFromCofrinho?: boolean;
+    paid_from_cofrinho?: boolean;
 }
 
 export interface TripStay {
@@ -138,7 +154,18 @@ export interface TripFlightSegment {
 
 export interface TripTimeScenario {
     id: string;
+    name?: string;
     title?: string;
+    hops?: unknown[];
+    vacations?: unknown[];
+    remote?: unknown;
+    vacation_balance?: number | null;
+    vacationBalance?: number | null;
+    notes?: string;
+    pulls_flights_from_ficha?: boolean;
+    pullsFlightsFromFicha?: boolean;
+    own_hops?: unknown[];
+    ownHops?: unknown[];
     [key: string]: unknown;
 }
 

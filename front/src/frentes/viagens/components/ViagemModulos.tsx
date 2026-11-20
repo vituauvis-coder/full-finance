@@ -6,6 +6,11 @@ import '../styles/viagens-ficha-modulos.css';
 
 export type FichaModuloId = 'orcamento' | 'roteiros' | 'hospedagens';
 
+export function parseFichaModulo(value: string | null): FichaModuloId | null {
+    if (value === 'orcamento' || value === 'roteiros' || value === 'hospedagens') return value;
+    return null;
+}
+
 export const FICHA_MODULO_TITLE: Record<FichaModuloId, string> = {
     orcamento: 'Orçamento',
     roteiros: 'Roteiros',
@@ -75,7 +80,9 @@ export function ViagemModulos({ tripId, onOpen }: ModulosProps) {
                         key={tile.id}
                         type="button"
                         className={className}
-                        onClick={() => onOpen(tile.id)}
+                        onClick={() => {
+                            if (tile.id !== 'voos') onOpen(tile.id);
+                        }}
                         aria-label={`Abrir ${tile.label}`}
                     >
                         <TileFace tile={tile} />

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
     duplicateFlightSimulation,
     emptyFlightSimulation,
@@ -8,7 +8,6 @@ import {
 } from '@motor/viagens/flight-simulation.js';
 import { cheapestOptionId, chosenDayTotal, optionScore } from '@motor/viagens/flight-ledger.js';
 import { MaterialIcon } from '../../../../components/icons/MaterialIcon';
-import { fetchMilesDashboard, WALLET_CHANGED } from '../../api/miles';
 import { formatBRL } from '../../utils/map-utils';
 import type { MilesProgram } from '../../pages/pontos/pontos-format';
 import type { TripDestination, TripFlightSegment, TripFlightSimulation, TripPayload } from '../../types';
@@ -21,6 +20,7 @@ type Props = {
     destinations: TripDestination[];
     tripStartsOn?: string;
     tripEndsOn?: string;
+    programsForLedger: MilesProgram[];
     onChangeSegments: (segments: TripFlightSegment[]) => void;
 };
 
@@ -46,6 +46,7 @@ export function VoosSimulationsPanel({
     destinations,
     tripStartsOn,
     tripEndsOn,
+    programsForLedger,
     onChangeSegments
 }: Props) {
     const segments = asSegments(payload);
@@ -54,32 +55,10 @@ export function VoosSimulationsPanel({
     const [undo, setUndo] = useState<{ segmentId: string; simulation: TripFlightSimulation; index: number } | null>(
         null
     );
-    const [programs, setPrograms] = useState<MilesProgram[]>([]);
-
-    useEffect(() => {
-        let cancelled = false;
-        function load() {
-            void fetchMilesDashboard(tripId)
-                .then((dash) => {
-                    if (!cancelled) {
-                        setPrograms(((dash as { programs?: MilesProgram[] }).programs ?? []) as MilesProgram[]);
-                    }
-                })
-                .catch(() => {
-                    if (!cancelled) setPrograms([]);
-                });
-        }
-        load();
-        window.addEventListener(WALLET_CHANGED, load);
-        return () => {
-            cancelled = true;
-            window.removeEventListener(WALLET_CHANGED, load);
-        };
-    }, [tripId]);
 
     const dayTotal = useMemo(
-        () => chosenDayTotal(segments.flatMap((s) => s.simulations), programs),
-        [segments, programs]
+        () => chosenDayTotal(segments.flatMap((s) => s.simulations), programsForLedger),
+        [segments, programsForLedger]
     );
 
     const editingSim = editing
@@ -201,15 +180,15 @@ export function VoosSimulationsPanel({
                     const sorted = [...segment.simulations].sort((a, b) => {
                         const r = (rank[a.status] ?? 9) - (rank[b.status] ?? 9);
                         if (r) return r;
-                        const left = optionScore(a, programs) ?? Number.POSITIVE_INFINITY;
-                        const right = optionScore(b, programs) ?? Number.POSITIVE_INFINITY;
+                        const left = optionScore(a, programsForLedger) ?? Number.POSITIVE_INFINITY;
+                        const right = optionScore(b, programsForLedger) ?? Number.POSITIVE_INFINITY;
                         return left - right;
                     }) as TripFlightSimulation[];
                     const active = sorted.filter((s) => s.status !== 'descartada');
                     const discarded = sorted.filter((s) => s.status === 'descartada');
-                    const cheapestId = cheapestOptionId(active, programs);
+                    const cheapestId = cheapestOptionId(active, programsForLedger);
                     const cheapestSim = active.find((s) => s.id === cheapestId);
-                    const cheapestScore = cheapestSim ? optionScore(cheapestSim, programs) : null;
+                    const cheapestScore = cheapestSim ? optionScore(cheapestSim, programsForLedger) : null;
                     const letters = new Map(
                         segment.simulations.map((sim, index) => [sim.id, flightLetter(index)] as const)
                     );
@@ -269,7 +248,7 @@ export function VoosSimulationsPanel({
                                             <FlightSimCard
                                                 key={sim.id}
                                                 simulation={sim}
-                                                programs={programs}
+                                                programs={programsForLedger}
                                                 mark={letters.get(sim.id)}
                                                 isCheapest={cheapestId === sim.id}
                                                 onChange={(next) => patchSimulation(segment.id, sim.id, next)}
@@ -310,7 +289,7 @@ export function VoosSimulationsPanel({
                                                           key={sim.id}
                                                           layout="list"
                                                           simulation={sim}
-                                                          programs={programs}
+                                                          programs={programsForLedger}
                                                           mark={letters.get(sim.id)}
                                                           isCheapest={false}
                                                           onChange={(next) => patchSimulation(segment.id, sim.id, next)}

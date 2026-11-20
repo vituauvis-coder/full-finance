@@ -3,7 +3,9 @@
  * Cenários complexos com hops datados usam cálculo simplificado de duração; UI completa evolui com testes portados.
  */
 
-import { parseDayKey, dayKey, inclusiveDayCount, startOfDayInLifeOS } from './calendar-format.js';
+import { parseDayKey, dayKey, inclusiveDayCount, startOfDayInLifeOS, addDays } from './calendar-format.js';
+import { buildRemoteSnapshot } from './trip-scenario-remote.js';
+import { buildTourismMetrics } from './trip-scenario-tourism.js';
 
 const DEFAULT_CRITERIA = [
     { metric: 'vacationDays', weight: 3, prefersHigher: true },
@@ -26,9 +28,7 @@ function vacationEndsOn(period) {
     const start = parseDayKey(period.startsOn ?? period.starts_on);
     const days = Math.max(1, Number(period.days ?? 0));
     if (!start || !days) return null;
-    const end = new Date(start);
-    end.setUTCDate(end.getUTCDate() + days - 1);
-    return dayKey(end);
+    return dayKey(addDays(start, days - 1));
 }
 
 export function emptySnapshot(id, name) {
@@ -73,18 +73,25 @@ export function snapshot(scenario) {
     const durationHours = (arrive.getTime() - depart.getTime()) / 3600000;
     const calendarDays = inclusiveDayCount(depart, arrive);
     const vacationKeys = new Set();
+    const vacDeclared = (scenario.vacations ?? []).reduce(
+        (p, v) => p + Math.max(0, Number(v.days ?? 0)),
+        0
+    );
     for (const period of scenario.vacations ?? []) {
         const start = parseDayKey(period.startsOn ?? period.starts_on);
         if (!start) continue;
         const days = Math.max(1, Number(period.days ?? 0));
         for (let i = 0; i < days; i++) {
-            const d = new Date(start);
-            d.setUTCDate(d.getUTCDate() + i);
-            vacationKeys.add(dayKey(d));
+            vacationKeys.add(dayKey(addDays(start, i)));
         }
     }
-    const tourismFullDays = Math.max(0, Math.floor(durationHours / 24) - 2);
-    const score = durationHours > 0 ? (tourismFullDays + durationHours / 24) / Math.max(vacationKeys.size, 0.5) : 0;
+    const vacConsumed = vacationKeys.size > 0 ? vacationKeys.size : vacDeclared;
+    const tourism = buildTourismMetrics(scenario, depart, arrive);
+    const score =
+        durationHours > 0
+            ? (tourism.fullDays + durationHours / 24) / Math.max(vacationKeys.size, 0.5)
+            : 0;
+    const { remote } = buildRemoteSnapshot(scenario, depart, arrive);
     return {
         scenarioId: scenario.id,
         name: scenario.name ?? 'Cenário',
@@ -93,14 +100,23 @@ export function snapshot(scenario) {
         calendarDays,
         durationHours,
         vacation: {
-            consumedDays: vacationKeys.size,
+            consumedDays: vacConsumed,
             startKey: (scenario.vacations ?? []).map((v) => v.startsOn ?? v.starts_on).filter(Boolean).sort()[0],
             endKey: (scenario.vacations ?? []).map((v) => vacationEndsOn(v)).filter(Boolean).sort().at(-1),
-            daysInsideTrip: vacationKeys.size,
-            remainingBalance: scenario.vacationBalance != null ? Math.max(0, scenario.vacationBalance - vacationKeys.size) : null
+            daysInsideTrip: vacConsumed,
+            remainingBalance:
+                scenario.vacationBalance != null ? Math.max(0, scenario.vacationBalance - vacConsumed) : null
         },
-        tourism: { fullDays: tourismFullDays, partialDays: 0, hours: tourismFullDays * 10, layoverHours: 0 },
-        remote: { possibleWeekdays: 0, scheduledDays: 0, byCountry: {}, afterVacationByCountry: {}, suggestedDays: [] },
+        tourism: {
+            fullDays: tourism.fullDays,
+            partialDays: tourism.partialDays,
+            hours: tourism.hours,
+            layoverHours: tourism.layoverHours,
+            dayKeys: tourism.tourismDayKeys,
+            brHolidayKeys: tourism.brHolidayKeys,
+            holidayLocalByKey: tourism.holidayLocalByKey
+        },
+        remote,
         score,
         stays: [],
         layovers: [],

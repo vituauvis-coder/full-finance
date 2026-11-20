@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { deleteTrip } from '../api/trips';
 import { ViagensBackControl } from '../components/ViagensBackControl';
 import { ViagensPortalSection } from '../components/ViagensPortalSection';
 import { ViagemFicha, type TripDraft } from '../components/ViagemFicha';
-import type { FichaModuloId } from '../components/ViagemModulos';
+import { parseFichaModulo, type FichaModuloId } from '../components/ViagemModulos';
 import { TripSimuladorOverlay } from '../components/TripSimuladorOverlay';
 import { TripStatusControl } from '../components/TripStatusControl';
 import { useTripAutosave } from '../hooks/useTripAutosave';
@@ -18,9 +18,20 @@ import '../theme/viagens-theme.css';
 export function ViagemFichaPage() {
     const { tripId } = useParams<{ tripId: string }>();
     const navigate = useNavigate();
-    const { trip, draft, scenarioWinnerId, error, saveError, saving, onDraftChange } = useTripAutosave(tripId);
+    const { trip, draft, scenarioWinnerId, error, saveError, saving, onDraftChange, flushSave } =
+        useTripAutosave(tripId);
     const [simOpen, setSimOpen] = useState(false);
-    const [fichaModulo, setFichaModulo] = useState<FichaModuloId | null>(null);
+    const [searchParams, setSearchParams] = useSearchParams();
+    const fichaModulo = parseFichaModulo(searchParams.get('modulo'));
+
+    function setFichaModulo(id: FichaModuloId | null) {
+        setSearchParams((prev) => {
+            const next = new URLSearchParams(prev);
+            if (id) next.set('modulo', id);
+            else next.delete('modulo');
+            return next;
+        });
+    }
 
     const scenarioCount = useMemo(() => {
         if (!trip) return 0;
@@ -137,6 +148,7 @@ export function ViagemFichaPage() {
                         trip={trip}
                         draft={draft}
                         onChange={onDraftChange}
+                        onFlushSave={flushSave}
                         scenarioWinnerId={scenarioWinnerId}
                         modulo={fichaModulo}
                         onModuloChange={setFichaModulo}
@@ -147,8 +159,12 @@ export function ViagemFichaPage() {
                         <TripSimuladorOverlay
                             draft={simDraft}
                             scenarioWinnerId={scenarioWinnerId}
-                            onClose={() => setSimOpen(false)}
+                            onClose={() => {
+                                void flushSave();
+                                setSimOpen(false);
+                            }}
                             onDraftChange={onDraftChange}
+                            onFlushSave={flushSave}
                         />
                     ) : null}
                 </div>

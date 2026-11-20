@@ -4,6 +4,7 @@ import { fetchTripsList } from '../api/trips';
 import type { MapVisit, Trip } from '../types';
 import { ViagensMap } from '../components/ViagensMap';
 import { ViagensPortalSection } from '../components/ViagensPortalSection';
+import { ViagensCasaCentral } from '../components/ViagensCasaCentral';
 import { ViagensTrilho } from '../components/ViagensTrilho';
 import '../styles/viagens-casa.css';
 import '../styles/viagens-header-actions.css';
@@ -47,6 +48,7 @@ export function AtlasPage() {
                 ) : (
                     <div className="viagens-casa-layout">
                         <main className="viagens-casa-main">
+                            <ViagensCasaCentral trips={trips} />
                             <div id="viagens-map-host">
                                 <ViagensMap
                                     trips={trips}

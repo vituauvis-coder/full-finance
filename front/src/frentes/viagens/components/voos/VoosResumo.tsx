@@ -1,7 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { originPointsNeeded } from '@motor/milhas/convert.js';
-import { flightLedger, optionScore, tripFlightScenario, usesMilesPath } from '@motor/viagens/flight-ledger.js';
+import {
+    flightLedger,
+    optionScore,
+    tripFlightScenario,
+    tripWalletPointsNeeded,
+    usesMilesPath
+} from '@motor/viagens/flight-ledger.js';
 import {
     baggageLabel,
     connectionsCount,
@@ -9,11 +14,11 @@ import {
     simulationLabelLine,
     tripFlightSegments
 } from '@motor/viagens/flight-simulation.js';
-import { fetchMilesDashboard, fetchMilesPrograms } from '../../api/miles';
+import { fetchMilesPrograms } from '../../api/miles';
 import { MaterialIcon } from '../../../../components/icons/MaterialIcon';
 import { formatAirMs, simulationAirMs } from '../../domain/flightDisplay';
 import { formatBRL } from '../../utils/map-utils';
-import { formatPts, milesError, type ConversionRate, type MilesProgram } from '../../pages/pontos/pontos-format';
+import { formatPts, type ConversionRate, type MilesProgram } from '../../pages/pontos/pontos-format';
 import type { TripFlightSegment, TripFlightSimulation, TripPayload } from '../../types';
 import {
     dropMilesCalcSave,
@@ -30,6 +35,11 @@ import { MilesCalculatorPop } from './MilesCalculatorPop';
 type Props = {
     tripId: string;
     payload: TripPayload;
+    programs: MilesProgram[];
+    programsForLedger: MilesProgram[];
+    walletLoading?: boolean;
+    walletError?: string | null;
+    onWalletReload: () => void;
 };
 
 export function flightOverview(payload: TripPayload) {
@@ -57,21 +67,34 @@ function calcTitle(sim: TripFlightSimulation, programs: MilesProgram[]) {
     return 'Simulação';
 }
 
-export function VoosResumo({ tripId, payload }: Props) {
-    const [programs, setPrograms] = useState<MilesProgram[]>([]);
+export function VoosResumo({
+    tripId,
+    payload,
+    programs,
+    programsForLedger,
+    walletLoading = false,
+    walletError = null,
+    onWalletReload
+}: Props) {
     const [rates, setRates] = useState<ConversionRate[]>([]);
-    const [needs, setNeeds] = useState<WalletNeed[]>([]);
-    const [error, setError] = useState<string | null>(null);
     const [sheet, setSheet] = useState<string | 'create' | null>(null);
     const [calc, setCalc] = useState<
         { kind: 'new' } | { kind: 'saved'; save: MilesCalcSave } | null
     >(null);
     const [history, setHistory] = useState(false);
     const [saves, setSaves] = useState<MilesCalcSave[]>(() => loadMilesCalcSaves());
-    const [tick, setTick] = useState(0);
+
+    const needs = useMemo((): WalletNeed[] => {
+        const fromFlights = tripWalletPointsNeeded(tripFlightSegments(payload) as TripFlightSegment[]);
+        return programs.map((program) => {
+            const needed = fromFlights.get(program.id) ?? 0;
+            const have = program.available ?? program.balance;
+            return { program, needed, gap: Math.max(0, needed - have) };
+        });
+    }, [programs, payload]);
     const scene = useMemo(
-        () => tripFlightScenario(tripFlightSegments(payload) as TripFlightSegment[], programs),
-        [payload, programs]
+        () => tripFlightScenario(tripFlightSegments(payload) as TripFlightSegment[], programsForLedger),
+        [payload, programsForLedger]
     );
     const sceneAir = formatAirMs(
         scene.rows.reduce((n, row) => n + simulationAirMs(row.sim as TripFlightSimulation), 0)
@@ -88,51 +111,73 @@ export function VoosResumo({ tripId, payload }: Props) {
         )
     ];
 
-    const reload = useCallback(() => setTick((n) => n + 1), []);
-
     useEffect(() => {
+        if (!calc || rates.length > 0) return;
         let cancelled = false;
-        void Promise.all([fetchMilesDashboard(tripId), fetchMilesPrograms()])
-            .then(([dash, listed]) => {
-                if (cancelled) return;
-                const list = ((dash as { programs?: MilesProgram[] }).programs ?? []) as MilesProgram[];
-                const fromFlights = new Map<string, number>();
-                for (const seg of tripFlightSegments(payload) as TripFlightSegment[]) {
-                    for (const sim of seg.simulations ?? []) {
-                        if (sim.status === 'descartada') continue;
-                        const miles = sim.miles;
-                        if (!miles || miles.payWith !== 'points' || !miles.originProgramId || !miles.destinationPoints) {
-                            continue;
-                        }
-                        const add = originPointsNeeded({
-                            destinationPoints: miles.destinationPoints,
-                            from: miles.conversionFrom ?? 1,
-                            to: miles.conversionTo ?? 1,
-                            bonusPercent: miles.bonusPercent ?? 0
-                        });
-                        fromFlights.set(miles.originProgramId, (fromFlights.get(miles.originProgramId) ?? 0) + add);
-                    }
-                }
-                setPrograms(list);
-                setRates(listed.rates ?? []);
-                setNeeds(
-                    list.map((program) => {
-                        const needed = fromFlights.get(program.id) ?? 0;
-                        const have = program.available ?? program.balance;
-                        return { program, needed, gap: Math.max(0, needed - have) };
-                    })
-                );
+        void fetchMilesPrograms()
+            .then((listed) => {
+                if (!cancelled) setRates(listed.rates ?? []);
             })
-            .catch((e: unknown) => {
-                if (!cancelled) setError(milesError(e));
+            .catch(() => {
+                if (!cancelled) setRates([]);
             });
         return () => {
             cancelled = true;
         };
-    }, [tripId, payload, tick]);
+    }, [calc, rates.length]);
 
     return (
         <section className="voos-resumo" aria-label="Resumo de passagens e carteira">
+            <article className="voos-resumo__col voos-resumo__col--miles">
+                <div className="voos-resumo__col-head">
+                    <h2>Carteira</h2>
+                    <div className="voos-resumo__tools">
+                        <Link
+                            to="/viagens/milhas"
+                            className="voos-resumo__tool voos-resumo__tool--link"
+                            title="Central de milhas"
+                        >
+                            <MaterialIcon name="loyalty" variant="app" opticalSize={18} />
+                            Central
+                        </Link>
+                        <button
+                            type="button"
+                            className="voos-resumo__tool"
+                            onClick={() => setCalc({ kind: 'new' })}
+                            title="Calculadora de milhas"
+                        >
+                            <MaterialIcon name="calculate" variant="app" opticalSize={18} />
+                            Calcular
+                        </button>
+                        <button
+                            type="button"
+                            className="voos-icon-btn"
+                            onClick={() => setHistory(true)}
+                            title="Simulações salvas"
+                            aria-label="Simulações salvas"
+                        >
+                            <MaterialIcon name="history" variant="app" opticalSize={18} />
+                        </button>
+                        <button
+                            type="button"
+                            className="voos-icon-btn voos-icon-btn--oceano"
+                            onClick={() => setSheet('create')}
+                            title="Nova carteira"
+                            aria-label="Nova carteira"
+                        >
+                            <MaterialIcon name="add" variant="app" opticalSize={18} />
+                        </button>
+                    </div>
+                </div>
+                {walletError ? <p className="voos-resumo__hint">{walletError}</p> : null}
+                {walletLoading && programs.length === 0 ? (
+                    <p className="voos-resumo__hint voos-resumo__hint--loading" aria-live="polite">
+                        Carregando carteira…
+                    </p>
+                ) : null}
+                <CarteiraResumo programs={programs} needs={needs} onOpen={(id) => setSheet(id)} />
+            </article>
+
             <article className="voos-resumo__col">
                 <h2>Resumo de Passagens</h2>
                 {scene.rows.length === 0 ? (
@@ -142,8 +187,8 @@ export function VoosResumo({ tripId, payload }: Props) {
                         <div className="voos-scene__legs">
                             {scene.rows.map((row) => {
                                 const sim = row.sim as TripFlightSimulation;
-                                const miles = usesMilesPath(sim, programs);
-                                const cost = optionScore(sim, programs);
+                                const miles = usesMilesPath(sim, programsForLedger);
+                                const cost = optionScore(sim, programsForLedger);
                                 const air = formatAirMs(simulationAirMs(sim));
                                 const bags = baggageLabel(sim.baggage);
                                 const conn = connectionsCount(sim) as number;
@@ -200,64 +245,19 @@ export function VoosResumo({ tripId, payload }: Props) {
                 )}
             </article>
 
-            <article className="voos-resumo__col voos-resumo__col--miles">
-                <div className="voos-resumo__col-head">
-                    <h2>Carteira</h2>
-                    <div className="voos-resumo__tools">
-                        <Link
-                            to="/viagens/milhas"
-                            className="voos-resumo__tool voos-resumo__tool--link"
-                            title="Central de milhas"
-                        >
-                            <MaterialIcon name="loyalty" variant="app" opticalSize={18} />
-                            Central
-                        </Link>
-                        <button
-                            type="button"
-                            className="voos-resumo__tool"
-                            onClick={() => setCalc({ kind: 'new' })}
-                            title="Calculadora de milhas"
-                        >
-                            <MaterialIcon name="calculate" variant="app" opticalSize={18} />
-                            Calcular
-                        </button>
-                        <button
-                            type="button"
-                            className="voos-icon-btn"
-                            onClick={() => setHistory(true)}
-                            title="Simulações salvas"
-                            aria-label="Simulações salvas"
-                        >
-                            <MaterialIcon name="history" variant="app" opticalSize={18} />
-                        </button>
-                        <button
-                            type="button"
-                            className="voos-icon-btn voos-icon-btn--oceano"
-                            onClick={() => setSheet('create')}
-                            title="Nova carteira"
-                            aria-label="Nova carteira"
-                        >
-                            <MaterialIcon name="add" variant="app" opticalSize={18} />
-                        </button>
-                    </div>
-                </div>
-                {error ? <p className="voos-resumo__hint">{error}</p> : null}
-                <CarteiraResumo programs={programs} needs={needs} onOpen={(id) => setSheet(id)} />
-            </article>
-
             {sheet ? (
                 <CarteiraSheet
                     tripId={tripId}
                     programId={sheet}
                     onClose={() => setSheet(null)}
-                    onChanged={reload}
+                    onChanged={onWalletReload}
                 />
             ) : null}
 
             {calc ? (
                 <MilesCalculatorPop
                     key={calc.kind === 'new' ? 'new' : calc.save.id}
-                    programs={programs}
+                    programs={programsForLedger}
                     rates={rates}
                     initial={calc.kind === 'new' ? null : calc.save.sim}
                     saveId={calc.kind === 'new' ? null : calc.save.id}
@@ -265,7 +265,7 @@ export function VoosResumo({ tripId, payload }: Props) {
                     originProgramId={programs[0]?.id}
                     fixed
                     onSave={(sim, saveId) => {
-                        const title = calcTitle(sim, programs);
+                        const title = calcTitle(sim, programsForLedger);
                         if (saveId) {
                             const list = putMilesCalcSave(saveId, title, sim);
                             setSaves(list);

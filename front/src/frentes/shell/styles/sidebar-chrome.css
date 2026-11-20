@@ -161,9 +161,37 @@
     gap: 0.65rem;
 }
 
-.sidebar.sidebar--modern .sidebar-group__trigger {
+.sidebar.sidebar--modern .sidebar-group__row {
+    display: flex;
+    align-items: center;
+    gap: 0.1rem;
+}
+
+.sidebar.sidebar--modern .sidebar-menu li a.sidebar-group__link {
+    flex: 1;
+    min-width: 0;
     color: var(--shell-text-primary);
     font-weight: 600;
+}
+
+.sidebar.sidebar--modern button.sidebar-group__chev {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 2rem;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--shell-text-tertiary);
+    cursor: pointer;
+}
+
+.sidebar.sidebar--modern button.sidebar-group__chev:hover {
+    background: var(--shell-nav-hover);
+    color: var(--shell-text-primary);
 }
 
 .sidebar.sidebar--modern .sidebar-menu li a:hover,

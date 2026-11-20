@@ -10,6 +10,14 @@ export type MilesProgram = {
     available?: number;
     committed?: number;
     milheiro?: string;
+    acquisitionMilheiro?: string;
+    acquisitionBuckets?: Array<{
+        key: string;
+        label: string;
+        points: number;
+        amountBrl: string;
+        milheiro: string;
+    }>;
     invested?: string;
     transferBonusPercent?: number;
     clubActive?: boolean;

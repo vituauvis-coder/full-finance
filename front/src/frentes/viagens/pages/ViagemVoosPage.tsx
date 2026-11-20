@@ -6,7 +6,9 @@ import { ViagensPortalSection } from '../components/ViagensPortalSection';
 import type { TripDraft } from '../components/ViagemFicha';
 import { VoosResumo } from '../components/voos/VoosResumo';
 import { VoosSimulationsPanel } from '../components/voos/VoosSimulationsPanel';
+import { useProgramsForLedger } from '../hooks/useProgramsForLedger';
 import { useTripAutosave } from '../hooks/useTripAutosave';
+import { useVoosWallet } from '../hooks/useVoosWallet';
 import type { Trip, TripFlightSegment } from '../types';
 import '../styles/viagens-ficha-toolbar.css';
 import '../styles/viagens-ficha-form.css';
@@ -107,9 +109,20 @@ function VoosHome({
     draftRef: MutableRefObject<TripDraft | null>;
     onDraftChange: (draft: TripDraft) => void;
 }) {
+    const { programs, loading: walletLoading, error: walletError, reload: reloadWallet } = useVoosWallet(tripId);
+    const programsForLedger = useProgramsForLedger(programs, programs.length > 0);
+
     return (
         <div className="voos-home">
-            <VoosResumo tripId={tripId} payload={draft.payload} />
+            <VoosResumo
+                tripId={tripId}
+                payload={draft.payload}
+                programs={programs}
+                programsForLedger={programsForLedger}
+                walletLoading={walletLoading}
+                walletError={walletError}
+                onWalletReload={reloadWallet}
+            />
             <section className="voos-home__block" id="voos-board" aria-label="Registros de voo">
                 <VoosSimulationsPanel
                     tripId={tripId}
@@ -117,6 +130,7 @@ function VoosHome({
                     destinations={draft.payload.destinations ?? []}
                     tripStartsOn={draft.startsOn}
                     tripEndsOn={draft.endsOn}
+                    programsForLedger={programsForLedger}
                     onChangeSegments={(flight_segments: TripFlightSegment[]) => {
                         const current = draftRef.current;
                         if (!current) return;

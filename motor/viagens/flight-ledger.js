@@ -1,5 +1,6 @@
 /** Custo do dia de uma opção de voo: milhas, compra extra, clube e dinheiro. */
 
+import { allocateOwnedAcquisition } from '../milhas/ledger.js';
 import { clubMilheiro, clubValuePoints } from '../milhas/club.js';
 import { originPointsNeeded } from '../milhas/convert.js';
 import { flightPayWith, flightTravelers, simulationFinalCost } from './flight-simulation.js';
@@ -23,6 +24,30 @@ function programOf(programs, id) {
 function buyMilheiroOf(program) {
     if (!program) return 0;
     return num(program.buyMilheiro ?? program.buy_milheiro);
+}
+
+/** Milheiro médio pago (extrato) ou o consolidado do dashboard. */
+function paidStockMilheiroOf(program) {
+    if (!program) return 0;
+    const acq = num(program.acquisitionMilheiro ?? program.acquisition_milheiro);
+    if (acq > 0) return acq;
+    const dash = num(program.milheiro);
+    if (dash > 0) return dash;
+    return 0;
+}
+
+function acquisitionBucketsOf(program) {
+    const raw = program?.acquisitionBuckets ?? program?.acquisition_buckets;
+    if (!Array.isArray(raw) || !raw.length) return [];
+    return raw
+        .map((b) => ({
+            key: b.key,
+            label: b.label,
+            points: Math.max(0, Math.round(Number(b.points) || 0)),
+            amountBrl: num(b.amountBrl ?? b.amount_brl),
+            milheiro: num(b.milheiro)
+        }))
+        .filter((b) => b.points > 0);
 }
 
 /**
@@ -52,16 +77,26 @@ export function flightLedger(sim, programs = []) {
     const gap = Math.max(0, needed - have);
     const ownedPts = Math.max(0, needed - gap);
     const buyMilheiro = buyMilheiroOf(origin);
+    const stockMilheiro = paidStockMilheiroOf(origin);
     const clubRate = clubMilheiro(origin, have);
-    const ownedRate = clubRate > 0 ? clubRate : buyMilheiro;
+    const ownedRate = stockMilheiro > 0 ? stockMilheiro : clubRate > 0 ? clubRate : buyMilheiro;
     const milheiro = buyMilheiro;
     const extraBuy = gap > 0 && buyMilheiro > 0 ? (gap / 1000) * buyMilheiro : 0;
-    const ownedBrl =
-        ownedPts > 0 && clubRate > 0
-            ? clubValuePoints(origin, ownedPts, have)
-            : ownedPts > 0 && buyMilheiro > 0
-              ? (ownedPts / 1000) * buyMilheiro
-              : 0;
+    const paidBuckets = acquisitionBucketsOf(origin);
+    const ownedBreakdown =
+        ownedPts > 0 && paidBuckets.length
+            ? allocateOwnedAcquisition(paidBuckets, ownedPts, { buyMilheiro })
+            : { lines: [], totalBrl: 0 };
+    let ownedBrl =
+        ownedBreakdown.lines.length > 0
+            ? ownedBreakdown.totalBrl
+            : ownedPts > 0 && stockMilheiro > 0
+              ? (ownedPts / 1000) * stockMilheiro
+              : ownedPts > 0 && clubRate > 0
+                ? clubValuePoints(origin, ownedPts, have)
+                : ownedPts > 0 && buyMilheiro > 0
+                  ? (ownedPts / 1000) * buyMilheiro
+                  : 0;
     const milesBrl = ownedBrl + extraBuy;
     const priced = milesBrl > 0 || (hasMiles && needed > 0 && (ownedRate > 0 || buyMilheiro > 0));
     const taxes = num(miles.taxesAmount ?? miles.taxes_amount);
@@ -97,6 +132,8 @@ export function flightLedger(sim, programs = []) {
         gap,
         ownedPts,
         ownedBrl,
+        ownedBreakdown,
+        stockMilheiro,
         milheiro,
         priced,
         taxes,
@@ -206,6 +243,48 @@ export function tripFlightScenario(segments = [], programs = []) {
             programs
         )
     };
+}
+
+function simOriginPointsNeed(sim) {
+    const miles = sim?.miles && typeof sim.miles === 'object' ? sim.miles : {};
+    if (miles.payWith && miles.payWith !== 'points') return null;
+    const destPts = num(miles.destinationPoints ?? miles.destination_points);
+    if (destPts <= 0) return null;
+    const originId = miles.originProgramId ?? miles.origin_program_id;
+    if (!originId) return null;
+    const storedBonus = num(miles.bonusPercent ?? miles.bonus_percent);
+    const bonusActive = miles.bonusActive !== false && miles.bonus_active !== false;
+    const bonusPercent = bonusActive ? storedBonus : 0;
+    const points = originPointsNeeded({
+        destinationPoints: destPts,
+        from: miles.conversionFrom ?? miles.conversion_from ?? 1,
+        to: miles.conversionTo ?? miles.conversion_to ?? 1,
+        bonusPercent
+    });
+    return { originProgramId: originId, points };
+}
+
+/**
+ * Pontos a debitar na origem por carteira: soma voos escolhidos;
+ * se o trecho ainda não tem escolhido, conta só o maior cenário do trecho.
+ */
+export function tripWalletPointsNeeded(segments = []) {
+    const byOrigin = new Map();
+    for (const segment of segments ?? []) {
+        const live = (segment?.simulations ?? []).filter((sim) => sim && sim.status !== 'descartada');
+        const needs = live.map(simOriginPointsNeed).filter(Boolean);
+        if (!needs.length) continue;
+        const chosenIds = new Set(live.filter((s) => s.status === 'escolhida').map((s) => s.id));
+        const chosenNeeds = live
+            .filter((s) => chosenIds.has(s.id))
+            .map(simOriginPointsNeed)
+            .filter(Boolean);
+        const pool = chosenNeeds.length ? chosenNeeds : [needs.reduce((best, row) => (row.points > best.points ? row : best))];
+        for (const row of pool) {
+            byOrigin.set(row.originProgramId, (byOrigin.get(row.originProgramId) ?? 0) + row.points);
+        }
+    }
+    return byOrigin;
 }
 
 export function cheapestOptionId(simulations = [], programs = []) {

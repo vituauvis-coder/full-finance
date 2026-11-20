@@ -37,6 +37,7 @@ import {
 import { registerHealthRoutes } from './routes/health.routes.js';
 import { registerAuthRoutes } from './routes/auth.routes.js';
 import { registerDomainRoutes } from './routes/register-domain-routes.js';
+import { ensureExpenseTripLinkColumns } from './migrations/expense-trip-link.js';
 import { requireAuth, requireAdmin } from './middleware/auth.js';
 import { publicAuthUser, ROLE_USER, ROLE_ADMIN, userIsAdmin } from './lib/roles.js';
 import {
@@ -200,6 +201,10 @@ query(`ALTER TABLE expenses ADD COLUMN IF NOT EXISTS is_fixed boolean NOT NULL D
     if (!/already exists|duplicate column/i.test(msg)) console.error('Migration is_fixed:', msg);
 });
 
+void ensureExpenseTripLinkColumns().catch((e) => {
+    console.error('[migration] expense trip link (boot):', e?.message || e);
+});
+
 /** Data URLs em Base64 excedem VARCHAR curtos; sem TEXT a foto não persiste após F5. */
 query(
     `ALTER TABLE users ALTER COLUMN profile_photo_url TYPE text USING profile_photo_url::text`
@@ -307,7 +312,9 @@ app.get('/api/data', requireAuth, async (req, res) => {
                     e.recurrence_group_id AS "recurrenceGroupId",
                     e.split_request_id AS "splitRequestId",
                     e.reference_only AS "referenceOnly",
-                    e.is_fixed AS "isFixed"
+                    e.is_fixed AS "isFixed",
+                    e.trip_id AS "tripId",
+                    e.trip_expense_id AS "tripExpenseId"
                  FROM expenses e
                  WHERE ${expensesOnHouseholdAccountsSql(1)}`,
                 [uid]
@@ -526,6 +533,13 @@ function httpMovementError(message, statusCode = 400) {
     return e;
 }
 
+async function assertTripOwnedByUser(userId, tripId) {
+    if (!tripId) return;
+    const { getTrip } = await import('./trips-repository.js');
+    const row = await getTrip(userId, tripId);
+    if (!row) throw httpMovementError('Viagem não encontrada', 404);
+}
+
 function expensePayloadFromBody(body, uid) {
     const amount = Number(body.amount);
     if (!Number.isFinite(amount) || amount <= 0) throw httpMovementError('Valor inválido');
@@ -583,6 +597,14 @@ function expensePayloadFromBody(body, uid) {
                     ? body.cashOutConfirmedPeriods
                     : JSON.stringify(body.cashOutConfirmedPeriods);
         }
+    }
+    if (body && 'tripId' in body) {
+        const raw = body.tripId;
+        out.tripId = raw == null || raw === '' ? null : String(raw).trim();
+    }
+    if (body && 'tripExpenseId' in body) {
+        const raw = body.tripExpenseId;
+        out.tripExpenseId = raw == null || raw === '' ? null : String(raw).trim();
     }
     return out;
 }
@@ -1498,6 +1520,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
             return res.json({ expense: normalizeMovement(expense), split: splitRequestRow });
         }
 
+        if (createData.tripId) await assertTripOwnedByUser(uid, createData.tripId);
         const refOnlyMain = await referenceOnlyForUserMovement(uid, createData.date);
         const expenseId = crypto.randomUUID();
         const { rows: expRows } = await query(
@@ -1505,12 +1528,12 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                 id, user_id, account_id, category, subcategory, amount, description,
                 date, created_at, is_paid, is_cofrinho, installment_count,
                 cash_out_confirmed_periods, recurring_monthly, recurrence_group_id,
-                is_fixed, reference_only
+                is_fixed, reference_only, trip_id, trip_expense_id
              ) VALUES (
                 $1,$2,$3,$4,$5,$6,$7,
                 $8, now(), $9,$10,$11,
                 $12,$13,$14,
-                $15,$16
+                $15,$16,$17,$18
              )
              RETURNING
                 id,
@@ -1530,7 +1553,9 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                 recurrence_group_id AS "recurrenceGroupId",
                 split_request_id AS "splitRequestId",
                 reference_only AS "referenceOnly",
-                is_fixed AS "isFixed"`,
+                is_fixed AS "isFixed",
+                trip_id AS "tripId",
+                trip_expense_id AS "tripExpenseId"`,
             [
                 expenseId,
                 createData.userId,
@@ -1547,7 +1572,9 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                 createData.recurringMonthly ?? false,
                 null,
                 createData.isFixed ?? false,
-                refOnlyMain
+                refOnlyMain,
+                createData.tripId ?? null,
+                createData.tripExpenseId ?? null
             ]
         );
         const row = expRows[0];
@@ -1581,6 +1608,7 @@ app.put('/api/expenses/:id', requireAuth, async (req, res) => {
             delete data.isFixed;
         }
         await assertAccountBelongsToUser(data.accountId, uid);
+        if (data.tripId) await assertTripOwnedByUser(uid, data.tripId);
         const refOnlyPut = await referenceOnlyForUserMovement(uid, data.date);
         const sets = [];
         const params = [];
@@ -1603,6 +1631,8 @@ app.put('/api/expenses/:id', requireAuth, async (req, res) => {
         if ('isFixed' in data) addSet('is_fixed', data.isFixed);
         if ('cashOutConfirmedPeriods' in data)
             addSet('cash_out_confirmed_periods', data.cashOutConfirmedPeriods);
+        if ('tripId' in req.body) addSet('trip_id', data.tripId ?? null);
+        if ('tripExpenseId' in req.body) addSet('trip_expense_id', data.tripExpenseId ?? null);
 
         params.push(req.params.id, uid);
         const { rows: updatedRows } = await query(
@@ -1627,7 +1657,9 @@ app.put('/api/expenses/:id', requireAuth, async (req, res) => {
                 recurrence_group_id AS "recurrenceGroupId",
                 split_request_id AS "splitRequestId",
                 reference_only AS "referenceOnly",
-                is_fixed AS "isFixed"`,
+                is_fixed AS "isFixed",
+                trip_id AS "tripId",
+                trip_expense_id AS "tripExpenseId"`,
             params
         );
         const updated = updatedRows[0] || null;
@@ -4170,24 +4202,34 @@ function mountProductionFrontend() {
     }
 }
 
-mountProductionFrontend();
-
-const server = app.listen(PORT, HOST, () => {
-    console.log(`API ${AppBrand.NAME} em http://localhost:${PORT}`);
-    logLanUrls(PORT);
-});
-server.on('error', (err) => {
-    if (err.code === 'EADDRINUSE') {
-        console.error(
-            `\n[ERRO] A porta ${PORT} já está em uso.\n` +
-                '  Feche o outro terminal com "npm run server" ou mate o processo:\n' +
-                '  netstat -ano | findstr :' +
-                PORT +
-                '\n' +
-                '  taskkill /PID <PID> /F\n' +
-                '  Ou use outra porta: PowerShell: $env:PORT=3002; npm run dev\n'
-        );
-        process.exit(1);
+async function startServer() {
+    try {
+        await ensureExpenseTripLinkColumns();
+    } catch (e) {
+        console.error('[migration] expense trip link (startup):', e?.message || e);
     }
-    throw err;
-});
+
+    mountProductionFrontend();
+
+    const server = app.listen(PORT, HOST, () => {
+        console.log(`API ${AppBrand.NAME} em http://localhost:${PORT}`);
+        logLanUrls(PORT);
+    });
+    server.on('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+            console.error(
+                `\n[ERRO] A porta ${PORT} já está em uso.\n` +
+                    '  Feche o outro terminal com "npm run server" ou mate o processo:\n' +
+                    '  netstat -ano | findstr :' +
+                    PORT +
+                    '\n' +
+                    '  taskkill /PID <PID> /F\n' +
+                    '  Ou use outra porta: PowerShell: $env:PORT=3002; npm run dev\n'
+            );
+            process.exit(1);
+        }
+        throw err;
+    });
+}
+
+void startServer();

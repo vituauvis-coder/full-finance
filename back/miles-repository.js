@@ -611,3 +611,16 @@ export async function financePreferencesOf(userId) {
     const { rows } = await query(`SELECT finance_preferences FROM users WHERE id = $1`, [userId]);
     return rows[0]?.finance_preferences ?? null;
 }
+
+/** Alinha valor pago nos créditos automáticos do clube com a mensalidade atual. */
+export async function syncClubFeeOnMovements(userId, programId, feeBrl) {
+    const fee = Number(feeBrl);
+    if (!Number.isFinite(fee) || fee < 0) return;
+    const amount = String(fee);
+    await query(
+        `UPDATE miles_movements
+         SET amount_brl = $3, amount = $3, currency = 'BRL'
+         WHERE user_id = $1 AND program_id = $2 AND type = 'acumulo' AND source = 'clube'`,
+        [userId, programId, amount]
+    );
+}

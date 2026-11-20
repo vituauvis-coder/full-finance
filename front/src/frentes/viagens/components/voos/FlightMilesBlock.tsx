@@ -4,6 +4,7 @@ import { flightPayWith, simulationFinalCost } from '@motor/viagens/flight-simula
 import { flightLedger } from '@motor/viagens/flight-ledger.js';
 import { DEFAULT_TAX_FX, effectiveTaxFxRate } from '@motor/viagens/tax-fx.js';
 import { createEmission, patchEmission } from '../../api/miles';
+import { useProgramsForLedger } from '../../hooks/useProgramsForLedger';
 import { useTaxFxQuotes } from '../../hooks/useTaxFxQuotes';
 import { formatBRL } from '../../utils/map-utils';
 import { DecimalField, PtsField, SelectField } from '../../pages/pontos/PontosFields';
@@ -118,6 +119,7 @@ export function FlightMilesBlock({
     const createdId = useRef(miles.emissionId ?? null);
     const persistBusy = useRef(false);
     const mode = pointsOnly || flightPayWith(simulation) === 'points' ? 'points' : 'cash';
+    const programsForLedger = useProgramsForLedger(programs, walletsReady);
 
     useEffect(() => {
         if (readOnly) return;
@@ -170,7 +172,10 @@ export function FlightMilesBlock({
         };
     }, [simulation, miles, taxCurrency, taxFx, miles.taxFxRate]);
 
-    const ledger = useMemo(() => flightLedger(simulationForLedger, programs), [simulationForLedger, programs]);
+    const ledger = useMemo(
+        () => flightLedger(simulationForLedger, programsForLedger),
+        [simulationForLedger, programsForLedger]
+    );
 
     const taxConvHint = useMemo(() => {
         if (taxCurrency === 'BRL' || taxAmount <= 0) return null;
@@ -409,12 +414,15 @@ export function FlightMilesBlock({
                     ) : null}
                 </div>
                 <div className="voo-pay__grid voo-pay__grid--stats">
-                    <div className="voo-pay__stat">
+                    <div
+                        className="voo-pay__stat"
+                        title="Quantidade no destino, taxa de conversão entre carteiras e bônus de transferência (se ligado)"
+                    >
                         <span>Precisa debitar</span>
                         <strong>{needed > 0 ? formatPts(needed) : '—'}</strong>
                     </div>
-                    <div className="voo-pay__stat">
-                        <span>Saldo</span>
+                    <div className="voo-pay__stat" title="Saldo menos pontos já reservados em emissões desta viagem">
+                        <span>Saldo livre</span>
                         <strong>{origin ? formatPts(have) : '—'}</strong>
                     </div>
                     <div className={`voo-pay__stat${needed > 0 ? (gap > 0 ? ' is-out' : ' is-ok') : ''}`}>
@@ -425,12 +433,21 @@ export function FlightMilesBlock({
                 {ledger.hasMiles ? (
                     <div className="voo-pay__hero">
                         <dl className="voo-pay__sum">
-                            {ledger.priced && ledger.ownedPts > 0 ? (
-                                <div>
-                                    <dt>Na carteira · {formatPts(ledger.ownedPts)}</dt>
-                                    <dd>{formatBRL(ledger.ownedBrl)}</dd>
-                                </div>
-                            ) : null}
+                            {ledger.priced && ledger.ownedPts > 0 && ledger.ownedBreakdown?.lines?.length
+                                ? ledger.ownedBreakdown.lines.map((row) => (
+                                      <div key={`${row.key}-${row.points}`}>
+                                          <dt>
+                                              {row.label} · {formatPts(row.points)}
+                                          </dt>
+                                          <dd>{formatBRL(row.amountBrl)}</dd>
+                                      </div>
+                                  ))
+                                : ledger.priced && ledger.ownedPts > 0 ? (
+                                      <div>
+                                          <dt>Na carteira · {formatPts(ledger.ownedPts)}</dt>
+                                          <dd>{formatBRL(ledger.ownedBrl)}</dd>
+                                      </div>
+                                  ) : null}
                             {gap > 0 ? (
                                 <div className={ledger.extraBuy > 0 ? 'is-out' : 'is-mute'}>
                                     <dt>Comprar · {formatPts(gap)}</dt>

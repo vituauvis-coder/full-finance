@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { Movement } from '../../lib/types/finance';
+import type { Account, Movement } from '../../lib/types/finance';
 import { DataTable } from '../ui/DataTable';
 import { buildMovementTableColumns, type MovementSortKey } from './movementTableColumns';
 
@@ -9,6 +9,8 @@ type Props = {
     rows: Movement[];
     currency: string;
     idPrefix: 'gains' | 'expenses';
+    expenseAccounts?: Account[];
+    expenseDisplayDate?: (m: Movement) => Date;
     accountLabel: (accountId?: string) => string;
     statusLabel: (m: Movement) => string;
     onToggleStatus?: (m: Movement) => void;
@@ -42,7 +44,9 @@ export function MovementsTable({
     sortDir,
     onSort,
     renderRowActions,
-    emptyMessage
+    emptyMessage,
+    expenseAccounts,
+    expenseDisplayDate
 }: Props) {
     const columns = buildMovementTableColumns(
         idPrefix === 'gains'
@@ -61,6 +65,8 @@ export function MovementsTable({
                   kind: 'expense',
                   prefix: 'expenses',
                   currency,
+                  accounts: expenseAccounts,
+                  expenseDisplayDate,
                   accountLabel,
                   statusLabel,
                   onToggleStatus,

@@ -1,3 +1,4 @@
+import { getExpensePerInstallmentDisplayAmount } from '@motor/dinheiro/credit-installments.js';
 import { isCreditCardType } from '../../../lib/accounts';
 import type { Account, Movement } from '../../../lib/types/finance';
 import { computeMomVariation, type MomVariationState } from '../../dashboard/domain/momVariation';
@@ -45,10 +46,10 @@ export function aggregateExpenseTotals(rows: Movement[], accounts: Account[]): E
     let otherCount = 0;
 
     for (const t of rows) {
-        const amt = Number(t.amount) || 0;
+        const acc = t.accountId ? byId.get(t.accountId) : undefined;
+        const amt = getExpensePerInstallmentDisplayAmount(t, acc) || Number(t.amount) || 0;
         total += amt;
         count += 1;
-        const acc = t.accountId ? byId.get(t.accountId) : undefined;
         if (expenseIsMarkedFixed(t)) {
             essential += amt;
             essentialCount += 1;

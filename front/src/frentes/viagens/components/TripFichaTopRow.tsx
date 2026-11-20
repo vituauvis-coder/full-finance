@@ -34,11 +34,11 @@ export function TripFichaTopRow({ trip, draft, onPatch, scenarioCount = 0, onOpe
             <TripCalendarCard
                 startsOn={draft.startsOn}
                 endsOn={draft.endsOn}
+                payload={draft.payload}
+                destinations={destinations}
                 nextTaskDayKey={nextTaskDayKey}
                 scenarioCount={scenarioCount}
                 onOpenSimulador={onOpenSimulador}
-                onStartsChange={(value) => onPatch((d) => ({ ...d, startsOn: value }))}
-                onEndsChange={(value) => onPatch((d) => ({ ...d, endsOn: value }))}
             />
             <TripResumoPanel trip={trip} draft={draft} destinations={destinations} />
             <TripChecklistPanel checks={checks} documents={documents} onPatch={onPatch} />

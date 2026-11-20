@@ -1,6 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { chosenDayTotal, flightLedger, optionScore, pickSegmentFlight, tripFlightScenario } from '../../../../motor/viagens/flight-ledger.js';
+import {
+    chosenDayTotal,
+    flightLedger,
+    optionScore,
+    pickSegmentFlight,
+    tripFlightScenario,
+    tripWalletPointsNeeded
+} from '../../../../motor/viagens/flight-ledger.js';
 import { emptyFlightSimulation, flightPayWith, flightTravelers, normalizeFlightSimulation } from '../../../../motor/viagens/flight-simulation.js';
 
 const esfera = {
@@ -83,6 +90,30 @@ test('transfer bonus reduces origin needed and flags the bonus as on', () => {
     assert.equal(L.bonusOn, true);
     assert.equal(L.bonusPercent, 80);
     assert.ok(L.needed < 25000);
+});
+
+test('owned stock uses acquisition milheiro from the extrato', () => {
+    const L = flightLedger(sim(), [
+        {
+            ...esfera,
+            clubActive: false,
+            available: 128000,
+            acquisitionMilheiro: 34.40625,
+            milheiro: 34.40625,
+            acquisitionBuckets: [
+                { key: 'assinatura', label: 'Assinatura', points: 25000, amountBrl: '800', milheiro: '32' },
+                { key: 'compra', label: 'Compra', points: 103000, amountBrl: '3605', milheiro: '35' }
+            ]
+        }
+    ]);
+    assert.equal(L.needed, 25000);
+    assert.equal(L.gap, 0);
+    assert.equal(L.ownedPts, 25000);
+    assert.equal(L.ownedBreakdown.lines.length, 1);
+    assert.equal(L.ownedBreakdown.lines[0].key, 'assinatura');
+    assert.equal(L.ownedBrl, 800);
+    assert.equal(L.extraBuy, 0);
+    assert.ok(L.milesBrl > 400);
 });
 
 test('owned points still count in day value; extra buy is only the gap', () => {
@@ -271,4 +302,34 @@ test('trip scenario totals the picked flights, mixing miles and cash', () => {
     assert.equal(scene.rows[0].chosen, true);
     assert.equal(scene.rows[1].chosen, false);
     assert.equal(scene.totals.flights, 742.5 + 300);
+});
+
+test('trip wallet need sums escolhidos, not every candidata', () => {
+    const a = sim({
+        id: 'a',
+        status: 'candidata',
+        miles: { payWith: 'points', destinationPoints: 50000, originProgramId: 'esfera', conversionFrom: 1, conversionTo: 1 }
+    });
+    const b = sim({
+        id: 'b',
+        status: 'candidata',
+        miles: { payWith: 'points', destinationPoints: 100000, originProgramId: 'esfera', conversionFrom: 1, conversionTo: 1 }
+    });
+    const need = tripWalletPointsNeeded([{ simulations: [a, b] }]);
+    assert.equal(need.get('esfera'), 100000);
+});
+
+test('trip wallet need sums escolhida options', () => {
+    const a = sim({
+        id: 'a',
+        status: 'escolhida',
+        miles: { payWith: 'points', destinationPoints: 50000, originProgramId: 'esfera', conversionFrom: 1, conversionTo: 1 }
+    });
+    const b = sim({
+        id: 'b',
+        status: 'candidata',
+        miles: { payWith: 'points', destinationPoints: 100000, originProgramId: 'esfera', conversionFrom: 1, conversionTo: 1 }
+    });
+    const need = tripWalletPointsNeeded([{ simulations: [a, b] }]);
+    assert.equal(need.get('esfera'), 50000);
 });

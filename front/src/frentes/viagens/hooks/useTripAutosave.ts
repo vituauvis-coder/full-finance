@@ -1,10 +1,31 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchTrip, saveTrip } from '../api/trips';
-import type { Trip } from '../types';
+import type { Trip, TripExpense } from '../types';
 import { tripToDraft, type TripDraft } from '../components/ViagemFicha';
+
+const FINANCE_REFRESH_EVENT = 'finance:data-changed';
 
 function mergePayload(server: Trip['payload'], draft: Trip['payload']): Trip['payload'] {
     return { ...server, ...draft };
+}
+
+/** Após sync no servidor, preserva campos locais mas traz financeExpenseId da resposta. */
+function mergeTripExpensesAfterSave(serverList: TripExpense[] | undefined, localList: TripExpense[] | undefined) {
+    const saved = serverList ?? [];
+    const local = localList ?? [];
+    const localById = new Map(local.map((e) => [e.id, e]));
+    if (saved.length === 0) return local;
+    return saved.map((se) => {
+        const lo = localById.get(se.id);
+        if (!lo) return se;
+        return {
+            ...lo,
+            financeExpenseId: se.financeExpenseId ?? se.finance_expense_id ?? lo.financeExpenseId,
+            finance_expense_id: se.finance_expense_id ?? se.financeExpenseId ?? lo.finance_expense_id,
+            accountId: se.accountId ?? se.account_id ?? lo.accountId,
+            account_id: se.account_id ?? se.accountId ?? lo.account_id
+        };
+    });
 }
 
 export function useTripAutosave(tripId: string | undefined) {
@@ -47,7 +68,7 @@ export function useTripAutosave(tripId: string | undefined) {
             setSaveError(null);
             try {
                 const payload = mergePayload(serverPayload.current, draft.payload);
-                const { trip: saved } = await saveTrip(tripId, {
+                const savedResponse = await saveTrip(tripId, {
                     title: draft.title,
                     startsOn: draft.startsOn || null,
                     endsOn: draft.endsOn || null,
@@ -55,10 +76,25 @@ export function useTripAutosave(tripId: string | undefined) {
                     budgetCaps: draft.budgetCaps,
                     payload
                 });
+                const saved = savedResponse.trip;
+                const syncWarnings = savedResponse.financeSyncWarnings ?? [];
                 serverPayload.current = saved.payload ?? payload;
                 const savedDraft = tripToDraft(saved);
+                if (syncWarnings.length > 0) {
+                    setSaveError(
+                        syncWarnings.map((w) => w.message).filter(Boolean).join(' · ') ||
+                            'Alguns gastos não foram espelhados no Dinheiro'
+                    );
+                }
+                if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent(FINANCE_REFRESH_EVENT));
+                }
                 setDraft((prev) => {
                     const base = prev ?? savedDraft;
+                    const mergedExpenses = mergeTripExpensesAfterSave(
+                        savedDraft.payload.expenses,
+                        base.payload.expenses
+                    );
                     const next: TripDraft = {
                         ...base,
                         title: saved.title ?? base.title,
@@ -66,7 +102,11 @@ export function useTripAutosave(tripId: string | undefined) {
                         endsOn: saved.endsOn ?? base.endsOn ?? '',
                         statusOverride: saved.statusOverride ?? base.statusOverride ?? '',
                         budgetCaps: { ...(saved.budgetCaps ?? {}), ...(base.budgetCaps ?? {}) },
-                        payload: { ...savedDraft.payload, ...base.payload }
+                        payload: {
+                            ...savedDraft.payload,
+                            ...base.payload,
+                            expenses: mergedExpenses
+                        }
                     };
                     latestDraft.current = next;
                     return next;

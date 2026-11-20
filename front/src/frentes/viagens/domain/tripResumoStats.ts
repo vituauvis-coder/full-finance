@@ -1,4 +1,10 @@
 import { inclusiveDayCount, parseDayKey } from '@motor/viagens/calendar-format.js';
+import {
+    chosenScenarioFromPayload,
+    chosenScenarioSnapshot,
+    chosenScenarioTripBounds,
+    tripSummaryFromSnapshot
+} from './chosenScenarioResumo';
 import type { TripDestination, TripPayload } from '../types';
 import { formatTripDayShort } from '../utils/tripCalendar';
 
@@ -31,16 +37,54 @@ function regionForCountry(country?: string | null): string {
     return c;
 }
 
-export function tripResumoDayStats(startsOn: string, endsOn: string, payload: TripPayload): TripResumoDayStats {
-    const start = parseDayKey(startsOn?.trim());
-    const end = parseDayKey(endsOn?.trim());
-    const days = start && end ? inclusiveDayCount(start, end) : 0;
-
+function summaryFromPayload(payload: TripPayload, startsOn: string) {
     const payloadRecord = payload as Record<string, unknown>;
-    const summary = (payloadRecord.trip_summary ?? payloadRecord.tripSummary) as Record<string, number> | undefined;
+    const stored = (payloadRecord.trip_summary ?? payloadRecord.tripSummary) as Record<string, number> | undefined;
+    const chosen = chosenScenarioFromPayload(payload);
+    if (!chosen) return stored;
 
     const segments = payload.flight_segments ?? payload.flightSegments ?? [];
-    const layovers = segments.reduce((n, seg) => n + (seg.simulations?.length ?? 0), 0);
+    const destinations = payload.destinations ?? [];
+    const live = tripSummaryFromSnapshot(
+        chosenScenarioSnapshot(chosen, segments, destinations, startsOn?.trim() || undefined)
+    );
+    // Cenário escolhido: KPIs ao vivo do motor prevalecem sobre trip_summary antigo.
+    return { ...(stored ?? {}), ...live };
+}
+
+export function effectiveTripPeriod(
+    startsOn: string,
+    endsOn: string,
+    payload: TripPayload,
+    destinations: TripDestination[]
+): { startsOn: string; endsOn: string } {
+    const bounds = chosenScenarioTripBounds(payload, destinations, startsOn);
+    if (bounds.startsOn) {
+        return {
+            startsOn: bounds.startsOn,
+            endsOn: bounds.endsOn ?? bounds.startsOn
+        };
+    }
+    return { startsOn: startsOn.trim(), endsOn: endsOn.trim() };
+}
+
+export function tripResumoDayStats(
+    startsOn: string,
+    endsOn: string,
+    payload: TripPayload,
+    destinations: TripDestination[]
+): TripResumoDayStats {
+    const period = effectiveTripPeriod(startsOn, endsOn, payload, destinations);
+    const start = parseDayKey(period.startsOn);
+    const end = parseDayKey(period.endsOn);
+    const dateDays = start && end ? inclusiveDayCount(start, end) : 0;
+
+    const summary = summaryFromPayload(payload, startsOn);
+    const calendarDays = Number(summary?.calendarDays ?? summary?.calendar_days ?? 0) || dateDays;
+    const days = calendarDays > 0 ? calendarDays : dateDays;
+
+    const segments = payload.flight_segments ?? payload.flightSegments ?? [];
+    const layoversFallback = segments.reduce((n, seg) => n + (seg.simulations?.length ?? 0), 0);
 
     return {
         days,
@@ -48,7 +92,7 @@ export function tripResumoDayStats(startsOn: string, endsOn: string, payload: Tr
         tourismDays: Number(summary?.tourismDays ?? summary?.tourism_days ?? 0) || 0,
         vacationDays: Number(summary?.vacationDays ?? summary?.vacation_days ?? 0) || 0,
         remoteDays: Number(summary?.remoteDays ?? summary?.remote_days ?? 0) || 0,
-        layoverCount: Number(summary?.layoverCount ?? summary?.layover_count ?? layovers) || 0
+        layoverCount: Number(summary?.layoverCount ?? summary?.layover_count ?? layoversFallback) || 0
     };
 }
 
@@ -59,6 +103,16 @@ export function formatTripResumoDates(startsOn: string, endsOn: string): string 
     if (a) return formatTripDayShort(a);
     if (b) return formatTripDayShort(b);
     return 'Sem datas';
+}
+
+export function tripResumoDatesLine(
+    startsOn: string,
+    endsOn: string,
+    payload: TripPayload,
+    destinations: TripDestination[]
+): string {
+    const period = effectiveTripPeriod(startsOn, endsOn, payload, destinations);
+    return formatTripResumoDates(period.startsOn, period.endsOn);
 }
 
 export function destinationTags(destinations: TripDestination[]): DestinationTag[] {

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { MaterialIcon } from '../../../components/icons/MaterialIcon';
 import type { TripCheckItem, TripDocItem } from '../types';
 
@@ -30,6 +30,13 @@ export function TripDocumentsModal({
         return () => window.removeEventListener('keydown', onKey);
     }, [open, onClose]);
 
+    const stats = useMemo(() => {
+        const pending = documents.filter((d) => !d.done).length;
+        const done = documents.length - pending;
+        const onChecklist = documents.filter((d) => checks.some((c) => c.sourceDocumentId === d.id)).length;
+        return { pending, done, onChecklist, total: documents.length };
+    }, [documents, checks]);
+
     if (!open) return null;
 
     function patchDoc(id: string, patch: Partial<TripDocItem>) {
@@ -56,107 +63,165 @@ export function TripDocumentsModal({
                 aria-labelledby="viagens-docs-title"
             >
                 <header className="viagens-docs-modal__head">
-                    <h2 id="viagens-docs-title">
-                        <MaterialIcon name="folder_open" variant="app" opticalSize={22} />
-                        Documentos da viagem
-                    </h2>
-                    <button type="button" className="viagens-btn viagens-btn--ghost viagens-btn--icon" onClick={onClose} aria-label="Fechar">
+                    <div className="viagens-docs-modal__brand">
+                        <span className="viagens-docs-modal__icon" aria-hidden>
+                            <MaterialIcon name="folder_open" variant="app" opticalSize={24} filled />
+                        </span>
+                        <div>
+                            <h2 id="viagens-docs-title">Documentos da viagem</h2>
+                            <p className="viagens-docs-modal__sub">
+                                Passaporte, seguro, reservas — pendências viram item no checklist.
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        className="viagens-docs-modal__close"
+                        onClick={onClose}
+                        aria-label="Fechar"
+                    >
                         <MaterialIcon name="close" variant="app" opticalSize={22} />
                     </button>
                 </header>
-                <p className="viagens-muted viagens-docs-modal__hint">
-                    Pendência de documento pode virar item do checklist. Itens do checklist não viram documento.
-                </p>
+
+                {stats.total > 0 ? (
+                    <div className="viagens-docs-modal__stats" aria-label="Resumo">
+                        {stats.pending > 0 ? (
+                            <span className="viagens-docs-stat viagens-docs-stat--pending">
+                                <MaterialIcon name="pending_actions" variant="app" opticalSize={15} />
+                                {stats.pending} pendente{stats.pending === 1 ? '' : 's'}
+                            </span>
+                        ) : null}
+                        {stats.done > 0 ? (
+                            <span className="viagens-docs-stat viagens-docs-stat--done">
+                                <MaterialIcon name="task_alt" variant="app" opticalSize={15} />
+                                {stats.done} ok
+                            </span>
+                        ) : null}
+                        {stats.onChecklist > 0 ? (
+                            <span className="viagens-docs-stat viagens-docs-stat--list">
+                                <MaterialIcon name="checklist" variant="app" opticalSize={15} />
+                                {stats.onChecklist} no checklist
+                            </span>
+                        ) : null}
+                    </div>
+                ) : null}
+
                 <ul className="viagens-docs-modal__list">
                     {documents.length === 0 ? (
-                        <li className="viagens-muted">Nenhum documento cadastrado.</li>
+                        <li className="viagens-docs-empty">
+                            <MaterialIcon name="description" variant="app" opticalSize={36} />
+                            <p className="viagens-docs-empty__lead">Nenhum documento ainda</p>
+                            <p className="viagens-docs-empty__hint">Adicione passaporte, seguro, visto ou comprovantes.</p>
+                        </li>
                     ) : (
-                        documents.map((doc) => (
-                            <li key={doc.id} className="viagens-docs-row">
-                                <div className="viagens-docs-row__main">
-                                    <input
-                                        className="viagens-field"
-                                        value={doc.title}
-                                        onChange={(e) => patchDoc(doc.id, { title: e.target.value })}
-                                        aria-label="Nome do documento"
-                                    />
-                                    <label className="viagens-docs-row__attach">
-                                        <span>Link ou URL</span>
+                        documents.map((doc) => {
+                            const onList = isOnChecklist(doc.id);
+                            const canPromote = !doc.done && !onList;
+                            return (
+                                <li key={doc.id} className={`viagens-docs-card${doc.done ? ' is-done' : ''}`}>
+                                    <div className="viagens-docs-card__head">
+                                        <span className="viagens-docs-card__glyph" aria-hidden>
+                                            <MaterialIcon
+                                                name={doc.done ? 'check_circle' : 'description'}
+                                                variant="app"
+                                                opticalSize={20}
+                                                filled={!!doc.done}
+                                            />
+                                        </span>
                                         <input
-                                            className="viagens-field"
-                                            type="url"
-                                            placeholder="https://…"
-                                            value={doc.linkUrl ?? ''}
-                                            onChange={(e) => patchDoc(doc.id, { linkUrl: e.target.value || undefined })}
+                                            className="viagens-docs-card__title"
+                                            value={doc.title}
+                                            placeholder="Nome do documento"
+                                            onChange={(e) => patchDoc(doc.id, { title: e.target.value })}
+                                            aria-label="Nome do documento"
                                         />
-                                    </label>
-                                    <label className="viagens-docs-row__attach">
-                                        <span>Anexo</span>
-                                        <input
-                                            className="viagens-field"
-                                            type="file"
-                                            onChange={(e) => {
-                                                const file = e.target.files?.[0];
-                                                if (!file) return;
-                                                patchDoc(doc.id, {
-                                                    attachmentName: file.name,
-                                                    attachmentUrl: URL.createObjectURL(file)
-                                                });
-                                            }}
-                                        />
-                                        {doc.attachmentName ? (
-                                            <span className="viagens-muted viagens-docs-row__file">
-                                                {doc.attachmentName}
-                                                {doc.linkUrl ? null : (
-                                                    <a href={doc.attachmentUrl} target="_blank" rel="noreferrer">
-                                                        Abrir
-                                                    </a>
-                                                )}
+                                        <button
+                                            type="button"
+                                            className="viagens-docs-card__remove"
+                                            aria-label="Remover documento"
+                                            onClick={() => onChangeDocuments(documents.filter((d) => d.id !== doc.id))}
+                                        >
+                                            <MaterialIcon name="delete_outline" variant="app" opticalSize={18} />
+                                        </button>
+                                    </div>
+
+                                    <div className="viagens-docs-card__fields">
+                                        <label className="viagens-docs-field">
+                                            <MaterialIcon name="link" variant="app" opticalSize={14} aria-hidden />
+                                            <input
+                                                type="url"
+                                                placeholder="Link (Drive, e-mail…)"
+                                                value={doc.linkUrl ?? ''}
+                                                onChange={(e) => patchDoc(doc.id, { linkUrl: e.target.value || undefined })}
+                                            />
+                                        </label>
+                                        <label className="viagens-docs-field viagens-docs-field--file">
+                                            <MaterialIcon name="attach_file" variant="app" opticalSize={14} aria-hidden />
+                                            <span className="viagens-docs-field__file-btn">
+                                                {doc.attachmentName ? doc.attachmentName : 'Anexar arquivo'}
                                             </span>
-                                        ) : null}
-                                    </label>
-                                </div>
-                                <div className="viagens-docs-row__actions">
-                                    <label className="viagens-check-row viagens-docs-row__done">
-                                        <input
-                                            type="checkbox"
-                                            checked={!!doc.done}
-                                            onChange={(e) => patchDoc(doc.id, { done: e.target.checked })}
-                                        />
-                                        <span>OK</span>
-                                    </label>
-                                    <button
-                                        type="button"
-                                        className="viagens-btn viagens-btn--ghost viagens-btn--sm"
-                                        disabled={doc.done || isOnChecklist(doc.id)}
-                                        title={
-                                            doc.done
-                                                ? 'Documento já concluído'
-                                                : isOnChecklist(doc.id)
-                                                  ? 'Já está no checklist'
-                                                  : 'Criar item no checklist'
-                                        }
-                                        onClick={() => onPromoteToChecklist(doc)}
-                                    >
-                                        + Checklist
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="viagens-btn viagens-btn--ghost viagens-btn--sm"
-                                        aria-label="Remover documento"
-                                        onClick={() => onChangeDocuments(documents.filter((d) => d.id !== doc.id))}
-                                    >
-                                        ×
-                                    </button>
-                                </div>
-                            </li>
-                        ))
+                                            <input
+                                                type="file"
+                                                className="viagens-docs-field__file-input"
+                                                onChange={(e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (!file) return;
+                                                    patchDoc(doc.id, {
+                                                        attachmentName: file.name,
+                                                        attachmentUrl: URL.createObjectURL(file)
+                                                    });
+                                                }}
+                                            />
+                                            {doc.attachmentUrl && !doc.linkUrl ? (
+                                                <a
+                                                    className="viagens-docs-field__open"
+                                                    href={doc.attachmentUrl}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                >
+                                                    Abrir
+                                                </a>
+                                            ) : null}
+                                        </label>
+                                    </div>
+
+                                    <div className="viagens-docs-card__foot">
+                                        <button
+                                            type="button"
+                                            className={`viagens-docs-pill${doc.done ? ' is-on' : ''}`}
+                                            onClick={() => patchDoc(doc.id, { done: !doc.done })}
+                                        >
+                                            <MaterialIcon name={doc.done ? 'check_circle' : 'radio_button_unchecked'} variant="app" opticalSize={16} filled={!!doc.done} />
+                                            {doc.done ? 'Concluído' : 'Marcar OK'}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="viagens-docs-pill viagens-docs-pill--accent"
+                                            disabled={!canPromote}
+                                            title={
+                                                doc.done
+                                                    ? 'Documento já concluído'
+                                                    : onList
+                                                      ? 'Já está no checklist'
+                                                      : 'Criar item no checklist'
+                                            }
+                                            onClick={() => onPromoteToChecklist(doc)}
+                                        >
+                                            <MaterialIcon name="playlist_add_check" variant="app" opticalSize={16} />
+                                            Checklist
+                                        </button>
+                                    </div>
+                                </li>
+                            );
+                        })
                     )}
                 </ul>
+
                 <footer className="viagens-docs-modal__foot">
                     <button
                         type="button"
-                        className="viagens-btn viagens-btn--ghost"
+                        className="viagens-docs-modal__add"
                         onClick={() =>
                             onChangeDocuments([
                                 ...documents,
@@ -164,7 +229,8 @@ export function TripDocumentsModal({
                             ])
                         }
                     >
-                        + Documento
+                        <MaterialIcon name="add" variant="app" opticalSize={18} />
+                        Novo documento
                     </button>
                 </footer>
             </div>

@@ -26,7 +26,10 @@ export function saveTrip(
         budgetCaps: Record<string, number>;
         payload: Trip['payload'];
     }
-): Promise<{ trip: Trip }> {
+): Promise<{
+    trip: Trip;
+    financeSyncWarnings?: { tripExpenseId?: string; message: string }[];
+}> {
     return apiFetch(`/api/trips/${id}`, {
         method: 'PUT',
         body: JSON.stringify(body)

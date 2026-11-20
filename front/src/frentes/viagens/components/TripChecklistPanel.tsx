@@ -2,8 +2,8 @@ import { useMemo, useState } from 'react';
 import { MaterialIcon } from '../../../components/icons/MaterialIcon';
 import type { TripCheckItem, TripDocItem } from '../types';
 import type { TripDraft } from './ViagemFicha';
-import { formatTripDayShort } from '../utils/tripCalendar';
 import { TripDocumentsModal } from './TripDocumentsModal';
+import { ChecklistDueField } from './ChecklistDueField';
 
 type Props = {
     checks: TripCheckItem[];
@@ -222,19 +222,17 @@ function ChecklistRow({
                 placeholder="Item"
                 onChange={(e) => onPatch(item.id, { title: e.target.value })}
             />
-            <label className={`viagens-checklist-item__due${due ? ' has-date' : ''}`}>
-                <span className="sr-only">Data</span>
-                <input
-                    type="date"
-                    className="viagens-checklist-item__due-input"
-                    value={due?.slice(0, 10) ?? ''}
-                    onChange={(e) => onPatch(item.id, { dueOn: e.target.value || undefined, due_on: e.target.value || undefined })}
+            <div className={`viagens-checklist-item__due${due ? ' has-date' : ''}`}>
+                <ChecklistDueField
+                    value={due}
+                    onChange={(next) =>
+                        onPatch(item.id, {
+                            dueOn: next,
+                            due_on: next
+                        })
+                    }
                 />
-                <span className="viagens-checklist-item__due-badge" aria-hidden>
-                    <MaterialIcon name={due ? 'calendar_month' : 'event'} variant="app" opticalSize={13} />
-                    {due ? formatTripDayShort(due) : 'Data'}
-                </span>
-            </label>
+            </div>
             <button type="button" className="viagens-checklist-item__remove" aria-label="Remover item" onClick={onRemove}>
                 <MaterialIcon name="close" filled={false} variant="app" opticalSize={14} />
             </button>
