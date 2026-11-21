@@ -1,6 +1,13 @@
 import { greatCircleArc } from '@motor/viagens/great-circle.js';
 import { AIRPORTS_CATALOG } from '@motor/viagens/airports-catalog.js';
 import { extractIata, resolveFlightPlace } from '@motor/viagens/flight-route-geo.js';
+import {
+    AUTO_FLIGHT_KM,
+    estimateGroundDurationMin,
+    honorManualGroundMode,
+    shouldDrawManualGroundLeg,
+    walkDistanceCapKm
+} from '@motor/viagens/ground-route-policy.js';
 import { flightStampParts } from '../../domain/flightDisplay';
 import { isHomeDestination, routeStops } from '@motor/viagens/trip-places.js';
 import { VIAGENS_HOME } from '@motor/viagens/viagens-atlas.js';
@@ -14,7 +21,14 @@ import {
     sortHopsChronologically,
     type TripTimeHop
 } from '../../domain/tripTimeScenario';
-import type { TripDestination, TripFlightSegment, TripItineraryDay, TripPayload } from '../../types';
+import type {
+    TripDestination,
+    TripFlightSegment,
+    TripGroundTransport,
+    TripItineraryDay,
+    TripItineraryItem,
+    TripPayload
+} from '../../types';
 import {
     normalizeMapDestinationPlace,
     normalizeTravelMode,
@@ -41,6 +55,8 @@ export type RoteirosRouteSegment = {
     durationLabel: string;
     /** Horário do voo (partida→chegada) quando houver no hop. */
     scheduleLabel?: string;
+    /** Kind do bilhete terrestre vinculado (train/bus/…) — evita OSRM carro em HSR. */
+    groundKind?: string | null;
     tip?: string;
 };
 
@@ -59,9 +75,7 @@ export type RoteirosFlightAirport = {
 };
 
 const FLIGHT_KM = 180;
-/** Acima disso, trecho sem modo manual vira voo (evita ~15 h de “carro urbano” em hops de 1 h de avião). */
-const AUTO_FLIGHT_KM = 280;
-const WALK_KM = 12;
+const WALK_KM = walkDistanceCapKm();
 
 /** Velocidades médias p/ estimativa visual no trecho (km/h). */
 const HOP_SPEED_KMH: Record<RoteirosHopKind, number> = {
@@ -70,21 +84,29 @@ const HOP_SPEED_KMH: Record<RoteirosHopKind, number> = {
     flight: 750
 };
 
-function groundSpeedKmh(km: number): number {
-    if (km <= 12) return 22;
-    if (km <= 40) return 45;
-    return HOP_SPEED_KMH.ground;
+function groundTransportsOf(payload: TripPayload | undefined): TripGroundTransport[] {
+    return payload?.ground_transports ?? payload?.groundTransports ?? [];
+}
+
+function groundKindForItem(
+    item: Pick<TripItineraryItem, 'groundTransportId' | 'ground_transport_id'> | null | undefined,
+    payload: TripPayload | undefined
+): string | null {
+    const id = item?.groundTransportId ?? item?.ground_transport_id ?? null;
+    if (!id) return null;
+    const hit = groundTransportsOf(payload).find((t) => t.id === id);
+    return hit?.kind ?? null;
 }
 
 /** Estimativa em minutos a partir da distância e do modo do trecho. */
-export function estimateHopDurationMin(kind: RoteirosHopKind, km: number): number {
+export function estimateHopDurationMin(
+    kind: RoteirosHopKind,
+    km: number,
+    groundKind: string | null = null
+): number {
     if (!Number.isFinite(km) || km <= 0) return 1;
-    const speed =
-        kind === 'ground'
-            ? groundSpeedKmh(km)
-            : kind === 'walk'
-              ? HOP_SPEED_KMH.walk
-              : HOP_SPEED_KMH.flight;
+    if (kind === 'ground') return estimateGroundDurationMin(km, groundKind);
+    const speed = kind === 'walk' ? HOP_SPEED_KMH.walk : HOP_SPEED_KMH.flight;
     if (!Number.isFinite(speed) || speed <= 0) return 1;
     let min = Math.max(1, Math.round((km / speed) * 60));
     // Voo: soma tempo de solo (embarque/taxi) p/ ficar perto do “1 h e pouco” do Maps.
@@ -193,8 +215,12 @@ export function travelModeForLeg(
 ): RoteirosHopKind {
     const auto = classifyRoteirosHop(from, to, payload);
     const dist = haversineKm(from, to);
+    const sameCountry = Boolean(
+        foldedCountry(from) && foldedCountry(to) && foldedCountry(from) === foldedCountry(to)
+    );
 
     let manual: RoteirosHopKind | null = null;
+    let manualGroundKind: string | null = null;
     let manualDayIdx = -1;
     const sortedDays = sortedItineraryDays(itinerary ?? []);
     for (const [dayIdx, day] of sortedDays.entries()) {
@@ -206,6 +232,7 @@ export function travelModeForLeg(
             if (dayIdx >= manualDayIdx) {
                 manualDayIdx = dayIdx;
                 manual = m;
+                manualGroundKind = m === 'ground' ? groundKindForItem(item, payload) : null;
             }
         }
     }
@@ -213,16 +240,17 @@ export function travelModeForLeg(
     if (manual) {
         // Passeio a pé em Madri não rebaixa o arco Recife→Madri.
         if (manual === 'walk' && (auto === 'flight' || dist > WALK_KM)) return auto;
-        if (manual === 'ground' && auto === 'flight' && dist >= AUTO_FLIGHT_KM) return auto;
+        if (manual === 'ground') {
+            return honorManualGroundMode(auto, 'ground', dist, {
+                sameCountry,
+                groundKind: manualGroundKind
+            }) as RoteirosHopKind;
+        }
         return manual;
     }
 
     if (auto === 'flight' && (from.kind === 'airport' || to.kind === 'airport')) {
-        const same =
-            foldedCountry(from) &&
-            foldedCountry(to) &&
-            foldedCountry(from) === foldedCountry(to);
-        if (same) return 'ground';
+        if (sameCountry) return 'ground';
     }
     return auto;
 }
@@ -589,7 +617,7 @@ function pushRouteSegment(
     kind: RoteirosHopKind,
     mode: RoteirosRouteMode,
     id: string,
-    extras?: { scheduleLabel?: string; tip?: string }
+    extras?: { scheduleLabel?: string; tip?: string; groundKind?: string | null }
 ): void {
     const dist = haversineKm(from, to);
     if (!Number.isFinite(dist) || dist < 0.05) return;
@@ -617,7 +645,7 @@ function pushRouteSegment(
         (from.longitude + to.longitude) / 2,
         (from.latitude + to.latitude) / 2
     ];
-    const durationMin = estimateHopDurationMin(kind, dist);
+    const durationMin = estimateHopDurationMin(kind, dist, extras?.groundKind ?? null);
     const durationLabel = formatHopDurationLabel(durationMin);
     const scheduleLabel = (extras?.scheduleLabel ?? '').trim();
     const tip =
@@ -633,6 +661,7 @@ function pushRouteSegment(
         durationMin,
         durationLabel: scheduleLabel || durationLabel,
         scheduleLabel: scheduleLabel || undefined,
+        groundKind: extras?.groundKind ?? null,
         tip
     });
 }
@@ -708,15 +737,21 @@ function appendLocalTransportLegs(
                 continue;
             }
 
-            // Não desenha long-haul manual como terrestre (voo cobre isso).
             const dist = haversineKm(from, to);
-            if (dist >= AUTO_FLIGHT_KM) {
+            const sameCountry = Boolean(
+                foldedCountry(from) && foldedCountry(to) && foldedCountry(from) === foldedCountry(to)
+            );
+            const groundKind = groundKindForItem(item, payload);
+            // Long-haul cross-country sem trem/ônibus continua fora (voo cobre).
+            // Trem-bala no mesmo país (PEK→Xangai) desenha tracejado + tempo.
+            if (!shouldDrawManualGroundLeg(dist, { sameCountry, groundKind })) {
                 prevLocal = to;
                 continue;
             }
 
             pushRouteSegment(segments, from, to, mode, mode, `rote-local-${item.id}`, {
-                tip: `${from.name} → ${to.name}`
+                tip: `${from.name} → ${to.name}`,
+                groundKind
             });
             prevLocal = to;
         }

@@ -226,14 +226,28 @@ export function itineraryDays(startsOn, endsOn, existing = []) {
     if (!start || !end || start > end) return existing;
     if (calInclusive(start, end) > MAX_AUTO_ITINERARY_DAYS) return existing;
     const days = [];
+    const usedKeys = new Set();
     let cursor = start;
     while (cursor <= end) {
         const key = dayKey(cursor);
+        usedKeys.add(key);
         const match = existing.find((d) => d.dayKey === key || d.day_key === key);
         days.push(match ?? { id: crypto.randomUUID(), dayKey: key, day_key: key, items: [] });
         cursor = new Date(cursor.getTime() + 86400000);
         cursor = startOfDayInLifeOS(cursor);
     }
+    // Não apagar atividades só porque a janela starts/ends mudou (ex.: datas desalinhadas do cenário).
+    for (const day of existing) {
+        const key = day.dayKey ?? day.day_key;
+        if (!key || usedKeys.has(key)) continue;
+        const items = day.items ?? [];
+        if (!Array.isArray(items) || items.length === 0) continue;
+        usedKeys.add(key);
+        days.push(day);
+    }
+    days.sort((a, b) =>
+        String(a.dayKey ?? a.day_key ?? '').localeCompare(String(b.dayKey ?? b.day_key ?? ''))
+    );
     return days;
 }
 

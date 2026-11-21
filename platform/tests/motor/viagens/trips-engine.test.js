@@ -8,7 +8,8 @@ import {
     citySpent,
     capUsedFraction,
     sortedTrips,
-    flightCompare
+    flightCompare,
+    itineraryDays
 } from '../../../../motor/viagens/trips-engine.js';
 
 const now = new Date('2026-06-15T12:00:00-03:00');
@@ -120,4 +121,32 @@ test('flightCompare ignores discarded', () => {
     assert.equal(stats.mappedCount, 2);
     assert.equal(stats.cheapestFinal, 10080);
     assert.equal(stats.cheapestHub, 'Madrid');
+});
+
+test('itineraryDays keeps out-of-window days that still have items', () => {
+    const keepId = randomUUID();
+    const existing = [
+        {
+            id: randomUUID(),
+            dayKey: '2027-01-21',
+            items: []
+        },
+        {
+            id: keepId,
+            dayKey: '2027-04-20',
+            items: [{ id: randomUUID(), title: 'Muralha', category: 'sight' }]
+        }
+    ];
+    const days = itineraryDays('2027-01-21', '2027-02-18', existing);
+    const kept = days.find((d) => d.dayKey === '2027-04-20' || d.day_key === '2027-04-20');
+    assert.ok(kept, 'day with items outside window must be preserved');
+    assert.equal(kept.id, keepId);
+    assert.equal(kept.items.length, 1);
+    assert.equal(kept.items[0].title, 'Muralha');
+    assert.ok(days.some((d) => (d.dayKey ?? d.day_key) === '2027-01-21'));
+    assert.ok(days.some((d) => (d.dayKey ?? d.day_key) === '2027-02-18'));
+    assert.equal(
+        days.filter((d) => (d.dayKey ?? d.day_key) === '2027-01-22' && !(d.items ?? []).length).length <= 1,
+        true
+    );
 });

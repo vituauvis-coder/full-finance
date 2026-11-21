@@ -657,7 +657,11 @@ function JournalDay({
                                         <p className="rote-plan__stay-dist">
                                             <MaterialIcon name="near_me" variant="app" opticalSize={13} />
                                             {distHint.label} da hospedagem
-                                            {stayTravelTimeSuffix(distHint, item.travelMode)}
+                                            {stayTravelTimeSuffix(
+                                                distHint,
+                                                item.travelMode,
+                                                groundTransports.find((t) => t.id === item.groundTransportId)?.kind
+                                            )}
                                         </p>
                                     ) : null}
                                     {showForm && !lockedSlot ? (
@@ -982,7 +986,11 @@ function ActivityPlanSnapshot({
                 <span className="rote-plan__chip rote-plan__chip--stay-dist" title="Distância até a hospedagem do dia">
                     <MaterialIcon name="near_me" variant="app" opticalSize={13} />
                     {stayDistance.label}
-                    {stayTravelTimeSuffix(stayDistance, item.travelMode)}
+                    {stayTravelTimeSuffix(
+                        stayDistance,
+                        item.travelMode,
+                        groundTransports.find((t) => t.id === item.groundTransportId)?.kind
+                    )}
                 </span>
             ) : null}
         </div>

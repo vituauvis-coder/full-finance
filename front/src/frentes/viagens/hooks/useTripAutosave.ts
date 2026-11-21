@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchTrip, saveTrip } from '../api/trips';
 import type { Trip, TripExpense } from '../types';
 import { tripToDraft, type TripDraft } from '../components/ViagemFicha';
+import { alignDraftDatesToChosenScenario } from '../domain/tripResumoStats';
 
 const FINANCE_REFRESH_EVENT = 'finance:data-changed';
 
@@ -45,13 +46,27 @@ export function useTripAutosave(tripId: string | undefined) {
         try {
             setError(null);
             const data = await fetchTrip(tripId);
-            const loaded = tripToDraft(data.trip);
-            setTrip(data.trip);
+            let loaded = tripToDraft(data.trip);
+            const aligned = alignDraftDatesToChosenScenario(loaded);
+            if (aligned) loaded = aligned;
+            const tripRow = aligned
+                ? {
+                      ...data.trip,
+                      startsOn: loaded.startsOn || null,
+                      endsOn: loaded.endsOn || null
+                  }
+                : data.trip;
+            setTrip(tripRow);
             setDraft(loaded);
             latestDraft.current = loaded;
             serverPayload.current = data.trip.payload ?? {};
             setScenarioWinnerId(data.scenarioWinnerId ?? null);
-            setDirty(false);
+            if (aligned) {
+                setDirty(true);
+                setSaveTick((n) => n + 1);
+            } else {
+                setDirty(false);
+            }
         } catch (e) {
             setError(e instanceof Error ? e.message : 'Viagem não encontrada');
         }

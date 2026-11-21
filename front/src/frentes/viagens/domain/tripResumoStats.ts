@@ -68,6 +68,20 @@ export function effectiveTripPeriod(
     return { startsOn: startsOn.trim(), endsOn: endsOn.trim() };
 }
 
+/** Se há cenário escolhido e as datas da ficha divergem, devolve o draft realinhado; senão null. */
+export function alignDraftDatesToChosenScenario<T extends { startsOn: string; endsOn: string; payload: TripPayload }>(
+    draft: T
+): T | null {
+    const destinations = draft.payload.destinations ?? [];
+    const period = effectiveTripPeriod(draft.startsOn, draft.endsOn, draft.payload, destinations);
+    if (!period.startsOn) return null;
+    if (!chosenScenarioFromPayload(draft.payload)) return null;
+    const start = draft.startsOn.trim();
+    const end = draft.endsOn.trim();
+    if (start === period.startsOn && end === period.endsOn) return null;
+    return { ...draft, startsOn: period.startsOn, endsOn: period.endsOn };
+}
+
 export function tripResumoDayStats(
     startsOn: string,
     endsOn: string,

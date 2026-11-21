@@ -21,6 +21,7 @@ import {
     syncTripItinerary
 } from '../components/roteiros/roteiros-display';
 import { healStayDestinationIds } from '../components/hospedagens/hospedagens-display';
+import { alignDraftDatesToChosenScenario, effectiveTripPeriod } from '../domain/tripResumoStats';
 import { useTripAutosave } from '../hooks/useTripAutosave';
 import '../styles/viagens-ficha-toolbar.css';
 import '../styles/voos-workspace.css';
@@ -111,40 +112,44 @@ function RoteirosHome({
     const endsOn = draft.endsOn;
 
     useEffect(() => {
-        const start = (startsOn ?? '').trim();
-        const end = (endsOn ?? '').trim();
-        if (!start || !end) return;
         const current = draftRef.current;
         if (!current) return;
+        const aligned = alignDraftDatesToChosenScenario(current);
+        const base = aligned ?? current;
+        const allDestinations = base.payload.destinations ?? [];
+        const period = effectiveTripPeriod(base.startsOn, base.endsOn, base.payload, allDestinations);
+        const start = (period.startsOn ?? '').trim();
+        const end = (period.endsOn ?? '').trim();
+        if (!start || !end) return;
         const stops = applyResumoStopWindows(
-            roteiroNavStops(current.payload.destinations ?? [], current.payload),
-            current.payload,
-            current.payload.destinations ?? [],
+            roteiroNavStops(allDestinations, base.payload),
+            base.payload,
+            allDestinations,
             start,
             end
         );
-        const prev = current.payload.itinerary ?? [];
-        const segments = current.payload.flight_segments ?? current.payload.flightSegments ?? [];
-        const allDestinations = current.payload.destinations ?? [];
+        const prev = base.payload.itinerary ?? [];
+        const segments = base.payload.flight_segments ?? base.payload.flightSegments ?? [];
         let next = syncTripItinerary(start, end, prev, stops, allDestinations);
         next = mergeChosenFlightsIntoItinerary(next, segments, allDestinations);
         next = mergeRemoteWorkIntoItinerary(
             next,
-            remoteDayKeysFromPayload(current.payload, allDestinations, start),
+            remoteDayKeysFromPayload(base.payload, allDestinations, start),
             allDestinations,
             stops
         );
         next = mergeHolidayLeaveIntoItinerary(
             next,
-            holidayLeaveByDayFromPayload(current.payload, allDestinations, start, end),
+            holidayLeaveByDayFromPayload(base.payload, allDestinations, start, end),
             allDestinations,
             stops
         );
-        const rawStays = current.payload.stays ?? [];
+        const rawStays = base.payload.stays ?? [];
         const healedStays = healStayDestinationIds(rawStays, allDestinations);
         const staysForMerge = healedStays ?? rawStays;
         next = mergeDayStayBasesIntoItinerary(next, staysForMerge, allDestinations);
         next = mergeItineraryUserPlaces(prev, next, allDestinations);
+        const datesChanged = Boolean(aligned);
         const sameKeys =
             prev.length === next.length &&
             prev.every(
@@ -153,13 +158,20 @@ function RoteirosHome({
                     (d.destinationId ?? null) === (next[i]?.destinationId ?? null)
             );
         const staysChanged = Boolean(healedStays);
-        if (sameKeys && itineraryItemsSignature(prev) === itineraryItemsSignature(next) && !staysChanged) {
+        if (
+            !datesChanged &&
+            sameKeys &&
+            itineraryItemsSignature(prev) === itineraryItemsSignature(next) &&
+            !staysChanged
+        ) {
             return;
         }
         const synced: TripDraft = {
-            ...current,
+            ...base,
+            startsOn: start,
+            endsOn: end,
             payload: {
-                ...current.payload,
+                ...base.payload,
                 itinerary: next,
                 ...(healedStays ? { stays: healedStays } : {})
             }

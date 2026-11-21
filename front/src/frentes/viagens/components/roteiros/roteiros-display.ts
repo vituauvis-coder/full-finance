@@ -25,6 +25,7 @@ import { snapshotDayBounds } from '../../domain/tripScenarioChosen';
 import { countryNameFromPlace, hopDayKey } from '../../domain/tripTimeScenario';
 import { effectiveTripPeriod } from '../../domain/tripResumoStats';
 import { haversineKm } from '@motor/viagens/geo-distance.js';
+import { estimateGroundDurationMin } from '@motor/viagens/ground-route-policy.js';
 import type {
     GeocodeHit,
     TripDestination,
@@ -2381,11 +2382,22 @@ export function stayDistanceToPoint(
 /** Tempo de trajeto conforme o transporte escolhido no roteiro. */
 export function stayTravelTimeSuffix(
     hint: StayDistanceHint,
-    travelMode: TripItineraryItem['travelMode'] | null | undefined
+    travelMode: TripItineraryItem['travelMode'] | null | undefined,
+    groundKind: string | null | undefined = null
 ): string {
     const mode = normalizeTravelMode(travelMode);
     if (mode === 'walk' && hint.walkMin != null) return ` · ~${hint.walkMin} min a pé`;
-    if (mode === 'ground' && hint.driveMin != null) return ` · ~${hint.driveMin} min de carro`;
+    if (mode === 'ground') {
+        if (String(groundKind ?? '').trim() === 'train') {
+            const trainMin = estimateGroundDurationMin(hint.km, 'train');
+            if (trainMin < 60) return ` · ~${trainMin} min de trem`;
+            const hours = trainMin / 60;
+            const rounded = Math.round(hours * 2) / 2;
+            const text = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1).replace('.', ',');
+            return ` · ~${text} h de trem`;
+        }
+        if (hint.driveMin != null) return ` · ~${hint.driveMin} min de carro`;
+    }
     if (mode === 'flight' && hint.flightMin != null) return ` · ~${hint.flightMin} min de voo`;
     if (hint.walkMin != null && hint.km <= 6) return ` · ~${hint.walkMin} min a pé`;
     if (hint.driveMin != null) return ` · ~${hint.driveMin} min de carro`;

@@ -99,6 +99,8 @@ export function ViagemMiniMap({
             const next = await Promise.all(
                 base.map(async (seg) => {
                     if (seg.mode !== 'ground' && seg.mode !== 'walk') return seg;
+                    // Trem-bala: OSRM driving distorce geometria/tempo; mantém estimativa HSR.
+                    if (String(seg.groundKind ?? '').trim() === 'train') return seg;
                     const start = seg.coordinates[0];
                     const end = seg.coordinates[seg.coordinates.length - 1];
                     if (!start || !end) return seg;
