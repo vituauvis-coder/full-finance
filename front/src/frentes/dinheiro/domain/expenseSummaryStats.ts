@@ -1,10 +1,26 @@
-import { getExpensePerInstallmentDisplayAmount } from '@motor/dinheiro/credit-installments.js';
+import { getExpenseSummaryContributionAmount } from '@motor/dinheiro/expense-summary-amount.js';
 import { isCreditCardType } from '../../../lib/accounts';
-import type { Account, Movement } from '../../../lib/types/finance';
+import type { Account, ExpenseSplitRequest, Movement } from '../../../lib/types/finance';
 import { computeMomVariation, type MomVariationState } from '../../dashboard/domain/momVariation';
 import { filterExpensesInPeriod } from '../../../lib/filterExpensesInPeriod';
 import type { ListFilter } from '../../../lib/movementList';
 import { isSingleMonthPeriod, listFilterForMomCompare, previousCivilMonth } from './movementPeriodMom';
+
+export type ExpenseSummarySplitOpts = {
+    splitRequests?: ExpenseSplitRequest[];
+    allUserExpenses?: Movement[] | null;
+    /** `YYYY-MM` do mês civil em exibição (rateios por parcela). */
+    monthKey?: string;
+};
+
+/** Chave `YYYY-MM` a partir de `month-N` + ano civil. */
+export function civilMonthKey(period: string, civilYear: number): string | null {
+    if (!isSingleMonthPeriod(period)) return null;
+    const m = /^month-(\d+)$/.exec(period || '');
+    if (!m) return null;
+    const mi = Math.min(11, Math.max(0, parseInt(m[1], 10)));
+    return `${civilYear}-${String(mi + 1).padStart(2, '0')}`;
+}
 
 export type ExpenseSummaryTotals = {
     total: number;
@@ -35,8 +51,15 @@ function expenseIsMarkedFixed(t: Movement) {
     );
 }
 
-export function aggregateExpenseTotals(rows: Movement[], accounts: Account[]): ExpenseSummaryTotals {
+export function aggregateExpenseTotals(
+    rows: Movement[],
+    accounts: Account[],
+    splitOpts: ExpenseSummarySplitOpts = {}
+): ExpenseSummaryTotals {
     const byId = new Map(accounts.map((a) => [a.id, a]));
+    const splits = splitOpts.splitRequests ?? [];
+    const allEx = splitOpts.allUserExpenses ?? null;
+    const monthKey = splitOpts.monthKey ?? '';
     let total = 0;
     let essential = 0;
     let creditCard = 0;
@@ -48,7 +71,7 @@ export function aggregateExpenseTotals(rows: Movement[], accounts: Account[]): E
 
     for (const t of rows) {
         const acc = t.accountId ? byId.get(t.accountId) : undefined;
-        const amt = getExpensePerInstallmentDisplayAmount(t, acc) || Number(t.amount) || 0;
+        const amt = getExpenseSummaryContributionAmount(t, acc, splits, allEx, monthKey);
         total += amt;
         count += 1;
         // Alinhado ao legacy: essencial e cartão são eixos independentes (cartão essencial
@@ -83,10 +106,11 @@ export function aggregateExpenseTotals(rows: Movement[], accounts: Account[]): E
 export function expenseSummaryFromRows(
     rows: Movement[],
     accounts: Account[],
-    statusFilterActive: boolean
+    statusFilterActive: boolean,
+    splitOpts: ExpenseSummarySplitOpts = {}
 ): ExpenseSummaryStats {
     if (!statusFilterActive) return { showHint: true };
-    return { showHint: false, ...aggregateExpenseTotals(rows, accounts) };
+    return { showHint: false, ...aggregateExpenseTotals(rows, accounts, splitOpts) };
 }
 
 export function expenseSummaryMomStates(
@@ -95,7 +119,8 @@ export function expenseSummaryMomStates(
     period: string,
     civilYear: number,
     current: ExpenseSummaryTotals,
-    listFilter: ListFilter
+    listFilter: ListFilter,
+    splitOpts: ExpenseSummarySplitOpts = {}
 ): ExpenseSummaryMom {
     const isSingle = isSingleMonthPeriod(period);
     const prev = previousCivilMonth(period, civilYear);
@@ -112,7 +137,10 @@ export function expenseSummaryMomStates(
         prev.year,
         listFilterForMomCompare(listFilter)
     );
-    const prevAgg = aggregateExpenseTotals(prevRows, accounts);
+    const prevAgg = aggregateExpenseTotals(prevRows, accounts, {
+        ...splitOpts,
+        monthKey: civilMonthKey(prev.period, prev.year) ?? ''
+    });
 
     return {
         total: computeMomVariation(current.total, prevAgg.total, true, true),

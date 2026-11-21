@@ -36,7 +36,11 @@ import { ExpenseSplitsOutgoingPanel } from '../components/ExpenseSplitsOutgoingP
 import { ExpenseSplitModal } from '../components/ExpenseSplitModal';
 import { CivilPeriodToolbar } from '../../../components/finance/CivilPeriodToolbar';
 import { useMovementHeaderAdd } from '../hooks/useMovementHeaderAdd';
-import { expenseSummaryFromRows, expenseSummaryMomStates } from '../domain/expenseSummaryStats';
+import {
+    civilMonthKey,
+    expenseSummaryFromRows,
+    expenseSummaryMomStates
+} from '../domain/expenseSummaryStats';
 import {
     EXPENSES_SUMMARY_COPY,
     expensesSummaryTitles
@@ -159,9 +163,24 @@ export function SaidasPage() {
             amountMax
         ]
     );
+    const summarySplitOpts = useMemo(() => {
+        const splits = acceptedOutgoingSplits(data?.expenseSplitRequests);
+        return {
+            splitRequests: splits,
+            allUserExpenses: data?.userExpenses ?? null,
+            monthKey: civilMonthKey(period, year) ?? ''
+        };
+    }, [data?.expenseSplitRequests, data?.userExpenses, period, year]);
+
     const expenseSummary = useMemo(
-        () => expenseSummaryFromRows(filtered, data?.userAccounts ?? [], statusFilterActive),
-        [filtered, data?.userAccounts, statusFilterActive]
+        () =>
+            expenseSummaryFromRows(
+                filtered,
+                data?.userAccounts ?? [],
+                statusFilterActive,
+                summarySplitOpts
+            ),
+        [filtered, data?.userAccounts, statusFilterActive, summarySplitOpts]
     );
     const expenseMom = useMemo(() => {
         if (!data || expenseSummary.showHint) {
@@ -178,9 +197,10 @@ export function SaidasPage() {
             period,
             year,
             expenseSummary,
-            listFilter
+            listFilter,
+            summarySplitOpts
         );
-    }, [data, expenseSummary, period, year, listFilter]);
+    }, [data, expenseSummary, period, year, listFilter, summarySplitOpts]);
     const expenseTitles = expensesSummaryTitles();
     const expenseHint = EXPENSES_SUMMARY_COPY.filterRequiredHint;
 
