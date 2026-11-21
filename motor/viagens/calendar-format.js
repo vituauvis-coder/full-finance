@@ -41,17 +41,37 @@ export function parseDayKey(key) {
     return Number.isNaN(d.getTime()) ? null : d;
 }
 
-/** Normaliza DATE do Postgres, ISO ou YYYY-MM-DD para chave de dia. */
+/** Dia civil UTC (Y-M-D) — Postgres `date` chega como meia-noite UTC. */
+function utcCalendarDayKey(date) {
+    const y = date.getUTCFullYear();
+    const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const d = String(date.getUTCDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
+/**
+ * Normaliza DATE do Postgres, ISO ou YYYY-MM-DD para chave de dia.
+ * Em servidor UTC, `dayKey(LifeOS)` atrasaria um dia (ex.: 17 → 16); usar calendário UTC.
+ */
 export function toApiDayKey(raw) {
     if (raw == null || raw === '') return null;
     if (raw instanceof Date) {
-        return Number.isNaN(raw.getTime()) ? null : dayKey(raw);
+        return Number.isNaN(raw.getTime()) ? null : utcCalendarDayKey(raw);
     }
     if (typeof raw === 'string') {
-        const d10 = raw.trim().slice(0, 10);
-        if (/^\d{4}-\d{2}-\d{2}$/.test(d10)) return d10;
-        const parsed = new Date(raw);
-        return Number.isNaN(parsed.getTime()) ? null : dayKey(parsed);
+        const trimmed = raw.trim();
+        const d10 = trimmed.slice(0, 10);
+        if (/^\d{4}-\d{2}-\d{2}$/.test(d10) && (trimmed.length === 10 || trimmed[10] === 'T' || trimmed[10] === ' ')) {
+            // ISO meia-noite UTC do driver: confiar no prefixo Y-M-D.
+            if (/T00:00:00(?:\.\d+)?Z$/i.test(trimmed) || trimmed.length === 10) return d10;
+            if (/^\d{4}-\d{2}-\d{2}[ T]/.test(trimmed) && /(?:Z|[+-]\d{2}:?\d{2})$/.test(trimmed)) {
+                const parsed = new Date(trimmed);
+                return Number.isNaN(parsed.getTime()) ? d10 : utcCalendarDayKey(parsed);
+            }
+            return d10;
+        }
+        const parsed = new Date(trimmed);
+        return Number.isNaN(parsed.getTime()) ? null : utcCalendarDayKey(parsed);
     }
     return null;
 }
