@@ -125,3 +125,47 @@ export function officialWorkHolidayKeys(tripStart, tripEnd, workTimeZone) {
     if (regionForWorkTimeZone(workTimeZone) !== 'brazilNational') return new Set();
     return brazilNationalDayKeys(tripStart, tripEnd);
 }
+
+const FIXED_BR_HOLIDAY_NAMES = {
+    '01-01': 'Ano Novo',
+    '04-21': 'Tiradentes',
+    '05-01': 'Dia do Trabalho',
+    '09-07': 'Independência',
+    '10-12': 'Nossa Senhora Aparecida',
+    '11-02': 'Finados',
+    '11-15': 'Proclamação da República',
+    '11-20': 'Consciência Negra',
+    '12-25': 'Natal'
+};
+
+/** Nome legível do feriado nacional BR para um day-key YYYY-MM-DD. */
+export function brazilHolidayName(dayKeyRaw) {
+    const key = String(dayKeyRaw ?? '').trim().slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) return 'Feriado BR';
+    const md = key.slice(5);
+    if (FIXED_BR_HOLIDAY_NAMES[md]) return FIXED_BR_HOLIDAY_NAMES[md];
+    const year = Number(key.slice(0, 4));
+    if (!Number.isFinite(year)) return 'Feriado BR';
+    const easter = gregorianEaster(year);
+    if (key === dayKey(addDays(easter, -47))) return 'Carnaval';
+    if (key === dayKey(addDays(easter, -2))) return 'Sexta-feira Santa';
+    if (key === dayKey(addDays(easter, 60))) return 'Corpus Christi';
+    return 'Feriado BR';
+}
+
+/**
+ * Feriados oficiais (+ extras da política remota) no intervalo, com nome.
+ * @returns {Map<string, string>} dayKey → nome
+ */
+export function workHolidayNameByDay(tripStart, tripEnd, workTimeZone, extraHolidayKeys = []) {
+    const map = new Map();
+    for (const key of officialWorkHolidayKeys(tripStart, tripEnd, workTimeZone)) {
+        map.set(key, brazilHolidayName(key));
+    }
+    for (const raw of extraHolidayKeys ?? []) {
+        const key = String(raw ?? '').trim().slice(0, 10);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) continue;
+        if (!map.has(key)) map.set(key, brazilHolidayName(key));
+    }
+    return map;
+}

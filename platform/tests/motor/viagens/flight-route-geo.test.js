@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
     flightRouteLegFeatures,
     resolveFlightPlace,
+    routeMarkerPoints,
     tripFlightPaths
 } from '../../../../motor/viagens/flight-route-geo.js';
 
@@ -112,4 +113,28 @@ test('volta inferida não gera linha duplicada no mapa', () => {
     };
     const { volta } = flightRouteLegFeatures([trip]);
     assert.equal(volta.features.length, 0);
+});
+
+test('routeMarkerPoints inclui paradas do voo e destinos sem Recife', () => {
+    const trip = {
+        id: 't1',
+        startsOn: '2027-04-01',
+        payload: {
+            destinations: [
+                { id: 'd1', name: 'Madri', latitude: 40.47, longitude: -3.57, isPrincipal: true },
+                { id: 'd2', name: 'China', latitude: 39.9, longitude: 116.4 }
+            ],
+            flight_segments: [
+                {
+                    id: 's1',
+                    simulations: [{ id: 'f1', origin: 'REC', destination: 'MAD', status: 'escolhida', connections: [] }]
+                }
+            ]
+        }
+    };
+    const pins = routeMarkerPoints([trip], []);
+    assert.ok(pins.length >= 2);
+    assert.ok(pins.every((p) => !String(p.label).toLowerCase().includes('rec')));
+    const labels = pins.map((p) => p.label).join(',');
+    assert.match(labels, /MAD|Madri/i);
 });

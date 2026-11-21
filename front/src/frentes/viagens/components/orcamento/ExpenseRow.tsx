@@ -8,12 +8,25 @@ import {
 } from '@motor/viagens/trip-expense-payment.js';
 import { MaterialIcon } from '../../../../components/icons/MaterialIcon';
 import { DeleteIcon } from '../../../../components/icons/DeleteIcon';
-import type { TripDestination, TripExpense, TripExpensePaymentMethod } from '../../types';
+import type { TripDestination, TripExpense, TripExpensePaymentMethod, TripPayload } from '../../types';
 import { formatBRL } from '../../utils/map-utils';
 import { ExpenseDateField } from './ExpenseDateField';
-import { ORCAMENTO_CATEGORIES, type OrcamentoCategoryId } from './orcamento-model';
+import { ORCAMENTO_CATEGORIES, orcamentoCategoryLabel, type OrcamentoCategoryId } from './orcamento-model';
 
-const CATEGORY_LABEL: Record<string, string> = Object.fromEntries(ORCAMENTO_CATEGORIES.map((c) => [c.id, c.label]));
+function expenseCategorySelectValue(ex: TripExpense): string {
+    if (ex.customCategoryId) return `custom:${ex.customCategoryId}`;
+    return ex.category ?? 'extras';
+}
+
+function expenseCategoryLabel(ex: TripExpense, payload?: TripPayload | null): string {
+    if (ex.customCategoryId) {
+        const custom = payload?.budgetCustomCategories ?? payload?.budget_custom_categories ?? [];
+        return custom.find((c) => c.id === ex.customCategoryId)?.label?.trim() || 'Extra';
+    }
+    const catId = ex.category ?? 'extras';
+    const def = ORCAMENTO_CATEGORIES.find((c) => c.id === catId);
+    return orcamentoCategoryLabel(payload, catId, def?.label ?? String(catId));
+}
 
 export function expenseDescriptionValue(ex: TripExpense): string {
     if (ex.description != null && ex.description !== '') return ex.description;
@@ -103,6 +116,7 @@ type Props = {
     onEndEdit: () => void;
     onChange: (e: TripExpense) => void;
     onDelete: () => void;
+    tripPayload?: TripPayload | null;
 };
 
 export function ExpenseRow({
@@ -113,7 +127,8 @@ export function ExpenseRow({
     onStartEdit,
     onEndEdit,
     onChange,
-    onDelete
+    onDelete,
+    tripPayload = null
 }: Props) {
     const cardRef = useRef<HTMLLIElement>(null);
     const payMethod = normalizePaymentMethod(ex.paymentMethod ?? ex.payment_method);
@@ -123,8 +138,7 @@ export function ExpenseRow({
     const amount = Number(ex.amount ?? 0) || 0;
     const title = expenseDescriptionValue(ex).trim();
     const destName = destinations.find((d) => d.id === ex.destinationId)?.name ?? '';
-    const catId = ex.category ?? 'extras';
-    const catLabel = ex.customCategoryId ? 'Extra' : CATEGORY_LABEL[catId] ?? catId;
+    const catLabel = expenseCategoryLabel(ex, tripPayload);
 
     function setPaymentMethod(method: TripExpensePaymentMethod) {
         onChange({
@@ -231,14 +245,41 @@ export function ExpenseRow({
                         <span className="orc-exp-edit__field-label">Categoria</span>
                         <select
                             className="orc-exp-edit__input"
-                            value={ex.category ?? 'extras'}
-                            onChange={(e) => onChange({ ...ex, category: e.target.value as OrcamentoCategoryId })}
+                            value={expenseCategorySelectValue(ex)}
+                            onChange={(e) => {
+                                const v = e.target.value;
+                                if (v.startsWith('custom:')) {
+                                    onChange({
+                                        ...ex,
+                                        category: 'extras',
+                                        customCategoryId: v.slice(7)
+                                    });
+                                } else {
+                                    onChange({
+                                        ...ex,
+                                        category: v as OrcamentoCategoryId,
+                                        customCategoryId: null
+                                    });
+                                }
+                            }}
                         >
                             {ORCAMENTO_CATEGORIES.map((c) => (
                                 <option key={c.id} value={c.id}>
-                                    {c.label}
+                                    {orcamentoCategoryLabel(tripPayload, c.id, c.label)}
                                 </option>
                             ))}
+                            {(tripPayload?.budgetCustomCategories ?? tripPayload?.budget_custom_categories ?? [])
+                                .length > 0 ? (
+                                <optgroup label="Suas categorias">
+                                    {(tripPayload?.budgetCustomCategories ?? tripPayload?.budget_custom_categories ?? []).map(
+                                        (c) => (
+                                            <option key={c.id} value={`custom:${c.id}`}>
+                                                {c.label?.trim() || c.id}
+                                            </option>
+                                        )
+                                    )}
+                                </optgroup>
+                            ) : null}
                         </select>
                     </label>
                     <label className="orc-exp-edit__field">

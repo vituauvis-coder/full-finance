@@ -1,8 +1,10 @@
 import { countryStayWindow as stayWindowFromMotor, parseHopInstant as parseHopInstantMotor } from '@motor/viagens/country-schedule.js';
 import { formatDuration } from '@motor/viagens/trip-scenario-engine.js';
+import { dayKey as lifeOsDayKey } from '@motor/viagens/calendar-format.js';
 import {
     countryNameFromPlace,
     hopCountry,
+    hopDayKey,
     hopOriginCountry,
     sortHopsChronologically,
     type TripTimeHop
@@ -230,6 +232,66 @@ export function countryScheduleFromHops(hops: TripTimeHop[]): CountryRow[] {
     }
     return rows;
 }
+export type CountryDateWindow = {
+    country: string;
+    city?: string;
+    arrivedOn: string;
+    departedOn: string;
+    days: number;
+    isLayoverOnly?: boolean;
+};
+
+function addDaysToDayKey(dayKey: string, delta: number): string {
+    const d = new Date(`${dayKey}T12:00:00`);
+    if (Number.isNaN(d.getTime())) return dayKey;
+    d.setDate(d.getDate() + delta);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
+/** Janelas civis por país a partir dos hops (chegada + dias do resumo). */
+export function countryStayDateWindows(hops: TripTimeHop[]): CountryDateWindow[] {
+    const chain = sortHopsChronologically(sanitizeHopTimestamps(hops));
+    if (!chain.length) return [];
+    const byCountry = new Map<string, CountryDateWindow>();
+    for (let i = 0; i < chain.length; i++) {
+        const hop = chain[i];
+        const country = hopCountry(hop) || countryNameFromPlace(hop.destinationCity ?? '');
+        if (!country || country === 'Brasil') continue;
+        const arrive = parseHopInstant(hop.arrivesAt ?? hop.arrives_at);
+        const leave = leaveInstantForCountry(chain, i, country);
+        const stay = countryStay(arrive, leave);
+        if (stay.days <= 0) continue;
+        const arrivedOn =
+            hopDayKey(hop.arrivesAt ?? hop.arrives_at) ||
+            (arrive ? lifeOsDayKey(arrive) : null);
+        if (!arrivedOn) continue;
+        // 1d Madri → arrivedOn === departedOn; não usa a data do próximo hop.
+        const departedOn = addDaysToDayKey(arrivedOn, Math.max(0, stay.days - 1));
+        const city = displayCity(hop.destinationCity);
+        const existing = byCountry.get(country);
+        if (existing) {
+            if (arrivedOn < existing.arrivedOn) existing.arrivedOn = arrivedOn;
+            if (departedOn > existing.departedOn) existing.departedOn = departedOn;
+            existing.days += stay.days;
+            existing.isLayoverOnly = Boolean(existing.isLayoverOnly && stay.isLayoverOnly);
+            if (city && !existing.city) existing.city = city;
+        } else {
+            byCountry.set(country, {
+                country,
+                city: city || undefined,
+                arrivedOn,
+                departedOn,
+                days: stay.days,
+                isLayoverOnly: stay.isLayoverOnly
+            });
+        }
+    }
+    return [...byCountry.values()];
+}
+
 
 export function enrichCountrySchedule(
     snap: ScenarioSnapshot,

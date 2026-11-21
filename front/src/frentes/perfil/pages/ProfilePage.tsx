@@ -5,6 +5,7 @@ import { ProfileDeleteAccountDialog } from '../components/ProfileDeleteAccountDi
 import { ProfileIdentityCard } from '../components/ProfileIdentityCard';
 import { ProfilePersonalCard } from '../components/ProfilePersonalCard';
 import { ProfileSecurityCard } from '../components/ProfileSecurityCard';
+import { ProfileTravelDocumentCard } from '../components/ProfileTravelDocumentCard';
 import { ProfileWalletPrefsCard } from '../components/ProfileWalletPrefsCard';
 import { useProfilePage } from '../hooks/useProfilePage';
 import { ScreenLoader } from '../../../components/ui/ScreenLoader';
@@ -54,6 +55,7 @@ export function ProfilePage() {
                         message={m.message}
                         onSubmit={(e) => void m.saveName(e)}
                     />
+                    <ProfileTravelDocumentCard />
                     <ProfileSecurityCard
                         saving={m.savingPassword}
                         message={m.passwordMessage}

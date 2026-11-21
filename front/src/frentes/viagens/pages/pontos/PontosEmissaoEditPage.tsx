@@ -200,7 +200,7 @@ export function PontosEmissaoEditPage() {
         <div className="pontos-view">
             <PontosAlert>{error}</PontosAlert>
             <header className="pontos-sim-head">
-                <Link className="voos-text-btn" to={`/viagens/${tripId}/voos`}>
+                <Link className="voos-text-btn" to={`/viagens/${tripId}/transporte/voos`}>
                     ← Voos
                 </Link>
                 <span className={`pontos-status pontos-status--${status}`}>{statusLabel(status)}</span>

@@ -112,7 +112,7 @@ function vacationKeysFromScenario(scenario) {
     for (const period of scenario.vacations ?? []) {
         const start = parseDayKey(period.startsOn ?? period.starts_on);
         if (!start) continue;
-        const days = Math.max(1, Number(period.days ?? 1));
+        const days = Math.max(1, Number(period.days ?? 18));
         for (let i = 0; i < days; i++) keys.add(dayKey(addDays(start, i)));
     }
     return keys;

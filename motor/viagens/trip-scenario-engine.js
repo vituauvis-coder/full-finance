@@ -26,8 +26,8 @@ function parseInstant(local, timeZone = 'America/Sao_Paulo') {
 
 function vacationEndsOn(period) {
     const start = parseDayKey(period.startsOn ?? period.starts_on);
-    const days = Math.max(1, Number(period.days ?? 0));
-    if (!start || !days) return null;
+    const days = Math.max(1, Number(period.days ?? 18));
+    if (!start) return null;
     return dayKey(addDays(start, days - 1));
 }
 
@@ -80,7 +80,7 @@ export function snapshot(scenario) {
     for (const period of scenario.vacations ?? []) {
         const start = parseDayKey(period.startsOn ?? period.starts_on);
         if (!start) continue;
-        const days = Math.max(1, Number(period.days ?? 0));
+        const days = Math.max(1, Number(period.days ?? 18));
         for (let i = 0; i < days; i++) {
             vacationKeys.add(dayKey(addDays(start, i)));
         }

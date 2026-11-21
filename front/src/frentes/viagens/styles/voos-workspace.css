@@ -3962,3 +3962,140 @@ a.voos-icon-btn {
         flex: 1;
     }
 }
+
+#viagens-page .transporte-module-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+#viagens-page .transporte-module-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: 1rem;
+    border: 1px solid var(--v-borda);
+    background: var(--v-painel);
+    color: var(--v-tinta);
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition:
+        border-color 0.15s ease,
+        box-shadow 0.15s ease,
+        transform 0.15s ease;
+}
+
+#viagens-page .transporte-module-tab__icon {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.65rem;
+    display: grid;
+    place-items: center;
+    background: color-mix(in srgb, var(--v-legenda) 10%, var(--v-janela));
+    color: var(--v-legenda);
+}
+
+#viagens-page .transporte-module-tab--turquesa.is-on {
+    border-color: color-mix(in srgb, var(--v-turquesa) 45%, var(--v-borda));
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--v-turquesa) 12%, transparent);
+}
+
+#viagens-page .transporte-module-tab--turquesa.is-on .transporte-module-tab__icon {
+    background: color-mix(in srgb, var(--v-turquesa) 18%, var(--v-painel));
+    color: var(--v-turquesa);
+}
+
+#viagens-page .transporte-module-tab--oceano.is-on {
+    border-color: color-mix(in srgb, #3b82b0 45%, var(--v-borda));
+    box-shadow: 0 8px 20px color-mix(in srgb, #3b82b0 12%, transparent);
+}
+
+#viagens-page .transporte-module-tab--oceano.is-on .transporte-module-tab__icon {
+    background: color-mix(in srgb, #3b82b0 18%, var(--v-painel));
+    color: #3b82b0;
+}
+
+#viagens-page .transporte-terrestre__lede {
+    margin: 0;
+}
+
+#viagens-page .transporte-terrestre__total {
+    margin: 0;
+    font-size: 0.88rem;
+    color: var(--v-legenda);
+}
+
+#viagens-page .transporte-terrestre__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+#viagens-page .transporte-terrestre__card {
+    width: 100%;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.85rem 1rem;
+    border-radius: 1rem;
+    border: 1px solid var(--v-borda);
+    background: var(--v-janela);
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+}
+
+#viagens-page .transporte-terrestre__card:hover {
+    border-color: color-mix(in srgb, var(--v-turquesa) 35%, var(--v-borda));
+}
+
+#viagens-page .transporte-terrestre__card-icon {
+    width: 2.35rem;
+    height: 2.35rem;
+    border-radius: 0.75rem;
+    display: grid;
+    place-items: center;
+    background: color-mix(in srgb, var(--v-oceano, #3b82b0) 12%, var(--v-painel));
+    color: #3b82b0;
+}
+
+#viagens-page .transporte-terrestre__card-main {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+}
+
+#viagens-page .transporte-terrestre__card-main strong {
+    font-size: 0.92rem;
+}
+
+#viagens-page .transporte-terrestre__card-main em {
+    font-size: 0.78rem;
+    font-style: normal;
+    color: var(--v-legenda);
+}
+
+#viagens-page .transporte-terrestre__card-main em.is-warn {
+    color: var(--v-coral, #c45c4a);
+}
+
+#viagens-page .transporte-terrestre__card-main span {
+    font-size: 0.78rem;
+    color: var(--v-legenda);
+}
+
+#viagens-page .transporte-terrestre__card-cost {
+    font-weight: 800;
+    font-size: 0.95rem;
+    font-variant-numeric: tabular-nums;
+}

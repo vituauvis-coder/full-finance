@@ -1,4 +1,4 @@
-/* Módulos da ficha — quatro faixas compactas na mesma linha */
+/* Módulos da ficha — cinco faixas compactas na mesma linha */
 
 #viagens-page .viagens-ficha-home {
     display: flex;
@@ -11,8 +11,8 @@
 
 #viagens-page .viagem-modulos {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0.55rem;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.42rem;
     width: 100%;
     margin: 0;
     padding: 0;
@@ -20,14 +20,15 @@
 }
 
 #viagens-page .viagem-modulo {
+    --modulo-ink: var(--v-turquesa, #2ec4b6);
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 0.55rem;
+    gap: 0.42rem;
     margin: 0;
-    height: 3.9rem;
-    min-height: 3.9rem;
-    padding: 0 0.75rem 0 0.72rem;
+    height: 3.35rem;
+    min-height: 3.35rem;
+    padding: 0 0.55rem 0 0.5rem;
     border: 1px solid var(--v-borda, rgba(255, 255, 255, 0.1));
     border-radius: 0.95rem;
     background: var(--v-painel, #1c1c20);
@@ -93,9 +94,9 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 2.3rem;
-    height: 2.3rem;
-    border-radius: 0.7rem;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.62rem;
     background: color-mix(in srgb, var(--modulo-ink) 12%, transparent);
     flex-shrink: 0;
     transition:
@@ -104,7 +105,7 @@
 }
 
 #viagens-page .viagem-modulo .viagem-modulo__icon.app-icon {
-    font-size: 1.32rem;
+    font-size: 1.15rem;
     line-height: 1;
     color: var(--modulo-ink);
 }
@@ -112,7 +113,7 @@
 #viagens-page .viagem-modulo__label {
     flex: 1 1 auto;
     min-width: 0;
-    font-size: 0.92rem;
+    font-size: 0.76rem;
     font-weight: 700;
     letter-spacing: -0.015em;
     color: var(--v-tinta, #f4f4f6);
@@ -126,8 +127,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 1.7rem;
-    height: 1.7rem;
+    width: 1.45rem;
+    height: 1.45rem;
     margin-left: auto;
     border-radius: 50%;
     background: var(--v-campo, rgba(255, 255, 255, 0.06));
@@ -163,6 +164,9 @@
 #viagens-page .viagem-modulo--oceano {
     --modulo-ink: #2aa8a0;
 }
+#viagens-page .viagem-modulo--ametista {
+    --modulo-ink: #a78bfa;
+}
 
 #viagens-page .viagem-modulo-panel {
     display: flex;
@@ -193,6 +197,12 @@
     border-radius: 0.95rem;
     background: var(--v-painel);
     border: 1px solid var(--v-borda);
+}
+
+@media (max-width: 900px) {
+    #viagens-page .viagem-modulos {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
 }
 
 @media (max-width: 640px) {

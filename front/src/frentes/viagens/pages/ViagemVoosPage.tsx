@@ -1,18 +1,23 @@
-import { useRef, type MutableRefObject } from 'react';
+import { useEffect, useRef, type MutableRefObject } from 'react';
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ScreenLoader } from '../../../components/ui/ScreenLoader';
 import { ViagensBackControl } from '../components/ViagensBackControl';
 import { ViagensPortalSection } from '../components/ViagensPortalSection';
 import type { TripDraft } from '../components/ViagemFicha';
+import { normalizeGroundTransports } from '../domain/ground-transport';
+import { TransporteModuleTabs } from '../components/transporte/TransporteModuleTabs';
+import { TransporteTerrestrePanel } from '../components/transporte/TransporteTerrestrePanel';
 import { VoosResumo } from '../components/voos/VoosResumo';
 import { VoosSimulationsPanel } from '../components/voos/VoosSimulationsPanel';
 import { useProgramsForLedger } from '../hooks/useProgramsForLedger';
 import { useTripAutosave } from '../hooks/useTripAutosave';
 import { useVoosWallet } from '../hooks/useVoosWallet';
-import type { Trip, TripFlightSegment } from '../types';
+import type { Trip, TripFlightSegment, TripGroundTransport } from '../types';
 import '../styles/viagens-ficha-toolbar.css';
 import '../styles/viagens-ficha-form.css';
 import '../styles/voos-workspace.css';
+import '../styles/transporte-terrestre-workspace.css';
+import '../styles/orcamento-workspace.css';
 import '../styles/pontos-central.css';
 import '../theme/viagens-theme.css';
 
@@ -23,6 +28,10 @@ export type VoosOutlet = {
     onDraftChange: (draft: TripDraft) => void;
 };
 
+function isTerrestrePath(pathname: string): boolean {
+    return /\/transporte\/terrestre(?:\/|$)/.test(pathname);
+}
+
 export function ViagemVoosPage() {
     const { tripId } = useParams<{ tripId: string }>();
     const navigate = useNavigate();
@@ -31,6 +40,14 @@ export function ViagemVoosPage() {
     const draftRef = useRef(draft);
     draftRef.current = draft;
     const isEditor = pathname.includes('/emissao/');
+    const isTerrestre = isTerrestrePath(pathname);
+
+    useEffect(() => {
+        if (!tripId || isEditor) return;
+        if (pathname === `/viagens/${tripId}/transporte` || pathname === `/viagens/${tripId}/transporte/`) {
+            navigate(`/viagens/${tripId}/transporte/voos`, { replace: true });
+        }
+    }, [tripId, pathname, isEditor, navigate]);
 
     if (error && !trip) {
         return (
@@ -47,7 +64,7 @@ export function ViagemVoosPage() {
         return (
             <ViagensPortalSection ficha>
                 <div className="viagens-root viagens-ficha">
-                    <ScreenLoader label="Carregando voos" />
+                    <ScreenLoader label="Carregando transportes" />
                 </div>
             </ViagensPortalSection>
         );
@@ -67,10 +84,7 @@ export function ViagemVoosPage() {
                                     iconOnly
                                     onClick={() => navigate(`/viagens/${trip.id}`)}
                                 />
-                                <div className="viagens-ficha__identity">
-                                    <h1 className="voos-page__title">Voos</h1>
-                                    <p className="voos-page__trip">{trip.title}</p>
-                                </div>
+                                <h1 className="viagens-module-page__title">Transportes</h1>
                             </div>
                             <div className="viagens-ficha__chrome-right">
                                 {saving ? (
@@ -90,7 +104,19 @@ export function ViagemVoosPage() {
                     {isEditor ? (
                         <Outlet context={ctx} />
                     ) : (
-                        <VoosHome draft={draft} draftRef={draftRef} onDraftChange={onDraftChange} tripId={trip.id} />
+                        <>
+                            <TransporteModuleTabs tripId={trip.id} />
+                            {isTerrestre ? (
+                                <TransporteTerrestreHome draft={draft} draftRef={draftRef} onDraftChange={onDraftChange} />
+                            ) : (
+                                <VoosHome
+                                    draft={draft}
+                                    draftRef={draftRef}
+                                    onDraftChange={onDraftChange}
+                                    tripId={trip.id}
+                                />
+                            )}
+                        </>
                     )}
                 </div>
             </div>
@@ -141,6 +167,36 @@ function VoosHome({
                     }}
                 />
             </section>
+        </div>
+    );
+}
+
+function TransporteTerrestreHome({
+    draft,
+    draftRef,
+    onDraftChange
+}: {
+    draft: TripDraft;
+    draftRef: MutableRefObject<TripDraft | null>;
+    onDraftChange: (draft: TripDraft) => void;
+}) {
+    return (
+        <div className="voos-home terrestre-home">
+            <TransporteTerrestrePanel
+                draft={draft}
+                payload={draft.payload}
+                destinations={draft.payload.destinations ?? []}
+                onChange={(mutate) => {
+                    const current = draftRef.current;
+                    if (!current) return;
+                    const prev = normalizeGroundTransports(current.payload);
+                    const next = typeof mutate === 'function' ? mutate(prev) : mutate;
+                    onDraftChange({
+                        ...current,
+                        payload: { ...current.payload, ground_transports: next, legs: [] }
+                    });
+                }}
+            />
         </div>
     );
 }

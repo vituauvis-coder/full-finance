@@ -38,12 +38,21 @@ const FINANCAS_ITEMS: readonly SidebarLeaf[] = [
 
 const VIAGENS_MODULOS = [
     { modulo: 'orcamento', label: 'Orçamento', icon: 'account_balance_wallet' },
-    { modulo: 'voos', label: 'Voos', icon: 'flight' },
-    { modulo: 'roteiros', label: 'Roteiros', icon: 'map' },
-    { modulo: 'hospedagens', label: 'Hospedagens', icon: 'apartment' }
+    { modulo: 'transporte', label: 'Transportes', icon: 'flight' },
+    { modulo: 'hospedagens', label: 'Hospedagens', icon: 'apartment' },
+    { modulo: 'roteiros', label: 'Roteiros', icon: 'map' }
 ] as const;
 
 const LAST_TRIP_KEY = 'meu-mundo:last-trip-id';
+
+/** Segmentos de URL que não são ID de viagem (módulos / hubs). */
+const RESERVED_TRIP_SLUGS = new Set(['milhas', 'nova', 'voos', 'transporte', 'hospedagens', 'orcamento', 'roteiros']);
+
+export function isNavigableTripId(id: string | null | undefined): id is string {
+    const s = String(id ?? '').trim();
+    if (!s || RESERVED_TRIP_SLUGS.has(s)) return false;
+    return true;
+}
 
 export const SIDEBAR_GROUPS: readonly SidebarGroupConfig[] = [
     {
@@ -67,11 +76,13 @@ export const SIDEBAR_GROUPS: readonly SidebarGroupConfig[] = [
 export function tripIdFromPathname(pathname: string): string | null {
     const match = pathname.match(/^\/viagens\/([^/]+)/);
     if (!match) return null;
-    if (match[1] === 'milhas' || match[1] === 'nova') return null;
-    return match[1];
+    const slug = match[1];
+    if (!isNavigableTripId(slug)) return null;
+    return slug;
 }
 
 export function rememberLastTripId(tripId: string): void {
+    if (!isNavigableTripId(tripId)) return;
     try {
         localStorage.setItem(LAST_TRIP_KEY, tripId);
     } catch {
@@ -81,16 +92,50 @@ export function rememberLastTripId(tripId: string): void {
 
 export function readLastTripId(): string | null {
     try {
-        return localStorage.getItem(LAST_TRIP_KEY);
+        const raw = localStorage.getItem(LAST_TRIP_KEY);
+        return isNavigableTripId(raw) ? raw : null;
     } catch {
         return null;
     }
 }
 
+function resolveTripIdForNav(pathTripId: string | null): string | null {
+    if (isNavigableTripId(pathTripId)) return pathTripId;
+    return readLastTripId();
+}
+
 /** Submenus da viagem: módulos da ficha. Sem viagem aberta, caem na página Viagens. */
 export function viagensModuleItems(tripId: string | null): SidebarLeaf[] {
-    const base = tripId ? `/viagens/${tripId}` : null;
+    const navTripId = resolveTripIdForNav(tripId);
+    const base = navTripId ? `/viagens/${navTripId}` : null;
     return VIAGENS_MODULOS.map((modulo) => {
+        if (modulo.modulo === 'transporte') {
+            return {
+                to: base ? `${base}/transporte` : '/viagens',
+                page: 'viagens',
+                icon: modulo.icon,
+                label: modulo.label,
+                modulo: 'transporte' as const
+            };
+        }
+        if (modulo.modulo === 'hospedagens') {
+            return {
+                to: base ? `${base}/hospedagens` : '/viagens/hospedagens',
+                page: 'viagens',
+                icon: modulo.icon,
+                label: modulo.label,
+                modulo: 'hospedagens' as const
+            };
+        }
+        if (modulo.modulo === 'roteiros') {
+            return {
+                to: base ? `${base}/roteiros` : '/viagens/roteiros',
+                page: 'viagens',
+                icon: modulo.icon,
+                label: modulo.label,
+                modulo: 'roteiros' as const
+            };
+        }
         if (!base) {
             return {
                 to: '/viagens',
@@ -99,14 +144,6 @@ export function viagensModuleItems(tripId: string | null): SidebarLeaf[] {
                 label: modulo.label,
                 end: true,
                 modulo: modulo.modulo
-            };
-        }
-        if (modulo.modulo === 'voos') {
-            return {
-                to: `${base}/voos`,
-                page: 'viagens',
-                icon: modulo.icon,
-                label: modulo.label
             };
         }
         return {
@@ -122,7 +159,9 @@ export function viagensModuleItems(tripId: string | null): SidebarLeaf[] {
 export function sidebarLeafActive(pathname: string, search: string, item: SidebarLeaf): boolean {
     const url = new URL(item.to, 'http://local');
     const path = url.pathname;
-    if (item.modulo === 'voos') {
+    if (item.modulo === 'transporte' || item.modulo === 'hospedagens' || item.modulo === 'roteiros') {
+        if (item.modulo === 'hospedagens' && pathname === '/viagens/hospedagens') return true;
+        if (item.modulo === 'roteiros' && pathname === '/viagens/roteiros') return true;
         return path !== '/viagens' && (pathname === path || pathname.startsWith(`${path}/`));
     }
     if (item.modulo) {
@@ -139,7 +178,13 @@ export function sidebarGroupLandingActive(
 ): boolean {
     if (group.id === 'financas') return pathname === '/dashboard';
     if (pathname === '/viagens') return true;
+    if (pathname === '/viagens/milhas') return false;
     const tripId = tripIdFromPathname(pathname);
-    if (!tripId || pathname !== `/viagens/${tripId}`) return false;
-    return !new URLSearchParams(search).get('modulo');
+    if (!tripId) return false;
+    if (pathname === `/viagens/${tripId}`) return !new URLSearchParams(search).get('modulo');
+    if (pathname.startsWith(`/viagens/${tripId}/transporte`)) return false;
+    if (pathname.startsWith(`/viagens/${tripId}/voos`)) return false;
+    if (pathname.startsWith(`/viagens/${tripId}/hospedagens`)) return false;
+    if (pathname.startsWith(`/viagens/${tripId}/roteiros`)) return false;
+    return false;
 }

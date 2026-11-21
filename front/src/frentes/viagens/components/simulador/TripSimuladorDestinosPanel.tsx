@@ -10,6 +10,11 @@ type Props = {
     snapshot: ScenarioSnapshot;
     focusedCountry: string | null;
     onCountry: (country: string | null) => void;
+    /** Rótulo no pin: país (padrão) ou cidade do trecho. */
+    pinLabelMode?: 'country' | 'city';
+    showLegend?: boolean;
+    /** Sem clique — só visualização (ex.: feed da ficha). */
+    readOnly?: boolean;
 };
 
 const PIN_TINTS = ['coral', 'oceano', 'turquesa', 'ouro', 'coral'] as const;
@@ -40,8 +45,16 @@ type LugarProps = {
     preview?: boolean;
 };
 
+function pinLabel(row: CountryRow, hops: TripTimeHop[], mode: 'country' | 'city'): string {
+    if (mode === 'country') return row.country;
+    return row.city?.trim() || cityForCountry(hops, row.country) || row.country;
+}
+
 function TripRotaSegment({
     row,
+    hops,
+    pinLabelMode,
+    readOnly,
     index,
     tint,
     daysPin,
@@ -54,6 +67,9 @@ function TripRotaSegment({
     onToggle
 }: {
     row: CountryRow;
+    hops: TripTimeHop[];
+    pinLabelMode: 'country' | 'city';
+    readOnly: boolean;
     index: number;
     tint: (typeof PIN_TINTS)[number];
     daysPin: string;
@@ -65,6 +81,18 @@ function TripRotaSegment({
     onBlur: () => void;
     onToggle: () => void;
 }) {
+    const label = pinLabel(row, hops, pinLabelMode);
+    const nodeClass = `viagens-sim-rota-rail__node viagens-sim-rota-rail__node--${tint}${isLive ? ' is-on' : ''}${isHovered ? ' is-hover' : ''}${row.isLayoverOnly ? ' is-transit' : ''}${readOnly ? ' is-readonly' : ''}`;
+    const body = (
+        <>
+            <span className="viagens-sim-rota-rail__ring" aria-hidden />
+            <span className="viagens-sim-rota-rail__pin" aria-hidden>
+                <MaterialIcon name="location_on" variant="app" opticalSize={18} />
+            </span>
+            <span className="viagens-sim-rota-rail__label">{label}</span>
+            <span className="viagens-sim-rota-rail__sub">{daysPin}</span>
+        </>
+    );
     return (
         <>
             <div className={`viagens-sim-rota-rail__leg${legLive ? ' is-live' : ''}`} aria-hidden>
@@ -75,24 +103,25 @@ function TripRotaSegment({
                     <MaterialIcon name="flight" variant="app" opticalSize={14} />
                 </span>
             </div>
-            <button
-                type="button"
-                role="listitem"
-                className={`viagens-sim-rota-rail__node viagens-sim-rota-rail__node--${tint}${isLive ? ' is-on' : ''}${isHovered ? ' is-hover' : ''}${row.isLayoverOnly ? ' is-transit' : ''}`}
-                style={{ ['--node-i' as string]: String(index + 1) }}
-                onMouseEnter={onHover}
-                onFocus={onHover}
-                onBlur={onBlur}
-                onClick={onToggle}
-                aria-pressed={isPinned}
-            >
-                <span className="viagens-sim-rota-rail__ring" aria-hidden />
-                <span className="viagens-sim-rota-rail__pin" aria-hidden>
-                    <MaterialIcon name="location_on" variant="app" opticalSize={18} />
-                </span>
-                <span className="viagens-sim-rota-rail__label">{row.country}</span>
-                <span className="viagens-sim-rota-rail__sub">{daysPin}</span>
-            </button>
+            {readOnly ? (
+                <div className={nodeClass} style={{ ['--node-i' as string]: String(index + 1) }} role="listitem">
+                    {body}
+                </div>
+            ) : (
+                <button
+                    type="button"
+                    role="listitem"
+                    className={nodeClass}
+                    style={{ ['--node-i' as string]: String(index + 1) }}
+                    onMouseEnter={onHover}
+                    onFocus={onHover}
+                    onBlur={onBlur}
+                    onClick={onToggle}
+                    aria-pressed={isPinned}
+                >
+                    {body}
+                </button>
+            )}
         </>
     );
 }
@@ -132,17 +161,26 @@ function LugarLegend({ row, hops, remoteInCountry, preview }: LugarProps) {
     );
 }
 
-export function TripSimuladorDestinosPanel({ rows, hops, snapshot, focusedCountry, onCountry }: Props) {
+export function TripSimuladorDestinosPanel({
+    rows,
+    hops,
+    snapshot,
+    focusedCountry,
+    onCountry,
+    pinLabelMode = 'country',
+    showLegend = true,
+    readOnly = false
+}: Props) {
     const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
 
     const ordered = useMemo(() => countriesInHopOrder(hops, rows), [hops, rows]);
     const visit = ordered;
 
     useEffect(() => {
-        if (visit.length === 0) return;
+        if (readOnly || visit.length === 0) return;
         if (focusedCountry && visit.some((r) => r.country === focusedCountry)) return;
         onCountry(visit[0].country);
-    }, [visit, focusedCountry, onCountry]);
+    }, [visit, focusedCountry, onCountry, readOnly]);
 
     const pinned =
         (focusedCountry ? visit.find((r) => r.country === focusedCountry) : null) ?? visit[0] ?? null;
@@ -209,11 +247,14 @@ export function TripSimuladorDestinosPanel({ rows, hops, snapshot, focusedCountr
                         <TripRotaSegment
                             key={row.id}
                             row={row}
+                            hops={hops}
+                            pinLabelMode={pinLabelMode}
+                            readOnly={readOnly}
                             index={index}
                             tint={tint}
                             daysPin={daysPin}
-                            isLive={isLive}
-                            isHovered={isHovered}
+                            isLive={readOnly ? false : isLive}
+                            isHovered={readOnly ? false : isHovered}
                             isPinned={isPinned}
                             legLive={legLive}
                             onHover={() => setHoveredCountry(row.country)}
@@ -224,7 +265,7 @@ export function TripSimuladorDestinosPanel({ rows, hops, snapshot, focusedCountr
                 })}
             </div>
 
-            {legendRow ? (
+            {showLegend && legendRow ? (
                 <LugarLegend
                     row={legendRow}
                     hops={hops}

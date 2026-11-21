@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { MaterialIcon } from '../../../components/icons/MaterialIcon';
-import { ViagensBackControl } from './ViagensBackControl';
 import '../styles/viagens-ficha-modulos.css';
 
 export type FichaModuloId = 'orcamento' | 'roteiros' | 'hospedagens';
@@ -14,28 +13,27 @@ export function parseFichaModulo(value: string | null): FichaModuloId | null {
 export const FICHA_MODULO_TITLE: Record<FichaModuloId, string> = {
     orcamento: 'Orçamento',
     roteiros: 'Roteiros',
-    hospedagens: 'Hospedagens & Transportes'
+    hospedagens: 'Hospedagens'
 };
 
-type TileTone = 'ouro' | 'turquesa' | 'coral' | 'oceano';
-
 type TileDef = {
-    id: FichaModuloId | 'voos';
+    id: FichaModuloId | 'transporte' | 'trip-id';
     label: string;
     icon: string;
-    tone: TileTone;
 };
 
 const TILES: TileDef[] = [
-    { id: 'orcamento', label: 'Orçamento', icon: 'account_balance_wallet', tone: 'ouro' },
-    { id: 'voos', label: 'Voos', icon: 'flight', tone: 'turquesa' },
-    { id: 'roteiros', label: 'Roteiros', icon: 'map', tone: 'coral' },
-    { id: 'hospedagens', label: 'Hospedagens', icon: 'apartment', tone: 'oceano' }
+    { id: 'trip-id', label: 'ID viagem', icon: 'badge' },
+    { id: 'orcamento', label: 'Orçamento', icon: 'account_balance_wallet' },
+    { id: 'transporte', label: 'Transportes', icon: 'flight' },
+    { id: 'hospedagens', label: 'Hospedagens', icon: 'apartment' },
+    { id: 'roteiros', label: 'Roteiros', icon: 'map' }
 ];
 
 type ModulosProps = {
     tripId: string;
     onOpen: (id: FichaModuloId) => void;
+    onOpenTripId: () => void;
 };
 
 function TileFace({ tile }: { tile: TileDef }) {
@@ -58,17 +56,32 @@ function TileFace({ tile }: { tile: TileDef }) {
     );
 }
 
-export function ViagemModulos({ tripId, onOpen }: ModulosProps) {
+export function ViagemModulos({ tripId, onOpen, onOpenTripId }: ModulosProps) {
     return (
         <nav className="viagem-modulos" aria-label="Módulos da viagem">
             {TILES.map((tile) => {
-                const className = `viagem-modulo viagem-modulo--${tile.tone}`;
-                if (tile.id === 'voos') {
+                const className = 'viagem-modulo viagem-modulo--turquesa';
+                if (tile.id === 'trip-id') {
+                    return (
+                        <button
+                            key={tile.id}
+                            type="button"
+                            className={className}
+                            onClick={onOpenTripId}
+                            aria-label="Abrir ID da viagem"
+                        >
+                            <TileFace tile={tile} />
+                        </button>
+                    );
+                }
+                if (tile.id === 'transporte' || tile.id === 'hospedagens' || tile.id === 'roteiros') {
+                    const path =
+                        tile.id === 'transporte' ? 'transporte/voos' : tile.id === 'hospedagens' ? 'hospedagens' : 'roteiros';
                     return (
                         <Link
                             key={tile.id}
                             className={className}
-                            to={`/viagens/${tripId}/voos`}
+                            to={`/viagens/${tripId}/${path}`}
                             aria-label={`Abrir ${tile.label}`}
                         >
                             <TileFace tile={tile} />
@@ -80,9 +93,7 @@ export function ViagemModulos({ tripId, onOpen }: ModulosProps) {
                         key={tile.id}
                         type="button"
                         className={className}
-                        onClick={() => {
-                            if (tile.id !== 'voos') onOpen(tile.id);
-                        }}
+                        onClick={() => onOpen(tile.id)}
                         aria-label={`Abrir ${tile.label}`}
                     >
                         <TileFace tile={tile} />
@@ -95,18 +106,13 @@ export function ViagemModulos({ tripId, onOpen }: ModulosProps) {
 
 type PanelProps = {
     modulo: FichaModuloId;
-    onBack: () => void;
     children: ReactNode;
 };
 
-export function ViagemModuloPanel({ modulo, onBack, children }: PanelProps) {
+export function ViagemModuloPanel({ modulo, children }: PanelProps) {
     const title = FICHA_MODULO_TITLE[modulo];
     return (
         <section className="viagem-modulo-panel" aria-label={title}>
-            <header className="viagem-modulo-panel__head">
-                <ViagensBackControl label="Voltar" onClick={onBack} />
-                <h2 className="viagem-modulo-panel__title">{title}</h2>
-            </header>
             <div className="viagem-modulo-panel__body">{children}</div>
         </section>
     );

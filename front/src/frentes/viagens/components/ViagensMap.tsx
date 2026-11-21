@@ -4,9 +4,9 @@ import Map, { Layer, Marker, NavigationControl, Source, type MapRef } from 'reac
 import { cluster as clusterVisits } from '@motor/viagens/trips-engine.js';
 import { VIAGENS_GLOBE, VIAGENS_HOME } from '@motor/viagens/viagens-atlas.js';
 import type { MapVisit, Trip } from '../types';
-import { displayCoordinate, mapAirportBadgeLabel } from '../utils/map-utils';
+import { mapAirportBadgeLabel } from '../utils/map-utils';
 import { resolveTripCountries } from '@motor/viagens/trip-countries.js';
-import { flightArrivalPoints } from '@motor/viagens/flight-route-geo.js';
+import { atlasRenderPins } from '../utils/map-markers';
 import { buildCountryHighlightCollection } from '../utils/countryHighlightsGeo';
 import { applyMapRoutePaint, bindMapRoutePaint, mapRoutePaint } from '../utils/map-route-paint';
 import { flightRoutesForMap } from '../utils/map-routes';
@@ -40,6 +40,7 @@ const SUN_REFRESH_MS = 60_000;
 ensureMapLibreWorker();
 import { HoverTicket } from './HoverTicket';
 import { ViagensMapViewToggle } from './ViagensMapViewToggle';
+import { ViagensPin } from './ViagensPin';
 import { ViagensPlaceBadge } from './ViagensPlaceBadge';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
@@ -238,31 +239,7 @@ export function ViagensMap({ trips, visits, onOpenTrip }: Props) {
         setHovered(null);
     }, [spanLat]);
 
-    const singlePins = useMemo(() => {
-        const out: { visit: MapVisit; lat: number; lng: number }[] = [];
-        clusters.forEach((c) => {
-            if (!c || c.visits.length !== 1) return;
-            const visit = c.visits[0];
-            const coord = displayCoordinate(visit, visits);
-            out.push({ visit, lat: coord.lat, lng: coord.lng });
-        });
-        return out;
-    }, [clusters, visits]);
-
-    const visitCoordKeys = useMemo(
-        () =>
-            new Set(
-                visits.map((v) => `${Math.round(v.destination.longitude * 100)}:${Math.round(v.destination.latitude * 100)}`)
-            ),
-        [visits]
-    );
-
-    const flightArrivals = useMemo(() => {
-        return flightArrivalPoints(trips).filter((arrival) => {
-            const key = `${Math.round(arrival.lng * 100)}:${Math.round(arrival.lat * 100)}`;
-            return !visitCoordKeys.has(key);
-        });
-    }, [trips, visitCoordKeys]);
+    const renderPins = useMemo(() => atlasRenderPins(trips, visits, clusters), [trips, visits, clusters]);
 
     return (
         <div
@@ -376,8 +353,9 @@ export function ViagensMap({ trips, visits, onOpenTrip }: Props) {
                         />
                     </Source>
                 ) : null}
-                <Marker longitude={VIAGENS_HOME.longitude} latitude={VIAGENS_HOME.latitude} anchor="center">
-                    <div className="viagens-home-badge">
+                <Marker longitude={VIAGENS_HOME.longitude} latitude={VIAGENS_HOME.latitude} anchor="bottom">
+                    <div className="viagens-pin-marker viagens-pin-marker--home" aria-label="Saída: Recife">
+                        <ViagensPin variant="home" status="em_curso" />
                         <ViagensPlaceBadge name={VIAGENS_HOME.name} />
                     </div>
                 </Marker>
@@ -396,44 +374,39 @@ export function ViagensMap({ trips, visits, onOpenTrip }: Props) {
                         </Marker>
                     );
                 })}
-                {singlePins.map(({ visit, lat, lng }) => {
-                    const isHov = hovered?.visit.id === visit.id;
-                    const cityName = mapAirportBadgeLabel(visit.destination.name, visit.hover.placeName);
+                {renderPins.map((pin) => {
+                    const visit = pin.visit;
+                    const isHov = visit != null && hovered?.visit.id === visit.id;
+                    const cityName = visit
+                        ? mapAirportBadgeLabel(visit.destination.name, visit.hover.placeName)
+                        : mapAirportBadgeLabel(pin.label);
+                    const awaiting = pin.status === 'planejada';
+                    const ariaTrip = visit?.tripTitle ?? 'viagem';
                     return (
-                        <Marker key={visit.id} longitude={lng} latitude={lat} anchor="center">
+                        <Marker key={pin.id} longitude={pin.lng} latitude={pin.lat} anchor="bottom">
                             <div className="viagens-pin-marker">
-                                {isHov ? <HoverTicket hover={visit.hover} /> : null}
+                                {isHov && visit ? <HoverTicket hover={visit.hover} /> : null}
                                 <button
                                     type="button"
-                                    className="viagens-place-marker viagens-place-marker--interactive"
-                                    onMouseEnter={() => setHovered({ visit })}
-                                    onMouseLeave={() => setHovered((h) => (h?.visit.id === visit.id ? null : h))}
-                                    onClick={() => onOpenTrip(visit.tripId)}
-                                    aria-label={`${cityName}, ${visit.tripTitle}`}
+                                    className={`viagens-place-marker viagens-place-marker--interactive${awaiting ? ' viagens-place-marker--awaiting' : ''}`}
+                                    onMouseEnter={() => (visit ? setHovered({ visit }) : undefined)}
+                                    onMouseLeave={() =>
+                                        setHovered((h) => (visit && h?.visit.id === visit.id ? null : h))
+                                    }
+                                    onClick={() => onOpenTrip(pin.tripId)}
+                                    aria-label={`${cityName}, ${ariaTrip}`}
                                 >
+                                    <ViagensPin
+                                        status={pin.status}
+                                        hovering={isHov}
+                                        isPrincipal={pin.isPrincipal}
+                                    />
                                     <ViagensPlaceBadge name={cityName} />
                                 </button>
                             </div>
                         </Marker>
                     );
                 })}
-                {flightArrivals.map((arrival) => (
-                    <Marker
-                        key={`${arrival.tripId}-${arrival.lng}-${arrival.lat}-${arrival.label}`}
-                        longitude={arrival.lng}
-                        latitude={arrival.lat}
-                        anchor="center"
-                    >
-                        <button
-                            type="button"
-                            className="viagens-place-marker viagens-place-marker--interactive"
-                            onClick={() => onOpenTrip(arrival.tripId)}
-                            aria-label={`Destino ${arrival.label}`}
-                        >
-                            <ViagensPlaceBadge name={arrival.label} />
-                        </button>
-                    </Marker>
-                ))}
             </Map>
         </div>
     );

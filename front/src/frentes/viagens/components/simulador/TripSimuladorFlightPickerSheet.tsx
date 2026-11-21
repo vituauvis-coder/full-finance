@@ -100,7 +100,7 @@ export function TripSimuladorFlightPickerSheet({ open, scenario, segments, onCha
                     <div>
                         <h3 id="viagens-sim-voos-pick-title">
                             <MaterialIcon name="flight" variant="app" opticalSize={18} />
-                            Voos da ficha
+                            Transportes da ficha
                         </h3>
                         <p className="viagens-sim-voos-pick__lede viagens-muted">
                             Escolha, por trecho, qual simulação entra neste cenário — escolhidas ou candidatas.

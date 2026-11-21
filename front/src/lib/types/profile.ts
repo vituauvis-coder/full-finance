@@ -18,9 +18,17 @@ export type ViagensMilesPayload = {
     programs: MilesProgramPayload[];
 };
 
+export type TravelDocumentPayload = {
+    cpf?: string;
+    passportNumber?: string;
+    passportExpiresOn?: string;
+    birthDate?: string;
+};
+
 export type FinancePreferencesPayload = {
     manualCashOut: ManualCashOutPrefs;
     viagensMiles?: ViagensMilesPayload;
+    travelDocument?: TravelDocumentPayload;
 };
 
 export type ProfileUser = {

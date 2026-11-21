@@ -47,8 +47,11 @@ export function AtlasPage() {
                     <ScreenLoader label="Carregando atlas" />
                 ) : (
                     <div className="viagens-casa-layout">
+                        <div className="viagens-casa-sidebar">
+                            <ViagensCasaCentral />
+                            <ViagensTrilho trips={trips} />
+                        </div>
                         <main className="viagens-casa-main">
-                            <ViagensCasaCentral trips={trips} />
                             <div id="viagens-map-host">
                                 <ViagensMap
                                     trips={trips}
@@ -57,7 +60,6 @@ export function AtlasPage() {
                                 />
                             </div>
                         </main>
-                        <ViagensTrilho trips={trips} />
                     </div>
                 )}
             </div>

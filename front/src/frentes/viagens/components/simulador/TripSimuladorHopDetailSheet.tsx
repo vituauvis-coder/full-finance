@@ -141,7 +141,7 @@ export function TripSimuladorHopDetailSheet({ open, hop, hopIndex, segments, onC
                         </section>
                     ) : (
                         <p className="viagens-muted viagens-sim-hop-view__manual">
-                            Trecho manual — sem vínculo com simulação da aba Voos. Os dias no país usam as datas de saída e chegada deste trecho.
+                            Trecho manual — sem vínculo com simulação do módulo Transportes. Os dias no país usam as datas de saída e chegada deste trecho.
                         </p>
                     )}
 

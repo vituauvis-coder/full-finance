@@ -6,6 +6,7 @@ import {
     inclusiveDayCount as calInclusive
 } from './calendar-format.js';
 import { isHomeDestination } from './trip-places.js';
+import { sumGroundTransportAmount } from './ground-transport.js';
 
 export const TRIP_STATUSES = ['planejada', 'em_curso', 'realizada'];
 export const EXPENSE_CATEGORIES = ['hospedagem', 'comida', 'transporte', 'passeios', 'extras'];
@@ -61,12 +62,7 @@ export function spent(trip, { category = null, customCategoryId = null, destinat
         }
     }
     if (!category || category === 'transporte') {
-        for (const leg of payload.legs ?? []) {
-            if (!leg.tripDestinationId && !leg.trip_destination_id) continue;
-            const legDest = leg.tripDestinationId ?? leg.trip_destination_id;
-            if (destinationId != null && legDest !== destinationId) continue;
-            sum += Number(leg.amount ?? 0);
-        }
+        sum += sumGroundTransportAmount(payload, { destinationId });
     }
     return sum;
 }

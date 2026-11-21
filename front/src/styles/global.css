@@ -46,8 +46,13 @@ body {
 }
 
 .app-shell__main--viagens {
+    display: flex;
+    flex-direction: column;
     padding: 0;
-    min-height: 100vh;
+    min-height: 0;
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
 }
 
 .ui-card {

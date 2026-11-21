@@ -1,7 +1,13 @@
 import { useMemo, useState } from 'react';
 import { dayKey, parseDayKey } from '@motor/viagens/calendar-format.js';
 import { MaterialIcon } from '../../../../components/icons/MaterialIcon';
-import { hopDayKey, vacationEndsOn, type TripTimeHop, type TripVacationPeriod } from '../../domain/tripTimeScenario';
+import {
+    hopDayKey,
+    vacationDayKeys,
+    vacationPeriodDays,
+    type TripTimeHop,
+    type TripVacationPeriod
+} from '../../domain/tripTimeScenario';
 import type { ScenarioSnapshot } from '../../domain/tripScenarioCriteria';
 import { formatTripDayShort, monthTitlePt, WEEK_SHORT_PT } from '../../utils/tripCalendar';
 import {
@@ -49,10 +55,10 @@ function cellAriaLabel(
 function vacationButtonLabel(periods: TripVacationPeriod[]): string {
     const primary = periods[0];
     if (!primary) return 'Definir férias';
-    const days = Math.max(1, primary.days ?? 18);
+    const days = vacationPeriodDays(primary);
     const start = (primary.starts_on ?? primary.startsOn ?? '').trim().slice(0, 10);
     if (!start) return `${days} dias · marcar início`;
-    const end = vacationEndsOn(primary);
+    const end = [...vacationDayKeys([primary])].sort().at(-1);
     if (end) return `${days} d · ${formatTripDayShort(start)} → ${formatTripDayShort(end)}`;
     return `${days} d · desde ${formatTripDayShort(start)}`;
 }
