@@ -2490,6 +2490,14 @@
     white-space: nowrap;
 }
 
+#viagens-page .orcamento-author {
+    font-size: 0.65rem;
+    font-weight: 650;
+    letter-spacing: 0.02em;
+    color: color-mix(in srgb, var(--v-tinta) 55%, transparent);
+    white-space: nowrap;
+}
+
 #viagens-page .orc-exp-view__chev {
     opacity: 0.35;
     color: color-mix(in srgb, var(--v-tinta) 50%, transparent);

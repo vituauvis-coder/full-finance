@@ -537,11 +537,14 @@ function httpMovementError(message, statusCode = 400) {
     return e;
 }
 
-async function assertTripOwnedByUser(userId, tripId) {
+async function assertTripAccess(userId, tripId) {
     if (!tripId) return;
-    const { getTrip } = await import('./trips-repository.js');
-    const row = await getTrip(userId, tripId);
-    if (!row) throw httpMovementError('Viagem não encontrada', 404);
+    const { assertTripAccess: assertTrip } = await import('./trips-repository.js');
+    try {
+        await assertTrip(userId, tripId);
+    } catch (e) {
+        throw httpMovementError(e.message || 'Viagem não encontrada', e.statusCode || 404);
+    }
 }
 
 function expensePayloadFromBody(body, uid) {
@@ -1463,7 +1466,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
             return res.json({ expense: normalizeMovement(expense), split: splitRequestRow });
         }
 
-        if (createData.tripId) await assertTripOwnedByUser(uid, createData.tripId);
+        if (createData.tripId) await assertTripAccess(uid, createData.tripId);
         const refOnlyMain = await referenceOnlyForUserMovement(uid, createData.date);
         const expenseId = crypto.randomUUID();
         const { rows: expRows } = await query(
@@ -1557,7 +1560,7 @@ app.put('/api/expenses/:id', requireAuth, async (req, res) => {
             delete data.isFixed;
         }
         await assertAccountBelongsToUser(data.accountId, uid);
-        if (data.tripId) await assertTripOwnedByUser(uid, data.tripId);
+        if (data.tripId) await assertTripAccess(uid, data.tripId);
         const refOnlyPut = await referenceOnlyForUserMovement(uid, data.date);
         const sets = [];
         const params = [];

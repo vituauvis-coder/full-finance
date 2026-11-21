@@ -117,6 +117,7 @@ type Props = {
     onChange: (e: TripExpense) => void;
     onDelete: () => void;
     tripPayload?: TripPayload | null;
+    author?: { id: string; name: string } | null;
 };
 
 export function ExpenseRow({
@@ -128,7 +129,8 @@ export function ExpenseRow({
     onEndEdit,
     onChange,
     onDelete,
-    tripPayload = null
+    tripPayload = null,
+    author = null
 }: Props) {
     const cardRef = useRef<HTMLLIElement>(null);
     const payMethod = normalizePaymentMethod(ex.paymentMethod ?? ex.payment_method);
@@ -190,6 +192,11 @@ export function ExpenseRow({
                         </span>
                     </div>
                     <strong className="orc-exp-view__amount">{formatBRL(amount)}</strong>
+                    {author?.name ? (
+                        <span className="orcamento-author" title={`Lançado por ${author.name}`}>
+                            {author.name}
+                        </span>
+                    ) : null}
                     <MaterialIcon className="orc-exp-view__chev" name="edit" variant="app" opticalSize={16} aria-hidden />
                 </button>
                 <button

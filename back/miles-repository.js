@@ -2,6 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { query, withTransaction } from './db.js';
+import { ensureHouseholdForUser } from './household.js';
+import { dedupeRatesByPair } from '../motor/viagens/miles-rates-household.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SCHEMA_SQL = fs.readFileSync(
@@ -191,16 +193,19 @@ export async function getProgram(userId, id) {
     return mapProgram(rows[0]);
 }
 
-export async function insertProgram(userId, { brand, name, issuer, unit, expiresOn, notes, transferBonusPercent, clubActive, clubFeeBrl, buyMilheiro }) {
+export async function insertProgram(userId, { brand, name, issuer, unit, expiresOn, notes, transferBonusPercent, clubActive, clubFeeBrl, buyMilheiro, holderUserId }) {
+    const householdId = await ensureHouseholdForUser(userId);
     const { rows } = await query(
         `INSERT INTO miles_programs (
-            user_id, brand, name, issuer, unit, expires_on, notes,
+            user_id, household_id, holder_user_id, brand, name, issuer, unit, expires_on, notes,
             transfer_bonus_percent, club_active, club_fee_brl, buy_milheiro
          )
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
          RETURNING *`,
         [
             userId,
+            householdId,
+            holderUserId || userId,
             brand,
             name,
             issuer ?? '',
@@ -273,10 +278,19 @@ export async function updateProgram(userId, id, patch) {
 
 export async function listRates(userId) {
     const { rows } = await query(
-        `SELECT * FROM miles_conversion_rates WHERE user_id = $1 ORDER BY updated_at DESC`,
+        `SELECT r.*
+         FROM miles_conversion_rates r
+         WHERE r.user_id = $1
+            OR r.user_id IN (
+                SELECT user_id FROM household_members
+                WHERE household_id IN (
+                    SELECT household_id FROM household_members WHERE user_id = $1
+                )
+            )
+         ORDER BY r.updated_at DESC`,
         [userId]
     );
-    return rows.map(mapRate);
+    return dedupeRatesByPair(rows.map(mapRate));
 }
 
 export async function upsertRate(userId, { fromProgramId, toProgramId, conversionFrom, conversionTo, bonusPercent }) {
@@ -458,10 +472,14 @@ async function listOptionsForSims(simIds) {
     return rows.map(mapOption);
 }
 
-export async function listEmissions(userId, tripId) {
+export async function listEmissions(_userId, tripId) {
+    return listEmissionsByTrip(tripId);
+}
+
+export async function listEmissionsByTrip(tripId) {
     const { rows } = await query(
-        `SELECT * FROM miles_emission_sims WHERE user_id = $1 AND trip_id = $2 ORDER BY updated_at DESC`,
-        [userId, tripId]
+        `SELECT * FROM miles_emission_sims WHERE trip_id = $1 ORDER BY updated_at DESC`,
+        [tripId]
     );
     const ids = rows.map((r) => r.id);
     const options = ids.length ? await listOptionsForSims(ids) : [];
@@ -474,8 +492,12 @@ export async function listEmissions(userId, tripId) {
     return rows.map((r) => mapSim(r, bySim.get(r.id) ?? []));
 }
 
-export async function getEmission(userId, id) {
-    const { rows } = await query(`SELECT * FROM miles_emission_sims WHERE user_id = $1 AND id = $2`, [userId, id]);
+export async function getEmission(_userId, id) {
+    return getEmissionById(id);
+}
+
+export async function getEmissionById(id) {
+    const { rows } = await query(`SELECT * FROM miles_emission_sims WHERE id = $1`, [id]);
     if (!rows[0]) return null;
     const options = await listOptionsForSims([id]);
     return mapSim(rows[0], options);
@@ -531,33 +553,32 @@ export async function insertEmission(userId, body) {
 }
 
 export async function updateEmission(userId, id, body) {
-    const current = await getEmission(userId, id);
+    const current = await getEmissionById(id);
     if (!current) return null;
     if (current.status === 'emitida') return current;
     return withTransaction(async (client) => {
         const { rows } = await client.query(
             `UPDATE miles_emission_sims SET
-                title = COALESCE($3, title),
-                destination_program_id = COALESCE($4, destination_program_id),
-                origin_program_id = COALESCE($5, origin_program_id),
-                conversion_from = COALESCE($6, conversion_from),
-                conversion_to = COALESCE($7, conversion_to),
-                bonus_percent = COALESCE($8, bonus_percent),
-                points_round = COALESCE($9, points_round),
-                buy_milheiro = COALESCE($10, buy_milheiro),
-                buy_discount_percent = COALESCE($11, buy_discount_percent),
-                buy_extra_fee = COALESCE($12, buy_extra_fee),
-                fx_rate = COALESCE($13, fx_rate),
-                iof_percent = COALESCE($14, iof_percent),
-                spread_percent = COALESCE($15, spread_percent),
-                club_fee_brl = COALESCE($16, club_fee_brl),
-                chosen_option_id = COALESCE($17, chosen_option_id),
-                notes = COALESCE($18, notes),
+                title = COALESCE($2, title),
+                destination_program_id = COALESCE($3, destination_program_id),
+                origin_program_id = COALESCE($4, origin_program_id),
+                conversion_from = COALESCE($5, conversion_from),
+                conversion_to = COALESCE($6, conversion_to),
+                bonus_percent = COALESCE($7, bonus_percent),
+                points_round = COALESCE($8, points_round),
+                buy_milheiro = COALESCE($9, buy_milheiro),
+                buy_discount_percent = COALESCE($10, buy_discount_percent),
+                buy_extra_fee = COALESCE($11, buy_extra_fee),
+                fx_rate = COALESCE($12, fx_rate),
+                iof_percent = COALESCE($13, iof_percent),
+                spread_percent = COALESCE($14, spread_percent),
+                club_fee_brl = COALESCE($15, club_fee_brl),
+                chosen_option_id = COALESCE($16, chosen_option_id),
+                notes = COALESCE($17, notes),
                 updated_at = NOW()
-             WHERE user_id = $1 AND id = $2
+             WHERE id = $1
              RETURNING *`,
             [
-                userId,
                 id,
                 body.title ?? null,
                 body.destinationProgramId ?? null,
@@ -595,12 +616,12 @@ export async function updateEmission(userId, id, body) {
     });
 }
 
-export async function setEmissionStatus(userId, id, status) {
+export async function setEmissionStatus(_userId, id, status) {
     const { rows } = await query(
-        `UPDATE miles_emission_sims SET status = $3, updated_at = NOW()
-         WHERE user_id = $1 AND id = $2
+        `UPDATE miles_emission_sims SET status = $2, updated_at = NOW()
+         WHERE id = $1
          RETURNING *`,
-        [userId, id, status]
+        [id, status]
     );
     if (!rows[0]) return null;
     const options = await listOptionsForSims([id]);

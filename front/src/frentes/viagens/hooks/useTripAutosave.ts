@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchTrip, saveTrip } from '../api/trips';
-import type { Trip, TripExpense } from '../types';
+import type { Trip, TripExpense, TripFinanceMovementLine } from '../types';
 import { tripToDraft, type TripDraft } from '../components/ViagemFicha';
 import { alignDraftDatesToChosenScenario } from '../domain/tripResumoStats';
 
@@ -36,6 +36,7 @@ export function useTripAutosave(tripId: string | undefined) {
     const [error, setError] = useState<string | null>(null);
     const [saveError, setSaveError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
+    const [financeMovements, setFinanceMovements] = useState<TripFinanceMovementLine[]>([]);
     const latestDraft = useRef<TripDraft | null>(null);
     const serverPayload = useRef<Trip['payload']>({});
     const [dirty, setDirty] = useState(false);
@@ -61,6 +62,7 @@ export function useTripAutosave(tripId: string | undefined) {
             latestDraft.current = loaded;
             serverPayload.current = data.trip.payload ?? {};
             setScenarioWinnerId(data.scenarioWinnerId ?? null);
+            setFinanceMovements(data.financeMovements?.lines ?? []);
             if (aligned) {
                 setDirty(true);
                 setSaveTick((n) => n + 1);
@@ -182,6 +184,7 @@ export function useTripAutosave(tripId: string | undefined) {
         trip,
         draft,
         scenarioWinnerId,
+        financeMovements,
         error,
         saveError,
         saving,

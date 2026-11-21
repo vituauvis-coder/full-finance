@@ -17,8 +17,25 @@ import '../theme/viagens-theme.css';
 export function ViagemFichaPage() {
     const { tripId } = useParams<{ tripId: string }>();
     const navigate = useNavigate();
-    const { trip, draft, scenarioWinnerId, error, saveError, saving, onDraftChange, flushSave } =
-        useTripAutosave(tripId);
+    const {
+        trip,
+        draft,
+        scenarioWinnerId,
+        financeMovements,
+        error,
+        saveError,
+        saving,
+        onDraftChange,
+        flushSave
+    } = useTripAutosave(tripId);
+    const expenseAuthors = useMemo(() => {
+        const map: Record<string, { id: string; name: string }> = {};
+        for (const line of financeMovements) {
+            const key = line.tripExpenseId || line.id;
+            if (key && line.author) map[key] = line.author;
+        }
+        return map;
+    }, [financeMovements]);
     const [simOpen, setSimOpen] = useState(false);
     const [searchParams, setSearchParams] = useSearchParams();
     const fichaModulo = parseFichaModulo(searchParams.get('modulo'));
@@ -183,6 +200,7 @@ export function ViagemFichaPage() {
                         onModuloChange={setFichaModulo}
                         scenarioCount={scenarioCount}
                         onOpenSimulador={() => setSimOpen(true)}
+                        expenseAuthors={expenseAuthors}
                     />
                     {simOpen && simDraft ? (
                         <TripSimuladorOverlay

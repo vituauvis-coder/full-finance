@@ -41,9 +41,10 @@ type Props = {
     onPatch: (fn: (d: TripDraft) => TripDraft) => void;
     /** Dispara save imediato após concluir edição de gasto (sync cartão → Dinheiro). */
     onFlushSave?: () => void | Promise<void>;
+    expenseAuthors?: Record<string, { id: string; name: string }>;
 };
 
-export function TripOrcamentoPanel({ trip, draft, onPatch, onFlushSave }: Props) {
+export function TripOrcamentoPanel({ trip, draft, onPatch, onFlushSave, expenseAuthors }: Props) {
     const snap = useMemo(() => buildOrcamentoSnapshot(draft), [draft]);
     const [aporteOpen, setAporteOpen] = useState(false);
     const [historyOpen, setHistoryOpen] = useState(false);
@@ -368,6 +369,7 @@ export function TripOrcamentoPanel({ trip, draft, onPatch, onFlushSave }: Props)
                                         onStartEdit={() => openExpenseEdit(ex.id)}
                                         onEndEdit={closeExpenseEdit}
                                         tripPayload={draft.payload}
+                                        author={expenseAuthors?.[ex.id] ?? null}
                                         onChange={(next) =>
                                             setExpenses(expenses.map((x) => (x.id === ex.id ? next : x)))
                                         }

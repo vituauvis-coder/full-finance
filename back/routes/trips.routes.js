@@ -9,6 +9,7 @@ import { snapshot, snapshots, winner } from '../../motor/viagens/trip-scenario-e
 import { airportLabel, searchAirportsCatalog } from '../../motor/viagens/airports-catalog.js';
 import { fetchTaxFxQuotes } from '../../motor/viagens/fx-quotes.js';
 import { syncTripExpensesToFinance } from '../trip-finance-sync.js';
+import { listTripFinanceMovements } from '../trip-finance-household.js';
 import {
     coerceLatinGeocodeLabel,
     expandGeocodeQuery,
@@ -49,7 +50,7 @@ function mergePayload(serverPayload, clientPayload) {
 export function registerTripsRoutes(app, { requireAuth }) {
     app.get('/api/trips', requireAuth, async (req, res) => {
         try {
-            const rows = await repo.listTrips();
+            const rows = await repo.listTripsForUser(req.session.userId);
             const trips = sortedTrips(rows).map((row) => enrichTripSummary(row));
             const visitList = visits(rows);
             res.json({ trips, visits: visitList });
@@ -591,18 +592,25 @@ export function registerTripsRoutes(app, { requireAuth }) {
 
     app.get('/api/trips/:id', requireAuth, async (req, res) => {
         try {
-            const row = await repo.getTrip(req.params.id);
+            const row = await repo.getTripForUser(req.session.userId, req.params.id);
             if (!row) return res.status(404).json({ error: 'Não encontrada' });
             const trip = normalizeTrip(row);
             const timeScenarios = trip.payload?.timeScenarios ?? trip.payload?.time_scenarios ?? [];
             const scenarioSnaps = snapshots(timeScenarios);
+            let financeMovements;
+            try {
+                financeMovements = await listTripFinanceMovements(req.session.userId, req.params.id);
+            } catch {
+                financeMovements = undefined;
+            }
             res.json({
                 trip: enrichTripSummary(row),
                 scenarioSnapshots: scenarioSnaps,
                 scenarioWinnerId: winner(
                     scenarioSnaps,
                     trip.payload?.scenarioCriteria ?? trip.payload?.scenario_criteria ?? []
-                )
+                ),
+                financeMovements
             });
         } catch (e) {
             console.error('GET /api/trips/:id', e);
@@ -610,10 +618,21 @@ export function registerTripsRoutes(app, { requireAuth }) {
         }
     });
 
+    app.get('/api/trips/:id/finance-movements', requireAuth, async (req, res) => {
+        try {
+            const view = await listTripFinanceMovements(req.session.userId, req.params.id);
+            res.json({ movements: view.lines, totals: view.totals });
+        } catch (e) {
+            if (e.statusCode === 404) return res.status(404).json({ error: e.message });
+            console.error('GET /api/trips/:id/finance-movements', e);
+            res.status(500).json({ error: 'Erro ao listar movimentos da viagem' });
+        }
+    });
+
     app.put('/api/trips/:id', requireAuth, async (req, res) => {
         try {
             const body = req.body ?? {};
-            const existing = await repo.getTrip(req.params.id);
+            const existing = await repo.getTripForUser(req.session.userId, req.params.id);
             if (!existing) return res.status(404).json({ error: 'Não encontrada' });
 
             const serverPayload =
@@ -663,6 +682,8 @@ export function registerTripsRoutes(app, { requireAuth }) {
 
     app.delete('/api/trips/:id', requireAuth, async (req, res) => {
         try {
+            const existing = await repo.getTripForUser(req.session.userId, req.params.id);
+            if (!existing) return res.status(404).json({ error: 'Não encontrada' });
             const ok = await repo.deleteTrip(req.params.id);
             if (!ok) return res.status(404).json({ error: 'Não encontrada' });
             res.json({ ok: true });

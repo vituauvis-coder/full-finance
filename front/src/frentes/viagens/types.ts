@@ -392,10 +392,23 @@ export interface TripsListResponse {
     visits: MapVisit[];
 }
 
+export interface TripFinanceMovementLine {
+    id: string;
+    tripExpenseId?: string | null;
+    amount: number;
+    description: string;
+    source: 'finance' | 'payload';
+    author: { id: string; name: string } | null;
+}
+
 export interface TripDetailResponse {
     trip: Trip;
     scenarioSnapshots?: unknown[];
     scenarioWinnerId?: string | null;
+    financeMovements?: {
+        lines: TripFinanceMovementLine[];
+        totals: { amount: number };
+    };
 }
 
 export interface GeocodeHit {

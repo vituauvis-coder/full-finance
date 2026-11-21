@@ -21,6 +21,7 @@ import {
 } from '../../motor/milhas/catalog.js';
 import { ensureHouseholdForUser, validateHolderUserId } from '../household.js';
 import * as repo from '../miles-repository.js';
+import { assertTripAccess } from '../trips-repository.js';
 
 const SIMPLE_TYPES = ['acumulo', 'compra', 'bonus', 'emissao', 'expiracao', 'ajuste'];
 
@@ -206,12 +207,24 @@ export function registerMilesRoutes(app, { requireAuth }) {
             try {
                 program = await repo.insertProgram(req.session.userId, payload);
             } catch (e) {
-                if (e.code !== '23505') throw e;
-                program = await repo.insertProgram(req.session.userId, { ...payload, brand: 'outro' });
+                if (e.code === '23505') {
+                    return res.status(409).json({
+                        error: 'Já existe carteira desta marca na casa',
+                        code: 'MILES_BRAND_DUPLICATE',
+                        brand: payload.brand
+                    });
+                }
+                throw e;
             }
             res.status(201).json({ program: { ...program, balance: 0 } });
         } catch (e) {
-            if (e.code === '23505') return res.status(400).json({ error: 'Programa já cadastrado' });
+            if (e.code === '23505') {
+                return res.status(409).json({
+                    error: 'Já existe carteira desta marca na casa',
+                    code: 'MILES_BRAND_DUPLICATE',
+                    brand: req.body?.brand
+                });
+            }
             console.error('POST /api/miles/programs', e);
             res.status(500).json({ error: 'Erro ao criar programa' });
         }
@@ -230,16 +243,17 @@ export function registerMilesRoutes(app, { requireAuth }) {
                 ...body,
                 name: body.name != null ? String(body.name).trim() : undefined
             };
-            if (body.householdShared === true) {
-                patch.householdId = await ensureHouseholdForUser(req.session.userId);
-                if (body.holderUserId) {
-                    patch.holderUserId = await validateHolderUserId(body.holderUserId, req.session.userId);
-                } else {
-                    patch.holderUserId = req.session.userId;
-                }
-            } else if (body.householdShared === false) {
-                patch.householdId = null;
-                patch.holderUserId = null;
+            if (body.householdShared === false) {
+                return res.status(400).json({
+                    error: 'Carteiras de milhas no Meu Mundo são sempre da casa'
+                });
+            }
+            // Always household-scoped; allow titular updates.
+            patch.householdId = await ensureHouseholdForUser(req.session.userId);
+            if (body.holderUserId) {
+                patch.holderUserId = await validateHolderUserId(body.holderUserId, req.session.userId);
+            } else if (body.householdShared === true && !body.holderUserId) {
+                patch.holderUserId = req.session.userId;
             }
             delete patch.householdShared;
             const program = await repo.updateProgram(req.session.userId, req.params.id, patch);
@@ -477,13 +491,22 @@ export function registerMilesRoutes(app, { requireAuth }) {
         }
     });
 
+    async function loadEmissionWithAccess(userId, emissionId) {
+        const emission = await repo.getEmissionById(emissionId);
+        if (!emission) return null;
+        await assertTripAccess(userId, emission.tripId);
+        return emission;
+    }
+
     app.get('/api/miles/emissions', async (req, res) => {
         try {
             const tripId = req.query.tripId;
             if (!tripId) return res.status(400).json({ error: 'tripId obrigatório' });
-            const emissions = await repo.listEmissions(req.session.userId, tripId);
+            await assertTripAccess(req.session.userId, tripId);
+            const emissions = await repo.listEmissionsByTrip(tripId);
             res.json({ emissions });
         } catch (e) {
+            if (e.statusCode === 404) return res.status(404).json({ error: e.message });
             console.error('GET emissions', e);
             res.status(500).json({ error: 'Erro ao listar emissões' });
         }
@@ -495,42 +518,59 @@ export function registerMilesRoutes(app, { requireAuth }) {
             if (!body.tripId || !body.title || !body.originProgramId || !body.destinationProgramId) {
                 return res.status(400).json({ error: 'Dados incompletos' });
             }
+            await assertTripAccess(req.session.userId, body.tripId);
             const emission = await repo.insertEmission(req.session.userId, body);
             res.status(201).json({ emission });
         } catch (e) {
+            if (e.statusCode === 404) return res.status(404).json({ error: e.message });
             console.error('POST emissions', e);
             res.status(500).json({ error: 'Erro ao salvar simulação' });
         }
     });
 
     app.get('/api/miles/emissions/:id', async (req, res) => {
-        const emission = await repo.getEmission(req.session.userId, req.params.id);
-        if (!emission) return res.status(404).json({ error: 'Simulação não encontrada' });
-        res.json({ emission });
+        try {
+            const emission = await loadEmissionWithAccess(req.session.userId, req.params.id);
+            if (!emission) return res.status(404).json({ error: 'Simulação não encontrada' });
+            res.json({ emission });
+        } catch (e) {
+            if (e.statusCode === 404) return res.status(404).json({ error: e.message });
+            console.error('GET emission', e);
+            res.status(500).json({ error: 'Erro ao carregar simulação' });
+        }
     });
 
     app.patch('/api/miles/emissions/:id', async (req, res) => {
         try {
+            const current = await loadEmissionWithAccess(req.session.userId, req.params.id);
+            if (!current) return res.status(404).json({ error: 'Simulação não encontrada' });
             const emission = await repo.updateEmission(req.session.userId, req.params.id, req.body ?? {});
             if (!emission) return res.status(404).json({ error: 'Simulação não encontrada' });
             res.json({ emission });
         } catch (e) {
+            if (e.statusCode === 404) return res.status(404).json({ error: e.message });
             console.error('PATCH emission', e);
             res.status(500).json({ error: 'Erro ao atualizar simulação' });
         }
     });
 
     app.post('/api/miles/emissions/:id/reserve', async (req, res) => {
-        const current = await repo.getEmission(req.session.userId, req.params.id);
-        if (!current) return res.status(404).json({ error: 'Simulação não encontrada' });
-        if (current.status === 'emitida') return res.status(400).json({ error: 'Já emitida' });
-        const emission = await repo.setEmissionStatus(req.session.userId, req.params.id, 'reservada');
-        res.json({ emission });
+        try {
+            const current = await loadEmissionWithAccess(req.session.userId, req.params.id);
+            if (!current) return res.status(404).json({ error: 'Simulação não encontrada' });
+            if (current.status === 'emitida') return res.status(400).json({ error: 'Já emitida' });
+            const emission = await repo.setEmissionStatus(req.session.userId, req.params.id, 'reservada');
+            res.json({ emission });
+        } catch (e) {
+            if (e.statusCode === 404) return res.status(404).json({ error: e.message });
+            console.error('reserve emission', e);
+            res.status(500).json({ error: 'Erro ao reservar' });
+        }
     });
 
     app.post('/api/miles/emissions/:id/emit', async (req, res) => {
         try {
-            const current = await repo.getEmission(req.session.userId, req.params.id);
+            const current = await loadEmissionWithAccess(req.session.userId, req.params.id);
             if (!current) return res.status(404).json({ error: 'Simulação não encontrada' });
             if (current.status === 'emitida') return res.json({ emission: current });
             const chosen =
