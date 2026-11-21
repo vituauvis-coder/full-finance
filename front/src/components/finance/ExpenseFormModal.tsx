@@ -174,14 +174,15 @@ export function ExpenseFormModal({
     }, [loanCategory, open, editing, accounts, loanAccountId, fromRateio]);
 
     useEffect(() => {
-        if (!open || editing) return;
+        // No rateio o default é pendente: PIX não deve forçar “pago” no aceite.
+        if (!open || editing || fromRateio) return;
         const resolved = resolvePaymentMethod(
             paymentMethodId,
             accounts,
             loanCategory ? loanAccountId : undefined
         );
         if (resolved) setIsPaid(resolved.isPaid);
-    }, [paymentMethodId, accounts, open, editing, loanAccountId, loanCategory]);
+    }, [paymentMethodId, accounts, open, editing, loanAccountId, loanCategory, fromRateio]);
 
     // Normaliza chaves (YYYY-MM ou dia) para o vencimento canónico de cada parcela.
     useEffect(() => {
@@ -245,7 +246,7 @@ export function ExpenseFormModal({
             category,
             subcategory: subcategory || null,
             date,
-            isPaid: editing ? isPaid : (resolved?.isPaid ?? isPaid),
+            isPaid: editing || fromRateio ? isPaid : (resolved?.isPaid ?? isPaid),
             installmentCount: useInstallments,
             isFixed,
             isCofrinho: fromRateio ? !!splitSeed?.sourceExpense?.isCofrinho || isCofrinho : isCofrinho,
@@ -286,8 +287,8 @@ export function ExpenseFormModal({
                 <FormAlert message={error} />
                 {fromRateio ? (
                     <p className="ui-form-hint-block">
-                        Preencha e salve sua saída para concluir o aceite e gerar o estorno ao
-                        solicitante.
+                        Preencha e salve sua saída para concluir o aceite. O estorno ao solicitante
+                        só é gerado quando você marcar sua parte como paga.
                     </p>
                 ) : null}
                 <FormGrid columns={2}>
@@ -420,21 +421,21 @@ export function ExpenseFormModal({
                             onChange={setIsCofrinho}
                         />
                     ) : null}
-                    {editing ? (
+                    {editing || fromRateio ? (
                         <FormCheckbox
                             id="expense-is-paid"
                             label="Pago"
                             checked={isPaid}
                             onChange={setIsPaid}
                         />
-                    ) : !fromRateio ? (
+                    ) : (
                         <FormCheckbox
                             id="expense-recurring"
                             label="Repetir até dezembro"
                             checked={recurringMonthly}
                             onChange={setRecurringMonthly}
                         />
-                    ) : null}
+                    )}
                 </div>
                 {showInstallmentsField ? (
                     <FormField

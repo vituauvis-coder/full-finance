@@ -4,7 +4,7 @@
 import crypto from 'node:crypto';
 import { query, withTransaction } from './db.js';
 import { safeUpsertBalanceSnapshot } from './balance-snapshot.js';
-import { referenceOnlyForUserMovement } from './reference-only.js';
+import { maybeCreateSplitReimbursementOnAccept } from './split-reimbursement.js';
 
 function httpError(message, statusCode = 400) {
     const e = new Error(message);
@@ -547,76 +547,22 @@ export function registerExpenseSplitRoutes(app, { requireAuth }) {
                     1,
                     parseInt(String(sourceRows[0]?.installmentCount ?? '1'), 10) || 1
                 );
-                const scope = String(split.splitScope ?? 'FULL_EXPENSE').trim().toUpperCase();
-                const payType = String(sourceRows[0]?.paymentType ?? '');
-                const disableReimbursement = payType === 'cartao_credito';
-                const deferReimbursement =
-                    !disableReimbursement && scope === 'FULL_EXPENSE' && srcInstallments >= 2;
-                let gain = null;
-                if (disableReimbursement) {
-                    // Cartão: split não gera reembolso/entrada (nem no aceite nem por parcela).
-                    await client.query(
-                        `UPDATE expense_split_requests
-                         SET status = 'ACCEPTED', created_gain_id = NULL, is_settled = false, updated_at = now()
-                         WHERE id = $1`,
-                        [split.id]
-                    );
-                } else if (deferReimbursement) {
-                    // Parcelado: não cria extorno total no aceite. O extorno entra por parcela,
-                    // conforme o pagador confirma o pagamento no próprio lançamento.
-                    await client.query(
-                        `UPDATE expense_split_requests
-                         SET status = 'ACCEPTED', created_gain_id = NULL, is_settled = false, updated_at = now()
-                         WHERE id = $1`,
-                        [split.id]
-                    );
-                } else {
-                    const gainDescription = `Estorno parcial — ${sourceDesc}`;
-                    const gainAmount = Number(split.amount) || 0;
-                    const refGainAccept = await referenceOnlyForUserMovement(
-                        split.requesterUserId,
-                        new Date()
-                    );
-                    const gainId = crypto.randomUUID();
-                    const { rows: gainRows } = await client.query(
-                        `INSERT INTO gains (
-                            id, user_id, account_id, category, subcategory, amount, description,
-                            date, is_paid, recurrence_group_id, related_expense_id, reference_only
-                         ) VALUES (
-                            $1,$2,$3,'Reembolsos','PIX',$4,$5,
-                            now(), true, NULL, $6, $7
-                         )
-                         RETURNING
-                            id,
-                            user_id AS "userId",
-                            account_id AS "accountId",
-                            category,
-                            subcategory,
-                            amount,
-                            description,
-                            date,
-                            is_paid AS "isPaid",
-                            recurrence_group_id AS "recurrenceGroupId",
-                            related_expense_id AS "relatedExpenseId",
-                            reference_only AS "referenceOnly"`,
-                        [
-                            gainId,
-                            split.requesterUserId,
-                            gainAccountId,
-                            gainAmount,
-                            gainDescription,
-                            split.sourceExpenseId,
-                            refGainAccept
-                        ]
-                    );
-                    gain = gainRows[0];
-                    await client.query(
-                        `UPDATE expense_split_requests
-                         SET status = 'ACCEPTED', created_gain_id = $2, is_settled = true, updated_at = now()
-                         WHERE id = $1`,
-                        [split.id, gain.id]
-                    );
-                }
+                // Aceite “solto” (sem saída do destinatário): nunca lança estorno aqui.
+                // O estorno nasce ao gravar/marcar a parte do destinatário como paga.
+                const { gain } = await maybeCreateSplitReimbursementOnAccept(client, {
+                    split: {
+                        id: split.id,
+                        sourceExpenseId: split.sourceExpenseId,
+                        requesterUserId: split.requesterUserId,
+                        amount: split.amount,
+                        requesterCreditAccountId: split.requesterCreditAccountId,
+                        splitScope: split.splitScope
+                    },
+                    sourcePaymentType: sourceRows[0]?.paymentType,
+                    sourceInstallmentCount: srcInstallments,
+                    sourceDescription: sourceDesc,
+                    recipientExpenseIsPaid: false
+                });
 
                 const { rows: fullRows } = await client.query(
                     baseSplitSelectSql(`WHERE esr.id = $1 LIMIT 1`),

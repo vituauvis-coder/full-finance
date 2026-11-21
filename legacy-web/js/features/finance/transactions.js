@@ -1610,7 +1610,7 @@ async function handleSplitIncomingAccept(splitId) {
             });
             showToast(
                 'Confirme para aceitar',
-                'Preencha e salve sua saída para concluir o aceite e gerar o estorno.',
+                'Preencha e salve sua saída para concluir o aceite. O estorno só é gerado quando você marcar sua parte como paga.',
                 'info'
             );
         } else {
@@ -5867,7 +5867,8 @@ async function handleExpenseFormSubmit(e) {
             String(now.getSeconds()).padStart(2, '0'));
     }
     
-    let isPaidFinal = resolved.isPaid;
+    // Rateio: default pendente — PIX não deve forçar pago/estorno no aceite.
+    let isPaidFinal = isSplitRateio ? false : resolved.isPaid;
     let installmentCashOutKeysPayload = undefined;
     if (needsInstallments && accForInstallments && installmentCount != null) {
         if (isCreditCardType(accForInstallments.type)) {

@@ -15,6 +15,10 @@ import { getDashboardBalanceAtPeriodEnd, setManualBalance, addLedgerEntryForMove
 import { referenceOnlyForUserMovement } from './reference-only.js';
 import { fetchExpenseSplitBundleForUser } from './expense-splits.js';
 import {
+    maybeCreateSplitReimbursementOnAccept,
+    maybeCreateSplitReimbursementOnRecipientMarkedPaid
+} from './split-reimbursement.js';
+import {
     fetchNotificationsForUser,
     markNotificationsReadForUser,
     notifySplitRequesterOnRecipientCashOutConfirm
@@ -1158,10 +1162,6 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
             if (Array.isArray(srcMonthRows) && srcMonthRows.length >= 2) {
                 const newGroupId = crypto.randomUUID();
                 const perAm = Number(splitRequestRow.amount) || 0;
-                const refGainPre = await referenceOnlyForUserMovement(
-                    splitRequestRow.requesterUserId,
-                    new Date()
-                );
                 const result = await withTransaction(async (client) => {
                     let firstExpense = null;
                     for (let i = 0; i < srcMonthRows.length; i++) {
@@ -1226,61 +1226,33 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                     }
 
                     const { rows: sourceRows } = await client.query(
-                        `SELECT description
-                         FROM expenses
-                         WHERE id = $1 AND user_id = $2`,
+                        `SELECT
+                            e.description,
+                            a.type AS "paymentType"
+                         FROM expenses e
+                         JOIN accounts a ON a.id = e.account_id AND a.user_id = e.user_id
+                         WHERE e.id = $1 AND e.user_id = $2`,
                         [splitRequestRow.sourceExpenseId, splitRequestRow.requesterUserId]
                     );
                     const sourceDesc = String(sourceRows[0]?.description ?? 'Compra').trim() || 'Compra';
 
-                    const scope = String(splitRequestRow.splitScope ?? 'FULL_EXPENSE')
-                        .trim()
-                        .toUpperCase();
-                    const deferReimbursement = scope === 'FULL_EXPENSE' && srcInstallmentCountForSplit >= 2;
-                    let gain = null;
-                    if (!deferReimbursement) {
-                        const gainId = crypto.randomUUID();
-                        const { rows: gainRows } = await client.query(
-                            `INSERT INTO gains (
-                                id, user_id, account_id, category, subcategory, amount, description,
-                                date, is_paid, recurrence_group_id, related_expense_id, reference_only
-                             ) VALUES (
-                                $1,$2,$3,$4,$5,$6,$7,
-                                now(), true, NULL, $8, $9
-                             )
-                             RETURNING
-                                id,
-                                user_id AS "userId",
-                                account_id AS "accountId",
-                                category,
-                                subcategory,
-                                amount,
-                                description,
-                                date,
-                                is_paid AS "isPaid",
-                                recurrence_group_id AS "recurrenceGroupId",
-                                related_expense_id AS "relatedExpenseId",
-                                reference_only AS "referenceOnly"`,
-                            [
-                                gainId,
-                                splitRequestRow.requesterUserId,
-                                splitRequestRow.requesterCreditAccountId,
-                                'Reembolsos',
-                                'PIX',
-                                Number(splitRequestRow.amount) || 0,
-                                `Estorno parcial — ${sourceDesc}`,
-                                splitRequestRow.sourceExpenseId,
-                                refGainPre
-                            ]
-                        );
-                        gain = gainRows[0];
-                    }
+                    const { gain } = await maybeCreateSplitReimbursementOnAccept(client, {
+                        split: {
+                            id: splitRequestBind,
+                            sourceExpenseId: splitRequestRow.sourceExpenseId,
+                            requesterUserId: splitRequestRow.requesterUserId,
+                            amount: splitRequestRow.amount,
+                            requesterCreditAccountId: splitRequestRow.requesterCreditAccountId,
+                            splitScope: splitRequestRow.splitScope
+                        },
+                        sourcePaymentType: sourceRows[0]?.paymentType,
+                        sourceInstallmentCount: srcInstallmentCountForSplit,
+                        sourceDescription: sourceDesc,
+                        recipientExpenseIsPaid: Boolean(createData.isPaid)
+                    });
 
                     const { rows: splitRows } = await client.query(
-                        `UPDATE expense_split_requests
-                         SET status = 'ACCEPTED', created_gain_id = $2, is_settled = $3, updated_at = now()
-                         WHERE id = $1
-                         RETURNING
+                        `SELECT
                             id,
                             source_expense_id AS "sourceExpenseId",
                             requester_user_id AS "requesterUserId",
@@ -1295,8 +1267,10 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                             sender_proof_url AS "senderProofUrl",
                             created_gain_id AS "createdGainId",
                             created_at AS "createdAt",
-                            updated_at AS "updatedAt"`,
-                        [splitRequestBind, gain?.id || null, deferReimbursement ? false : true]
+                            updated_at AS "updatedAt"
+                         FROM expense_split_requests
+                         WHERE id = $1`,
+                        [splitRequestBind]
                     );
                     return { expense: firstExpense, gain, split: splitRows[0] };
                 });
@@ -1313,11 +1287,6 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
         if (splitRequestBind && splitRequestRow && !splitAlreadyAccepted) {
             // Confirma o aceite APÓS criar a saída do destinatário.
             const refExpSplit = await referenceOnlyForUserMovement(uid, createData.date);
-            const gainNow = new Date();
-            const refGainSplit = await referenceOnlyForUserMovement(
-                splitRequestRow.requesterUserId,
-                gainNow
-            );
             const result = await withTransaction(async (client) => {
                 const expenseId = crypto.randomUUID();
                 const { rows: expRows } = await client.query(
@@ -1374,61 +1343,33 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                 const expense = expRows[0];
 
                 const { rows: sourceRows } = await client.query(
-                    `SELECT description
-                     FROM expenses
-                     WHERE id = $1 AND user_id = $2`,
+                    `SELECT
+                        e.description,
+                        a.type AS "paymentType"
+                     FROM expenses e
+                     JOIN accounts a ON a.id = e.account_id AND a.user_id = e.user_id
+                     WHERE e.id = $1 AND e.user_id = $2`,
                     [splitRequestRow.sourceExpenseId, splitRequestRow.requesterUserId]
                 );
                 const sourceDesc = String(sourceRows[0]?.description ?? 'Compra').trim() || 'Compra';
 
-                const scope = String(splitRequestRow.splitScope ?? 'FULL_EXPENSE')
-                    .trim()
-                    .toUpperCase();
-                const deferReimbursement = scope === 'FULL_EXPENSE' && srcInstallmentCountForSplit >= 2;
-                let gain = null;
-                if (!deferReimbursement) {
-                    const gainId = crypto.randomUUID();
-                    const { rows: gainRows } = await client.query(
-                        `INSERT INTO gains (
-                            id, user_id, account_id, category, subcategory, amount, description,
-                            date, is_paid, recurrence_group_id, related_expense_id, reference_only
-                         ) VALUES (
-                            $1,$2,$3,$4,$5,$6,$7,
-                            now(), true, NULL, $8, $9
-                         )
-                         RETURNING
-                            id,
-                            user_id AS "userId",
-                            account_id AS "accountId",
-                            category,
-                            subcategory,
-                            amount,
-                            description,
-                            date,
-                            is_paid AS "isPaid",
-                            recurrence_group_id AS "recurrenceGroupId",
-                            related_expense_id AS "relatedExpenseId",
-                            reference_only AS "referenceOnly"`,
-                        [
-                            gainId,
-                            splitRequestRow.requesterUserId,
-                            splitRequestRow.requesterCreditAccountId,
-                            'Reembolsos',
-                            'PIX',
-                            Number(splitRequestRow.amount) || 0,
-                            `Estorno parcial — ${sourceDesc}`,
-                            splitRequestRow.sourceExpenseId,
-                            refGainSplit
-                        ]
-                    );
-                    gain = gainRows[0];
-                }
+                const { gain } = await maybeCreateSplitReimbursementOnAccept(client, {
+                    split: {
+                        id: splitRequestBind,
+                        sourceExpenseId: splitRequestRow.sourceExpenseId,
+                        requesterUserId: splitRequestRow.requesterUserId,
+                        amount: splitRequestRow.amount,
+                        requesterCreditAccountId: splitRequestRow.requesterCreditAccountId,
+                        splitScope: splitRequestRow.splitScope
+                    },
+                    sourcePaymentType: sourceRows[0]?.paymentType,
+                    sourceInstallmentCount: srcInstallmentCountForSplit,
+                    sourceDescription: sourceDesc,
+                    recipientExpenseIsPaid: Boolean(createData.isPaid)
+                });
 
                 const { rows: splitRows } = await client.query(
-                    `UPDATE expense_split_requests
-                     SET status = 'ACCEPTED', created_gain_id = $2, is_settled = $3, updated_at = now()
-                     WHERE id = $1
-                     RETURNING
+                    `SELECT
                         id,
                         source_expense_id AS "sourceExpenseId",
                         requester_user_id AS "requesterUserId",
@@ -1443,8 +1384,10 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                         sender_proof_url AS "senderProofUrl",
                         created_gain_id AS "createdGainId",
                         created_at AS "createdAt",
-                        updated_at AS "updatedAt"`,
-                    [splitRequestBind, gain?.id || null, deferReimbursement ? false : true]
+                        updated_at AS "updatedAt"
+                     FROM expense_split_requests
+                     WHERE id = $1`,
+                    [splitRequestBind]
                 );
                 const split = splitRows[0];
 
@@ -1455,7 +1398,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
             await safeUpsertBalanceSnapshot(splitRequestRow.requesterUserId);
             return res.json({
                 expense: normalizeMovement(result.expense),
-                gain: normalizeMovement(result.gain),
+                gain: result.gain ? normalizeMovement(result.gain) : null,
                 split: result.split
             });
         }
@@ -1592,7 +1535,13 @@ app.put('/api/expenses/:id', requireAuth, async (req, res) => {
     try {
         const uid = req.session.userId;
         const { rows: existingRows } = await query(
-            `SELECT id FROM expenses WHERE id = $1 AND user_id = $2`,
+            `SELECT
+                id,
+                is_paid AS "isPaid",
+                split_request_id AS "splitRequestId",
+                recurrence_group_id AS "recurrenceGroupId"
+             FROM expenses
+             WHERE id = $1 AND user_id = $2`,
             [req.params.id, uid]
         );
         const existing = existingRows[0] || null;
@@ -1664,6 +1613,37 @@ app.put('/api/expenses/:id', requireAuth, async (req, res) => {
         );
         const updated = updatedRows[0] || null;
         if (updated) await addLedgerEntryForMovement(uid, updated, 'expense');
+
+        const becamePaid = existing.isPaid !== true && data.isPaid === true;
+        let splitReqId = updated?.splitRequestId ? String(updated.splitRequestId) : '';
+        if (!splitReqId && updated?.recurrenceGroupId) {
+            const rg = String(updated.recurrenceGroupId).trim();
+            if (rg) {
+                const { rows: sib } = await query(
+                    `SELECT split_request_id AS "splitRequestId"
+                     FROM expenses
+                     WHERE user_id = $1
+                       AND recurrence_group_id = $2
+                       AND split_request_id IS NOT NULL
+                     LIMIT 1`,
+                    [uid, rg]
+                );
+                if (sib[0]?.splitRequestId) splitReqId = String(sib[0].splitRequestId);
+            }
+        }
+        if (becamePaid && splitReqId) {
+            const { posted, gain } = await maybeCreateSplitReimbursementOnRecipientMarkedPaid(
+                { query },
+                {
+                    splitRequestId: splitReqId,
+                    recipientUserId: uid
+                }
+            );
+            if (posted && gain?.userId) {
+                await safeUpsertBalanceSnapshot(gain.userId);
+            }
+        }
+
         await safeUpsertBalanceSnapshot(uid);
         res.json(normalizeMovement(updated));
     } catch (e) {
@@ -1808,6 +1788,37 @@ app.patch('/api/expenses/batch', requireAuth, async (req, res) => {
                     merged.cashOutConfirmedPeriods ?? null
                 ]
             );
+
+            const becamePaid = ex.isPaid !== true && merged.isPaid === true;
+            let splitReqId = merged.splitRequestId ? String(merged.splitRequestId) : '';
+            if (!splitReqId && merged.recurrenceGroupId) {
+                const rg = String(merged.recurrenceGroupId).trim();
+                if (rg) {
+                    const { rows: sib } = await query(
+                        `SELECT split_request_id AS "splitRequestId"
+                         FROM expenses
+                         WHERE user_id = $1
+                           AND recurrence_group_id = $2
+                           AND split_request_id IS NOT NULL
+                         LIMIT 1`,
+                        [uid, rg]
+                    );
+                    if (sib[0]?.splitRequestId) splitReqId = String(sib[0].splitRequestId);
+                }
+            }
+            if (becamePaid && splitReqId) {
+                const { posted, gain } = await maybeCreateSplitReimbursementOnRecipientMarkedPaid(
+                    { query },
+                    {
+                        splitRequestId: splitReqId,
+                        recipientUserId: uid
+                    }
+                );
+                if (posted && gain?.userId) {
+                    await safeUpsertBalanceSnapshot(gain.userId);
+                }
+            }
+
             modified += 1;
         }
 
