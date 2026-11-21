@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { travelDocumentFromFinancePreferences } from '../motor/viagens/travel-document.js';
 import { query, withTransaction } from './db.js';
 
 function httpError(message, statusCode = 400) {
@@ -93,14 +94,20 @@ export async function ensureHouseholdForUser(uid) {
 export async function fetchHouseholdMembers(uid) {
     await ensureHouseholdForUser(uid);
     const { rows } = await query(
-        `SELECT u.id, u.name, u.email, hm.role
+        `SELECT u.id, u.name, u.email, hm.role, u.finance_preferences AS "financePreferences"
          FROM household_members hm
          JOIN users u ON u.id = hm.user_id
          WHERE hm.household_id IN ${householdIdsForUserSql(1)}
          ORDER BY LOWER(u.name), u.email`,
         [uid]
     );
-    return rows;
+    return rows.map((r) => ({
+        id: r.id,
+        name: r.name,
+        email: r.email,
+        role: r.role,
+        travelDocument: travelDocumentFromFinancePreferences(r.financePreferences)
+    }));
 }
 
 export async function fetchHouseholdSummary(uid) {

@@ -1,5 +1,7 @@
 export type TripStatus = 'planejada' | 'em_curso' | 'realizada';
 
+export type TripPlaceKind = 'city' | 'neighborhood' | 'country' | 'region' | 'poi' | 'airport' | 'other';
+
 export interface TripDestination {
     id: string;
     name: string;
@@ -9,7 +11,19 @@ export interface TripDestination {
     departedOn?: string | null;
     country?: string | null;
     isPrincipal?: boolean;
-    kind?: string | null;
+    kind?: TripPlaceKind | string | null;
+    /** Bairro ou subárea (ex.: Malasaña). */
+    neighborhood?: string | null;
+    /** Cidade / município vinculado ao pin (latim). */
+    city?: string | null;
+    /** Endereço completo do geocode (latim). */
+    address?: string | null;
+    /** Resumo para o guia do roteiro. */
+    guideSummary?: string | null;
+    /** Destaques em bullets (praias, museus, dicas). */
+    guideHighlights?: string[];
+    /** Avisos importantes (visto, segurança, horários). */
+    guideAlerts?: string[];
 }
 
 export type TripExpensePaymentMethod = 'pix' | 'credit_card';
@@ -45,6 +59,23 @@ export interface TripStay {
     amount?: number;
     checkInOn?: string;
     checkOutOn?: string;
+    check_in_on?: string;
+    check_out_on?: string;
+    city?: string;
+    country?: string;
+    address?: string;
+    latitude?: number;
+    longitude?: number;
+    lat?: number;
+    lng?: number;
+    paid?: boolean;
+    paidOn?: string;
+    paid_on?: string;
+    notes?: string;
+    source?: 'manual' | 'nominatim' | 'overpass' | 'search';
+    osmId?: string;
+    osmType?: string;
+    kind?: string;
 }
 
 export interface TripLeg {
@@ -54,6 +85,32 @@ export interface TripLeg {
     amount?: number;
     tripDestinationId?: string | null;
     departedOn?: string;
+}
+
+export type TripGroundTransportKind =
+    | 'car_rental'
+    | 'train'
+    | 'bus'
+    | 'taxi'
+    | 'rideshare'
+    | 'ferry'
+    | 'metro'
+    | 'other';
+
+export interface TripGroundTransport {
+    id: string;
+    kind?: TripGroundTransportKind | string;
+    title?: string;
+    fromName?: string;
+    from_name?: string;
+    toName?: string;
+    to_name?: string;
+    amount?: number;
+    tripDestinationId?: string | null;
+    trip_destination_id?: string | null;
+    departedOn?: string;
+    departed_on?: string;
+    notes?: string;
 }
 
 export interface TripDocItem {
@@ -68,6 +125,12 @@ export interface TripDocItem {
     attachmentUrl?: string;
 }
 
+export type TripCountryCheckRef = {
+    /** Rótulo canônico do país (PT). */
+    country: string;
+    field: 'requiredDocs' | 'paymentMethods' | 'internetChip';
+};
+
 export interface TripCheckItem {
     id: string;
     title: string;
@@ -76,14 +139,97 @@ export interface TripCheckItem {
     due_on?: string;
     /** Preenchido quando o item veio de um documento pendente. */
     sourceDocumentId?: string;
+    /** Item exibido no ID viagem (país) — mesma entrada do checklist. */
+    countryCheck?: TripCountryCheckRef;
     completed?: boolean;
+}
+
+export interface TripTravelerIdentity {
+    id: string;
+    /** Usuário Meu Mundo vinculado (você ou membro da casa). */
+    linkedUserId?: string | null;
+    fullName?: string;
+    passportNumber?: string;
+    passportExpiresOn?: string;
+    birthDate?: string;
+    cpf?: string;
+}
+
+export interface TripIdentityData {
+    travelers?: TripTravelerIdentity[];
+}
+
+export interface TripCountryTravelNote {
+    /** Valor na moeda local (texto, ex. "100" ou "1.250,50") */
+    localAmount?: string;
+    /** Cotação gravada automaticamente (ex. "1 USD = R$ 5,42") */
+    fxQuoteText?: string;
+    fxQuoteAsOf?: string | null;
+    /** Legado — linha de cotação editável */
+    currency?: string;
+    brlValue?: string;
+    requiredDocs?: string;
+    paymentMethods?: string;
+    internetChip?: string;
+    /** Evita recriar itens do checklist após o usuário apagar tudo. */
+    checksSeeded?: Partial<Record<'requiredDocs' | 'paymentMethods' | 'internetChip', boolean>>;
+    /** Legado */
+    obligations?: string;
+}
+
+/** Notas por país (rótulo canônico PT). */
+export type TripCountryTravelNotes = Record<string, TripCountryTravelNote>;
+
+export type TripItineraryItemCategory =
+    | 'sight'
+    | 'food'
+    | 'transport'
+    | 'lodging'
+    | 'shopping'
+    | 'important';
+
+export type TripItineraryTravelMode = 'flight' | 'ground' | 'walk';
+
+export interface TripItineraryItem {
+    id: string;
+    title: string;
+    destinationId?: string | null;
+    time?: string | null;
+    category?: TripItineraryItemCategory | string | null;
+    /** Trecho até este ponto (mapa e planner). */
+    travelMode?: TripItineraryTravelMode | string | null;
+    /** Bilhete terrestre (aba Transporte) usado nesta atividade. */
+    groundTransportId?: string | null;
+    ground_transport_id?: string | null;
+    /** Nome da cidade/local (persiste mesmo se o destino for reordenado no payload). */
+    placeName?: string | null;
+    place_name?: string | null;
+    notes?: string | null;
+    highlight?: boolean;
+    /** Atividade confirmada (modo leitura com resumo visual). */
+    saved?: boolean | null;
 }
 
 export interface TripItineraryDay {
     id: string;
     dayKey?: string;
     day_key?: string;
-    items?: { id: string; title: string }[];
+    /** Parada do roteiro à qual o dia está ligado. */
+    destinationId?: string | null;
+    placeName?: string | null;
+    place_name?: string | null;
+    title?: string | null;
+    /** Nota do dia (ex.: feriado BR) — não é atividade. */
+    notes?: string | null;
+    /** Hospedagem base do dia (ponto fixo de saída) — id em payload.stays. */
+    stayId?: string | null;
+    /**
+     * true = usuário escolheu/limpou a tag; não sobrescrever com sugestão automática.
+     */
+    stayIdManual?: boolean | null;
+    /** Dia confirmado (modo leitura no planner). */
+    saved?: boolean | null;
+    items?: TripItineraryItem[];
 }
 
 export type TripFlightSimulationStatus = 'candidata' | 'escolhida' | 'descartada';
@@ -175,12 +321,17 @@ export interface TripPayload {
     stays?: TripStay[];
     itinerary?: TripItineraryDay[];
     legs?: TripLeg[];
+    ground_transports?: TripGroundTransport[];
+    groundTransports?: TripGroundTransport[];
     flight_segments?: TripFlightSegment[];
     flightSegments?: TripFlightSegment[];
     documents?: TripDocItem[];
     checks?: TripCheckItem[];
-    budget_custom_categories?: { id: string; label: string }[];
-    budgetCustomCategories?: { id: string; label: string }[];
+    budget_custom_categories?: { id: string; label: string; icon?: string }[];
+    budgetCustomCategories?: { id: string; label: string; icon?: string }[];
+    /** Rótulos personalizados das categorias fixas do orçamento (id → nome). */
+    budget_category_labels?: Record<string, string>;
+    budgetCategoryLabels?: Record<string, string>;
     time_scenarios?: TripTimeScenario[];
     timeScenarios?: TripTimeScenario[];
     chosen_time_scenario_id?: string | null;
@@ -190,6 +341,10 @@ export interface TripPayload {
     /** Países da viagem (seleção manual; senão infere do roteiro). */
     tripCountries?: string[];
     trip_countries?: string[];
+    tripIdentity?: TripIdentityData;
+    trip_identity?: TripIdentityData;
+    countryTravelNotes?: TripCountryTravelNotes;
+    country_travel_notes?: TripCountryTravelNotes;
     [key: string]: unknown;
 }
 
@@ -246,7 +401,12 @@ export interface TripDetailResponse {
 export interface GeocodeHit {
     name: string;
     country: string;
+    address?: string;
+    city?: string;
+    countryCode?: string;
     latitude: number;
     longitude: number;
     kind: string;
+    category?: string;
+    placeType?: string;
 }

@@ -14,6 +14,7 @@ import {
     duplicateScenario,
     engineScenarioInput,
     listScenarios,
+    mergeEditableScenarioFields,
     normalizeScenario,
     patchScenarioVacationStart,
     scenarioDisplayName
@@ -111,9 +112,20 @@ export function TripSimuladorOverlay({ draft, scenarioWinnerId, onClose, onDraft
         };
     }, [onClose]);
 
+    const scenariosForEngine = useMemo(
+        () =>
+            prepared.map((sc) =>
+                mergeEditableScenarioFields(
+                    sc,
+                    scenarios.find((s) => String(s.id) === String(sc.id))
+                )
+            ),
+        [prepared, scenarios]
+    );
+
     const snapshotList = useMemo(
-        () => snapshots(prepared.map(engineScenario)) as ScenarioSnapshot[],
-        [prepared]
+        () => snapshots(scenariosForEngine.map(engineScenario)) as ScenarioSnapshot[],
+        [scenariosForEngine]
     );
 
     const winnerId = useMemo(
@@ -125,19 +137,11 @@ export function TripSimuladorOverlay({ draft, scenarioWinnerId, onClose, onDraft
     const activeScenario = activeIndex >= 0 ? prepared[activeIndex] : null;
     const editableScenario = useMemo(() => {
         if (!activeScenario) return null;
-        const raw = scenarios.find((s) => s.id === activeScenario.id);
-        if (!raw) return activeScenario;
-        return {
-            ...activeScenario,
-            vacations: raw.vacations ?? activeScenario.vacations,
-            remote: raw.remote ?? activeScenario.remote,
-            vacation_balance: raw.vacation_balance ?? activeScenario.vacation_balance,
-            vacationBalance: raw.vacationBalance ?? activeScenario.vacationBalance,
-            notes: raw.notes ?? activeScenario.notes
-        };
+        const raw = scenarios.find((s) => String(s.id) === String(activeScenario.id));
+        return mergeEditableScenarioFields(activeScenario, raw);
     }, [activeScenario, scenarios]);
-    const activeSnapshot = activeScenario
-        ? (snapshot(engineScenario(activeScenario)) as ScenarioSnapshot)
+    const activeSnapshot = editableScenario
+        ? (snapshot(engineScenario(editableScenario)) as ScenarioSnapshot)
         : null;
 
     const chosenId =

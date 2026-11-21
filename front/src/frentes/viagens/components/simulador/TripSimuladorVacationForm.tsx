@@ -4,6 +4,7 @@ import {
     sortHopsChronologically,
     suggestedVacationStart,
     vacationEndsOn,
+    vacationPeriodDays,
     type TripTimeHop,
     type TripVacationPeriod,
     type TripRemotePolicy
@@ -57,7 +58,7 @@ export function TripSimuladorVacationForm({ scenario, onChange, onVacationStart,
                 return {
                     ...p,
                     id: periodId(p, i),
-                    days: Math.max(1, Number(p.days ?? 18)),
+                    days: vacationPeriodDays(p),
                     startsOn: start,
                     starts_on: start
                 };
@@ -88,8 +89,8 @@ export function TripSimuladorVacationForm({ scenario, onChange, onVacationStart,
             ) : (
                 vacations.map((period, idx) => {
                     const pid = periodId(period, idx);
-                    const endKey = vacationEndsOn(period);
-                    const days = Math.max(1, period.days ?? 18);
+                    const days = vacationPeriodDays(period);
+                    const endKey = vacationEndsOn({ ...period, days });
 
                     return (
                         <article key={pid} className="viagens-sim-ferias__card">

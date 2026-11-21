@@ -4,6 +4,17 @@ import { ScreenLoader } from '../ui/ScreenLoader';
 
 const SWAP_MS = 380;
 
+/** Troca só entre abas Voos ↔ Transporte terrestre na mesma viagem (sem véu). */
+function isTransporteTabSwap(prev: string, next: string): boolean {
+    const m = (p: string) => {
+        const hit = p.match(/^\/viagens\/[^/]+\/transporte\/(voos|terrestre)\/?$/);
+        return hit?.[1] ?? null;
+    };
+    const a = m(prev);
+    const b = m(next);
+    return Boolean(a && b && a !== b);
+}
+
 type Props = {
     children: ReactNode;
     /** Viagens imersiva e outras rotas sem o chrome do app. */
@@ -21,7 +32,9 @@ export function ScreenSwap({ children, fullscreen = false }: Props) {
 
     useEffect(() => {
         if (prevPath.current === pathname) return;
+        const from = prevPath.current;
         prevPath.current = pathname;
+        if (isTransporteTabSwap(from, pathname)) return;
         if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
         setPending(true);

@@ -127,7 +127,7 @@ export function TripSimuladorDetail({
                         </h4>
                         {showDestDaysHint ? (
                             <p className="viagens-sim-destinos__config-hint" role="status">
-                                Preencha <strong>Saída</strong> em cada destino na ficha ou use <strong>Voos da ficha</strong> com horários — só a
+                                Preencha <strong>Saída</strong> em cada destino na ficha ou use <strong>Transportes da ficha</strong> com horários — só a
                                 chegada sem saída não define dias no país.
                             </p>
                         ) : null}

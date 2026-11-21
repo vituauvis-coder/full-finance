@@ -2,7 +2,22 @@
 
 import { DEFAULT_TAX_FX } from './tax-fx.js';
 
-const AWESOME_PAIRS = 'EUR-BRL,USD-BRL,GBP-BRL';
+const AWESOME_PAIRS = [
+    'EUR-BRL',
+    'USD-BRL',
+    'GBP-BRL',
+    'ARS-BRL',
+    'CLP-BRL',
+    'MXN-BRL',
+    'JPY-BRL',
+    'CHF-BRL',
+    'CAD-BRL',
+    'AUD-BRL',
+    'TRY-BRL',
+    'CNY-BRL',
+    'HKD-BRL',
+    'KRW-BRL'
+].join(',');
 const TTL_MS = 30 * 60 * 1000;
 
 let cache = null;
@@ -19,12 +34,16 @@ function midBidAsk(row) {
 /** @param {Record<string, { bid?: string, ask?: string, create_date?: string }>} json */
 export function parseAwesomeApiQuotes(json) {
     const rates = { BRL: 1 };
-    for (const code of ['EUR', 'USD', 'GBP']) {
-        const row = json[`${code}BRL`];
+  let asOf = null;
+    for (const key of Object.keys(json ?? {})) {
+        if (!key.endsWith('BRL') || key.length <= 3) continue;
+        const code = key.slice(0, -3);
+        const row = json[key];
         const mid = midBidAsk(row);
         if (mid > 0) rates[code] = Number(mid.toFixed(6));
+        if (!asOf && row?.create_date) asOf = row.create_date;
     }
-    const asOf = json.EURBRL?.create_date ?? json.USDBRL?.create_date ?? null;
+    asOf = asOf ?? json.EURBRL?.create_date ?? json.USDBRL?.create_date ?? null;
     return { rates, asOf, source: 'awesomeapi' };
 }
 

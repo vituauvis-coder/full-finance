@@ -1,0 +1,178 @@
+/* Flip clock (@leenguyen/react-flip-clock-countdown) — tema Viagens */
+
+#viagens-page .viagens-casa-central__panel--flip {
+    container-type: inline-size;
+    container-name: viagens-flip;
+    flex: 1 1 auto;
+    gap: 0.2rem;
+    min-height: 5.25rem;
+    padding-bottom: 0.4rem;
+}
+
+#viagens-page .viagens-flip-clock__link {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: stretch;
+    gap: 0.15rem;
+    min-height: 4.6rem;
+    color: inherit;
+    text-decoration: none;
+    border-radius: 0.45rem;
+    transition: background 0.15s ease;
+}
+
+#viagens-page .viagens-flip-clock__link:hover {
+    background: color-mix(in srgb, var(--v-turquesa) 5%, transparent);
+}
+
+#viagens-page .viagens-flip-clock {
+    --fcc-flip-duration: 0.55s;
+    --fcc-spacing: 10px;
+    --fcc-digit-block-width: 2rem;
+    --fcc-digit-block-height: 3rem;
+    --fcc-digit-block-radius: 8px;
+    --fcc-digit-block-spacing: 5px;
+    --fcc-digit-font-size: 1.85rem;
+    --fcc-label-font-size: 0.58rem;
+    --fcc-label-color: var(--v-legenda);
+    --fcc-background: linear-gradient(
+        168deg,
+        color-mix(in srgb, var(--v-oceano, var(--v-turquesa)) 78%, #12151c),
+        color-mix(in srgb, var(--v-turquesa) 42%, #0c1016)
+    );
+    --fcc-digit-color: color-mix(in srgb, var(--v-janela) 92%, var(--v-ouro) 8%);
+    --fcc-divider-color: color-mix(in srgb, #fff 22%, transparent);
+    --fcc-divider-height: 1px;
+    --fcc-shadow: 0 4px 14px color-mix(in srgb, var(--v-noite) 32%, transparent);
+    --fcc-separator-size: 7px;
+    --fcc-separator-color: var(--v-ouro);
+
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 4.35rem;
+    padding: 0.35rem 0.25rem 0.45rem;
+    border-radius: 0.65rem;
+    background: color-mix(in srgb, var(--v-painel) 88%, var(--v-oceano, var(--v-turquesa)) 12%);
+    border: 1px solid color-mix(in srgb, var(--v-turquesa) 22%, var(--v-borda));
+}
+
+@container viagens-flip (min-width: 220px) {
+    #viagens-page .viagens-flip-clock {
+        --fcc-digit-block-width: 2.15rem;
+        --fcc-digit-block-height: 3.15rem;
+        --fcc-digit-font-size: 1.95rem;
+        --fcc-spacing: 11px;
+    }
+}
+
+@container viagens-flip (min-width: 280px) {
+    #viagens-page .viagens-flip-clock {
+        --fcc-digit-block-width: 2.35rem;
+        --fcc-digit-block-height: 3.35rem;
+        --fcc-digit-font-size: 2.05rem;
+        --fcc-label-font-size: 0.62rem;
+        --fcc-spacing: 12px;
+        --fcc-digit-block-spacing: 6px;
+    }
+}
+
+#viagens-page .viagens-flip-clock__widget {
+    width: 100%;
+    max-width: none;
+    justify-content: space-evenly;
+    font-variant-numeric: tabular-nums;
+}
+
+#viagens-page .viagens-flip-clock__widget ._2EBbg {
+    font-weight: 800;
+    letter-spacing: -0.04em;
+}
+
+#viagens-page .viagens-flip-clock__widget ._3cpN7 {
+    flex: 0 1 auto;
+}
+
+#viagens-page .viagens-flip-clock__widget ._SKh-V,
+#viagens-page .viagens-flip-clock__widget ._106d2,
+#viagens-page .viagens-flip-clock__widget ._2v-d4 {
+    background: var(--fcc-background);
+}
+
+#viagens-page .viagens-flip-clock__widget ._2aOn7 {
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    opacity: 0.85;
+}
+
+#viagens-page .viagens-flip-clock__head {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin: 0;
+    flex-shrink: 0;
+    min-height: 1.1rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--v-legenda);
+}
+
+#viagens-page .viagens-flip-clock__head .viagens-cal__head-nav {
+    margin-left: auto;
+}
+
+#viagens-page .viagens-flip-clock__dots {
+    display: flex;
+    flex-shrink: 0;
+    justify-content: center;
+    gap: 0.3rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+#viagens-page .viagens-flip-clock__dot {
+    width: 0.4rem;
+    height: 0.4rem;
+    padding: 0;
+    border: none;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--v-borda) 65%, transparent);
+    cursor: pointer;
+}
+
+#viagens-page .viagens-flip-clock__dot.is-active {
+    background: var(--v-turquesa);
+    transform: scale(1.2);
+}
+
+#viagens-page .viagens-flip-clock--empty {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    min-height: 4.6rem;
+    opacity: 0.45;
+    filter: grayscale(0.35);
+    pointer-events: none;
+}
+
+@media (max-width: 900px) {
+    #viagens-page .viagens-flip-clock {
+        --fcc-digit-block-width: 1.75rem;
+        --fcc-digit-block-height: 2.65rem;
+        --fcc-digit-font-size: 1.65rem;
+        --fcc-spacing: 8px;
+    }
+
+    #viagens-page .viagens-flip-clock__widget {
+        justify-content: center;
+        flex-wrap: wrap;
+        row-gap: 0.35rem;
+    }
+}

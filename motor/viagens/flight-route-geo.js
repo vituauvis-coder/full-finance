@@ -1,7 +1,8 @@
 import { AIRPORTS_CATALOG } from './airports-catalog.js';
 import { AIRPORT_COORDS } from './airport-coords.js';
 import { sortFlightSimulations, tripFlightSegments } from './flight-simulation.js';
-import { isHomeName, routeStops } from './trip-places.js';
+import { isHomeDestination, isHomeName, routeStops } from './trip-places.js';
+import { effectiveStatus } from './trips-engine.js';
 import { greatCircleArc, smoothRouteCoordinates } from './great-circle.js';
 import { VIAGENS_HOME } from './viagens-atlas.js';
 
@@ -52,7 +53,7 @@ function coordsForIata(iata) {
     return { lng: pair[0], lat: pair[1], label: key };
 }
 
-function extractIata(text) {
+export function extractIata(text) {
     const t = str(text);
     const paren = t.match(/\(([A-Z]{3})\)/);
     if (paren) return paren[1];
@@ -170,6 +171,67 @@ function placeMarkerKey(point) {
 }
 
 /** Destino final de cada voo escolhido (ida), para pins no atlas. */
+/** Pins de rota e destinos (exceto casa) para o atlas. */
+export function routeMarkerPoints(trips = [], visits = [], now = new Date()) {
+    const out = [];
+    const seen = new Set();
+    const push = (trip, pt, meta = {}) => {
+        if (!pt || !Number.isFinite(pt.lng) || !Number.isFinite(pt.lat)) return;
+        if (startsNearHome(pt)) return;
+        const key = placeMarkerKey(pt);
+        if (seen.has(key)) return;
+        seen.add(key);
+
+        const status = effectiveStatus({
+            startsOn: trip.starts_on ?? trip.startsOn,
+            endsOn: trip.ends_on ?? trip.endsOn,
+            statusOverride: trip.status_override ?? trip.statusOverride,
+            now
+        });
+
+        let visit = null;
+        for (const v of visits ?? []) {
+            if (v.tripId !== trip.id) continue;
+            const lat = v.destination?.latitude;
+            const lng = v.destination?.longitude;
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+            if (Math.abs(lng - pt.lng) < 0.08 && Math.abs(lat - pt.lat) < 0.08) {
+                visit = v;
+                break;
+            }
+        }
+
+        const label = str(pt.label) || str(visit?.destination?.name) || 'Destino';
+        out.push({
+            id: visit?.id ?? `${trip.id}-${key}`,
+            lng: pt.lng,
+            lat: pt.lat,
+            label,
+            tripId: trip.id,
+            status: visit?.status ?? status,
+            isPrincipal: Boolean(meta.isPrincipal ?? visit?.destination?.isPrincipal),
+            visit
+        });
+    };
+
+    for (const trip of trips) {
+        const destinations = trip.payload?.destinations ?? [];
+        for (const dest of destinations) {
+            if (isHomeDestination(dest)) continue;
+            const lat = dest.latitude;
+            const lng = dest.longitude;
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+            push(trip, { lng, lat, label: dest.name }, { isPrincipal: dest.isPrincipal });
+        }
+        const paths = tripFlightPaths(trip);
+        if (paths) {
+            for (const pt of paths.ida) push(trip, pt);
+            for (const pt of paths.volta ?? []) push(trip, pt);
+        }
+    }
+    return out;
+}
+
 export function flightArrivalPoints(trips = []) {
     const out = [];
     const seen = new Set();

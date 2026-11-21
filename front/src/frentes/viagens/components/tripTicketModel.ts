@@ -57,12 +57,3 @@ export function tripTicketRef(trip: Trip): string {
     const raw = trip.id.replace(/-/g, '').slice(-8).toUpperCase();
     return raw || '00000000';
 }
-
-/** Nome de exibição de quem criou a viagem. */
-export function tripCreatorLabel(trip: Trip): string | null {
-    const name = trip.creator?.name?.trim();
-    if (name) return name;
-    const email = trip.creator?.email?.trim();
-    if (email) return email.split('@')[0] ?? email;
-    return null;
-}

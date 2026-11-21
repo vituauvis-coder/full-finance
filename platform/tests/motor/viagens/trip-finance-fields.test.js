@@ -47,7 +47,7 @@ test('buildFinanceExpenseDraft mapeia categoria Viagens e subcategoria', () => {
     assert.ok(draft);
     assert.equal(draft.category, FINANCE_TRIP_CATEGORY);
     assert.equal(draft.subcategory, tripExpenseSubcategory({ category: 'transporte' }));
-    assert.equal(draft.subcategory, 'Voos');
+    assert.equal(draft.subcategory, 'Transportes');
     assert.equal(draft.amount, 1200);
     assert.equal(draft.installmentCount, 3);
     assert.equal(draft.tripId, 'trip-abc');

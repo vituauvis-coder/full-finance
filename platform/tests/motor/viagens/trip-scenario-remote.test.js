@@ -3,6 +3,25 @@ import assert from 'node:assert/strict';
 import { buildRemoteSnapshot } from '../../../../motor/viagens/trip-scenario-remote.js';
 import { snapshot } from '../../../../motor/viagens/trip-scenario-engine.js';
 
+test('fim das férias alinha início inclusivo e dias declarados', () => {
+    const scenario = {
+        id: 'v',
+        name: 'Férias',
+        vacations: [{ id: 'p', startsOn: '2027-04-17', days: 19 }],
+        hops: [
+            {
+                id: 'h',
+                departsAt: '2027-04-17T10:00:00',
+                arrivesAt: '2027-05-15T20:00:00',
+                destinationCountry: 'Espanha'
+            }
+        ]
+    };
+    const snap = snapshot(scenario);
+    assert.equal(snap.vacation.endKey, '2027-05-05');
+    assert.equal(snap.vacation.consumedDays, 19);
+});
+
 test('conta dias remotos em dias úteis após férias, fora de voos tarde', () => {
     const scenario = {
         id: 's1',

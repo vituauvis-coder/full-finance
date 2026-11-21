@@ -8,8 +8,12 @@ import type { TripDraft } from '../ViagemFicha';
 import {
     buildOrcamentoSnapshot,
     ORCAMENTO_CATEGORIES,
+    defaultOrcamentoCategoryLabel,
+    isBuiltinOrcamentoCategory,
+    nextCustomCategoryIcon,
     patchDeposits,
     readDeposits,
+    readBudgetCategoryLabels,
     type PiggyDeposit
 } from './orcamento-model';
 import { CategoryLedgerPop } from './CategoryLedgerPop';
@@ -107,6 +111,100 @@ export function TripOrcamentoPanel({ trip, draft, onPatch, onFlushSave }: Props)
         });
     }
 
+    function addCustomCategory() {
+        const id = `custom_${crypto.randomUUID().slice(0, 8)}`;
+        onPatch((d) => {
+            const custom = [...(d.payload.budgetCustomCategories ?? d.payload.budget_custom_categories ?? [])];
+            custom.push({ id, label: 'Nova categoria' });
+            return {
+                ...d,
+                payload: {
+                    ...d.payload,
+                    budgetCustomCategories: custom,
+                    budget_custom_categories: custom
+                }
+            };
+        });
+    }
+
+    function cycleCustomCategoryIcon(id: string, currentIcon: string) {
+        const next = nextCustomCategoryIcon(currentIcon);
+        onPatch((d) => {
+            const custom = (d.payload.budgetCustomCategories ?? d.payload.budget_custom_categories ?? []).map((c) =>
+                c.id === id ? { ...c, icon: next } : c
+            );
+            return {
+                ...d,
+                payload: {
+                    ...d.payload,
+                    budgetCustomCategories: custom,
+                    budget_custom_categories: custom
+                }
+            };
+        });
+    }
+
+    function removeCustomCategory(id: string) {
+        if (isBuiltinOrcamentoCategory(id)) return;
+        onPatch((d) => {
+            const custom = (d.payload.budgetCustomCategories ?? d.payload.budget_custom_categories ?? []).filter(
+                (c) => c.id !== id
+            );
+            const nextCaps = { ...(d.budgetCaps ?? {}) };
+            delete nextCaps[id];
+            const expenses = (d.payload.expenses ?? []).map((ex) =>
+                ex.customCategoryId === id ? { ...ex, customCategoryId: null, category: 'extras' } : ex
+            );
+            return {
+                ...d,
+                budgetCaps: nextCaps,
+                payload: {
+                    ...d.payload,
+                    budgetCustomCategories: custom,
+                    budget_custom_categories: custom,
+                    expenses
+                }
+            };
+        });
+        if (ledgerCategoryId === id) setLedgerCategoryId(null);
+    }
+
+    function setCategoryLabel(catId: string, label: string) {
+        const trimmed = label.trim();
+        const defaultLabel = defaultOrcamentoCategoryLabel(catId);
+        onPatch((d) => {
+            const custom = [
+                ...(d.payload.budgetCustomCategories ?? d.payload.budget_custom_categories ?? [])
+            ];
+            const customIdx = custom.findIndex((c) => c.id === catId);
+            if (customIdx >= 0) {
+                custom[customIdx] = {
+                    ...custom[customIdx],
+                    label: trimmed || custom[customIdx].id
+                };
+                return {
+                    ...d,
+                    payload: {
+                        ...d.payload,
+                        budgetCustomCategories: custom,
+                        budget_custom_categories: custom
+                    }
+                };
+            }
+            const labels = { ...readBudgetCategoryLabels(d.payload) };
+            if (!trimmed || trimmed === defaultLabel) delete labels[catId];
+            else labels[catId] = trimmed;
+            return {
+                ...d,
+                payload: {
+                    ...d.payload,
+                    budgetCategoryLabels: labels,
+                    budget_category_labels: labels
+                }
+            };
+        });
+    }
+
     function addDeposit(amount: number, recordedOn: string) {
         onPatch((d) => {
             const list = readDeposits(d.payload);
@@ -180,10 +278,6 @@ export function TripOrcamentoPanel({ trip, draft, onPatch, onFlushSave }: Props)
 
     return (
         <section className="orc-workspace" aria-label="Orçamento da viagem">
-            <header className="orc-workspace__head">
-                <OrcamentoHeading trip={trip} />
-            </header>
-
             <OrcamentoOverview
                 snap={snap}
                 ledgerExtras={ledgerExtras}
@@ -207,6 +301,15 @@ export function TripOrcamentoPanel({ trip, draft, onPatch, onFlushSave }: Props)
                         <h3 id="orc-cat-title" className="orc-panel__title">
                             Categorias
                         </h3>
+                        <button
+                            type="button"
+                            className="orc-panel__add"
+                            aria-label="Nova categoria"
+                            title="Nova categoria"
+                            onClick={addCustomCategory}
+                        >
+                            <MaterialIcon name="add" variant="app" opticalSize={18} />
+                        </button>
                     </div>
                     <div className="orc-panel__scroll">
                         <ul className="orc-cat-list">
@@ -214,9 +317,22 @@ export function TripOrcamentoPanel({ trip, draft, onPatch, onFlushSave }: Props)
                                 <CategoryBudgetRow
                                     key={row.id}
                                     row={row}
+                                    defaultLabel={defaultOrcamentoCategoryLabel(row.id)}
                                     cap={Number(draft.budgetCaps?.[row.id] ?? row.cap) || 0}
+                                    isCustom={!isBuiltinOrcamentoCategory(row.id)}
                                     onCapChange={(v) => setCap(row.id, v)}
                                     onClear={() => clearCap(row.id)}
+                                    onLabelChange={(label) => setCategoryLabel(row.id, label)}
+                                    onRemove={
+                                        isBuiltinOrcamentoCategory(row.id)
+                                            ? undefined
+                                            : () => removeCustomCategory(row.id)
+                                    }
+                                    onCycleIcon={
+                                        isBuiltinOrcamentoCategory(row.id)
+                                            ? undefined
+                                            : () => cycleCustomCategoryIcon(row.id, row.icon)
+                                    }
                                     onOpen={() => setLedgerCategoryId(row.id)}
                                 />
                             ))}
@@ -251,6 +367,7 @@ export function TripOrcamentoPanel({ trip, draft, onPatch, onFlushSave }: Props)
                                         isEditing={editingExpenseId === ex.id}
                                         onStartEdit={() => openExpenseEdit(ex.id)}
                                         onEndEdit={closeExpenseEdit}
+                                        tripPayload={draft.payload}
                                         onChange={(next) =>
                                             setExpenses(expenses.map((x) => (x.id === ex.id ? next : x)))
                                         }
@@ -299,9 +416,14 @@ export function TripOrcamentoPanel({ trip, draft, onPatch, onFlushSave }: Props)
 
 function CategoryBudgetRow({
     row,
+    defaultLabel,
     cap,
+    isCustom,
     onCapChange,
     onClear,
+    onLabelChange,
+    onRemove,
+    onCycleIcon,
     onOpen
 }: {
     row: {
@@ -311,26 +433,62 @@ function CategoryBudgetRow({
         used: number;
         pay: { pixPaid: number; cardCommitted: number; cardInstallmentMonthly: number };
     };
+    defaultLabel: string;
     cap: number;
+    isCustom?: boolean;
     onCapChange: (n: number) => void;
     onClear: () => void;
+    onLabelChange: (label: string) => void;
+    onRemove?: () => void;
+    onCycleIcon?: () => void;
     onOpen: () => void;
 }) {
     const pct = cap > 0 ? Math.min(100, Math.round((row.used / cap) * 100)) : 0;
     const over = cap > 0 && row.used > cap;
     return (
         <li
-            className={`orc-cat-row${cap > 0 ? ' has-cap' : ''}${over ? ' is-over' : ''}`}
+            className={`orc-cat-row${cap > 0 ? ' has-cap' : ''}${over ? ' is-over' : ''}${isCustom ? ' is-custom' : ''}`}
             data-cat={row.id}
             style={{ '--orc-pct': `${pct}%` } as CSSProperties}
         >
+            <div className="orc-cat-row__name-wrap">
+                <CategoryNameInput
+                    value={row.label}
+                    defaultLabel={defaultLabel}
+                    onCommit={onLabelChange}
+                />
+                {onRemove ? (
+                    <button
+                        type="button"
+                        className="orc-cat-row__remove-cat"
+                        aria-label={`Excluir categoria ${row.label}`}
+                        onClick={onRemove}
+                    >
+                        <MaterialIcon name="delete" variant="app" opticalSize={14} />
+                    </button>
+                ) : null}
+            </div>
             <button type="button" className="orc-cat-row__hit" onClick={onOpen} aria-label={`Ver gastos de ${row.label}`}>
-                <span className="orc-cat-row__chip" aria-hidden="true">
-                    <MaterialIcon name={row.icon} variant="app" opticalSize={16} />
-                </span>
+                {onCycleIcon ? (
+                    <button
+                        type="button"
+                        className="orc-cat-row__chip orc-cat-row__chip--pick"
+                        aria-label={`Trocar ícone de ${row.label}`}
+                        title="Trocar ícone (voos: avião decolando)"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onCycleIcon();
+                        }}
+                    >
+                        <MaterialIcon name={row.icon} variant="app" opticalSize={16} />
+                    </button>
+                ) : (
+                    <span className="orc-cat-row__chip" aria-hidden="true">
+                        <MaterialIcon name={row.icon} variant="app" opticalSize={16} />
+                    </span>
+                )}
                 <div className="orc-cat-row__main">
                     <div className="orc-cat-row__meta">
-                        <span className="orc-cat-row__name">{row.label}</span>
                         <span className="orc-cat-row__spent">
                             {formatBRL(row.used)}
                             {cap > 0 ? <span className="orc-cat-row__of"> · {pct}%</span> : null}
@@ -353,6 +511,50 @@ function CategoryBudgetRow({
             </button>
             <CategoryCapControl cap={cap} label={row.label} onCapChange={onCapChange} onClear={onClear} />
         </li>
+    );
+}
+
+function CategoryNameInput({
+    value,
+    defaultLabel,
+    onCommit
+}: {
+    value: string;
+    defaultLabel: string;
+    onCommit: (label: string) => void;
+}) {
+    const [draft, setDraft] = useState(value);
+
+    useEffect(() => {
+        setDraft(value);
+    }, [value]);
+
+    function commit() {
+        const trimmed = draft.trim();
+        if (!trimmed) {
+            setDraft(value);
+            return;
+        }
+        if (trimmed !== value) onCommit(trimmed);
+    }
+
+    return (
+        <input
+            type="text"
+            className="orc-cat-row__name-input"
+            value={draft}
+            aria-label="Nome da categoria"
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commit}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter') e.currentTarget.blur();
+                if (e.key === 'Escape') {
+                    setDraft(value);
+                    e.currentTarget.blur();
+                }
+            }}
+            title={value !== defaultLabel ? `Padrão: ${defaultLabel}` : `Categoria (padrão: ${defaultLabel})`}
+        />
     );
 }
 
@@ -430,15 +632,6 @@ function CategoryCapControl({
                     <MaterialIcon name="close" variant="app" opticalSize={13} />
                 </button>
             ) : null}
-        </div>
-    );
-}
-
-function OrcamentoHeading({ trip }: { trip: Trip }) {
-    return (
-        <div className="orc-workspace__title-block">
-            <h2 className="orc-workspace__title">Orçamento</h2>
-            <p className="orc-workspace__trip">{trip.title}</p>
         </div>
     );
 }

@@ -2042,6 +2042,7 @@
     --orc-accent: var(--v-coral);
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(5.75rem, 7.25rem);
+    grid-template-rows: auto auto;
     align-items: center;
     gap: 0.45rem;
     padding: 0.45rem 0.5rem;
@@ -2074,7 +2075,71 @@
     background: color-mix(in srgb, var(--v-coral) 90%, white);
 }
 
+#viagens-page .orc-cat-row__name-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    min-width: 0;
+    grid-column: 1;
+    grid-row: 1;
+}
+
+#viagens-page .orc-cat-row__name-wrap .orc-cat-row__name-input {
+    flex: 1;
+    min-width: 0;
+    grid-column: auto;
+    grid-row: auto;
+    width: auto;
+}
+
+#viagens-page .orc-cat-row__remove-cat {
+    flex-shrink: 0;
+    display: inline-flex;
+    padding: 0.2rem;
+    border: none;
+    border-radius: 0.4rem;
+    background: transparent;
+    color: color-mix(in srgb, var(--text-color) 40%, transparent);
+    cursor: pointer;
+    opacity: 0.65;
+}
+
+#viagens-page .orc-cat-row__remove-cat:hover {
+    opacity: 1;
+    color: var(--v-coral, #e85d5d);
+}
+
+#viagens-page .orc-cat-row__name-input {
+    grid-column: 1;
+    grid-row: 1;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: 0.12rem 0.2rem;
+    border: 0;
+    border-bottom: 1px dashed color-mix(in srgb, var(--v-borda) 70%, transparent);
+    border-radius: 0;
+    background: transparent;
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 750;
+    line-height: 1.2;
+    color: var(--v-tinta);
+}
+
+#viagens-page .orc-cat-row__name-input:hover {
+    border-bottom-color: color-mix(in srgb, var(--orc-accent) 40%, var(--v-borda));
+}
+
+#viagens-page .orc-cat-row__name-input:focus {
+    outline: none;
+    border-bottom-style: solid;
+    border-bottom-color: color-mix(in srgb, var(--orc-accent) 55%, var(--v-borda));
+}
+
 #viagens-page .orc-cat-row__hit {
+    grid-column: 1;
+    grid-row: 2;
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
@@ -2121,6 +2186,22 @@
     border-radius: 0.45rem;
     color: color-mix(in srgb, var(--v-tinta) 55%, transparent);
     background: color-mix(in srgb, var(--v-tinta) 8%, transparent);
+}
+
+#viagens-page button.orc-cat-row__chip--pick {
+    margin: 0;
+    padding: 0;
+    border: 1px dashed color-mix(in srgb, var(--v-tinta) 22%, transparent);
+    cursor: pointer;
+    font: inherit;
+    flex-shrink: 0;
+}
+
+@media (hover: hover) {
+    #viagens-page button.orc-cat-row__chip--pick:hover {
+        border-color: color-mix(in srgb, var(--orc-accent, var(--v-turquesa)) 45%, transparent);
+        color: var(--orc-accent, var(--v-turquesa));
+    }
 }
 
 #viagens-page .orc-cat-row__main {
@@ -2200,6 +2281,9 @@
 }
 
 #viagens-page .orc-cat-row__cap-shell {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
     display: flex;
     align-items: center;
     justify-content: flex-end;

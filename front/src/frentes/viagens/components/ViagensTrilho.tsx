@@ -1,5 +1,6 @@
 import type { Trip } from '../types';
 import { TripTicketCard } from './TripTicketCard';
+import { ViagemTripCountdown } from './ViagemTripCountdown';
 import { useOpenNewTrip } from '../hooks/useOpenNewTrip';
 
 type Props = {
@@ -13,7 +14,7 @@ export function ViagensTrilho({ trips }: Props) {
     return (
         <aside className="viagens-casa__trail" aria-label="Trilho de viagens">
             <div className="viagens-trail-header">
-                <h2>Viagens</h2>
+                <h2>Minhas viagens</h2>
                 <button
                     type="button"
                     className="viagens-btn viagens-btn--ghost viagens-trail-new"
@@ -29,7 +30,8 @@ export function ViagensTrilho({ trips }: Props) {
                 ) : (
                     trips.map((trip, i) => (
                         <div key={trip.id} className="viagens-trail-item" style={{ animationDelay: `${i * 0.06}s` }}>
-                            <TripTicketCard trip={trip} />
+                            <TripTicketCard trip={trip} hideDates />
+                            <ViagemTripCountdown trip={trip} />
                         </div>
                     ))
                 )}

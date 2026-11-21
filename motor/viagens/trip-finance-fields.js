@@ -5,7 +5,7 @@ export const FINANCE_TRIP_CATEGORY = 'Viagens';
 const SUBCATEGORY_BY_TRIP_CAT = {
     hospedagem: 'Hospedagem',
     comida: 'Comida',
-    transporte: 'Voos',
+    transporte: 'Transportes',
     passeios: 'Passeios',
     extras: 'Extras',
     documentos: 'Documentos'

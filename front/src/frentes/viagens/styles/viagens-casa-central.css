@@ -3,8 +3,8 @@
     flex-direction: column;
     gap: 0.65rem;
     flex: 0 0 auto;
-    margin: 0 0 0.75rem;
-    padding: 0.75rem 0.85rem;
+    margin: 0 0 0.55rem;
+    padding: 0.55rem 0.65rem;
     border-radius: 1.1rem;
     border: 1px solid var(--v-borda);
     background:
@@ -14,45 +14,102 @@
         0 10px 28px color-mix(in srgb, var(--v-noite) 6%, transparent);
 }
 
-#viagens-page .viagens-casa-central__toolbar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.65rem 1rem;
-}
-
-#viagens-page .viagens-casa-central__brand {
-    display: flex;
-    align-items: center;
-    gap: 0.65rem;
-    min-width: 0;
-}
-
-#viagens-page .viagens-casa-central__brand-icon {
-    display: grid;
-    place-items: center;
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 0.85rem;
-    background: color-mix(in srgb, var(--v-turquesa) 18%, var(--v-painel));
-    color: var(--v-turquesa);
-    flex-shrink: 0;
-}
-
-#viagens-page .viagens-casa-central__brand-kicker {
-    margin: 0;
-    font-size: 0.9rem;
+#viagens-page .viagens-casa-central__kicker {
+    margin: 0 0 0.35rem;
+    padding: 0 0.05rem;
+    font-size: 0.78rem;
     font-weight: 800;
     letter-spacing: -0.02em;
     color: var(--v-tinta);
 }
 
-#viagens-page .viagens-casa-central__brand-sub {
-    margin: 0.12rem 0 0;
-    font-size: 0.78rem;
-    line-height: 1.35;
+#viagens-page .viagens-casa-central--compact {
+    flex-shrink: 0;
+    margin: 0;
+    padding: 0.45rem 0.55rem 0.5rem;
+    border-radius: 0;
+    border: none;
+    border-bottom: 1px solid var(--v-borda);
+    background: color-mix(in srgb, var(--v-janela) 40%, var(--v-painel));
+    box-shadow: none;
+}
+
+#viagens-page .viagens-casa-central__compact-row {
+    display: flex;
+    align-items: stretch;
+    gap: 0.4rem;
+    min-height: 0;
+}
+
+#viagens-page .viagens-casa-central--compact .viagens-casa-central__wallets-scroll {
+    flex: 1 1 auto;
+    min-height: 3.35rem;
+    min-width: 0;
+    gap: 0.4rem;
+    padding: 0.05rem 0;
+}
+
+#viagens-page .viagens-casa-central__milhas-btn--icon {
+    width: 2.5rem;
+    min-width: 2.5rem;
+    height: auto;
+    align-self: stretch;
+    padding: 0;
+    border-radius: 0.65rem;
+}
+
+#viagens-page .viagens-casa-central__milhas-btn--icon .app-icon {
+    margin: 0;
+}
+
+#viagens-page .viagens-casa-central__wallet--compact {
+    flex: 0 0 6.75rem;
+    min-height: 3.2rem;
+    padding: 0.38rem 0.42rem 0.35rem;
+    grid-template-rows: auto auto auto auto;
+    gap: 0.08rem;
+}
+
+#viagens-page .viagens-casa-central__wallet--compact .viagens-casa-central__wallet-name {
+    font-size: 0.68rem;
+    -webkit-line-clamp: 1;
+}
+
+#viagens-page .viagens-casa-central__wallet--compact .viagens-casa-central__wallet-pts {
+    font-size: 0.88rem;
+}
+
+#viagens-page .viagens-casa-central__wallet--compact .viagens-casa-central__wallet-brl {
+    font-size: 0.58rem;
     color: var(--v-legenda);
+}
+
+#viagens-page .viagens-casa-central__wallet--compact .viagens-casa-central__wallet-unit {
+    display: none;
+}
+
+#viagens-page .viagens-casa-central__wallet--compact .viagens-casa-central__wallet-sub {
+    display: none;
+}
+
+#viagens-page .viagens-casa-central__wallet--compact .viagens-casa-central__wallet-bar {
+    margin-top: 0.08rem;
+    height: 3px;
+}
+
+#viagens-page .viagens-casa-central__empty-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-shrink: 0;
+    padding: 0.45rem 0.65rem;
+    border-radius: 0.65rem;
+    border: 1px dashed color-mix(in srgb, var(--v-borda) 80%, transparent);
+    background: var(--v-janela);
+    color: var(--v-legenda);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-decoration: none;
 }
 
 #viagens-page .viagens-casa-central__milhas-btn {
@@ -60,29 +117,41 @@
     align-items: center;
     justify-content: center;
     gap: 0.35rem;
-    padding: 0.5rem 0.9rem;
-    font-size: 0.8rem;
+    flex-shrink: 0;
+    padding: 0.45rem 0.75rem;
+    font-size: 0.76rem;
+    font-weight: 700;
     white-space: nowrap;
-    background: color-mix(in srgb, var(--v-turquesa) 16%, var(--v-janela));
-    border: 1px solid color-mix(in srgb, var(--v-turquesa) 42%, var(--v-borda));
+    border-radius: 0.65rem;
+    background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--v-turquesa) 22%, var(--v-janela)),
+        color-mix(in srgb, var(--v-ouro) 12%, var(--v-janela))
+    );
+    border: 1px solid color-mix(in srgb, var(--v-turquesa) 48%, var(--v-borda));
     color: var(--v-tinta);
     text-decoration: none;
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--v-turquesa) 12%, transparent);
+    transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+
+#viagens-page .viagens-casa-central__milhas-btn:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--v-turquesa) 62%, var(--v-borda));
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--v-turquesa) 18%, transparent);
 }
 
 #viagens-page .viagens-casa-central__panels {
-    display: grid;
-    grid-template-columns: minmax(0, 1.15fr) minmax(13.5rem, 0.85fr);
-    gap: 0.65rem;
-    align-items: stretch;
+    display: block;
 }
 
 #viagens-page .viagens-casa-central__panel {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.35rem;
     min-width: 0;
-    min-height: 6.5rem;
-    padding: 0.65rem 0.7rem 0.7rem;
+    min-height: 0;
+    padding: 0.45rem 0.55rem 0.5rem;
     border-radius: 0.9rem;
     border: 1px solid color-mix(in srgb, var(--v-borda) 88%, var(--v-turquesa) 12%);
     background: color-mix(in srgb, var(--v-painel) 88%, transparent);
@@ -94,6 +163,19 @@
     align-items: baseline;
     justify-content: space-between;
     gap: 0.35rem 0.75rem;
+}
+
+#viagens-page .viagens-casa-central__panel-head--wallets {
+    align-items: center;
+}
+
+#viagens-page .viagens-casa-central__panel-title-block {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.35rem 0.65rem;
+    min-width: 0;
+    flex: 1 1 auto;
 }
 
 #viagens-page .viagens-casa-central__panel-head h3 {
@@ -109,7 +191,7 @@
     margin: 0;
     font-size: 0.72rem;
     color: var(--v-legenda);
-    text-align: right;
+    text-align: left;
 }
 
 #viagens-page .viagens-casa-central__panel-meta strong {
@@ -122,10 +204,10 @@
     gap: 0.55rem;
     align-items: stretch;
     flex: 1 1 auto;
-    min-height: 5.75rem;
+    min-height: 4.35rem;
     overflow-x: auto;
     overflow-y: visible;
-    padding: 0.15rem 0.1rem 0.25rem;
+    padding: 0.08rem 0.05rem 0.12rem;
     scrollbar-width: thin;
 }
 
@@ -174,13 +256,13 @@
 #viagens-page .viagens-casa-central__wallet {
     --pontos-brand: var(--v-turquesa);
     position: relative;
-    flex: 0 0 10.5rem;
+    flex: 0 0 9.75rem;
     display: grid;
-    grid-template-rows: auto auto auto 1fr auto auto;
+    grid-template-rows: auto auto auto auto auto auto;
     align-content: start;
-    gap: 0.2rem;
-    min-height: 5.5rem;
-    padding: 0.6rem 0.65rem 0.55rem;
+    gap: 0.12rem;
+    min-height: 4.5rem;
+    padding: 0.45rem 0.5rem 0.42rem;
     border-radius: 0.85rem;
     border: 1px solid color-mix(in srgb, var(--pontos-brand) 38%, var(--v-borda));
     background:
@@ -229,7 +311,7 @@
 }
 
 #viagens-page .viagens-casa-central__wallet-pts {
-    font-size: 1.05rem;
+    font-size: 0.98rem;
     font-weight: 800;
     letter-spacing: -0.03em;
     line-height: 1.1;
@@ -261,124 +343,6 @@
     align-self: stretch;
 }
 
-#viagens-page .viagens-casa-central__kpis {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.45rem;
-    margin: 0;
-}
-
-#viagens-page .viagens-casa-central__kpi {
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-    padding: 0.35rem 0.45rem;
-    border-radius: 0.65rem;
-    background: color-mix(in srgb, var(--v-janela) 70%, transparent);
-    border: 1px solid color-mix(in srgb, var(--v-borda) 70%, transparent);
-}
-
-#viagens-page .viagens-casa-central__kpi dt {
-    margin: 0;
-    font-size: 0.62rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--v-legenda);
-}
-
-#viagens-page .viagens-casa-central__kpi dd {
-    margin: 0;
-    font-size: 1.15rem;
-    font-weight: 800;
-    letter-spacing: -0.03em;
-    line-height: 1;
-}
-
-#viagens-page .viagens-casa-central__kpi dd small {
-    margin-left: 0.1rem;
-    font-size: 0.72rem;
-    font-weight: 700;
-    color: var(--v-legenda);
-}
-
-#viagens-page .viagens-casa-central__bar {
-    display: flex;
-    width: 100%;
-    height: 0.5rem;
-    margin-top: 0.15rem;
-    border-radius: 999px;
-    overflow: hidden;
-    background: color-mix(in srgb, var(--v-borda) 55%, transparent);
-}
-
-#viagens-page .viagens-casa-central__bar-seg {
-    display: block;
-    min-width: 6px;
-    height: 100%;
-}
-
-#viagens-page .viagens-casa-central__bar-seg--planejada {
-    background: color-mix(in srgb, var(--v-ouro) 85%, #fff);
-}
-
-#viagens-page .viagens-casa-central__bar-seg--em_curso {
-    background: var(--v-turquesa);
-}
-
-#viagens-page .viagens-casa-central__bar-seg--realizada {
-    background: color-mix(in srgb, var(--v-coral) 75%, var(--v-turquesa));
-}
-
-#viagens-page .viagens-casa-central__bar-empty {
-    display: block;
-    width: 100%;
-    height: 100%;
-    background: color-mix(in srgb, var(--v-borda) 40%, transparent);
-}
-
-#viagens-page .viagens-casa-central__chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem;
-    margin: 0.15rem 0 0;
-    padding: 0;
-    list-style: none;
-}
-
-#viagens-page .viagens-casa-central__chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.22rem 0.5rem;
-    border-radius: 999px;
-    font-size: 0.68rem;
-    font-weight: 600;
-    border: 1px solid color-mix(in srgb, var(--v-borda) 80%, transparent);
-    background: var(--v-janela);
-    color: var(--v-legenda);
-}
-
-#viagens-page .viagens-casa-central__chip strong {
-    font-weight: 800;
-    color: var(--v-tinta);
-}
-
-#viagens-page .viagens-casa-central__chip--planejada {
-    border-color: color-mix(in srgb, var(--v-ouro) 45%, var(--v-borda));
-}
-
-#viagens-page .viagens-casa-central__chip--em_curso {
-    border-color: color-mix(in srgb, var(--v-turquesa) 45%, var(--v-borda));
-}
-
-#viagens-page .viagens-casa-central__chip--realizada {
-    border-color: color-mix(in srgb, var(--v-coral) 35%, var(--v-borda));
-}
-
-#viagens-page .viagens-casa-central__chip--muted {
-    border-style: dashed;
-}
 
 @media (max-width: 900px) {
     #viagens-page .viagens-casa-central__panels {
@@ -386,11 +350,15 @@
     }
 
     #viagens-page .viagens-casa-central__wallet {
-        flex-basis: 9.5rem;
+        flex-basis: 9rem;
     }
 
     #viagens-page .viagens-casa-central__panel-meta {
         text-align: left;
         width: 100%;
+    }
+
+    #viagens-page .viagens-home-cal__row {
+        grid-template-columns: 2.85rem minmax(0, 1fr);
     }
 }

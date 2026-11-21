@@ -100,7 +100,7 @@ export function TripSimuladorHopsPanel({ scenario, segments, destinations, onCha
                             onClick={() => setFlightPickerOpen(true)}
                         >
                             <MaterialIcon name={pulls ? 'check_circle' : 'radio_button_unchecked'} variant="app" opticalSize={14} />
-                            Voos da ficha
+                            Transportes da ficha
                             {pulls && pickCount > 0 ? (
                                 <span className="viagens-sim-trechos__ficha-count">{pickCount}</span>
                             ) : null}
@@ -116,7 +116,7 @@ export function TripSimuladorHopsPanel({ scenario, segments, destinations, onCha
                 <div className="viagens-sim-trechos__empty">
                     <p className="viagens-muted">
                         {hasFlights
-                            ? 'Abra Voos da ficha para escolher simulações por trecho.'
+                            ? 'Abra Transportes da ficha para escolher simulações por trecho.'
                             : 'Origem, destino e horários de cada deslocamento. Recife entra como saída padrão.'}
                     </p>
                     <div className="viagens-sim-trechos__empty-actions">

@@ -103,7 +103,7 @@ function vacationDayKeys(vacations) {
     const keys = new Set();
     for (const period of vacations ?? []) {
         const startKey = String(period.startsOn ?? period.starts_on ?? '').trim().slice(0, 10);
-        const days = Math.max(1, Number(period.days ?? 1));
+        const days = Math.max(1, Number(period.days ?? 18));
         const start = parseDayKey(startKey);
         if (!start) continue;
         for (let i = 0; i < days; i++) {

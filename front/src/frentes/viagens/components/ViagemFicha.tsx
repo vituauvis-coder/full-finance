@@ -18,8 +18,11 @@ import { ViagemMiniMap } from './ViagemMiniMap';
 import { tripFlightSegments } from '@motor/viagens/flight-simulation.js';
 import { ViagemSecaoCard } from './ViagemSecaoCard';
 import { ViagemModuloPanel, ViagemModulos, type FichaModuloId } from './ViagemModulos';
+import { TripIdViagemModal } from './TripIdViagemModal';
 import { TripFichaTopRow } from './TripFichaTopRow';
+import { TripFeedSection } from './feed/TripFeedSection';
 import { TripOrcamentoPanel } from './orcamento/TripOrcamentoPanel';
+import { orcamentoCategoryLabel } from './orcamento/orcamento-model';
 import '../styles/orcamento-workspace.css';
 import { formatBRL } from '../utils/map-utils';
 import '../styles/viagens-ficha-form.css';
@@ -30,7 +33,7 @@ const BUILTIN_CATS = ['hospedagem', 'comida', 'transporte', 'passeios', 'extras'
 const CAT_LABELS: Record<(typeof BUILTIN_CATS)[number], string> = {
     hospedagem: 'Hospedagem',
     comida: 'Comida',
-    transporte: 'Transporte',
+    transporte: 'Transportes',
     passeios: 'Passeios',
     extras: 'Extras'
 };
@@ -131,6 +134,7 @@ export function ViagemFicha({
     const [geoQ, setGeoQ] = useState('');
     const [geoHits, setGeoHits] = useState<GeocodeHit[]>([]);
     const [internalModulo, setInternalModulo] = useState<FichaModuloId | null>(null);
+    const [tripIdModalOpen, setTripIdModalOpen] = useState(false);
     const fichaModulo = onModuloChange ? (modulo ?? null) : internalModulo;
     const setFichaModulo = onModuloChange ?? setInternalModulo;
 
@@ -276,7 +280,7 @@ export function ViagemFicha({
             <div className="viagens-form-stack">
                 {budgetRows.map((row) => {
                     const cat = row.category as (typeof BUILTIN_CATS)[number];
-                    const label = CAT_LABELS[cat] ?? row.category;
+                    const label = orcamentoCategoryLabel(draft.payload, row.category, CAT_LABELS[cat] ?? row.category);
                     const cap = row.cap;
                     const used = row.spent;
                     const pct = cap > 0 ? Math.min(100, (used / cap) * 100) : 0;
@@ -530,7 +534,11 @@ export function ViagemFicha({
         <>
             {!isCadastro && fichaModulo == null ? (
                 <div className="viagens-ficha-home">
-                    <ViagemModulos tripId={trip.id} onOpen={setFichaModulo} />
+                    <ViagemModulos
+                        tripId={trip.id}
+                        onOpen={setFichaModulo}
+                        onOpenTripId={() => setTripIdModalOpen(true)}
+                    />
                     <TripFichaTopRow
                         trip={trip}
                         draft={draft}
@@ -538,6 +546,7 @@ export function ViagemFicha({
                         scenarioCount={scenarioCount}
                         onOpenSimulador={onOpenSimulador}
                     />
+                    <TripFeedSection trip={trip} draft={draft} />
                 </div>
             ) : null}
 
@@ -546,7 +555,7 @@ export function ViagemFicha({
                     <EssentialCadastroShell isCadastro>{destinosCore}</EssentialCadastroShell>
                     <ViagemSecaoCard title="Opcional · orçamento e logística" seal="ouro" defaultOpen={false}>
                         {orcamentoCore}
-                        <p className="viagens-form-subhead">Voos</p>
+                        <p className="viagens-form-subhead">Transportes</p>
                         <div className="viagens-form-stack">
                             {flightSegments.map((seg) => (
                                 <div key={seg.id} className="viagens-form-check-row">
@@ -593,11 +602,17 @@ export function ViagemFicha({
                     onFlushSave={onFlushSave}
                 />
             ) : fichaModulo ? (
-                <ViagemModuloPanel modulo={fichaModulo} onBack={() => setFichaModulo(null)}>
+                <ViagemModuloPanel modulo={fichaModulo}>
                     {fichaModulo === 'roteiros' ? destinosCore : null}
-                    {fichaModulo === 'hospedagens' ? hospedagensCore : null}
                 </ViagemModuloPanel>
             ) : null}
+            <TripIdViagemModal
+                open={tripIdModalOpen}
+                trip={trip}
+                draft={draft}
+                onClose={() => setTripIdModalOpen(false)}
+                onPatch={patch}
+            />
         </>
     );
 }

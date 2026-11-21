@@ -321,7 +321,7 @@ export function MilesWalletHub({ tripId, showTripEmissions, showGlobalKpis, befo
                 buyMilheiro: Number(selected?.milheiro) > 0 ? Number(selected?.milheiro) : 14,
                 options: []
             })) as { emission: { id: string } };
-            navigate(`/viagens/${tripId}/voos/pontos/emissao/${emission.id}`);
+            navigate(`/viagens/${tripId}/transporte/voos/pontos/emissao/${emission.id}`);
         } catch (err) {
             setError(milesError(err));
         } finally {
@@ -719,7 +719,7 @@ export function MilesWalletHub({ tripId, showTripEmissions, showGlobalKpis, befo
                             <ul className="pontos-sim-list">
                                 {sims.map((s) => (
                                     <li key={s.id}>
-                                        <Link to={`/viagens/${tripId}/voos/pontos/emissao/${s.id}`}>
+                                        <Link to={`/viagens/${tripId}/transporte/voos/pontos/emissao/${s.id}`}>
                                             <strong>{s.title}</strong>
                                             <span className={`pontos-status pontos-status--${s.status}`}>
                                                 {statusLabel(s.status)}

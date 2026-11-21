@@ -4,6 +4,7 @@ import type { TripCheckItem, TripDocItem } from '../types';
 import type { TripDraft } from './ViagemFicha';
 import { TripDocumentsModal } from './TripDocumentsModal';
 import { ChecklistDueField } from './ChecklistDueField';
+import { checkDueOn, isCheckDone } from '../domain/tripChecklistUtils';
 
 type Props = {
     checks: TripCheckItem[];
@@ -11,12 +12,8 @@ type Props = {
     onPatch: (fn: (d: TripDraft) => TripDraft) => void;
 };
 
-function checkDueOn(c: TripCheckItem): string | undefined {
-    return c.dueOn?.trim() || c.due_on?.trim() || undefined;
-}
-
 function isDone(c: TripCheckItem): boolean {
-    return !!(c.done || c.completed);
+    return isCheckDone(c);
 }
 
 function sortCheckIndices(checks: TripCheckItem[]): number[] {
@@ -128,50 +125,54 @@ export function TripChecklistPanel({ checks, documents, onPatch }: Props) {
                     </div>
                 </header>
 
-                {checks.length === 0 ? (
-                    <div className="viagens-checklist__empty">
-                        <p className="viagens-checklist__empty-lead">Mala, visto, vacina…</p>
-                        <p className="viagens-checklist__empty-hint">
-                            Documentos pendentes viram tarefas aqui. Use a pastinha para anexar link ou arquivo.
-                        </p>
-                    </div>
-                ) : (
-                    <div className="viagens-checklist__list">
-                        {pending.length > 0 ? (
-                            <section className="viagens-checklist__group" aria-label="A fazer">
-                                <h4 className="viagens-checklist__group-label">A fazer</h4>
-                                {pending.map((i) => (
-                                    <ChecklistRow
-                                        key={checks[i].id}
-                                        item={checks[i]}
-                                        due={checkDueOn(checks[i])}
-                                        onPatch={patchCheck}
-                                        onRemove={() => removeCheck(checks[i].id)}
-                                    />
-                                ))}
-                            </section>
-                        ) : null}
-                        {completed.length > 0 ? (
-                            <section className="viagens-checklist__group" aria-label="Feito">
-                                <h4 className="viagens-checklist__group-label">Feito</h4>
-                                {completed.map((i) => (
-                                    <ChecklistRow
-                                        key={checks[i].id}
-                                        item={checks[i]}
-                                        due={checkDueOn(checks[i])}
-                                        onPatch={patchCheck}
-                                        onRemove={() => removeCheck(checks[i].id)}
-                                    />
-                                ))}
-                            </section>
-                        ) : null}
-                    </div>
-                )}
+                <div className="viagens-checklist__body">
+                    {checks.length === 0 ? (
+                        <div className="viagens-checklist__empty">
+                            <p className="viagens-checklist__empty-lead">Mala, visto, vacina…</p>
+                            <p className="viagens-checklist__empty-hint">
+                                Documentos pendentes viram tarefas aqui. Use a pastinha para anexar link ou arquivo.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="viagens-checklist__list">
+                            {pending.length > 0 ? (
+                                <section className="viagens-checklist__group" aria-label="A fazer">
+                                    {completed.length > 0 ? (
+                                        <h4 className="viagens-checklist__group-label">A fazer</h4>
+                                    ) : null}
+                                    {pending.map((i) => (
+                                        <ChecklistRow
+                                            key={checks[i].id}
+                                            item={checks[i]}
+                                            due={checkDueOn(checks[i])}
+                                            onPatch={patchCheck}
+                                            onRemove={() => removeCheck(checks[i].id)}
+                                        />
+                                    ))}
+                                </section>
+                            ) : null}
+                            {completed.length > 0 ? (
+                                <section className="viagens-checklist__group" aria-label="Feito">
+                                    <h4 className="viagens-checklist__group-label">Feito</h4>
+                                    {completed.map((i) => (
+                                        <ChecklistRow
+                                            key={checks[i].id}
+                                            item={checks[i]}
+                                            due={checkDueOn(checks[i])}
+                                            onPatch={patchCheck}
+                                            onRemove={() => removeCheck(checks[i].id)}
+                                        />
+                                    ))}
+                                </section>
+                            ) : null}
+                        </div>
+                    )}
 
-                <button type="button" className="viagens-checklist__add" onClick={addCheck}>
-                    <MaterialIcon name="add" variant="app" opticalSize={16} />
-                    Adicionar item
-                </button>
+                    <button type="button" className="viagens-checklist__add" onClick={addCheck}>
+                        <MaterialIcon name="add" variant="app" opticalSize={16} />
+                        Adicionar item
+                    </button>
+                </div>
             </article>
             <TripDocumentsModal
                 open={docsOpen}
@@ -222,20 +223,22 @@ function ChecklistRow({
                 placeholder="Item"
                 onChange={(e) => onPatch(item.id, { title: e.target.value })}
             />
-            <div className={`viagens-checklist-item__due${due ? ' has-date' : ''}`}>
-                <ChecklistDueField
-                    value={due}
-                    onChange={(next) =>
-                        onPatch(item.id, {
-                            dueOn: next,
-                            due_on: next
-                        })
-                    }
-                />
+            <div className="viagens-checklist-item__actions">
+                <div className={`viagens-checklist-item__due${due ? ' has-date' : ''}`}>
+                    <ChecklistDueField
+                        value={due}
+                        onChange={(next) =>
+                            onPatch(item.id, {
+                                dueOn: next,
+                                due_on: next
+                            })
+                        }
+                    />
+                </div>
+                <button type="button" className="viagens-checklist-item__remove" aria-label="Remover item" onClick={onRemove}>
+                    <MaterialIcon name="close" filled={false} variant="app" opticalSize={14} />
+                </button>
             </div>
-            <button type="button" className="viagens-checklist-item__remove" aria-label="Remover item" onClick={onRemove}>
-                <MaterialIcon name="close" filled={false} variant="app" opticalSize={14} />
-            </button>
         </div>
     );
 }

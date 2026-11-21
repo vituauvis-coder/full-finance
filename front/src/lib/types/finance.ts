@@ -34,7 +34,24 @@ export type SplitBundle = {
     outgoing: unknown[];
 };
 
+export type TravelDocument = {
+    cpf?: string;
+    passportNumber?: string;
+    passportExpiresOn?: string;
+    birthDate?: string;
+};
+
+export type HouseholdMemberRow = {
+    id: string;
+    name?: string;
+    email?: string;
+    role?: string;
+    travelDocument?: TravelDocument;
+};
+
 export type UserProfile = {
+    id?: string;
+    email?: string;
     currency?: string;
     name?: string;
     profilePhotoURL?: string;
@@ -54,7 +71,7 @@ export type FinanceData = {
     expenseSplitRequests: SplitBundle;
     userNotifications: unknown[];
     household: unknown;
-    householdMembers: unknown[];
+    householdMembers: HouseholdMemberRow[];
 };
 
 export type DashboardFlow = 'gains' | 'expenses';

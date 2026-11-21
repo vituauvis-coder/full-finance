@@ -1,4 +1,10 @@
 import { cardInstallmentAmount, installmentCount, normalizePaymentMethod } from './trip-expense-payment.js';
+import {
+    groundTransportAmount,
+    groundTransportDestinationId,
+    groundTransportTitle,
+    groundTransportsFromPayload
+} from './ground-transport.js';
 
 function expenseTitle(ex) {
     const t = ex.description ?? ex.title ?? '';
@@ -59,20 +65,18 @@ export function categoryLedgerItems(trip, { category = null, customCategoryId = 
     }
 
     if (!customCategoryId && category === 'transporte') {
-        for (const leg of payload.legs ?? []) {
-            const dest = leg.tripDestinationId ?? leg.trip_destination_id;
+        for (const row of groundTransportsFromPayload(payload)) {
+            const dest = groundTransportDestinationId(row);
             if (!dest) continue;
-            const from = leg.fromName ?? leg.from_name ?? '';
-            const to = leg.toName ?? leg.to_name ?? '';
-            const title = [from, to].filter(Boolean).join(' → ') || 'Trecho';
-            const amount = Math.max(0, Number(leg.amount ?? 0) || 0);
+            const amount = groundTransportAmount(row);
+            if (amount <= 0 && !groundTransportTitle(row)) continue;
             items.push({
-                id: String(leg.id),
-                kind: 'leg',
-                title,
+                id: String(row.id),
+                kind: 'ground_transport',
+                title: groundTransportTitle(row),
                 amount,
-                spentOn: leg.departedOn ?? leg.departed_on,
-                source: 'ficha · voo',
+                spentOn: row.departedOn ?? row.departed_on,
+                source: 'ficha · transporte',
                 destinationId: dest
             });
         }

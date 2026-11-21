@@ -159,7 +159,7 @@ export function FlightMilesBlock({
         // eslint-disable-next-line react-hooks/exhaustive-deps -- apply stored/suggested rate only when the pair changes
     }, [pairKey, origin?.id, dest?.id, rates, mode]);
 
-    const fxQuotes = useTaxFxQuotes();
+    const { quotes: fxQuotes } = useTaxFxQuotes();
     const taxCurrency = miles.taxesCurrency || 'EUR';
     const taxAmount = Number(miles.taxesAmount ?? 0) || 0;
     const taxFx = effectiveTaxFxRate(taxCurrency, miles.taxFxRate, fxQuotes?.rates);

@@ -17,9 +17,93 @@ export type OrcamentoCategoryId =
     | 'hospedagem'
     | 'comida'
     | 'transporte'
+    | 'voos'
     | 'passeios'
     | 'extras'
     | 'documentos';
+
+/** Ícones Material Symbols — clique na categoria customizada para alternar. */
+export const ORCAMENTO_CUSTOM_ICON_CYCLE = [
+    'flight_takeoff',
+    'flight',
+    'connecting_airports',
+    'directions_car',
+    'directions_bus',
+    'train',
+    'directions_boat',
+    'local_taxi',
+    'hiking',
+    'restaurant',
+    'shopping_bag',
+    'folder'
+] as const;
+
+export function readBudgetCategoryLabels(payload?: TripPayload | null): Record<string, string> {
+    const raw = payload?.budgetCategoryLabels ?? payload?.budget_category_labels;
+    if (!raw || typeof raw !== 'object') return {};
+    const out: Record<string, string> = {};
+    for (const [key, val] of Object.entries(raw)) {
+        const label = String(val ?? '').trim();
+        if (key && label) out[key] = label;
+    }
+    return out;
+}
+
+export function defaultOrcamentoCategoryLabel(id: string): string {
+    return ORCAMENTO_CATEGORIES.find((c) => c.id === id)?.label ?? id;
+}
+
+export function orcamentoCategoryLabel(
+    payload: TripPayload | undefined | null,
+    id: string,
+    fallback?: string
+): string {
+    const custom = payload?.budgetCustomCategories ?? payload?.budget_custom_categories ?? [];
+    const customHit = custom.find((c) => c.id === id);
+    if (customHit?.label?.trim()) return customHit.label.trim();
+    const overrides = readBudgetCategoryLabels(payload);
+    const hit = overrides[id]?.trim();
+    if (hit) return hit;
+    return fallback ?? defaultOrcamentoCategoryLabel(id);
+}
+
+export function isBuiltinOrcamentoCategory(id: string): boolean {
+    return ORCAMENTO_CATEGORIES.some((c) => c.id === id);
+}
+
+export function builtinOrcamentoCategoryIcon(id: string): string | null {
+    return ORCAMENTO_CATEGORIES.find((c) => c.id === id)?.icon ?? null;
+}
+
+function inferCustomCategoryIcon(cat: { id: string; label?: string | null }): string {
+    const hay = `${cat.id} ${cat.label ?? ''}`
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/\p{M}/gu, '');
+    if (/\bvoo|aviao|aereo|flight|airline|passagem|milhas|emiss/.test(hay)) return 'flight_takeoff';
+    return 'folder';
+}
+
+export function orcamentoCategoryIcon(
+    payload: TripPayload | undefined | null,
+    categoryId: string
+): string {
+    const builtin = builtinOrcamentoCategoryIcon(categoryId);
+    if (builtin) return builtin;
+    const custom = payload?.budgetCustomCategories ?? payload?.budget_custom_categories ?? [];
+    const hit = custom.find((c) => c.id === categoryId);
+    if (!hit) return inferCustomCategoryIcon({ id: categoryId, label: categoryId });
+    const explicit = (hit as { icon?: string }).icon?.trim();
+    if (explicit) return explicit;
+    return inferCustomCategoryIcon(hit);
+}
+
+export function nextCustomCategoryIcon(current: string): string {
+    const list = ORCAMENTO_CUSTOM_ICON_CYCLE;
+    const idx = list.indexOf(current as (typeof list)[number]);
+    const next = idx >= 0 ? (idx + 1) % list.length : 0;
+    return list[next] ?? 'folder';
+}
 
 export const ORCAMENTO_CATEGORIES: {
     id: OrcamentoCategoryId;
@@ -28,7 +112,8 @@ export const ORCAMENTO_CATEGORIES: {
 }[] = [
     { id: 'hospedagem', label: 'Hospedagem', icon: 'apartment' },
     { id: 'comida', label: 'Comida', icon: 'restaurant' },
-    { id: 'transporte', label: 'Voos', icon: 'flight' },
+    { id: 'transporte', label: 'Transportes', icon: 'directions_car' },
+    { id: 'voos', label: 'Voos', icon: 'flight_takeoff' },
     { id: 'passeios', label: 'Passeios', icon: 'local_activity' },
     { id: 'extras', label: 'Extras', icon: 'shopping_bag' },
     { id: 'documentos', label: 'Documentos', icon: 'description' }
@@ -154,7 +239,8 @@ export function buildOrcamentoSnapshot(draft: TripDraft, now = new Date()) {
         const used = spent(tripRef, { category: def.id });
         const pay = paymentBreakdown(tripRef, { category: def.id });
         const pct = cap > 0 ? Math.min(100, Math.round((used / cap) * 100)) : 0;
-        return { ...def, cap, used, pct, pay };
+        const label = orcamentoCategoryLabel(draft.payload, def.id, def.label);
+        return { ...def, label, cap, used, pct, pay };
     });
 
     const custom = draft.payload.budgetCustomCategories ?? draft.payload.budget_custom_categories ?? [];
@@ -166,7 +252,7 @@ export function buildOrcamentoSnapshot(draft: TripDraft, now = new Date()) {
         categoryRows.push({
             id: c.id as OrcamentoCategoryId,
             label: c.label || c.id,
-            icon: 'folder',
+            icon: orcamentoCategoryIcon(draft.payload, c.id),
             cap,
             used,
             pct,

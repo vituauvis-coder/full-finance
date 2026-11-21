@@ -6,8 +6,7 @@ import {
     tripTicketRoute,
     tripTicketStatus,
     tripTicketStatusLabel,
-    tripTicketTitle,
-    tripCreatorLabel
+    tripTicketTitle
 } from './tripTicketModel';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -17,6 +16,8 @@ import './TripTicketCard.css';
 
 type Props = {
     trip: Trip;
+    /** Home do atlas: sem ida/volta na passagem. */
+    hideDates?: boolean;
 };
 
 function CapBar({ fraction }: { fraction: number }) {
@@ -38,7 +39,7 @@ function CapBar({ fraction }: { fraction: number }) {
 }
 
 /** Bilhete de embarque — link para a ficha da viagem. */
-export function TripTicketCard({ trip }: Props) {
+export function TripTicketCard({ trip, hideDates = false }: Props) {
     const navigate = useNavigate();
     const status = tripTicketStatus(trip);
     const route = tripTicketRoute(trip);
@@ -53,7 +54,6 @@ export function TripTicketCard({ trip }: Props) {
     const showArt = artVisible && artCandidate;
 
     const title = tripTicketTitle(trip);
-    const creator = tripCreatorLabel(trip);
     const { ida, volta } = tripTicketLegDates(trip);
     const countries = tripTicketCountries(trip);
 
@@ -65,7 +65,7 @@ export function TripTicketCard({ trip }: Props) {
     return (
         <button
             type="button"
-            className={`trip-ticket${showArt ? ' trip-ticket--has-art' : ''}`}
+            className={`trip-ticket${showArt ? ' trip-ticket--has-art' : ''}${hideDates ? ' trip-ticket--no-dates' : ''}`}
             data-status={status}
             aria-label={`Abrir viagem ${title}`}
             onClick={openTrip}
@@ -85,15 +85,16 @@ export function TripTicketCard({ trip }: Props) {
             ) : null}
             <div className="trip-ticket__main">
                 <div className="trip-ticket__header">
-                    <span className="trip-ticket__label">Passagem</span>
-                    <span className="trip-ticket__header-end">
-                        {creator ? (
-                            <span className="trip-ticket__creator" title={`Criada por ${creator}`}>
-                                {creator}
-                            </span>
-                        ) : null}
+                    {hideDates ? (
                         <span className="trip-ticket__status">{tripTicketStatusLabel(status)}</span>
-                    </span>
+                    ) : (
+                        <>
+                            <span className="trip-ticket__label">Passagem</span>
+                            <span className="trip-ticket__header-end">
+                                <span className="trip-ticket__status">{tripTicketStatusLabel(status)}</span>
+                            </span>
+                        </>
+                    )}
                 </div>
                 <h3 className="trip-ticket__destination">{title}</h3>
                 {countries.length > 0 ? (
@@ -104,16 +105,18 @@ export function TripTicketCard({ trip }: Props) {
                     </div>
                 ) : null}
                 <dl className="trip-ticket__fields">
-                    <div className="trip-ticket__field trip-ticket__field--legs">
-                        <p className="trip-ticket__leg">
-                            <span className="trip-ticket__leg-kicker">Ida:</span>
-                            <span className="trip-ticket__leg-date">{ida}</span>
-                        </p>
-                        <p className="trip-ticket__leg">
-                            <span className="trip-ticket__leg-kicker">Volta:</span>
-                            <span className="trip-ticket__leg-date">{volta}</span>
-                        </p>
-                    </div>
+                    {hideDates ? null : (
+                        <div className="trip-ticket__field trip-ticket__field--legs">
+                            <p className="trip-ticket__leg">
+                                <span className="trip-ticket__leg-kicker">Ida:</span>
+                                <span className="trip-ticket__leg-date">{ida}</span>
+                            </p>
+                            <p className="trip-ticket__leg">
+                                <span className="trip-ticket__leg-kicker">Volta:</span>
+                                <span className="trip-ticket__leg-date">{volta}</span>
+                            </p>
+                        </div>
+                    )}
                     {route ? (
                         <div className="trip-ticket__field trip-ticket__field--route">
                             <dt>Rota</dt>

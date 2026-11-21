@@ -381,6 +381,8 @@
 @media (max-width: 1024px) {
     #viagens-page .viagens-ficha-top > .viagens-panel,
     #viagens-page .viagens-ficha-top .viagens-cal--smart.viagens-panel--cal {
+        height: calc(24.5rem * var(--ficha-top-scale, 1.14));
         min-height: calc(24.5rem * var(--ficha-top-scale, 1.14));
+        max-height: calc(24.5rem * var(--ficha-top-scale, 1.14));
     }
 }

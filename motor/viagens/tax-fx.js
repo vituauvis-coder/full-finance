@@ -7,7 +7,18 @@ export const DEFAULT_TAX_FX = {
     BRL: 1,
     EUR: 6.35,
     USD: 5.78,
-    GBP: 7.63
+    GBP: 7.63,
+    ARS: 0.0055,
+    CLP: 0.0062,
+    MXN: 0.34,
+    JPY: 0.038,
+    CHF: 6.72,
+    CAD: 4.15,
+    AUD: 3.72,
+    TRY: 0.17,
+    CNY: 0.78,
+    HKD: 0.74,
+    KRW: 0.0039
 };
 
 function dec(n) {

@@ -28,6 +28,17 @@ export type TripVacationPeriod = {
     days: number;
 };
 
+export const DEFAULT_VACATION_PERIOD_DAYS = 18;
+
+export function vacationPeriodDays(period: TripVacationPeriod | undefined | null): number {
+    const raw = period?.days;
+    if (raw == null || (typeof raw === 'string' && raw.trim() === '')) {
+        return DEFAULT_VACATION_PERIOD_DAYS;
+    }
+    const n = Number(raw);
+    return Math.max(1, Number.isFinite(n) ? n : DEFAULT_VACATION_PERIOD_DAYS);
+}
+
 export type TripRemotePolicy = {
     authorization?: 'authorized' | 'pending' | 'not_allowed';
     work_time_zone?: string;
@@ -174,11 +185,26 @@ export function scenarioWithVacationDays(sc: TripTimeScenario, days: number): Tr
     return { ...copy, vacations };
 }
 
+export function mergeEditableScenarioFields(
+    prepared: TripTimeScenario,
+    raw: TripTimeScenario | undefined
+): TripTimeScenario {
+    if (!raw) return prepared;
+    return {
+        ...prepared,
+        vacations: raw.vacations ?? prepared.vacations,
+        remote: raw.remote ?? prepared.remote,
+        vacation_balance: raw.vacation_balance ?? prepared.vacation_balance,
+        vacationBalance: raw.vacationBalance ?? prepared.vacationBalance,
+        notes: raw.notes ?? prepared.notes
+    };
+}
+
 export function vacationDayKeys(periods: TripVacationPeriod[]): Set<string> {
     const keys = new Set<string>();
     for (const p of periods) {
         const startKey = (p.starts_on ?? p.startsOn ?? '').slice(0, 10);
-        const days = Math.max(1, p.days ?? 1);
+        const days = vacationPeriodDays(p);
         if (!parseDayKey(startKey)) continue;
         for (let i = 0; i < days; i++) {
             const k = i === 0 ? startKey : addDayKey(startKey, i);
