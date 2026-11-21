@@ -18,6 +18,13 @@ export function groundTransportKindLabel(kind) {
     return KIND_LABEL[id] ?? KIND_LABEL.other;
 }
 
+/** Ícone Material Symbols por kind (carro ≠ trem bala). */
+export function groundTransportKindIcon(kind) {
+    const id = String(kind ?? '').trim();
+    const hit = GROUND_TRANSPORT_KINDS.find((k) => k.id === id);
+    return hit?.icon ?? 'directions_transit';
+}
+
 export function groundTransportsFromPayload(payload = {}) {
     const list = payload.ground_transports ?? payload.groundTransports;
     if (Array.isArray(list)) return list;

@@ -1,5 +1,9 @@
 import { MaterialIcon } from '../../../../components/icons/MaterialIcon';
-import { GROUND_TRANSPORT_KINDS, groundTransportLabel } from '../../domain/ground-transport';
+import {
+    GROUND_TRANSPORT_KINDS,
+    groundTransportKindIcon,
+    groundTransportLabel
+} from '../../domain/ground-transport';
 import type { TripGroundTransport } from '../../types';
 import { formatBRL } from '../../utils/map-utils';
 import '../TripTicketCard.css';
@@ -14,7 +18,7 @@ type Props = {
 };
 
 function kindIcon(kind: string | undefined): string {
-    return GROUND_TRANSPORT_KINDS.find((k) => k.id === kind)?.icon ?? 'directions_transit';
+    return groundTransportKindIcon(kind);
 }
 
 function kindLabel(kind: string | undefined): string {

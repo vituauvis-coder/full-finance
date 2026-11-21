@@ -15,7 +15,14 @@ export function RoteirosMapLegend() {
             {ITEMS.map((item) => (
                 <span key={item.mode} className={`rote-map-legend__item rote-map-legend__item--${item.mode}`}>
                     <span className={`rote-map-legend__line rote-map-legend__line--${item.mode}`} aria-hidden />
-                    <MaterialIcon name={ROTEIROS_ROUTE_ICONS[item.mode]} variant="app" opticalSize={16} />
+                    <MaterialIcon
+                        name={ROTEIROS_ROUTE_ICONS[item.mode]}
+                        variant="app"
+                        opticalSize={16}
+                        className={
+                            item.mode === 'flight_back' ? 'rote-map-legend__flight-flip' : undefined
+                        }
+                    />
                     {item.label}
                 </span>
             ))}

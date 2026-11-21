@@ -1,11 +1,17 @@
 import {
     GROUND_TRANSPORT_KINDS,
+    groundTransportKindIcon,
     groundTransportRoteiroStats,
     itineraryGroundTransportUses
 } from '@motor/viagens/ground-transport.js';
 import type { TripGroundTransport, TripGroundTransportKind } from '../types';
 
-export { GROUND_TRANSPORT_KINDS, groundTransportRoteiroStats, itineraryGroundTransportUses };
+export {
+    GROUND_TRANSPORT_KINDS,
+    groundTransportKindIcon,
+    groundTransportRoteiroStats,
+    itineraryGroundTransportUses
+};
 
 export function normalizeGroundTransports(
     payload: { ground_transports?: TripGroundTransport[]; groundTransports?: TripGroundTransport[]; legs?: TripGroundTransport[] }

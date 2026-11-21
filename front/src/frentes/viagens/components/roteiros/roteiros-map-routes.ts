@@ -8,6 +8,7 @@ import {
     shouldDrawManualGroundLeg,
     walkDistanceCapKm
 } from '@motor/viagens/ground-route-policy.js';
+import { groundTransportKindIcon } from '@motor/viagens/ground-transport.js';
 import { flightStampParts } from '../../domain/flightDisplay';
 import { isHomeDestination, routeStops } from '@motor/viagens/trip-places.js';
 import { VIAGENS_HOME } from '@motor/viagens/viagens-atlas.js';
@@ -861,8 +862,17 @@ export const ROTEIROS_ROUTE_PAINT: Record<
 };
 
 export const ROTEIROS_ROUTE_ICONS: Record<RoteirosRouteMode, string> = {
-    flight_out: 'flight_takeoff',
-    flight_back: 'flight_land',
+    /** Mesmo glifo na ida e na volta; a volta gira 180° via CSS. */
+    flight_out: 'flight',
+    flight_back: 'flight',
     ground: 'directions_car',
     walk: 'directions_walk'
 };
+
+/** Ícone do hop no mapa: trem bala ≠ carro. */
+export function roteirosRouteIcon(mode: RoteirosRouteMode, groundKind?: string | null): string {
+    if (mode === 'ground' && groundKind) {
+        return groundTransportKindIcon(groundKind);
+    }
+    return ROTEIROS_ROUTE_ICONS[mode];
+}

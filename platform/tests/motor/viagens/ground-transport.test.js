@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+    groundTransportKindIcon,
     groundTransportRoteiroStats,
     groundTransportTitle,
     itineraryGroundTransportUses,
@@ -11,6 +12,12 @@ import { spent } from '../../../../motor/viagens/trips-engine.js';
 test('groundTransportTitle uses route or kind', () => {
     assert.equal(groundTransportTitle({ kind: 'train', fromName: 'Tóquio', toName: 'Kyoto' }), 'Tóquio → Kyoto');
     assert.equal(groundTransportTitle({ kind: 'bus', title: 'FlixBus' }), 'FlixBus');
+});
+
+test('groundTransportKindIcon distingue carro e trem bala', () => {
+    assert.equal(groundTransportKindIcon('car_rental'), 'directions_car');
+    assert.equal(groundTransportKindIcon('train'), 'train');
+    assert.notEqual(groundTransportKindIcon('car_rental'), groundTransportKindIcon('train'));
 });
 
 test('spent transporte includes ground_transports', () => {

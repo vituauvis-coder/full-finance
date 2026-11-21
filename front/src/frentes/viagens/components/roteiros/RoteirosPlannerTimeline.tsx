@@ -16,7 +16,11 @@ import type {
     TripPayload,
     TripStay
 } from '../../types';
-import { GROUND_TRANSPORT_KINDS, groundTransportLabel } from '../../domain/ground-transport';
+import {
+    GROUND_TRANSPORT_KINDS,
+    groundTransportKindIcon,
+    groundTransportLabel
+} from '../../domain/ground-transport';
 import {
     lodgeDateShort,
     stayCheckIn,
@@ -257,7 +261,7 @@ function autoGroundTicketId(
 }
 
 function groundKindIcon(kind: string | undefined): string {
-    return GROUND_TRANSPORT_KINDS.find((k) => k.id === kind)?.icon ?? 'directions_transit';
+    return groundTransportKindIcon(kind);
 }
 
 type ActivityClockPeer = {
@@ -688,6 +692,10 @@ function JournalDay({
                                             <div className="rote-plan__pair rote-plan__pair--travel">
                                                 <TravelModeField
                                                     travelMode={item.travelMode}
+                                                    groundKind={
+                                                        groundTransports.find((t) => t.id === item.groundTransportId)
+                                                            ?.kind
+                                                    }
                                                     readOnly={false}
                                                     onSelect={(mode) => {
                                                         if (item.travelMode === mode) {
@@ -776,6 +784,15 @@ const TRAVEL_ICONS: Record<keyof typeof ITINERARY_TRAVEL_LABELS, string> = {
     ground: 'directions_car',
     walk: 'directions_walk'
 };
+
+function travelModeIcon(
+    mode: TripItineraryItem['travelMode'] | null | undefined,
+    groundKind?: string | null
+): string {
+    if (mode === 'ground' && groundKind) return groundTransportKindIcon(groundKind);
+    if (mode && mode in TRAVEL_ICONS) return TRAVEL_ICONS[mode as keyof typeof TRAVEL_ICONS];
+    return 'route';
+}
 
 function flightPlaceLabelFromTitle(item: TripItineraryItem): string | null {
     const title = String(item.title ?? '').trim();
@@ -949,14 +966,14 @@ function ActivityPlanSnapshot({
     const typeLabel = itineraryCategoryLabel(catKey, tripPayload);
     const typeIcon = ITINERARY_CAT_ICONS[catKey] ?? 'label';
 
-    const mode = item.travelMode ?? (isFlight ? 'flight' : null);
-    const travelLabel = mode ? ITINERARY_TRAVEL_LABELS[mode] : null;
-    const travelIcon = mode ? TRAVEL_ICONS[mode as keyof typeof TRAVEL_ICONS] : 'route';
-
     const ticketId = item.groundTransportId ?? null;
     const tickets = groundTicketsForActivity(groundTransports, destId, dayDestinationId);
     const ticket = ticketId ? tickets.find((t) => t.id === ticketId) : null;
     const ticketLabel = ticket ? groundTransportLabel(ticket) : null;
+
+    const mode = item.travelMode ?? (isFlight ? 'flight' : null);
+    const travelLabel = mode ? ITINERARY_TRAVEL_LABELS[mode] : null;
+    const travelIcon = travelModeIcon(mode, ticket?.kind);
 
     return (
         <div className="rote-plan__snapshot" aria-label="Resumo da atividade">
@@ -1129,20 +1146,22 @@ function RotePlanOptionList({
 
 function TravelModeField({
     travelMode,
+    groundKind = null,
     onSelect,
     readOnly = false
 }: {
     travelMode: TripItineraryItem['travelMode'];
+    groundKind?: string | null;
     onSelect: (mode: keyof typeof ITINERARY_TRAVEL_LABELS) => void;
     readOnly?: boolean;
 }) {
     const [open, setOpen] = useState(false);
     const label = travelMode ? ITINERARY_TRAVEL_LABELS[travelMode] : '';
-    const icon = travelMode ? TRAVEL_ICONS[travelMode] : 'route';
+    const icon = travelModeIcon(travelMode, groundKind);
     const options = TRAVEL_KEYS.map((mode) => ({
         id: mode,
         label: ITINERARY_TRAVEL_LABELS[mode],
-        icon: TRAVEL_ICONS[mode]
+        icon: mode === 'ground' && groundKind ? groundTransportKindIcon(groundKind) : TRAVEL_ICONS[mode]
     }));
 
     return (

@@ -5,7 +5,7 @@ import { isHomeDestination, routeStops } from '@motor/viagens/trip-places.js';
 import { VIAGENS_HOME } from '@motor/viagens/viagens-atlas.js';
 import type { TripDestination, TripPayload, TripStatus } from '../types';
 import {
-    ROTEIROS_ROUTE_ICONS,
+    roteirosRouteIcon,
     ROTEIROS_ROUTE_PAINT,
     buildRoteirosMapRoutes,
     featureCollectionFromSegments,
@@ -191,7 +191,7 @@ export function ViagemMiniMap({
         () =>
             (activeSegments ?? []).map((s) => ({
                 ...s,
-                icon: ROTEIROS_ROUTE_ICONS[s.mode]
+                icon: roteirosRouteIcon(s.mode, s.groundKind)
             })),
         [activeSegments]
     );
@@ -338,6 +338,7 @@ export function ViagemMiniMap({
                 {roteiros
                     ? hopIcons.map((hop) => {
                           const isFlight = hop.mode === 'flight_out' || hop.mode === 'flight_back';
+                          const groundKind = String(hop.groundKind ?? '').trim();
                           const title =
                               hop.tip ||
                               (hop.mode === 'flight_out'
@@ -357,16 +358,22 @@ export function ViagemMiniMap({
                                       className={[
                                           'rote-map-hop',
                                           'rote-map-hop--interactive',
-                                          `rote-map-hop--${hop.mode}`
-                                      ].join(' ')}
+                                          `rote-map-hop--${hop.mode}`,
+                                          groundKind ? `rote-map-hop--${groundKind}` : ''
+                                      ]
+                                          .filter(Boolean)
+                                          .join(' ')}
                                       title={title}
                                       aria-label={title}
                                   >
                                       <span
                                           className={[
                                               'rote-map-hop-icon',
-                                              `rote-map-hop-icon--${hop.mode}`
-                                          ].join(' ')}
+                                              `rote-map-hop-icon--${hop.mode}`,
+                                              groundKind ? `rote-map-hop-icon--${groundKind}` : ''
+                                          ]
+                                              .filter(Boolean)
+                                              .join(' ')}
                                       >
                                           <MaterialIcon
                                               name={hop.icon}

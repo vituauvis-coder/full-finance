@@ -1281,6 +1281,12 @@
     background: color-mix(in srgb, #e07830 12%, var(--v-janela));
 }
 
+/* Volta: mesmo avião da ida, apontando ao contrário. */
+#viagens-page .rote-map-hop-icon--flight_back .material-symbols-rounded {
+    display: inline-block;
+    transform: rotate(180deg);
+}
+
 #viagens-page .rote-map-hop-icon--walk {
     color: #9a7b0a;
     border-color: color-mix(in srgb, #9a7b0a 40%, var(--v-borda));
@@ -1365,6 +1371,11 @@
 
 #viagens-page .rote-map-legend__item--flight_back {
     color: #a3446e;
+}
+
+#viagens-page .rote-map-legend__flight-flip {
+    display: inline-block;
+    transform: rotate(180deg);
 }
 
 #viagens-page .rote-map-legend__item--ground {
