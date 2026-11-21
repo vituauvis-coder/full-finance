@@ -10,7 +10,7 @@
     padding-block: 0.55rem;
     padding-inline: 0.55rem;
     box-sizing: border-box;
-    background-color: var(--dash-surface-bg);
+    background: var(--dash-surface-bg);
     border: 1px solid var(--dash-surface-border);
     border-radius: var(--dash-surface-radius);
     box-shadow: var(--dash-surface-shadow);

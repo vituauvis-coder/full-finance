@@ -110,12 +110,13 @@
     background: rgba(255, 255, 255, 0.55);
 }
 
-/* —— Tema escuro (dashboard + resto do app) —— */
+/* —— Tema escuro (dashboard + resto do app) ——
+   Canvas = grafite escuro (--dash-layer-canvas), sem faixa do tom dos cards. */
 [data-theme='dark'] .page-content--with-ambient .app-ambient-bg__mesh {
     background:
-        radial-gradient(ellipse 90% 55% at 50% -15%, rgba(255, 255, 255, 0.07), transparent 55%),
-        radial-gradient(ellipse 50% 40% at 100% 0%, rgba(255, 255, 255, 0.04), transparent 50%),
-        linear-gradient(180deg, #000000 0%, #1d1d1f 55%, #000000 100%);
+        radial-gradient(ellipse 90% 55% at 50% -15%, rgba(255, 255, 255, 0.05), transparent 55%),
+        radial-gradient(ellipse 50% 40% at 100% 0%, rgba(255, 255, 255, 0.03), transparent 50%),
+        var(--dash-layer-canvas, #111113);
 }
 
 [data-theme='dark'] .page-content--with-ambient .app-ambient-bg__grid {
@@ -144,5 +145,5 @@
 }
 
 [data-theme='dark'] .page-content--with-ambient:not(.page-content--dashboard-modern) {
-    background: #000000;
+    background: var(--dash-layer-canvas, #111113);
 }

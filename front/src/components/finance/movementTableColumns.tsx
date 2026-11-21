@@ -169,7 +169,16 @@ export function buildMovementTableColumns(opts: GainsOpts | ExpensesOpts): DataT
             render: (m) => {
                 const label = statusLabel(m);
                 const paid =
-                    opts.kind === 'expense' ? expenseRowAppearsPaid(m) : m.isPaid !== false;
+                    opts.kind === 'expense'
+                        ? expenseRowAppearsPaid(
+                              m,
+                              m.accountId && opts.accounts
+                                  ? opts.accounts.find((a) => a.id === m.accountId)
+                                  : undefined,
+                              opts.userProfile,
+                              opts.listPeriod
+                          )
+                        : m.isPaid !== false;
                 const gainTitles = paid
                     ? { title: 'Marcar como pendente', aria: 'Marcar entrada como pendente (a receber)' }
                     : { title: 'Marcar como recebido', aria: 'Marcar entrada como recebida' };

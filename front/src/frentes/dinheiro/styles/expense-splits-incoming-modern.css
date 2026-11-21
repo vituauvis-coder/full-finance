@@ -1,0 +1,213 @@
+/* Rateios pendentes (incoming) — paridade com dashboard-pending-modern */
+
+.expense-splits-incoming--modern {
+    width: 100%;
+    padding: 0.85rem 1rem 0.65rem;
+    background: var(--dash-surface-bg);
+    border: 1px solid var(--dash-surface-border);
+    border-radius: var(--dash-surface-radius);
+    box-shadow: var(--dash-surface-shadow);
+}
+
+.expense-splits-incoming--modern .expense-splits-incoming__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.35rem 0.75rem;
+    margin-bottom: 0.55rem;
+    padding-bottom: 0.55rem;
+    border-bottom: 1px solid var(--dash-border);
+}
+
+.expense-splits-incoming--modern .expense-splits-incoming__title-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-width: 0;
+}
+
+.expense-splits-incoming--modern .expense-splits-incoming__icon-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 8px;
+    background: var(--dash-layer-inset);
+    color: var(--dash-text-primary);
+    flex-shrink: 0;
+}
+
+.expense-splits-incoming--modern .expense-splits-incoming__icon-wrap .app-icon {
+    font-size: 1rem;
+    margin: 0;
+}
+
+.expense-splits-incoming--modern .expense-splits-incoming__title {
+    margin: 0;
+    font-size: 0.92rem;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    color: var(--dash-text-primary);
+}
+
+.expense-splits-incoming--modern .expense-splits-incoming__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.35rem;
+    height: 1.35rem;
+    padding: 0 0.35rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    background: rgba(244, 63, 94, 0.16);
+    color: #fda4af;
+    line-height: 1;
+}
+
+.expense-splits-incoming--modern .expense-splits-incoming__hint {
+    margin: 0;
+    flex: 1 1 100%;
+    font-size: 0.74rem;
+    line-height: 1.35;
+    color: var(--dash-text-secondary);
+}
+
+@media (min-width: 720px) {
+    .expense-splits-incoming--modern .expense-splits-incoming__hint {
+        flex: 1 1 auto;
+        text-align: right;
+        max-width: 52%;
+    }
+}
+
+.expense-splits-incoming--modern .expense-splits-incoming__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.expense-splits-incoming--modern .expense-splits-incoming__item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    padding: 0.45rem 0.55rem;
+    border-radius: 10px;
+    background: var(--dash-layer-inset);
+    border: 1px solid var(--dash-border);
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.expense-splits-incoming--modern .expense-splits-incoming__item:hover {
+    background: var(--dash-layer-control);
+    border-color: var(--dash-border-strong);
+}
+
+.expense-splits-incoming--modern .expense-splits-incoming__main {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.2rem 0.35rem;
+    min-width: 0;
+    font-size: 0.8rem;
+    line-height: 1.25;
+}
+
+.expense-splits-incoming--modern .expense-splits-incoming__who {
+    font-weight: 600;
+    color: var(--dash-text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+}
+
+.expense-splits-incoming--modern .expense-splits-incoming__sep {
+    color: var(--dash-text-tertiary);
+    user-select: none;
+}
+
+.expense-splits-incoming--modern .expense-splits-incoming__desc {
+    color: var(--dash-text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.expense-splits-incoming--modern .expense-splits-incoming__actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-shrink: 0;
+}
+
+.expense-splits-incoming--modern .expense-splits-incoming__amount {
+    font-size: 0.82rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--dash-text-primary);
+    white-space: nowrap;
+}
+
+.expense-splits-incoming--modern .expense-splits-incoming__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    min-height: 1.85rem;
+    padding: 0.28rem 0.62rem;
+    border-radius: 999px;
+    border: 1px solid var(--dash-border);
+    background: var(--dash-layer-control);
+    color: var(--dash-text-primary);
+    font-size: 0.74rem;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.expense-splits-incoming--modern .expense-splits-incoming__btn .app-icon {
+    font-size: 0.95rem;
+}
+
+.expense-splits-incoming--modern .expense-splits-incoming__btn--accept:hover:not(:disabled) {
+    background: rgba(52, 211, 153, 0.14);
+    border-color: rgba(52, 211, 153, 0.35);
+    color: #a7f3d0;
+}
+
+.expense-splits-incoming--modern .expense-splits-incoming__btn--reject:hover:not(:disabled) {
+    background: rgba(251, 113, 133, 0.12);
+    border-color: rgba(251, 113, 133, 0.35);
+    color: #fda4af;
+}
+
+@media (max-width: 640px) {
+    .expense-splits-incoming--modern .expense-splits-incoming__item {
+        grid-template-columns: 1fr;
+        gap: 0.45rem;
+    }
+
+    .expense-splits-incoming--modern .expense-splits-incoming__actions {
+        width: 100%;
+        justify-content: space-between;
+        flex-wrap: wrap;
+    }
+
+    .expense-splits-incoming--modern .expense-splits-incoming__main {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.15rem;
+    }
+
+    .expense-splits-incoming--modern .expense-splits-incoming__sep {
+        display: none;
+    }
+}

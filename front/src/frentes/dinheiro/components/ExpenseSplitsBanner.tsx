@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useFinanceData } from '../../../app/FinanceDataProvider';
-import { formatBRL } from '../../../lib/format';
 import type { ExpenseSplitRequest, ExpenseSplitSeed } from '../../../lib/types/finance';
 import { useConfirm } from '../../../components/ui/confirm';
+import { MaterialIcon } from '../../../components/icons/MaterialIcon';
 import { rejectExpenseSplitRequest } from '../api/expenseSplits';
+import { ExpenseSplitIncomingItem } from './ExpenseSplitIncomingItem';
 
 type Props = {
     onAcceptSplit: (seed: ExpenseSplitSeed) => void;
@@ -24,10 +25,15 @@ export function ExpenseSplitsBanner({ onAcceptSplit }: Props) {
 
     if (incoming.length === 0) return null;
 
+    const n = incoming.length;
+    const hint =
+        n === 1
+            ? 'Aceite cria a sua parte; recusar notifica o solicitante.'
+            : `${n} solicitações aguardando. Aceite cria a sua parte; recusar notifica o solicitante.`;
+
     function buildSeed(s: ExpenseSplitRequest): ExpenseSplitSeed {
         const src = s.sourceExpense;
-        const rawIc =
-            s.sourceInstallmentCount ?? src?.installmentCount ?? undefined;
+        const rawIc = s.sourceInstallmentCount ?? src?.installmentCount ?? undefined;
         const parsedIc = parseInt(String(rawIc ?? ''), 10);
         return {
             splitRequestId: s.id,
@@ -57,41 +63,37 @@ export function ExpenseSplitsBanner({ onAcceptSplit }: Props) {
     }
 
     return (
-        <div className="expense-splits-banner dashboard-pending-cash-outs" aria-live="polite">
-            <h3 className="dashboard-pending-title">
-                <i className="fas fa-handshake" aria-hidden="true" /> Rateios pendentes
-            </h3>
-            <ul className="dashboard-pending-list">
+        <div className="expense-splits-incoming expense-splits-incoming--modern" aria-live="polite">
+            <header className="expense-splits-incoming__head">
+                <div className="expense-splits-incoming__title-row">
+                    <span className="expense-splits-incoming__icon-wrap" aria-hidden="true">
+                        <MaterialIcon name="handshake" variant="app" />
+                    </span>
+                    <h3 className="expense-splits-incoming__title">Rateios pendentes</h3>
+                    <span
+                        className="expense-splits-incoming__count"
+                        aria-label={`${n} pendente(s)`}
+                    >
+                        {n}
+                    </span>
+                </div>
+                <p className="expense-splits-incoming__hint">{hint}</p>
+            </header>
+            <ul className="expense-splits-incoming__list" role="list">
                 {incoming.map((s) => {
                     const reqName = s.requester?.name || s.requester?.email || 'Solicitante';
                     const desc = s.sourceExpense?.description || 'Rateio de despesa';
                     return (
-                        <li key={s.id} className="dashboard-pending-list__item">
-                            <h4 className="split-title">
-                                <strong>{reqName}</strong> pediu para dividir{' '}
-                                <strong>{formatBRL(Number(s.amount) || 0, currency)}</strong>
-                                <br />
-                                <small>{desc}</small>
-                            </h4>
-                            <div className="split-actions" style={{ display: 'flex', gap: '0.35rem' }}>
-                                <button
-                                    type="button"
-                                    className="btn-primary btn-small"
-                                    disabled={busyId === s.id}
-                                    onClick={() => onAcceptSplit(buildSeed(s))}
-                                >
-                                    Aceitar
-                                </button>
-                                <button
-                                    type="button"
-                                    className="btn-secondary btn-small"
-                                    disabled={busyId === s.id}
-                                    onClick={() => void reject(s.id)}
-                                >
-                                    Recusar
-                                </button>
-                            </div>
-                        </li>
+                        <ExpenseSplitIncomingItem
+                            key={s.id}
+                            requesterName={reqName}
+                            description={desc}
+                            amount={Number(s.amount) || 0}
+                            currency={currency}
+                            busy={busyId === s.id}
+                            onAccept={() => onAcceptSplit(buildSeed(s))}
+                            onReject={() => void reject(s.id)}
+                        />
                     );
                 })}
             </ul>

@@ -1,4 +1,5 @@
-/* Camada 2 — mesma superfície em todos os blocos principais */
+/* Camada 2 — mesma superfície opaca em todos os blocos principais
+   (`background` shorthand vence o `background: var(--bg-light)` do legado) */
 
 .page-content--dashboard-modern > .app-header,
 .page-content--profile-modern > .app-header,
@@ -10,8 +11,10 @@
 #debts-page.debts-page--modern .dashboard-reports-section .reports-chart-container.debts-page__chart-card,
 #dashboard-page.dashboard-page--modern .dashboard-pending-cash-outs--modern,
 #dashboard-page.dashboard-page--modern .dashboard-cash-heatmap.list-container,
-#dashboard-page.dashboard-page--modern .dashboard-reports-section .reports-chart-container.dashboard-flux-chart-card {
-    background-color: var(--dash-surface-bg);
+#dashboard-page.dashboard-page--modern .dashboard-reports-section .reports-chart-container.dashboard-flux-chart-card,
+.page-content--dashboard-modern .civil-period-timeline.civil-period-timeline--surfaced,
+.page-content--dashboard-modern .expense-splits-incoming--modern {
+    background: var(--dash-surface-bg);
     border: 1px solid var(--dash-surface-border);
     border-radius: var(--dash-surface-radius);
     box-shadow: var(--dash-surface-shadow);
@@ -19,8 +22,10 @@
 
 [data-theme='dark'] .page-content--dashboard-modern > .app-header,
 [data-theme='dark'] .page-content--profile-modern > .app-header,
-[data-theme='dark'] #dashboard-page.dashboard-page--modern .dashboard-reports-section .reports-chart-container.dashboard-flux-chart-card {
-    background-color: var(--dash-surface-bg);
+[data-theme='dark'] #dashboard-page.dashboard-page--modern .dashboard-reports-section .reports-chart-container.dashboard-flux-chart-card,
+[data-theme='dark'] .page-content--dashboard-modern .civil-period-timeline.civil-period-timeline--surfaced,
+[data-theme='dark'] .page-content--dashboard-modern .expense-splits-incoming--modern {
+    background: var(--dash-surface-bg);
     border-color: var(--dash-surface-border);
     box-shadow: var(--dash-surface-shadow);
 }

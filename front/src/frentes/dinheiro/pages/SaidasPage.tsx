@@ -20,6 +20,7 @@ import { usePeriodSyncedDrawerDates } from '../../../hooks/usePeriodSyncedDrawer
 import { ExpenseBatchModal } from '../../../components/finance/ExpenseBatchModal';
 import {
     expenseCashOutPeriodKey,
+    expenseDueInListPeriod,
     expenseRowAppearsPaid,
     expenseRowCanConfirmCashOut
 } from '../../../lib/expenseRowCashOut';
@@ -43,6 +44,7 @@ import {
 import { SummaryMomVariation } from '../../../components/finance/SummaryMomVariation';
 import type { ExpenseSplitSeed, Movement } from '../../../lib/types/finance';
 import { useConfirm } from '../../../components/ui/confirm';
+import { isCreditCardType } from '../../../lib/accounts';
 
 export function SaidasPage() {
     const { confirm } = useConfirm();
@@ -205,17 +207,20 @@ export function SaidasPage() {
     const [statusBusy, setStatusBusy] = useState<Set<string>>(() => new Set());
     const statusToggleBusy = useCallback((id: string) => statusBusy.has(id), [statusBusy]);
 
+    const userProfile = data?.userProfile ?? null;
+
     const onToggleStatus = useCallback(
         async (m: Movement) => {
             if (statusBusy.has(m.id)) return;
             const acc = accountById.get(String(m.accountId));
-            const appearsPaid = expenseRowAppearsPaid(m);
+            const appearsPaid = expenseRowAppearsPaid(m, acc, userProfile, listPeriod);
 
             setStatusBusy((prev) => new Set(prev).add(m.id));
             try {
-                if (!appearsPaid && expenseRowCanConfirmCashOut(m, acc)) {
-                    const key = expenseCashOutPeriodKey(m);
-                    const label = movementDate(m).toLocaleDateString('pt-BR');
+                if (!appearsPaid && expenseRowCanConfirmCashOut(m, acc, userProfile, listPeriod)) {
+                    const key = expenseCashOutPeriodKey(m, acc, userProfile, listPeriod);
+                    const due = expenseDueInListPeriod(m, acc, userProfile, listPeriod);
+                    const label = (due ?? movementDate(m)).toLocaleDateString('pt-BR');
                     const ok = await confirm({
                         title: 'Confirmar débito no saldo?',
                         message: `O valor será considerado debitado da conta no período de ${label}.`,
@@ -224,9 +229,14 @@ export function SaidasPage() {
                     });
                     if (!ok) return;
                     await confirmExpenseCashOut(m.id, key);
-                    await patchExpensesBatch([m.id], { isPaid: true });
                     playPingSound();
                     await refresh();
+                    return;
+                }
+
+                // Parcelado no período: não alternar isPaid global (evita «Pago» em mês futuro).
+                const nInst = Math.max(1, parseInt(String(m.installmentCount ?? '1'), 10) || 1);
+                if (acc && isCreditCardType(acc.type) && nInst >= 2) {
                     return;
                 }
 
@@ -245,7 +255,7 @@ export function SaidasPage() {
                 });
             }
         },
-        [accountById, confirm, refresh, statusBusy]
+        [accountById, confirm, userProfile, listPeriod, refresh, statusBusy]
     );
 
     const openAddModal = useCallback(() => {
@@ -277,6 +287,14 @@ export function SaidasPage() {
 
     return (
         <section id="expenses-page" className="page active movements-page--modern">
+            <CivilPeriodToolbar
+                period={period}
+                year={year}
+                onPeriodChange={onPeriodChange}
+                onYearChange={onYearChange}
+                accent="expenses"
+                inMovementsToolbar
+            />
             <ExpenseSplitsBanner
                 onAcceptSplit={(seed) => {
                     setEditing(null);
@@ -288,14 +306,6 @@ export function SaidasPage() {
                 outgoing={data.expenseSplitRequests?.outgoing ?? []}
                 currency={currency}
                 onChanged={refresh}
-            />
-            <CivilPeriodToolbar
-                period={period}
-                year={year}
-                onPeriodChange={onPeriodChange}
-                onYearChange={onYearChange}
-                accent="expenses"
-                inMovementsToolbar
             />
             <MovementSummaryCardsGrid group="expenses" ariaLabel="Resumo de saídas">
                 <MovementSummaryCard
@@ -416,11 +426,20 @@ export function SaidasPage() {
                 expenseAccounts={data.userAccounts}
                 allExpenses={data.userExpenses}
                 acceptedSplits={acceptedOutgoingSplits(data.expenseSplitRequests)}
-                userProfile={data.userProfile}
+                userProfile={userProfile}
                 listPeriod={listPeriod}
                 expenseDisplayDate={expenseDisplayDate}
                 accountLabel={(id) => accountName(data.userAccounts, id)}
-                statusLabel={(m) => (expenseRowAppearsPaid(m) ? 'Pago' : 'Pendente')}
+                statusLabel={(m) =>
+                    expenseRowAppearsPaid(
+                        m,
+                        accountById.get(String(m.accountId)),
+                        userProfile,
+                        listPeriod
+                    )
+                        ? 'Pago'
+                        : 'Pendente'
+                }
                 onToggleStatus={(m) => void onToggleStatus(m)}
                 statusToggleBusy={statusToggleBusy}
                 selectedIds={selected}

@@ -27,7 +27,7 @@ import {
 } from '../../frentes/dinheiro/api/movements';
 import { normalizeSplitScope } from '@motor/dinheiro/split-net.js';
 import {
-    calendarDayKeyFromDate,
+    normalizePaidPeriodKeysToDues,
     parseCashOutConfirmedPeriods
 } from '@motor/dinheiro/cash-out-periods.js';
 import {
@@ -183,7 +183,7 @@ export function ExpenseFormModal({
         if (resolved) setIsPaid(resolved.isPaid);
     }, [paymentMethodId, accounts, open, editing, loanAccountId, loanCategory]);
 
-    // Mantém só chaves válidas quando mudam data / nº de parcelas / conta.
+    // Normaliza chaves (YYYY-MM ou dia) para o vencimento canónico de cada parcela.
     useEffect(() => {
         if (!open || !showInstallmentPreview) return;
         const dues = resolveInstallmentDueDates(
@@ -193,10 +193,10 @@ export function ExpenseFormModal({
             loanCategory
         );
         if (dues.length < 2) return;
-        const valid = new Set(dues.map((d) => calendarDayKeyFromDate(d)));
         setPaidPeriodKeys((prev) => {
-            const next = prev.filter((k) => valid.has(k));
-            return next.length === prev.length ? prev : next;
+            const next = normalizePaidPeriodKeysToDues(prev, dues);
+            if (next.length === prev.length && next.every((k, i) => k === prev[i])) return prev;
+            return next;
         });
     }, [open, showInstallmentPreview, date, nInst, installmentAccount, loanCategory]);
 
@@ -205,8 +205,16 @@ export function ExpenseFormModal({
 
     function togglePaidPeriod(periodKey: string) {
         setPaidPeriodKeys((prev) => {
-            const i = prev.indexOf(periodKey);
-            if (i >= 0) return prev.filter((_, idx) => idx !== i);
+            const monthKey = periodKey.length >= 7 ? periodKey.slice(0, 7) : periodKey;
+            const has =
+                prev.includes(periodKey) ||
+                prev.includes(monthKey) ||
+                prev.some((k) => k.startsWith(`${monthKey}-`));
+            if (has) {
+                return prev.filter(
+                    (k) => k !== periodKey && k !== monthKey && !k.startsWith(`${monthKey}-`)
+                );
+            }
             return [...prev, periodKey];
         });
     }

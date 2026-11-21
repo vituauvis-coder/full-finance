@@ -682,25 +682,23 @@
     opacity: 0.75;
 }
 
-/* Ainda há parcelas → amarelo */
+/* Ainda há parcelas → amarelo canônico (--warning-*) */
 #expenses-table .expenses-installment-cell--open .expenses-installment-cell__label {
-    color: #b45309;
-    background: color-mix(in srgb, var(--warning-color) 16%, transparent);
-    border-color: color-mix(in srgb, var(--warning-color) 38%, transparent);
+    color: var(--warning-text);
+    background: var(--warning-chip-bg);
+    border-color: var(--warning-chip-border-strong);
 }
 
 #expenses-table .expenses-installment-cell--open .expenses-installment-cell__month-parcel {
-    color: color-mix(in srgb, var(--warning-color) 88%, var(--text-color));
+    color: var(--warning-text-soft);
 }
 
 [data-theme='dark'] #expenses-table .expenses-installment-cell--open .expenses-installment-cell__label {
-    color: #fbbf24;
-    background: color-mix(in srgb, var(--warning-color) 18%, transparent);
-    border-color: color-mix(in srgb, var(--warning-color) 42%, transparent);
+    background: var(--warning-chip-bg-strong);
 }
 
 [data-theme='dark'] #expenses-table .expenses-installment-cell--open .expenses-installment-cell__month-parcel {
-    color: #fbbf24;
+    color: var(--warning-text);
 }
 
 /* Quitado no caixa → verde */
@@ -1096,9 +1094,9 @@
 }
 
 .expense-status-badge--pending {
-    background: rgba(251, 146, 60, 0.15);
-    color: #fb923c;
-    border: 1px solid rgba(251, 146, 60, 0.25);
+    background: var(--warning-chip-bg);
+    color: var(--warning-text);
+    border: 1px solid var(--warning-chip-border);
 }
 
 .expense-status-badge--pay {
@@ -1150,9 +1148,9 @@ button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='
 }
 
 .expense-fixed-pill--no {
-    background: rgba(245, 158, 11, 0.15);
-    color: #fbbf24;
-    border: 1px solid rgba(245, 158, 11, 0.25);
+    background: var(--warning-chip-bg);
+    color: var(--warning-text);
+    border: 1px solid var(--warning-chip-border);
 }
 
 .expense-fixed-pill--no::before {

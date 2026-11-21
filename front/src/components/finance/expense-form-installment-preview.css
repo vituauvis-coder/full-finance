@@ -128,9 +128,9 @@
 }
 
 .expense-inst-preview__tag--pending.expense-inst-preview__tag--due {
-    background: color-mix(in srgb, var(--warning-color, #fbbf24) 22%, transparent);
-    color: #fcd34d;
-    border-color: color-mix(in srgb, var(--warning-color, #fbbf24) 42%, transparent);
+    background: var(--warning-chip-bg-strong);
+    color: var(--warning-text);
+    border-color: var(--warning-chip-border-strong);
 }
 
 [data-theme='light'] .expense-inst-preview__tag--paid {
@@ -146,7 +146,7 @@
 }
 
 [data-theme='light'] .expense-inst-preview__tag--pending.expense-inst-preview__tag--due {
-    color: #a16207;
-    background: rgba(234, 179, 8, 0.28);
-    border-color: rgba(202, 138, 4, 0.5);
+    color: var(--warning-text);
+    background: var(--warning-chip-bg-strong);
+    border-color: var(--warning-chip-border-strong);
 }

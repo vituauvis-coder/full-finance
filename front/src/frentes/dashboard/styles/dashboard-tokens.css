@@ -51,6 +51,9 @@
     --dash-chart-net-neg: #ff453a;
     --dash-chart-saldo: #0a84ff;
     --dash-chart-tooltip-cursor: rgba(0, 0, 0, 0.04);
+
+    /* Amarelo canônico do portal (mesmo --warning-color) */
+    --dash-warning: var(--warning-color);
 }
 
 [data-theme='dark'] .page-content--dashboard-modern,
@@ -66,11 +69,14 @@
     --dash-border-strong: rgba(255, 255, 255, 0.16);
     --dash-focus-ring: rgba(255, 255, 255, 0.22);
 
-  /* Preto → cartões grafite → poços mais escuros (nunca igual ao canvas) */
-    --dash-layer-canvas: #000000;
+  /* Grafite escuro → cartões um pouco mais claros → poços/inset */
+    --dash-layer-canvas: #111113;
     --dash-layer-raised: #1d1d1f;
     --dash-layer-inset: #141416;
     --dash-layer-control: #2c2c2e;
+
+    /* Legado usava --bg-light (#262626) em cards; alinhar ao raised para um só tom */
+    --bg-light: var(--dash-layer-raised);
 
     --dash-panel-bg: var(--dash-layer-raised);
     --dash-panel-border: var(--dash-border);
@@ -91,6 +97,8 @@
     --dash-chart-net-neg: #ff375f;
     --dash-chart-saldo: #64d2ff;
     --dash-chart-tooltip-cursor: rgba(255, 255, 255, 0.05);
+
+    --dash-warning: var(--warning-color);
 }
 
 /* Canvas definido em dashboard-ambient-bg (mesh por cima da cor base) */

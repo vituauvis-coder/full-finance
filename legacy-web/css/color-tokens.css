@@ -62,4 +62,20 @@
 
     --dashboard-accent: var(--info-color);
     --dashboard-bg-chip: color-mix(in srgb, var(--dashboard-accent) var(--tone-16), transparent);
+
+    /*
+     * Aviso / pendente — amarelo canônico do portal.
+     * Sempre partir de --warning-color (main.css / theme-dark.css).
+     * Usar estes tokens em badges (status Pendente, parcelas abertas, etc.).
+     */
+    --warning-text: #b45309;
+    --warning-text-soft: color-mix(in srgb, var(--warning-color) var(--tone-85), var(--text-color));
+    --warning-chip-bg: color-mix(in srgb, var(--warning-color) var(--tone-16), transparent);
+    --warning-chip-bg-strong: color-mix(in srgb, var(--warning-color) var(--tone-18), transparent);
+    --warning-chip-border: color-mix(in srgb, var(--warning-color) var(--tone-28), transparent);
+    --warning-chip-border-strong: color-mix(in srgb, var(--warning-color) var(--tone-42), transparent);
+}
+
+[data-theme='dark'] {
+    --warning-text: var(--warning-color);
 }
