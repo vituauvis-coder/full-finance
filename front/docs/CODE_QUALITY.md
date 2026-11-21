@@ -44,12 +44,25 @@ Referência para PRs e revisões. **Checklist obrigatório** ao alterar uma fren
 - Listas derivadas: `useMemo`; efeitos com cancelamento em séries assíncronas.
 - Tipos exportados em `types/` ou junto ao domínio, não inline em 10 arquivos.
 
+## Carregamento (skeleton)
+
+- **Carregamento inicial de página** (fetch do provider ou equivalente): skeleton que imita o layout real — **não** `ScreenLoader` fullscreen no meio da página.
+- Primitivos: `front/src/components/ui/Skeleton.tsx` + `skeleton.css`.
+- Layouts compartilhados: `front/src/components/skeleton/` (ex.: `MovementsPageSkeleton`, `DashboardPageSkeleton`). Reutilize blocos existentes (timeline, grid de KPIs) antes de inventar markup novo.
+- Envelope: `PageLoadingShell` com `aria-busy="true"` e rótulo acessível.
+- **Spinner (`ScreenLoader`)** fica para: sessão/auth, rotas fullscreen sem skeleton, botões (`BusyButton`), blocos inline pequenos.
+- Troca de rota no shell: `RouteTransitionVeil` em `ScreenSwap` (mesmo layout que o skeleton da página destino).
+- Nova tela com fetch: criar ou estender um skeleton na mesma PR; se o layout for igual a outra página, reutilize o skeleton existente.
+- Duração mínima: `SKELETON_MIN_MS` (1s) em `lib/skeletonTiming.ts` — `useSkeletonMinDuration(loading)` na página e `ScreenSwap` na navegação. Respeitar `prefers-reduced-motion`.
+- **Sem cores semânticas** no placeholder (verde entradas, vermelho saídas, acentos de timeline): só cinza / tokens `dash-*` e shimmer.
+
 ## CSS
 
 - Tokens e superfícies da dashboard: `frentes/dashboard/styles/`.
 - Menu lateral React: `frentes/shell/styles/` (ver [SHELL.md](./SHELL.md)).
 - Perfil React: `frentes/perfil/styles/` + [PERFIL.md](./PERFIL.md); regras em `motor/conta/`.
 - Listas Entradas/Saídas: `frentes/dinheiro/styles/movements-modern.css` + classe `movements-page--modern`.
+- Dívidas: `legacy-web/css/pages/debts.css` + `frentes/dinheiro/styles/debts-page-spacing.css` + classe `debts-page--modern`.
 - Não sobrescrever cores semânticas (ganhos/saídas/heatmap) sem alinhamento explícito.
 
 ## Verificação antes de merge

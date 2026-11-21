@@ -1,0 +1,37 @@
+.ui-confirm-dialog.ui-dialog__panel {
+    width: min(100%, 22.5rem);
+}
+
+.ui-confirm-dialog .ui-dialog__header {
+    padding-bottom: 0.5rem;
+}
+
+.ui-confirm-dialog .ui-dialog__body {
+    padding-top: 0;
+    padding-bottom: 0.85rem;
+}
+
+.ui-confirm-dialog__title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.05rem;
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+.ui-confirm-dialog__icon {
+    flex-shrink: 0;
+    color: var(--dash-text-secondary, var(--text-light));
+}
+
+.ui-confirm-dialog--danger .ui-confirm-dialog__icon {
+    color: #ff453a;
+}
+
+.ui-confirm-dialog__message {
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.45;
+    color: var(--dash-text-secondary, var(--text-light));
+}

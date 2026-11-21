@@ -9,7 +9,7 @@ import { TripSimuladorOverlay } from '../components/TripSimuladorOverlay';
 import { TripStatusControl } from '../components/TripStatusControl';
 import { useTripAutosave } from '../hooks/useTripAutosave';
 import { ScreenLoader } from '../../../components/ui/ScreenLoader';
-import { MaterialIcon } from '../../../components/icons/MaterialIcon';
+import { DeleteIcon } from '../../../components/icons/DeleteIcon';
 import { TripCountriesSelector } from '../components/TripCountriesSelector';
 import { tripCreatorLabel } from '../components/tripTicketModel';
 import '../styles/viagens-ficha-toolbar.css';
@@ -134,7 +134,7 @@ export function ViagemFichaPage() {
                                     aria-label="Apagar viagem"
                                     onClick={() => void handleDelete()}
                                 >
-                                    <MaterialIcon name="delete" variant="app" opticalSize={20} />
+                                    <DeleteIcon size="md" />
                                 </button>
                             </div>
                         </div>

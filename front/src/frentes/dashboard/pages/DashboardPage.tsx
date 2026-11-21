@@ -1,15 +1,16 @@
-import { useCallback, useEffect, useState } from 'react';
-import { CivilPeriodTimeline } from '../../../components/finance/CivilPeriodTimeline';
+import { useEffect, useState } from 'react';
+import { CivilPeriodToolbar } from '../../../components/finance/CivilPeriodToolbar';
 import { DashboardSummaryCards } from '../../../components/finance/MovementSummaryCards';
 import { useFinanceData } from '../../../app/FinanceDataProvider';
-import { defaultCivilYear, defaultPeriod, periodFromMonthIndex } from '../../../lib/period';
+import { useCivilPeriodState } from '../../../hooks/useCivilPeriodState';
 import { CashHeatmap } from '../components/CashHeatmap';
 import { FinancialFluxChart } from '../components/FinancialFluxChart';
 import { PendingCashOuts } from '../components/PendingCashOuts';
 import { useDashboardFacets } from '../context/DashboardFacetsContext';
 import { computeDashboardMetrics, type DashboardMetricsDisplay } from '../domain/dashboardMetrics';
 import { acceptedOutgoingSplits } from '../domain/splitRequestsForBalance';
-import { ScreenLoader } from '../../../components/ui/ScreenLoader';
+import { DashboardPageSkeleton } from '../../../components/skeleton/DashboardPageSkeleton';
+import { useSkeletonMinDuration } from '../../../hooks/useSkeletonMinDuration';
 
 const EMPTY_METRICS: DashboardMetricsDisplay = {
     balance: '—',
@@ -27,9 +28,9 @@ const EMPTY_METRICS: DashboardMetricsDisplay = {
 
 export function DashboardPage() {
     const { data, loading, error } = useFinanceData();
+    const showSkeleton = useSkeletonMinDuration(loading);
     const facetsCtx = useDashboardFacets();
-    const [period, setPeriod] = useState(defaultPeriod);
-    const [year, setYear] = useState(defaultCivilYear);
+    const { period, year, onPeriodChange, onYearChange, selectChartMonth } = useCivilPeriodState();
     const [cards, setCards] = useState<DashboardMetricsDisplay>(EMPTY_METRICS);
 
     const currency = data?.userProfile?.currency ?? 'BRL';
@@ -63,17 +64,8 @@ export function DashboardPage() {
         };
     }, [data, period, year, facetKey, currency, facets]);
 
-    const onChartMonth = useCallback((monthIndex: number, chartYear: number) => {
-        setYear(chartYear);
-        setPeriod(periodFromMonthIndex(monthIndex));
-    }, []);
-
-    if (loading) {
-        return (
-            <section className="page active">
-                <ScreenLoader label="Carregando painel" />
-            </section>
-        );
+    if (showSkeleton) {
+        return <DashboardPageSkeleton />;
     }
 
     if (error || !data) {
@@ -86,7 +78,13 @@ export function DashboardPage() {
 
     return (
         <section id="dashboard-page" className="page active dashboard-page--modern">
-            <CivilPeriodTimeline period={period} year={year} onPeriodChange={setPeriod} onYearChange={setYear} />
+            <CivilPeriodToolbar
+                period={period}
+                year={year}
+                onPeriodChange={onPeriodChange}
+                onYearChange={onYearChange}
+                accent="dashboard"
+            />
             <DashboardSummaryCards {...cards} />
             <PendingCashOuts currency={currency} />
             <FinancialFluxChart
@@ -101,7 +99,7 @@ export function DashboardPage() {
                 userProfile={data.userProfile}
                 splitRequests={acceptedOutgoingSplits(data.expenseSplitRequests)}
                 splitBundle={data.expenseSplitRequests}
-                onSelectMonth={onChartMonth}
+                onSelectMonth={selectChartMonth}
             />
             <CashHeatmap
                 period={period}

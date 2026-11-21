@@ -12,6 +12,8 @@ type Props = {
     payload?: PayloadItem[];
     label?: string;
     currency: string;
+    /** Sobrescreve rótulos padrão do fluxo (ex.: séries de dívidas). */
+    labels?: Record<string, string>;
 };
 
 const LABELS: Record<string, string> = {
@@ -21,16 +23,25 @@ const LABELS: Record<string, string> = {
     saldo: 'Saldo em conta'
 };
 
-export function FluxChartTooltip({ active, payload, label, currency }: Props) {
+export function FluxChartTooltip({ active, payload, label, currency, labels }: Props) {
     if (!active || !payload?.length) return null;
+
+    const resolveTitle = (key: string, name?: string) => labels?.[key] ?? LABELS[key] ?? name ?? key;
+
+    const items = payload.filter((p) => {
+        const v = p.value;
+        return v != null && !Number.isNaN(Number(v));
+    });
+
+    if (!items.length) return null;
 
     return (
         <div className="flux-chart-tooltip">
             {label ? <div className="flux-chart-tooltip__label">{label}</div> : null}
             <ul className="flux-chart-tooltip__list">
-                {payload.map((p) => {
+                {items.map((p) => {
                     const key = String(p.dataKey ?? p.name ?? '');
-                    const title = LABELS[key] ?? p.name ?? key;
+                    const title = resolveTitle(key, p.name);
                     const v = p.value;
                     return (
                         <li key={key} className="flux-chart-tooltip__row">

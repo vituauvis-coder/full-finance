@@ -1,4 +1,5 @@
 import { MaterialIcon } from '../../../../components/icons/MaterialIcon';
+import { DeleteIcon } from '../../../../components/icons/DeleteIcon';
 import { dateLabel } from '../../pages/pontos/pontos-format';
 import type { MilesCalcSave } from '../../utils/miles-calc-saves';
 
@@ -53,7 +54,7 @@ export function MilesCalcHistoryPop({ saves, onOpen, onDrop, onClose }: Props) {
                                     aria-label="Excluir simulação"
                                     onClick={() => onDrop(s.id)}
                                 >
-                                    <MaterialIcon name="delete" variant="app" opticalSize={16} />
+                                    <DeleteIcon size="sm" />
                                 </button>
                             </li>
                         ))}

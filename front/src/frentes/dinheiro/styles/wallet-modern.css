@@ -1,0 +1,173 @@
+/* Carteira React — reforça o layout legado (linha horizontal), sem substituir o grid */
+
+#wallet-page.wallet-page--modern {
+    min-width: 0;
+    width: 100%;
+    /* Paleta única Carteira (alinhada a civil-period-timeline--wallet) */
+    --wallet-blue: #2563eb;
+    --wallet-blue-bright: #3b82f6;
+    --wallet-blue-soft: #60a5fa;
+    --wallet-blue-deep: #1d4ed8;
+    --wallet-blue-icon-bg: color-mix(in srgb, var(--wallet-blue) 14%, var(--dash-surface-bg, var(--bg-light)));
+}
+
+/* KPIs */
+.page-content--dashboard-modern #wallet-page.wallet-page--modern > .summary-cards.movements-summary {
+    gap: var(--dash-stack-gap-tight);
+}
+
+.page-content--dashboard-modern #wallet-page.wallet-page--modern .movements-summary .movement-summary-card {
+    gap: 0.85rem;
+    background: var(--dash-surface-bg, var(--bg-light));
+    border: 1px solid var(--dash-surface-border, var(--border-color));
+    border-radius: var(--dash-surface-radius, 12px);
+    box-shadow: var(--dash-surface-shadow, none);
+}
+
+.page-content--dashboard-modern #wallet-page.wallet-page--modern .movements-summary .card-content p.movement-summary-card__value {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+}
+
+#wallet-page.wallet-page--modern .wallet-kpi-progress {
+    width: 100%;
+    margin-top: 0.65rem;
+}
+
+/* Barra de fatura — herda .movements-summary .wallet-kpi-progress__fill (var(--expenses-accent)) */
+
+#wallet-page.wallet-page--modern .movements-toolbar {
+    width: 100%;
+}
+
+/* Timeline — mesmo tamanho que entradas/saídas (accounts.css densifica só #wallet-page) */
+#wallet-page.wallet-page--modern .civil-period-timeline.civil-period-timeline--wallet.civil-period-timeline--surfaced {
+    margin-bottom: 0;
+    gap: 0.5rem;
+}
+
+#wallet-page.wallet-page--modern .civil-period-timeline--surfaced .civil-period-timeline__year-stepper {
+    min-height: 2.35rem;
+    padding: 0.32rem 0.5rem;
+}
+
+#wallet-page.wallet-page--modern .civil-period-timeline--surfaced .civil-period-timeline__year-value {
+    min-width: 3.1rem;
+    font-size: 0.92rem;
+    font-weight: 800;
+}
+
+#wallet-page.wallet-page--modern .civil-period-timeline--surfaced .civil-period-timeline__year-btn {
+    width: 1.9rem;
+    height: 1.9rem;
+    min-width: 1.9rem;
+}
+
+#wallet-page.wallet-page--modern .civil-period-timeline--surfaced .civil-period-timeline__chips {
+    gap: 0.5rem;
+    row-gap: 0.5rem;
+}
+
+#wallet-page.wallet-page--modern .civil-period-timeline--surfaced .civil-period-timeline__month-btn {
+    flex: 1 1 2.35rem;
+    min-height: 2.35rem;
+    min-width: 2.35rem;
+    padding: 0.45rem 0.55rem;
+    font-size: 0.85rem;
+    font-weight: 650;
+    border-radius: 8px;
+}
+
+/* Timeline — reforça acento azul no painel surfaced */
+#wallet-page.wallet-page--modern .civil-period-timeline.civil-period-timeline--wallet {
+    --cpt-accent: var(--wallet-blue);
+}
+
+#wallet-page.wallet-page--modern .civil-period-timeline--wallet .civil-period-timeline__year-value {
+    color: var(--wallet-blue-soft);
+}
+
+#wallet-page.wallet-page--modern .civil-period-timeline--wallet .civil-period-timeline__month-btn.is-active {
+    color: var(--wallet-blue-bright);
+}
+
+#wallet-page.wallet-page--modern .wallet-page__layout {
+    gap: var(--dash-stack-gap);
+}
+
+#wallet-page.wallet-page--modern .wallet-page__aside {
+    position: sticky;
+    top: 0.5rem;
+}
+
+@media (max-width: 1023px) {
+    #wallet-page.wallet-page--modern .wallet-page__aside {
+        position: static;
+    }
+}
+
+#wallet-page.wallet-page--modern .wallet-institutions-list {
+    gap: 0.55rem;
+}
+
+/* Linha legado — superfície dashboard, grid intacto (accounts.css) */
+.page-content--dashboard-modern #wallet-page.wallet-page--modern .wallet-institution-row {
+    background: var(--dash-surface-bg, var(--bg-light));
+    border-color: var(--dash-surface-border, var(--border-color));
+    box-shadow: var(--dash-surface-shadow, none);
+    border-radius: var(--dash-surface-radius, 10px);
+}
+
+/* Faixa lateral: cor vem do inline style (tema/cor do cartão). Tint legado só como fallback. */
+
+/* Não forçar coluna nas ações: legado = ícones empilhados à direita */
+.page-content--dashboard-modern #wallet-page.wallet-page--modern .wallet-institution-row__row-actions .btn-action {
+    width: 2rem;
+    height: 2rem;
+}
+
+/* Aside */
+.page-content--dashboard-modern #wallet-page.wallet-page--modern .wallet-aside-card {
+    border-radius: var(--dash-surface-radius, 16px);
+    background: var(--dash-surface-bg, var(--bg-light));
+    border-color: var(--dash-surface-border, var(--border-color));
+    box-shadow: var(--dash-surface-shadow, none);
+}
+
+.page-content--dashboard-modern #wallet-page.wallet-page--modern .wallet-aside-row__amt {
+    font-variant-numeric: tabular-nums;
+}
+
+#wallet-page.wallet-page--modern .wallet-aside-row__amt--out {
+    color: var(--wallet-blue-soft);
+}
+
+/* Plásticos — prioridade ao visual legado (gradiente, sombra, pills) */
+#wallet-page.wallet-page--modern .wallet-institution-row__cards .wallet-plastics {
+    gap: 0.55rem;
+}
+
+#wallet-page.wallet-page--modern .wallet-institution-row__cards button.wallet-plastic.wallet-card-open:not(.wallet-plastic--placeholder) {
+    width: 11rem;
+    min-height: 6.35rem;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.28),
+        inset 0 -12px 18px rgba(0, 0, 0, 0.18),
+        0 8px 18px rgba(0, 0, 0, 0.22);
+}
+
+#wallet-page.wallet-page--modern .wallet-institution-row__cards button.wallet-plastic.wallet-card-open:not(.wallet-plastic--placeholder):hover {
+    transform: translateY(-2px);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.32),
+        inset 0 -12px 18px rgba(0, 0, 0, 0.18),
+        0 12px 22px rgba(0, 0, 0, 0.28);
+}
+
+#wallet-page.wallet-page--modern .wallet-institution-row__cards button.wallet-plastic--placeholder {
+    width: 11rem;
+    min-height: 6.35rem;
+}

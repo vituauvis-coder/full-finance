@@ -33,3 +33,18 @@ export function expensesSummaryTitles() {
         other: 'Outras despesas'
     };
 }
+
+export const DEBTS_SUMMARY_COPY = {
+    totalToday:
+        'Soma do saldo mais recente de cada banco com dívida ativa (última atualização registrada).',
+    monthTotal: 'Soma dos saldos de fim de mês de cada banco no mês calendário atual.',
+    bankCount: 'Bancos ou instituições com pelo menos uma atualização e dívida não encerrada.'
+} as const;
+
+export function debtsSummaryTitles() {
+    return {
+        totalToday: 'Total hoje',
+        monthTotal: 'Total neste mês',
+        bankCount: 'Bancos com dívida'
+    };
+}

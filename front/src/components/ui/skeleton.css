@@ -1,0 +1,430 @@
+.skeleton-page {
+    display: flex;
+    flex-direction: column;
+    gap: var(--dash-stack-gap);
+    width: 100%;
+    background: transparent;
+}
+
+.skeleton-page > * {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+/* Ritmo vertical = só `gap` do .skeleton-page (--dash-stack-gap) */
+.skeleton-page .summary-cards,
+.skeleton-page .dashboard-reports-section,
+.skeleton-page .dashboard-reports-charts-grid,
+.skeleton-page .dashboard-cash-heatmap,
+.skeleton-page .treemap-container,
+.skeleton-page .table-container,
+.skeleton-page .movements-toolbar {
+    margin-bottom: 0 !important;
+}
+
+.skeleton-movement-summary-card {
+    --skeleton-base: color-mix(in srgb, var(--dash-text-secondary, #6e6e73) 16%, var(--dash-surface-bg, #fff));
+    --skeleton-highlight: color-mix(in srgb, var(--dash-text-secondary, #6e6e73) 8%, var(--dash-surface-bg, #fff));
+    background-color: var(--dash-surface-bg) !important;
+    border: 1px solid var(--dash-surface-border);
+    border-radius: var(--dash-surface-radius);
+    box-shadow: var(--dash-surface-shadow) !important;
+}
+
+[data-theme='dark'] .skeleton-movement-summary-card {
+    --skeleton-base: color-mix(in srgb, var(--dash-text-secondary, #86868b) 22%, var(--dash-surface-bg, #1d1d1f));
+    --skeleton-highlight: color-mix(in srgb, var(--dash-text-secondary, #86868b) 12%, var(--dash-surface-bg, #1d1d1f));
+}
+
+.skeleton-movement-summary-card__icon {
+    background: var(--dash-layer-inset, #e8e8ed) !important;
+    color: transparent !important;
+    box-shadow: none !important;
+}
+
+.skeleton {
+    --skeleton-base: color-mix(in srgb, var(--dash-text-primary, #1d1d1f) 10%, transparent);
+    --skeleton-highlight: color-mix(in srgb, var(--dash-text-primary, #1d1d1f) 6%, var(--dash-surface-bg, #fff));
+    display: block;
+    border-radius: 0.5rem;
+    background: linear-gradient(
+        105deg,
+        var(--skeleton-base) 0%,
+        var(--skeleton-highlight) 45%,
+        var(--skeleton-base) 90%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.35s ease-in-out infinite;
+}
+
+[data-theme='dark'] .skeleton {
+    --skeleton-base: color-mix(in srgb, var(--dash-text-secondary, #86868b) 20%, var(--dash-surface-bg, #1d1d1f));
+    --skeleton-highlight: color-mix(in srgb, var(--dash-text-secondary, #86868b) 10%, var(--dash-surface-bg, #1d1d1f));
+}
+
+.skeleton--pill {
+    border-radius: 999px;
+}
+
+.skeleton--circle {
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.skeleton--line {
+    height: 0.75rem;
+    width: 100%;
+}
+
+.skeleton--line-sm {
+    height: 0.625rem;
+}
+
+.skeleton--line-lg {
+    height: 1.25rem;
+}
+
+.skeleton--title {
+    height: 0.7rem;
+    width: 62%;
+    max-width: 8.5rem;
+}
+
+.skeleton--metric {
+    height: 1.5rem;
+    width: 72%;
+    max-width: 10rem;
+    margin-top: 0.35rem;
+}
+
+.skeleton--footer {
+    height: 0.65rem;
+    width: 48%;
+    max-width: 6rem;
+    margin-top: 0.5rem;
+}
+
+.skeleton-movement-summary-card .card-icon {
+    visibility: hidden;
+    position: relative;
+}
+
+.skeleton-movement-summary-card .card-icon::after {
+    content: '';
+    visibility: visible;
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: linear-gradient(
+        105deg,
+        var(--skeleton-base) 0%,
+        var(--skeleton-highlight) 45%,
+        var(--skeleton-base) 90%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.35s ease-in-out infinite;
+}
+
+.skeleton-movement-summary-card .card-content h3,
+.skeleton-movement-summary-card .movement-summary-card__value,
+.skeleton-movement-summary-card .movement-summary-card__footer {
+    visibility: hidden;
+    position: relative;
+    min-height: 0.75rem;
+}
+
+.skeleton-movement-summary-card .card-content h3::after,
+.skeleton-movement-summary-card .movement-summary-card__value::after,
+.skeleton-movement-summary-card .movement-summary-card__footer::after {
+    content: '';
+    visibility: visible;
+    position: absolute;
+    left: 0;
+    top: 0;
+    border-radius: 0.5rem;
+    background: linear-gradient(
+        105deg,
+        var(--skeleton-base) 0%,
+        var(--skeleton-highlight) 45%,
+        var(--skeleton-base) 90%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.35s ease-in-out infinite;
+}
+
+.skeleton-movement-summary-card .card-content h3::after {
+    width: 62%;
+    height: 0.7rem;
+    max-width: 8.5rem;
+}
+
+.skeleton-movement-summary-card .movement-summary-card__value::after {
+    width: 72%;
+    height: 1.5rem;
+    max-width: 10rem;
+    top: 0.15rem;
+}
+
+.skeleton-movement-summary-card .movement-summary-card__footer::after {
+    width: 48%;
+    height: 0.65rem;
+    max-width: 6rem;
+}
+
+.skeleton-movement-summary-card .card-content h3 {
+    margin: 0;
+    min-height: 0.7rem;
+}
+
+.skeleton-movement-summary-card .movement-summary-card__value {
+    margin: 0.35rem 0 0;
+    min-height: 1.5rem;
+}
+
+.skeleton-movement-summary-card .movement-summary-card__footer {
+    margin-top: 0.5rem;
+    min-height: 0.65rem;
+}
+
+.skeleton-timeline {
+    --skeleton-base: color-mix(in srgb, var(--dash-text-secondary, #6e6e73) 16%, var(--dash-surface-bg, #fff));
+    --skeleton-highlight: color-mix(in srgb, var(--dash-text-secondary, #6e6e73) 8%, var(--dash-surface-bg, #fff));
+    pointer-events: none;
+    user-select: none;
+}
+
+[data-theme='dark'] .skeleton-timeline {
+    --skeleton-base: color-mix(in srgb, var(--dash-text-secondary, #86868b) 22%, var(--dash-surface-bg, #1d1d1f));
+    --skeleton-highlight: color-mix(in srgb, var(--dash-text-secondary, #86868b) 12%, var(--dash-surface-bg, #1d1d1f));
+}
+
+.skeleton-timeline.civil-period-timeline {
+    margin: 0;
+}
+
+.movements-page--modern .skeleton-page > .movements-toolbar {
+    width: 100%;
+}
+
+
+.skeleton-timeline .civil-period-timeline__year-btn,
+.skeleton-timeline .civil-period-timeline__year-value,
+.skeleton-timeline .civil-period-timeline__month-btn {
+    cursor: default;
+    position: relative;
+    color: transparent !important;
+}
+
+.skeleton-timeline .civil-period-timeline__year-btn:disabled,
+.skeleton-timeline .civil-period-timeline__month-btn:disabled {
+    pointer-events: none;
+}
+
+.skeleton-timeline .civil-period-timeline__year-stepper {
+    background-color: var(--dash-layer-inset);
+    border: 1px solid var(--dash-border);
+    box-shadow: none;
+}
+
+.skeleton-timeline .civil-period-timeline__year-btn {
+    background-color: color-mix(in srgb, var(--dash-text-secondary) 10%, var(--dash-surface-bg)) !important;
+    color: transparent !important;
+}
+
+.skeleton-timeline .civil-period-timeline__month-btn {
+    background-color: var(--dash-surface-bg) !important;
+    border: 1px solid var(--dash-border) !important;
+    box-shadow: none !important;
+}
+
+.skeleton-timeline .civil-period-timeline__month-btn.is-active {
+    background-color: var(--dash-layer-control) !important;
+    border-color: var(--dash-border-strong) !important;
+    box-shadow: inset 0 0 0 1px var(--dash-border-strong) !important;
+}
+
+.skeleton-timeline .civil-period-timeline__year-btn::after,
+.skeleton-timeline .civil-period-timeline__year-value::after,
+.skeleton-timeline .civil-period-timeline__month-btn::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 4px;
+    background: linear-gradient(
+        105deg,
+        var(--skeleton-base) 0%,
+        var(--skeleton-highlight) 45%,
+        var(--skeleton-base) 90%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.35s ease-in-out infinite;
+    pointer-events: none;
+}
+
+.skeleton-timeline .civil-period-timeline__year-btn::after {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+}
+
+.skeleton-timeline .civil-period-timeline__year-value::after {
+    width: 2.35rem;
+    height: 0.7rem;
+}
+
+.skeleton-timeline .civil-period-timeline__month-btn::after {
+    width: 1.35rem;
+    height: 0.55rem;
+    max-width: 72%;
+}
+
+.skeleton-timeline .civil-period-timeline__month-btn.is-active::after {
+    width: 1.15rem;
+    height: 0.5rem;
+    opacity: 0.85;
+}
+
+.skeleton-panel {
+    width: 100%;
+    background: var(--dash-surface-bg);
+    border: 1px solid var(--dash-surface-border);
+    border-radius: var(--dash-surface-radius);
+    box-shadow: var(--dash-surface-shadow);
+    padding: var(--dash-surface-pad-y) var(--dash-surface-pad-x);
+    box-sizing: border-box;
+}
+
+/* Evita sombra dupla quando o bloco real já é superfície (treemap / tabela). */
+.movements-page--modern .treemap-container.skeleton-panel,
+.movements-page--modern .table-container.skeleton-panel {
+    box-shadow: var(--dash-surface-shadow);
+}
+
+.movements-page--modern .skeleton-table-host.table-container {
+    padding: var(--dash-surface-pad-y) var(--dash-surface-pad-x);
+    background: var(--dash-surface-bg);
+    border: 1px solid var(--dash-surface-border);
+    border-radius: var(--dash-surface-radius);
+    box-shadow: var(--dash-surface-shadow);
+}
+
+.skeleton-panel__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: var(--dash-stack-gap-tight);
+}
+
+.skeleton-panel__title {
+    width: 11rem;
+    height: 1rem;
+}
+
+.skeleton-panel__subtitle {
+    width: 5.5rem;
+    height: 0.75rem;
+}
+
+.skeleton-panel__body {
+    width: 100%;
+}
+
+.skeleton-panel__body--treemap {
+    min-height: 400px;
+}
+
+/* Treemap: shimmer só no poço interno — não um bloco opaco sobre o cartão */
+.movements-page--modern .treemap-container > .skeleton.skeleton-panel__body--treemap,
+.dashboard-page--modern .skeleton-panel__body--treemap.skeleton {
+    background: color-mix(in srgb, var(--dash-layer-inset) 55%, var(--dash-surface-bg));
+    border-radius: calc(var(--dash-surface-radius) - 6px);
+    box-shadow: none;
+}
+
+[data-theme='dark'] .movements-page--modern .treemap-container > .skeleton.skeleton-panel__body--treemap,
+[data-theme='dark'] .dashboard-page--modern .skeleton-panel__body--treemap.skeleton {
+    background: color-mix(in srgb, var(--dash-layer-inset) 70%, var(--dash-surface-bg));
+}
+
+.skeleton-panel__body--chart {
+    min-height: 380px;
+}
+
+.skeleton-panel__body--heatmap {
+    min-height: 280px;
+}
+
+.skeleton-table-host {
+    overflow: hidden;
+}
+
+.skeleton-table-host .skeleton-table-row {
+    display: grid;
+    grid-template-columns: 1.25rem 1.2fr 1fr 0.85fr 0.75fr 2.5rem;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 0.25rem;
+    border-bottom: 1px solid var(--dash-surface-border, rgba(0, 0, 0, 0.06));
+}
+
+.skeleton-table-host .skeleton-table-row:last-child {
+    border-bottom: none;
+}
+
+.skeleton-table-host .skeleton-table-head {
+    padding-top: 0.15rem;
+    padding-bottom: 0.65rem;
+}
+
+.skeleton-table-host .skeleton-table-head .skeleton {
+    height: 0.65rem;
+    max-width: 5rem;
+}
+
+.skeleton-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.page-content--dashboard-modern > section.page.active:has(> .skeleton-page) {
+    background: transparent;
+}
+
+@keyframes skeleton-shimmer {
+    0% {
+        background-position: 100% 0;
+    }
+
+    100% {
+        background-position: -100% 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skeleton,
+    .skeleton-movement-summary-card .card-icon::after,
+    .skeleton-movement-summary-card .card-content h3::after,
+    .skeleton-movement-summary-card .movement-summary-card__value::after,
+    .skeleton-movement-summary-card .movement-summary-card__footer::after {
+        animation: none;
+        background: var(--skeleton-base);
+    }
+
+    .skeleton-timeline .civil-period-timeline__year-btn::after,
+    .skeleton-timeline .civil-period-timeline__year-value::after,
+    .skeleton-timeline .civil-period-timeline__month-btn::after {
+        animation: none;
+        background: var(--skeleton-base);
+    }
+
+}

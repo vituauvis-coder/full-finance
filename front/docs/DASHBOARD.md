@@ -7,7 +7,7 @@ Rota: `/dashboard` · Página: `frentes/dashboard/pages/DashboardPage.tsx`
 | Bloco | Componente | Camada |
 |-------|------------|--------|
 | Header (facetas, filtro) | `components/header/DashboardHeaderActions.tsx` | UI |
-| Timeline mês/ano | `components/finance/CivilPeriodTimeline.tsx` (shared) | UI |
+| Timeline mês/ano | `components/finance/CivilPeriodToolbar.tsx` → `CivilPeriodTimeline.tsx` | UI |
 | KPIs | `components/finance/DashboardSummaryCards.tsx` | UI |
 | Confirmar no saldo | `components/PendingCashOuts.tsx` | UI + `api/` |
 | Fluxo financeiro | `components/FinancialFluxChart.tsx` + `components/flux/*` | UI + `hooks/` |

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { MaterialIcon } from '../../../../components/icons/MaterialIcon';
+import { DeleteIcon } from '../../../../components/icons/DeleteIcon';
 import { applyChosenScenario } from '../../domain/tripScenarioChosen';
 import { destinationsNeedDepartureDates, enrichCountrySchedule } from '../../domain/tripScenarioDisplay';
 import type { ScenarioSnapshot } from '../../domain/tripScenarioCriteria';
@@ -99,7 +100,7 @@ export function TripSimuladorDetail({
                     </button>
                     {canDelete ? (
                         <button type="button" className="viagens-sim-icon-btn viagens-sim-icon-btn--danger" title="Excluir" onClick={onDelete}>
-                            <MaterialIcon name="delete" variant="app" opticalSize={18} />
+                            <DeleteIcon size="sm" />
                         </button>
                     ) : null}
                 </div>

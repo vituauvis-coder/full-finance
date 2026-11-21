@@ -1,4 +1,5 @@
 import { MaterialIcon } from '../../../../components/icons/MaterialIcon';
+import { DeleteIcon } from '../../../../components/icons/DeleteIcon';
 import { formatBRL } from '../../utils/map-utils';
 import type { PiggyDeposit } from './orcamento-model';
 
@@ -45,7 +46,7 @@ export function PiggyHistoryPop({ deposits, onClose, onDelete }: Props) {
                                     aria-label="Excluir aporte"
                                     onClick={() => onDelete(d.id)}
                                 >
-                                    <MaterialIcon name="delete" variant="app" opticalSize={16} />
+                                    <DeleteIcon size="sm" />
                                 </button>
                             </li>
                         ))}

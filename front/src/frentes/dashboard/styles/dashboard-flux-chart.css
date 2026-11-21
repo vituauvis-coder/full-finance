@@ -120,18 +120,22 @@
         0 12px 32px rgba(0, 0, 0, 0.12);
 }
 
-#dashboard-page.dashboard-page--modern .flux-chart-tooltip {
+.page-content--dashboard-modern :is(#dashboard-page.dashboard-page--modern, #debts-page.debts-page--modern) .flux-chart-tooltip {
     background: color-mix(in srgb, var(--dash-layer-control) 82%, transparent);
     border: 1px solid var(--dash-border-strong);
     color: var(--dash-text-primary);
     box-shadow: var(--dash-raised-ring), 0 16px 40px rgba(0, 0, 0, 0.28);
 }
 
-[data-theme='dark'] #dashboard-page.dashboard-page--modern .flux-chart-tooltip {
+[data-theme='dark'] .page-content--dashboard-modern :is(#dashboard-page.dashboard-page--modern, #debts-page.debts-page--modern) .flux-chart-tooltip {
     background: color-mix(in srgb, var(--dash-layer-control) 76%, var(--dash-layer-raised));
     box-shadow:
         var(--dash-raised-ring),
         0 20px 48px rgba(0, 0, 0, 0.55);
+}
+
+.page-content--dashboard-modern #debts-page.debts-page--modern .flux-chart-tooltip__value {
+    color: var(--dash-text-primary);
 }
 
 .flux-chart-tooltip__label {

@@ -10,6 +10,7 @@ import {
 import { flightLedger } from '@motor/viagens/flight-ledger.js';
 import { unitLabel } from '@motor/milhas/catalog.js';
 import { MaterialIcon } from '../../../../components/icons/MaterialIcon';
+import { DeleteIcon } from '../../../../components/icons/DeleteIcon';
 import { formatBRL } from '../../utils/map-utils';
 import { formatPts, type MilesProgram } from '../../pages/pontos/pontos-format';
 import { flightDurationLabel, flightStampParts } from '../../domain/flightDisplay';
@@ -245,7 +246,7 @@ export function FlightSimCard({
                     <MaterialIcon name="content_copy" variant="app" opticalSize={16} />
                 </button>
                 <button type="button" className="voos-icon-btn voos-icon-btn--coral" onClick={onDelete} title="Apagar">
-                    <MaterialIcon name="delete" variant="app" opticalSize={16} />
+                    <DeleteIcon size="sm" />
                 </button>
             </header>
             <div className="voos-sim-card__body" onClick={openEditor}>

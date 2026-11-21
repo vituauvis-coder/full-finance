@@ -17,6 +17,7 @@ import {
 import { saldoEmReais, totalSaldoEmReais } from '../../domain/milhas-cmp';
 import { formatBRL } from '../../utils/map-utils';
 import { MaterialIcon } from '../../../../components/icons/MaterialIcon';
+import { DeleteIcon } from '../../../../components/icons/DeleteIcon';
 import {
     BonusBar,
     Chip,
@@ -520,7 +521,7 @@ export function MilesWalletHub({ tripId, showTripEmissions, showGlobalKpis, befo
                                     disabled={busy}
                                     onClick={() => void dropMove(m)}
                                 >
-                                    <MaterialIcon name="delete" variant="app" opticalSize={16} />
+                                    <DeleteIcon size="sm" />
                                 </button>
                             </li>
                         );

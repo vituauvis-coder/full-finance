@@ -15,6 +15,7 @@ Leia e siga [`front/docs/CODE_QUALITY.md`](../../front/docs/CODE_QUALITY.md).
 - **Página** compõe; não duplicar fetch se `FinanceDataProvider` já cobre.
 - **Arquivo** alvo ~250 linhas; teto ~400 — quebrar em subcomponentes, hooks ou utils.
 - **Comentários** só para invariantes não óbvios; não narrar o óbvio.
+- **Carregamento inicial de página**: skeleton (ver `front/docs/CODE_QUALITY.md` e regra `skeleton-loading.mdc`).
 - Dashboard: inventário em [`front/docs/DASHBOARD.md`](../../front/docs/DASHBOARD.md).
 
 Antes de concluir: `npm run build:front` e, se mexeu no motor, `npm test`.

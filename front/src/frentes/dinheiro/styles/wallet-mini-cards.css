@@ -1,0 +1,175 @@
+/* Mini-cartões React — flat, mesmo tamanho, bom contraste no dark */
+
+.wallet-mini-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+    width: 100%;
+    max-width: 22.5rem;
+}
+
+.wallet-mini-cards__slot {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.wallet-mini-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: stretch;
+    width: 100%;
+    min-height: 6.75rem;
+    margin: 0;
+    padding: 0.65rem 0.7rem;
+    border-radius: 12px;
+    border: 1px solid var(--dash-surface-border, var(--border-color));
+    background: color-mix(in srgb, var(--dash-surface-bg, var(--bg-light)) 92%, var(--primary-color));
+    text-align: left;
+    font: inherit;
+    color: var(--dash-text-primary, var(--text-color));
+    cursor: pointer;
+    box-sizing: border-box;
+    transition:
+        border-color 0.15s ease,
+        background 0.15s ease,
+        transform 0.12s ease;
+}
+
+.wallet-mini-card:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--primary-color) 45%, var(--dash-surface-border, var(--border-color)));
+    transform: translateY(-1px);
+}
+
+.wallet-mini-card:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+.wallet-mini-card__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.35rem;
+    margin-bottom: 0.35rem;
+}
+
+.wallet-mini-card__kind {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--dash-text-secondary, var(--text-light));
+}
+
+.wallet-mini-card__meta {
+    font-size: 0.62rem;
+    font-weight: 600;
+    color: var(--dash-text-secondary, var(--text-light));
+    white-space: nowrap;
+}
+
+.wallet-mini-card__title {
+    font-size: 0.84rem;
+    font-weight: 700;
+    line-height: 1.25;
+    margin-bottom: 0.35rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.wallet-mini-card__amount {
+    font-size: 1rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.15;
+}
+
+.wallet-mini-card__muted,
+.wallet-mini-card__hint {
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--dash-text-secondary, var(--text-light));
+}
+
+/* Crédito — faixa de cor do banco (sem gradiente pesado) */
+.wallet-mini-card--credit.account-card--bank-itau {
+    border-color: color-mix(in srgb, #ea580c 55%, var(--border-color));
+    background: linear-gradient(
+        145deg,
+        color-mix(in srgb, #ea580c 22%, var(--dash-surface-bg, #1a1a1c)) 0%,
+        var(--dash-surface-bg, var(--bg-light)) 55%
+    );
+}
+
+.wallet-mini-card--credit.account-card--bank-inter {
+    border-color: color-mix(in srgb, #f97316 50%, var(--border-color));
+    background: linear-gradient(
+        145deg,
+        color-mix(in srgb, #f97316 20%, var(--dash-surface-bg, #1a1a1c)) 0%,
+        var(--dash-surface-bg, var(--bg-light)) 55%
+    );
+}
+
+.wallet-mini-card--credit.account-card--bank-nubank {
+    border-color: color-mix(in srgb, #a855f7 45%, var(--border-color));
+    background: linear-gradient(
+        145deg,
+        color-mix(in srgb, #a855f7 18%, var(--dash-surface-bg, #1a1a1c)) 0%,
+        var(--dash-surface-bg, var(--bg-light)) 55%
+    );
+}
+
+.wallet-mini-card--debit {
+    background: var(--dash-surface-bg, var(--bg-light));
+}
+
+/* Slot vazio — contraste alto */
+.wallet-mini-card--add {
+    border-style: dashed;
+    border-width: 1.5px;
+    border-color: color-mix(in srgb, var(--dash-text-secondary, var(--text-light)) 45%, transparent);
+    background: color-mix(in srgb, var(--dash-surface-bg, var(--bg-light)) 96%, transparent);
+}
+
+.wallet-mini-card--add:hover:not(:disabled) {
+    border-color: var(--primary-color);
+    background: color-mix(in srgb, var(--primary-color) 8%, var(--dash-surface-bg, var(--bg-light)));
+}
+
+.wallet-mini-card--add .wallet-mini-card__title {
+    font-weight: 600;
+    color: var(--dash-text-primary, var(--text-color));
+}
+
+.wallet-mini-card--add .wallet-mini-card__hint {
+    color: color-mix(in srgb, var(--dash-text-secondary, var(--text-light)) 85%, var(--dash-text-primary, #fff));
+}
+
+.wallet-mini-card__add {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.15rem;
+    height: 1.15rem;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--dash-text-secondary, var(--text-light)) 35%, transparent);
+    font-size: 0.8rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--dash-text-secondary, var(--text-light));
+}
+
+.wallet-mini-card--add:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+@media (max-width: 520px) {
+    .wallet-mini-cards {
+        max-width: none;
+    }
+}

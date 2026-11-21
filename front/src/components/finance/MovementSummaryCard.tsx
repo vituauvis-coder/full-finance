@@ -8,6 +8,7 @@ export type MovementSummaryTone =
     | 'projection'
     | 'savings'
     | 'cofrinhos'
+    | 'debts'
     | 'investments';
 
 type Props = {
@@ -26,6 +27,10 @@ type Props = {
     valueId?: string;
     variationId?: string;
     iconTooltip?: boolean;
+    /** Classes extras no quadrado do ícone (ex.: `wallet-summary-kpi-icon--limit`). */
+    iconClassName?: string;
+    /** Classes extras no valor (ex.: negativo no poder de compra). */
+    valueClassName?: string;
 };
 
 export function MovementSummaryCard({
@@ -41,7 +46,9 @@ export function MovementSummaryCard({
     titleId,
     valueId,
     variationId,
-    iconTooltip = true
+    iconTooltip = true,
+    iconClassName,
+    valueClassName
 }: Props) {
     const tooltipAttr =
         iconTooltip && description && !subtitle
@@ -54,7 +61,8 @@ export function MovementSummaryCard({
                 className={[
                     'card-icon',
                     tone,
-                    iconTooltip ? 'movements-summary-card-icon' : ''
+                    iconTooltip ? 'movements-summary-card-icon' : '',
+                    iconClassName
                 ]
                     .filter(Boolean)
                     .join(' ')}
@@ -70,7 +78,10 @@ export function MovementSummaryCard({
             <div className="card-content">
                 <h3 id={titleId ?? `${cardId}-title`}>{title}</h3>
                 {subtitle ? <p className="movement-summary-card__subtitle">{subtitle}</p> : null}
-                <p className="movement-summary-card__value" id={valueId ?? cardId}>
+                <p
+                    className={['movement-summary-card__value', valueClassName].filter(Boolean).join(' ')}
+                    id={valueId ?? cardId}
+                >
                     {value}
                 </p>
                 {(footer || hint || variationId) && (

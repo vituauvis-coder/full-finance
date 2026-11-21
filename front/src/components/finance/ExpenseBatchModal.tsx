@@ -1,9 +1,10 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import { useCategories } from '../../hooks/useCategories';
 import { buildPaymentMethodOptions } from '../../lib/accounts';
 import type { Account } from '../../lib/types/finance';
 import { patchExpensesBatch } from '../../frentes/dinheiro/api/movements';
-import { ModalShell } from './ModalShell';
+import { DialogForm, DialogFrame } from '../ui/dialog';
+import { FormActions, FormAlert, FormField, FormSelect } from '../ui/form';
 
 type Props = {
     open: boolean;
@@ -39,7 +40,7 @@ export function ExpenseBatchModal({ open, count, ids, accounts, onClose, onSaved
         setError('');
     }, [open]);
 
-    async function onSubmit(e: FormEvent) {
+    async function onSubmit(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();
         const patch: Record<string, unknown> = {};
         if (accountId) patch.accountId = accountId;
@@ -73,36 +74,33 @@ export function ExpenseBatchModal({ open, count, ids, accounts, onClose, onSaved
     }
 
     return (
-        <ModalShell id="expense-batch-modal" open={open} title="Editar saídas em lote" onClose={onClose}>
-            <p id="expense-batch-modal-summary" className="card-metric-hint">
+        <DialogFrame id="expense-batch-modal" open={open} title="Editar saídas em lote" onClose={onClose} size="lg">
+            <p id="expense-batch-modal-summary" className="ui-form-hint-block">
                 {count} saída(s) selecionada(s). Campos em branco não serão alterados.
             </p>
-            <form id="expense-batch-form" onSubmit={(e) => void onSubmit(e)}>
-                <div className="form-field">
-                    <label htmlFor="expense-batch-account">Conta / cartão</label>
-                    <select id="expense-batch-account" value={accountId} onChange={(e) => setAccountId(e.target.value)}>
+            <DialogForm id="expense-batch-form" onSubmit={(e) => void onSubmit(e)}>
+                <FormField id="expense-batch-account" label="Conta / cartão">
+                    <FormSelect id="expense-batch-account" value={accountId} onChange={(e) => setAccountId(e.target.value)}>
                         <option value="">— não alterar —</option>
                         {paymentOptions.map((o) => (
                             <option key={o.value} value={o.value}>
                                 {o.label}
                             </option>
                         ))}
-                    </select>
-                </div>
-                <div className="form-field">
-                    <label htmlFor="expense-batch-category">Categoria</label>
-                    <select id="expense-batch-category" value={category} onChange={(e) => setCategory(e.target.value)}>
+                    </FormSelect>
+                </FormField>
+                <FormField id="expense-batch-category" label="Categoria">
+                    <FormSelect id="expense-batch-category" value={category} onChange={(e) => setCategory(e.target.value)}>
                         <option value="">— não alterar —</option>
                         {categories.map((c) => (
                             <option key={c.id} value={c.name}>
                                 {c.name}
                             </option>
                         ))}
-                    </select>
-                </div>
-                <div className="form-field">
-                    <label htmlFor="expense-batch-subcategory">Subcategoria</label>
-                    <select
+                    </FormSelect>
+                </FormField>
+                <FormField id="expense-batch-subcategory" label="Subcategoria">
+                    <FormSelect
                         id="expense-batch-subcategory"
                         value={subcategory}
                         onChange={(e) => setSubcategory(e.target.value)}
@@ -114,46 +112,32 @@ export function ExpenseBatchModal({ open, count, ids, accounts, onClose, onSaved
                                 {s.name}
                             </option>
                         ))}
-                    </select>
-                </div>
-                <div className="form-field">
-                    <label htmlFor="expense-batch-fixed">Essencial</label>
-                    <select id="expense-batch-fixed" value={isFixed} onChange={(e) => setIsFixed(e.target.value)}>
+                    </FormSelect>
+                </FormField>
+                <FormField id="expense-batch-fixed" label="Essencial">
+                    <FormSelect id="expense-batch-fixed" value={isFixed} onChange={(e) => setIsFixed(e.target.value)}>
                         <option value="">— não alterar —</option>
                         <option value="1">Sim</option>
                         <option value="0">Não</option>
-                    </select>
-                </div>
-                <div className="form-field">
-                    <label htmlFor="expense-batch-paid">Pago</label>
-                    <select id="expense-batch-paid" value={isPaid} onChange={(e) => setIsPaid(e.target.value)}>
+                    </FormSelect>
+                </FormField>
+                <FormField id="expense-batch-paid" label="Pago">
+                    <FormSelect id="expense-batch-paid" value={isPaid} onChange={(e) => setIsPaid(e.target.value)}>
                         <option value="">— não alterar —</option>
                         <option value="1">Sim</option>
                         <option value="0">Pendente</option>
-                    </select>
-                </div>
-                <div className="form-field">
-                    <label htmlFor="expense-batch-cofrinho">Cofrinho</label>
-                    <select id="expense-batch-cofrinho" value={isCofrinho} onChange={(e) => setIsCofrinho(e.target.value)}>
+                    </FormSelect>
+                </FormField>
+                <FormField id="expense-batch-cofrinho" label="Cofrinho">
+                    <FormSelect id="expense-batch-cofrinho" value={isCofrinho} onChange={(e) => setIsCofrinho(e.target.value)}>
                         <option value="">— não alterar —</option>
                         <option value="1">Sim</option>
                         <option value="0">Não</option>
-                    </select>
-                </div>
-                {error ? (
-                    <p role="alert" className="form-error">
-                        {error}
-                    </p>
-                ) : null}
-                <div className="modal-actions">
-                    <button type="button" id="expense-batch-cancel-btn" className="btn-secondary" onClick={onClose}>
-                        Cancelar
-                    </button>
-                    <button type="submit" className="btn-primary" disabled={busy}>
-                        {busy ? 'Salvando…' : 'Aplicar'}
-                    </button>
-                </div>
-            </form>
-        </ModalShell>
+                    </FormSelect>
+                </FormField>
+                <FormAlert message={error} />
+                <FormActions onCancel={onClose} submitLabel="Aplicar" busy={busy} />
+            </DialogForm>
+        </DialogFrame>
     );
 }

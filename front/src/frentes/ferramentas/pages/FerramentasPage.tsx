@@ -1,5 +1,6 @@
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '../../../lib/http';
+import { DeleteIcon } from '../../../components/icons/DeleteIcon';
 
 type KanbanCard = {
     id: string;
@@ -159,7 +160,12 @@ function KanbanColumn({
                             <button type="button" className="btn-secondary btn-small" onClick={() => void onEdit(c)}>
                                 Editar
                             </button>
-                            <button type="button" className="btn-secondary btn-small" onClick={() => void onRemove(c)}>
+                            <button
+                                type="button"
+                                className="btn-secondary btn-small delete-action-btn"
+                                onClick={() => void onRemove(c)}
+                            >
+                                <DeleteIcon size="sm" />
                                 Excluir
                             </button>
                         </div>

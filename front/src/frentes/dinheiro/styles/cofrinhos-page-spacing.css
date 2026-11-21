@@ -1,0 +1,172 @@
+/* Cofrinhos — stack moderno (paridade entradas / planejamento) */
+
+#cofrinhos-page.cofrinhos-page--modern {
+    display: flex;
+    flex-direction: column;
+    gap: var(--dash-stack-gap);
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    /* legado .cofrinhos-page — não somar gap/padding ao stack moderno */
+    padding-bottom: 0;
+}
+
+#cofrinhos-page.cofrinhos-page--modern > * {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+#cofrinhos-page.cofrinhos-page--modern > .summary-cards.movements-summary {
+    gap: var(--dash-stack-gap-tight);
+}
+
+.page-content > .app-header + #cofrinhos-page > .civil-period-timeline--surfaced:first-child {
+    margin-top: 0;
+}
+
+.civil-period-timeline--cofrinhos {
+    --cpt-accent: var(--cofrinhos-accent);
+}
+
+[data-theme='dark'] .civil-period-timeline--cofrinhos {
+    --cpt-accent: var(--cofrinhos-accent-muted, var(--cofrinhos-accent));
+}
+
+.page-content--dashboard-modern .app-header--cofrinhos #cofrinhos-header-actions {
+    display: flex;
+}
+
+/* Ícones dos KPIs — tons balance/projection herdariam âmbar/azul do dashboard.css */
+.page-content--dashboard-modern #cofrinhos-page .cofrinhos-page__summary.movements-summary .card-icon,
+.page-content--dashboard-modern #cofrinhos-page .cofrinhos-page__summary.movements-summary .card-icon.balance,
+.page-content--dashboard-modern #cofrinhos-page .cofrinhos-page__summary.movements-summary .card-icon.cofrinhos,
+.page-content--dashboard-modern #cofrinhos-page .cofrinhos-page__summary.movements-summary .card-icon.projection {
+    background: color-mix(in srgb, var(--cofrinhos-accent) 14%, var(--dash-surface-bg, var(--bg-color)));
+    color: var(--cofrinhos-accent);
+}
+
+[data-theme='dark'] .page-content--dashboard-modern #cofrinhos-page .cofrinhos-page__summary.movements-summary .card-icon,
+[data-theme='dark'] .page-content--dashboard-modern #cofrinhos-page .cofrinhos-page__summary.movements-summary .card-icon.balance,
+[data-theme='dark'] .page-content--dashboard-modern #cofrinhos-page .cofrinhos-page__summary.movements-summary .card-icon.cofrinhos,
+[data-theme='dark'] .page-content--dashboard-modern #cofrinhos-page .cofrinhos-page__summary.movements-summary .card-icon.projection {
+    background: color-mix(in srgb, var(--cofrinhos-accent) 18%, var(--dash-surface-bg, var(--bg-light)));
+    color: var(--cofrinhos-accent-muted, var(--cofrinhos-accent));
+}
+
+.page-content--dashboard-modern #cofrinhos-page .cofrinhos-page__summary .movement-summary-card,
+.page-content--dashboard-modern #cofrinhos-page .data-table-host,
+.page-content--dashboard-modern #cofrinhos-page .cofrinhos-page__chart-card {
+    background-color: var(--dash-surface-bg);
+    border: 1px solid var(--dash-surface-border);
+    border-radius: var(--dash-surface-radius);
+    box-shadow: var(--dash-surface-shadow);
+}
+
+/* Cartões de caixinha — progresso e ações (chrome vem de zero-budget-components) */
+#cofrinhos-page .cofrinho-bucket-card__amount {
+    cursor: default;
+    pointer-events: none;
+}
+
+#cofrinhos-page .cofrinho-bucket-card__amount:hover {
+    background: transparent;
+}
+
+#cofrinhos-page .cofrinho-bucket-card__meta-unset {
+    font-style: italic;
+    opacity: 0.8;
+}
+
+#cofrinhos-page .cofrinho-bucket-card__progress {
+    height: 0.45rem;
+    margin-top: 0.35rem;
+    border-radius: 999px;
+    background: var(--dash-layer-inset, var(--bg-color));
+    overflow: hidden;
+}
+
+#cofrinhos-page .cofrinho-bucket-card__progress span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    transition: width 0.25s ease;
+}
+
+#cofrinhos-page .cofrinho-bucket-card__done {
+    flex-shrink: 0;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--cofrinhos-accent, var(--dash-text-secondary));
+}
+
+#cofrinhos-page .cofrinho-bucket-card.zero-budget__block-card {
+    cursor: default;
+}
+
+#cofrinhos-page .cofrinho-bucket-card__foot {
+    margin-top: auto;
+}
+
+#cofrinhos-page .cofrinho-bucket-card__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-left: auto;
+}
+
+#cofrinhos-page .skeleton-page {
+    display: flex;
+    flex-direction: column;
+    gap: var(--dash-stack-gap);
+    width: 100%;
+}
+
+#cofrinhos-page .cofrinhos-page__chart-skeleton.skeleton-panel__body--chart {
+    min-height: 7.5rem;
+    height: 7.5rem;
+}
+
+.page-content--dashboard-modern #cofrinhos-page .skeleton-zero-budget__block-card {
+    background-color: var(--dash-surface-bg);
+    border: 1px solid var(--dash-surface-border);
+    border-radius: var(--dash-surface-radius);
+    box-shadow: var(--dash-surface-shadow);
+}
+
+#cofrinhos-applications-table.data-table th:nth-child(1),
+#cofrinhos-applications-table.data-table td:nth-child(1) {
+    width: 28%;
+}
+
+#cofrinhos-applications-table.data-table th:nth-child(3),
+#cofrinhos-applications-table.data-table td:nth-child(3) {
+    width: 18%;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Gráfico placeholder — altura compacta; o legado dashboard.css reservava ~420px */
+.page-content--dashboard-modern #cofrinhos-page .cofrinhos-page__chart-wrapper.chart-wrapper {
+    flex: 0 0 auto;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+}
+
+.page-content--dashboard-modern #cofrinhos-page .cofrinhos-page__chart-wrapper .cofrinhos-page__chart-placeholder {
+    width: 100%;
+    min-height: 7.5rem;
+    border-radius: 0.75rem;
+    background: color-mix(in srgb, var(--cofrinhos-accent) 6%, var(--bg-light));
+    border: 1px dashed color-mix(in srgb, var(--cofrinhos-accent) 22%, var(--border-color));
+}
+
+[data-theme='dark']
+    .page-content--dashboard-modern
+    #cofrinhos-page
+    .cofrinhos-page__chart-wrapper
+    .cofrinhos-page__chart-placeholder {
+    background: color-mix(in srgb, var(--cofrinhos-accent) 8%, var(--dash-surface-bg, var(--bg-light)));
+}

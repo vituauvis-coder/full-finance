@@ -25,15 +25,12 @@ export function applySidebarCollapsed(collapsed: boolean): void {
 
 export const sidebarCollapseSyncEvent = SYNC_EVENT;
 
-/** Ao entrar num módulo pelo menu: recolhe no desktop; fecha drawer no mobile. */
+/** Ao entrar num módulo pelo menu: fecha só o drawer no mobile (sidebar mantém aberta no desktop). */
 export function collapseSidebarOnModuleNav(): void {
-    if (!isDesktopSidebarViewport()) {
-        const sidebar = document.querySelector('.sidebar');
-        const overlay = document.getElementById('sidebar-overlay');
-        sidebar?.classList.remove('open');
-        overlay?.classList.add('hidden');
-        overlay?.classList.remove('open');
-        return;
-    }
-    applySidebarCollapsed(true);
+    if (isDesktopSidebarViewport()) return;
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    sidebar?.classList.remove('open');
+    overlay?.classList.add('hidden');
+    overlay?.classList.remove('open');
 }

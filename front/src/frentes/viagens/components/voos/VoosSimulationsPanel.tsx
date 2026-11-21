@@ -8,6 +8,7 @@ import {
 } from '@motor/viagens/flight-simulation.js';
 import { cheapestOptionId, chosenDayTotal, optionScore } from '@motor/viagens/flight-ledger.js';
 import { MaterialIcon } from '../../../../components/icons/MaterialIcon';
+import { DeleteIcon } from '../../../../components/icons/DeleteIcon';
 import { formatBRL } from '../../utils/map-utils';
 import type { MilesProgram } from '../../pages/pontos/pontos-format';
 import type { TripDestination, TripFlightSegment, TripFlightSimulation, TripPayload } from '../../types';
@@ -234,7 +235,7 @@ export function VoosSimulationsPanel({
                                             }
                                         }}
                                     >
-                                        <MaterialIcon name="delete" variant="app" opticalSize={16} />
+                                        <DeleteIcon size="sm" />
                                     </button>
                                 </div>
                             </header>

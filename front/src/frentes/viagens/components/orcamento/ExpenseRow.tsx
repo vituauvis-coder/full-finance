@@ -7,6 +7,7 @@ import {
     paidFromCofrinho as expensePaidFromCofrinho
 } from '@motor/viagens/trip-expense-payment.js';
 import { MaterialIcon } from '../../../../components/icons/MaterialIcon';
+import { DeleteIcon } from '../../../../components/icons/DeleteIcon';
 import type { TripDestination, TripExpense, TripExpensePaymentMethod } from '../../types';
 import { formatBRL } from '../../utils/map-utils';
 import { ExpenseDateField } from './ExpenseDateField';
@@ -186,7 +187,7 @@ export function ExpenseRow({
                         onDelete();
                     }}
                 >
-                    <MaterialIcon name="delete" variant="app" opticalSize={16} />
+                    <DeleteIcon size="sm" />
                 </button>
             </li>
         );

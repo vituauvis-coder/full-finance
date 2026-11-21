@@ -6,17 +6,37 @@ type Props = {
     onPeriodChange: (period: string) => void;
     onYearChange: (year: number) => void;
     className?: string;
+    ariaLabel?: string;
 };
 
-export function CivilPeriodTimeline({ period, year, onPeriodChange, onYearChange, className = '' }: Props) {
+const ACCENT_RE = /\bcivil-period-timeline--([a-z0-9-]+)\b/;
+
+function resolveTimelineClasses(className: string) {
+    const m = className.match(ACCENT_RE);
+    const accent = m ? m[1] : 'dashboard';
+    const rest = className.replace(ACCENT_RE, '').replace(/\s+/g, ' ').trim();
+    return {
+        classes: ['civil-period-timeline', `civil-period-timeline--${accent}`, rest].filter(Boolean).join(' ')
+    };
+}
+
+export function CivilPeriodTimeline({
+    period,
+    year,
+    onPeriodChange,
+    onYearChange,
+    className = '',
+    ariaLabel = 'Mês do painel'
+}: Props) {
     const activeMonth = monthIndexFromPeriod(period);
+    const { classes } = resolveTimelineClasses(className);
 
     return (
         <div
-            className={`civil-period-timeline civil-period-timeline--dashboard ${className}`.trim()}
+            className={classes}
             data-civil-period-timeline
             role="tablist"
-            aria-label="Mês do painel"
+            aria-label={ariaLabel}
         >
             <div className="civil-period-timeline__year-stepper" aria-label="Ano civil">
                 <button

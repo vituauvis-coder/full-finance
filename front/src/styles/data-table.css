@@ -2,6 +2,22 @@
 
 .data-table-host {
     width: 100%;
+    overflow-x: auto;
+}
+
+.page-content--dashboard-modern .data-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    table-layout: fixed;
+}
+
+.page-content--dashboard-modern .data-table tbody td {
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--dash-border);
+    vertical-align: middle;
+    color: var(--dash-text-primary);
+    line-height: 1.35;
 }
 
 .page-content--dashboard-modern .data-table-host {
@@ -103,6 +119,30 @@
     align-items: center;
     justify-content: center;
     gap: 0.35rem;
+}
+
+.page-content--dashboard-modern .data-table .table-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    min-width: 2rem;
+    padding: 0;
+    line-height: 1;
+}
+
+.page-content--dashboard-modern .data-table .table-action-btn .app-icon {
+    font-size: 1.125rem;
+    line-height: 1;
+    color: inherit;
+    flex-shrink: 0;
+}
+
+.page-content--dashboard-modern .data-table .table-action-btn--delete:hover {
+    color: #f43f5e;
+    border-color: color-mix(in srgb, #f43f5e 35%, var(--dash-border));
+    background: color-mix(in srgb, #f43f5e 10%, var(--dash-layer-inset, var(--bg-light)));
 }
 
 .page-content--dashboard-modern .data-table .btn-small {

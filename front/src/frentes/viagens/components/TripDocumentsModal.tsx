@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { MaterialIcon } from '../../../components/icons/MaterialIcon';
+import { DeleteIcon } from '../../../components/icons/DeleteIcon';
 import type { TripCheckItem, TripDocItem } from '../types';
 
 type Props = {
@@ -142,7 +143,7 @@ export function TripDocumentsModal({
                                             aria-label="Remover documento"
                                             onClick={() => onChangeDocuments(documents.filter((d) => d.id !== doc.id))}
                                         >
-                                            <MaterialIcon name="delete_outline" variant="app" opticalSize={18} />
+                                            <DeleteIcon size="sm" />
                                         </button>
                                     </div>
 

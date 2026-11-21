@@ -34,6 +34,7 @@ import {
     type MilesProgram
 } from '../../pages/pontos/pontos-format';
 import { MaterialIcon } from '../../../../components/icons/MaterialIcon';
+import { DeleteIcon } from '../../../../components/icons/DeleteIcon';
 
 const LAUNCH_TYPES = [
     ['acumulo', 'Acúmulo'],
@@ -489,7 +490,7 @@ export function CarteiraSheet({ tripId, programId, onClose, onChanged }: Props) 
                                                     disabled={busy}
                                                     onClick={() => void dropMove(m)}
                                                 >
-                                                    <MaterialIcon name="delete" variant="app" opticalSize={16} />
+                                                    <DeleteIcon size="sm" />
                                                 </button>
                                             </li>
                                         );

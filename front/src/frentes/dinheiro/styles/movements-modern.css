@@ -11,17 +11,6 @@
     width: 100%;
 }
 
-.movements-page--modern .movements-toolbar .civil-period-timeline {
-    width: 100%;
-    min-width: 0;
-    background-color: var(--dash-surface-bg);
-    border: 1px solid var(--dash-surface-border);
-    border-radius: var(--dash-surface-radius);
-    box-shadow: var(--dash-surface-shadow);
-    padding: 0.45rem 0.55rem;
-    box-sizing: border-box;
-}
-
 .page-content--dashboard-modern .movements-summary .movement-summary-card {
     gap: 0.85rem;
 }

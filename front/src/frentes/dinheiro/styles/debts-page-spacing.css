@@ -1,0 +1,118 @@
+/* Dívidas — stack moderno (paridade entradas / cofrinhos) */
+
+#debts-page.debts-page--modern {
+    display: flex;
+    flex-direction: column;
+    gap: var(--dash-stack-gap);
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    padding-bottom: 0;
+}
+
+#debts-page.debts-page--modern > * {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+#debts-page.debts-page--modern > .summary-cards.movements-summary {
+    gap: var(--dash-stack-gap-tight);
+}
+
+.page-content--dashboard-modern .app-header--debts #debts-header-actions {
+    display: flex;
+}
+
+/* KPIs e gráfico — tokens dash (legacy debts.css usa --bg-light) */
+.page-content--dashboard-modern #debts-page.debts-page--modern .debts-page__summary .movement-summary-card,
+.page-content--dashboard-modern #debts-page.debts-page--modern .debts-page__charts-section .reports-chart-container.debts-page__chart-card {
+    background-color: var(--dash-surface-bg);
+    border: 1px solid var(--dash-surface-border);
+    border-radius: var(--dash-surface-radius);
+    box-shadow: var(--dash-surface-shadow);
+}
+
+.page-content--dashboard-modern #debts-page .debts-page__summary.movements-summary .card-icon.debts {
+    background: color-mix(in srgb, var(--debts-accent, #9f1239) 14%, var(--dash-surface-bg));
+    color: var(--debts-accent, #9f1239);
+}
+
+[data-theme='dark'] .page-content--dashboard-modern #debts-page .debts-page__summary.movements-summary .card-icon.debts {
+    background: color-mix(in srgb, var(--debts-accent, #9f1239) 20%, var(--dash-surface-bg));
+    color: var(--debts-accent-muted, var(--debts-accent));
+}
+
+.page-content--dashboard-modern #debts-page .debts-page__charts-section .reports-chart-header h3 {
+    color: var(--dash-text-primary);
+}
+
+.page-content--dashboard-modern #debts-page .debts-page__charts-section .reports-chart-hint {
+    color: var(--dash-text-secondary);
+}
+
+[data-theme='dark'] .page-content--dashboard-modern #debts-page.debts-page--modern .debts-page__summary .movement-summary-card,
+[data-theme='dark'] .page-content--dashboard-modern #debts-page.debts-page--modern .debts-page__charts-section .reports-chart-container.debts-page__chart-card {
+    background-color: var(--dash-surface-bg);
+    border-color: var(--dash-surface-border);
+    box-shadow: var(--dash-surface-shadow);
+}
+
+#debts-page.debts-page--modern .dashboard-reports-section,
+#debts-page.debts-page--modern .dashboard-reports-charts-grid,
+#debts-page.debts-page--modern .skeleton-page .dashboard-reports-section,
+#debts-page.debts-page--modern .skeleton-page .dashboard-reports-charts-grid {
+    margin-bottom: 0;
+}
+
+#debts-page.debts-page--modern .skeleton-page > * {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.debts-page__chart-empty {
+    color: var(--dash-text-tertiary, var(--text-muted));
+    font-size: 0.875rem;
+    text-align: center;
+    margin: 0;
+    padding: 2rem 1rem;
+}
+
+.page-content--dashboard-modern #debts-page .debts-page__chart-canvas.flux-chart-canvas {
+    min-height: min(380px, 42vh);
+}
+
+.page-content--dashboard-modern #debts-page .flux-chart-canvas .recharts-legend-item-text {
+    color: var(--dash-text-secondary) !important;
+}
+
+.page-content--dashboard-modern #debts-page .flux-chart-canvas .recharts-legend-wrapper {
+    width: 100% !important;
+}
+
+.page-content--dashboard-modern #debts-page .flux-chart-canvas .recharts-default-legend {
+    display: flex !important;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.35rem 1rem;
+    line-height: 1.4;
+}
+
+.page-content--dashboard-modern #debts-page .debts-page__charts-section .reports-chart-header {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.35rem 1rem;
+}
+
+.page-content--dashboard-modern #debts-page .debts-page__charts-section .reports-chart-hint {
+    margin: 0;
+    font-size: 0.8rem;
+    flex: 1 1 12rem;
+    text-align: right;
+}
+
+/* Legacy debts.css — altura fixa do canvas Chart.js */
+.page-content--dashboard-modern #debts-page .debts-page__chart-wrapper {
+    height: auto;
+    min-height: 0;
+    max-height: none;
+}

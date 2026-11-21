@@ -1,0 +1,22 @@
+---
+description: Skeleton screen no carregamento inicial de páginas e blocos
+globs: front/**/*.{ts,tsx,css}
+alwaysApply: false
+---
+
+# Skeleton loading (front)
+
+Leia `front/docs/CODE_QUALITY.md` (seção **Carregamento (skeleton)**).
+
+## Obrigatório
+
+- Página ou painel que espera dados no primeiro paint: **skeleton** com a mesma hierarquia visual do conteúdo carregado.
+- **Não** usar `ScreenLoader` como substituto da página inteira (exceto auth / fullscreen sem skeleton).
+- Novas rotas com skeleton de página: registrar em `RouteTransitionVeil.tsx` para navegação interna.
+- **Sem cores de produto** (ganhos, saídas, acento de timeline): placeholder só em cinza (`dash-*` + shimmer).
+- Usar `Skeleton`, `PageLoadingShell` e skeletons em `front/src/components/skeleton/`; estilos em `skeleton.css`.
+- Blocos inline (gráfico, tabela secundária): skeleton local ou `ScreenLoader variant="inline"` só se o placeholder não couber.
+
+## Nova feature
+
+Ao adicionar fetch + estado `loading` em página nova, incluir skeleton (novo componente ou reutilização) no mesmo change.

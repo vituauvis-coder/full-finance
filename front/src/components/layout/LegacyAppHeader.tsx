@@ -5,6 +5,10 @@ import { MaterialIcon } from '../icons/MaterialIcon';
 import { HeaderNotifications } from './HeaderNotifications';
 import { MovementFacetHeaderActions } from './header/MovementFacetHeaderActions';
 import { ViagensHeaderActions } from '../../frentes/viagens/components/ViagensHeaderActions';
+import { ZeroBudgetHeaderActions } from '../../frentes/dinheiro/components/ZeroBudgetHeaderActions';
+import { CofrinhosHeaderActions } from '../../frentes/dinheiro/components/cofrinhos/CofrinhosHeaderActions';
+import { DebtsHeaderActions } from '../../frentes/dinheiro/components/debts/DebtsHeaderActions';
+import { WalletHeaderActions } from '../../frentes/dinheiro/components/WalletHeaderActions';
 
 export function LegacyAppHeader() {
     const { pathname } = useLocation();
@@ -51,6 +55,10 @@ export function LegacyAppHeader() {
                         tone="expenses"
                     />
                     <ViagensHeaderActions hidden={pageId !== 'viagens' || !viagensAtlas} />
+                    <ZeroBudgetHeaderActions hidden={pageId !== 'zero-budget'} />
+                    <WalletHeaderActions hidden={pageId !== 'wallet'} />
+                    <CofrinhosHeaderActions hidden={pageId !== 'cofrinhos'} />
+                    <DebtsHeaderActions hidden={pageId !== 'debts'} />
                     <HeaderNotifications />
                 </div>
             </header>

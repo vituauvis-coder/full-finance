@@ -73,7 +73,7 @@
     height: auto;
     padding: 28vh 1rem 2.5rem;
     align-content: start;
-    background: var(--dash-layer-canvas, var(--bg-light, #f2f2f7));
+    background: transparent;
 }
 
 .screen-swap {
@@ -87,7 +87,24 @@
 }
 
 .screen-swap__stage--pending {
+    opacity: 0;
     pointer-events: none;
+}
+
+.screen-swap__veil {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    min-height: 100%;
+    overflow: hidden;
+    background: transparent;
+    pointer-events: none;
+    box-sizing: border-box;
+}
+
+.screen-swap__veil > .page {
+    width: 100%;
+    background: transparent;
 }
 
 .auth-container--loading .screen-loader {

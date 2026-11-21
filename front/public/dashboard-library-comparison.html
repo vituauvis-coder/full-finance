@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Meu Mundo — Dashboard × 5 bibliotecas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <style>
+    :root {
+      --meu-canvas: #f2f2f7;
+      --meu-raised: #fff;
+      --meu-text: #1d1d1f;
+      --meu-muted: #6e6e73;
+      --meu-radius: 16px;
+      --gain: #34c759;
+      --expense: #ff3b30;
+      --saldo: #0a84ff;
+      --net: #ff9f0a;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+    }
+    body {
+      font-family: Inter, system-ui, sans-serif;
+      background: #e8e8ed !important;
+      color: var(--meu-text) !important;
+    }
+    .page-shell {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1.25rem 1rem 3rem;
+    }
+    .intro {
+      background: var(--meu-raised);
+      border-radius: 20px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    }
+    .intro h1 { font-size: 1.35rem; margin: 0 0 .35rem; }
+    .intro p { margin: 0; color: var(--meu-muted); font-size: .9rem; line-height: 1.45; }
+  /* Tabs */
+    .lib-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .5rem;
+      margin-bottom: 1rem;
+    }
+    .lib-tab {
+      border: 1px solid rgba(0,0,0,.1);
+      background: #fff;
+      border-radius: 999px;
+      padding: .45rem 1rem;
+      font-size: .8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s, border-color .15s;
+    }
+    .lib-tab:hover { background: #f5f5f7; }
+    .lib-tab[aria-selected="true"] {
+      background: #1d1d1f;
+      color: #fff;
+      border-color: #1d1d1f;
+    }
+    /* Não usar classe "active" (colide com Bootstrap) nem atributo [hidden] (Tailwind/UA). */
+    .lib-panel { display: none !important; }
+    .lib-panel.lib-panel--on { display: block !important; }
+  /* Shared mock blocks */
+    .mock-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; }
+    @media (max-width: 900px) { .mock-kpis { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 520px) { .mock-kpis { grid-template-columns: 1fr; } }
+    .mock-chart {
+      height: 200px;
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      padding: 1rem 0 0;
+    }
+    .mock-chart span {
+      flex: 1;
+      border-radius: 6px 6px 0 0;
+      min-height: 12px;
+    }
+    .heatmap-mini {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+    .heatmap-mini i {
+      display: block;
+      aspect-ratio: 1;
+      border-radius: 6px;
+      font-style: normal;
+      font-size: 0;
+    }
+    .mom { font-size: .75rem; font-weight: 600; }
+    .mom.up { color: var(--gain); }
+    .mom.down { color: var(--expense); }
+
+  /* —— Referência: seu app (tokens reais) —— */
+    .ref-dash {
+      background: var(--meu-canvas);
+      border-radius: 20px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+    .ref-surface {
+      background: var(--meu-raised);
+      border-radius: var(--meu-radius);
+      box-shadow: 0 0 0 1px rgba(0,0,0,.06);
+      padding: 1rem 1.15rem;
+    }
+    .ref-timeline { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+    .ref-year {
+      font-weight: 600;
+      font-size: .95rem;
+      padding: .35rem .65rem;
+      border-radius: 10px;
+      background: #e8e8ed;
+    }
+    .ref-month {
+      padding: .35rem .7rem;
+      border-radius: 999px;
+      font-size: .8rem;
+      border: none;
+      background: transparent;
+      color: var(--meu-muted);
+      cursor: pointer;
+    }
+    .ref-month.on { background: #1d1d1f; color: #fff; }
+    .ref-kpi h3 { margin: 0; font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; color: var(--meu-muted); font-weight: 600; }
+    .ref-kpi .val { font-size: 1.5rem; font-weight: 700; margin: .35rem 0; }
+    .ref-kpi p { margin: 0; font-size: .78rem; color: var(--meu-muted); line-height: 1.35; }
+    .ref-pending li {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: .55rem 0; border-bottom: 1px solid rgba(0,0,0,.06);
+      font-size: .88rem;
+    }
+    .ref-pending li:last-child { border-bottom: 0; }
+
+  /* —— 1 Material UI —— */
+    .mui-dash {
+      font-family: Roboto, sans-serif;
+      background: #fafafa;
+      border-radius: 12px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .mui-paper {
+      background: #fff;
+      border-radius: 4px;
+      box-shadow: 0 2px 1px -1px rgba(0,0,0,.2), 0 1px 1px 0 rgba(0,0,0,.14), 0 1px 3px 0 rgba(0,0,0,.12);
+      padding: 16px;
+    }
+    .mui-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .mui-chip {
+      height: 32px;
+      border-radius: 16px;
+      border: 1px solid rgba(0,0,0,.23);
+      background: transparent;
+      padding: 0 12px;
+      font-size: 13px;
+      font-weight: 500;
+      color: rgba(0,0,0,.87);
+      cursor: pointer;
+    }
+    .mui-chip.filled { background: #1976d2; border-color: #1976d2; color: #fff; }
+    .mui-kpi .val { font-size: 2.125rem; font-weight: 400; color: rgba(0,0,0,.87); }
+    .mui-kpi h3 { font-size: 14px; font-weight: 500; color: rgba(0,0,0,.6); margin: 0; }
+    .mui-sub { font-size: 12px; color: rgba(0,0,0,.6); margin: 8px 0 0; }
+    .mui-h2 { margin: 0 0 8px; font-size: 20px; font-weight: 500; }
+
+  /* —— 2 Chakra —— */
+    .chakra-dash {
+      font-family: Inter, sans-serif;
+      background: #f7fafc;
+      border-radius: 12px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .chakra-card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06);
+      padding: 16px;
+      border: 1px solid #e2e8f0;
+    }
+    .chakra-btn {
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 14px;
+      font-weight: 500;
+      border: 1px solid #e2e8f0;
+      background: #fff;
+      color: #2d3748;
+      cursor: pointer;
+    }
+    .chakra-btn.solid { background: #3182ce; border-color: #3182ce; color: #fff; }
+    .chakra-kpi .val { font-size: 1.875rem; font-weight: 700; color: #1a202c; }
+    .chakra-kpi h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: #718096; margin: 0; }
+
+  /* —— 3 Tailwind (Tailwind UI vibe) —— */
+    .tw-dash { border-radius: 12px; overflow: hidden; }
+
+  /* —— 4 React-Bootstrap —— */
+    .bs-dash { border-radius: 12px; overflow: hidden; }
+    .bs-dash .card { border-color: #dee2e6; }
+    .bs-dash .display-6 { font-size: 1.75rem; }
+
+  /* —— 5 Headless UI + Tailwind —— */
+    .hu-dash { border-radius: 12px; overflow: hidden; }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="intro">
+      <h1>Dashboard financeiro — mesma estrutura, 5 bibliotecas</h1>
+      <p>
+        Mock estático com os blocos do seu painel: período civil, 4 KPIs (saldo, entradas, saídas, balanço),
+        pendências, gráfico de fluxo e heatmap de caixa. Dados de exemplo em BRL — novembro/2026.
+        Abra com <code>npm run dev:front</code> (porta <strong>5174</strong>) em
+        <code>http://localhost:5174/dashboard-library-comparison.html</code> — não use só <code>/</code> (essa rota é o app React).
+      </p>
+    </header>
+
+    <div class="lib-tabs" role="tablist" aria-label="Biblioteca UI">
+      <button type="button" class="lib-tab" role="tab" data-tab="ref" aria-selected="true">Seu app (atual)</button>
+      <button type="button" class="lib-tab" role="tab" data-tab="mui">Material UI</button>
+      <button type="button" class="lib-tab" role="tab" data-tab="chakra">Chakra UI</button>
+      <button type="button" class="lib-tab" role="tab" data-tab="tailwind">Tailwind UI</button>
+      <button type="button" class="lib-tab" role="tab" data-tab="bootstrap">React-Bootstrap</button>
+      <button type="button" class="lib-tab" role="tab" data-tab="headless">Headless UI</button>
+    </div>
+
+    <!-- REF: atual -->
+    <section id="panel-ref" class="lib-panel lib-panel--on" role="tabpanel">
+      <div class="ref-dash">
+        <div class="ref-surface ref-timeline">
+          <span class="ref-year">2026</span>
+          <button type="button" class="ref-month">Jan</button>
+          <button type="button" class="ref-month">Fev</button>
+          <button type="button" class="ref-month on">Nov</button>
+          <button type="button" class="ref-month">Dez</button>
+        </div>
+        <div class="mock-kpis">
+          <article class="ref-surface ref-kpi">
+            <h3>Saldo em conta</h3>
+            <div class="val">R$ 48.920,40</div>
+            <p>Contas no período (estimativa se houver meses futuros).</p>
+            <span class="mom up">▲ 4,2% vs mês ant.</span>
+          </article>
+          <article class="ref-surface ref-kpi">
+            <h3>Entradas</h3>
+            <div class="val" style="color:var(--gain)">R$ 22.150,00</div>
+            <p>Recebido + pendente conforme facetas no topo.</p>
+            <span class="mom up">▲ 12%</span>
+          </article>
+          <article class="ref-surface ref-kpi">
+            <h3>Saídas</h3>
+            <div class="val" style="color:var(--expense)">R$ 18.430,75</div>
+            <p>Pago + pendente conforme facetas.</p>
+            <span class="mom down">▼ 3,1%</span>
+          </article>
+          <article class="ref-surface ref-kpi">
+            <h3>Balanço</h3>
+            <div class="val" style="color:var(--net)">R$ 3.719,25</div>
+            <p>Entradas menos saídas no período.</p>
+          </article>
+        </div>
+        <div class="ref-surface">
+          <h2 style="margin:0 0 .75rem;font-size:1rem;font-weight:600">Saídas pendentes</h2>
+          <ul class="ref-pending" style="list-style:none;margin:0;padding:0">
+            <li><span>Aluguel — pendente</span><strong>R$ 2.800,00</strong></li>
+            <li><span>Internet — vence 22/11</span><strong>R$ 119,90</strong></li>
+          </ul>
+        </div>
+        <div class="ref-surface">
+          <h2 style="margin:0 0 .5rem;font-size:1rem;font-weight:600">Fluxo financeiro</h2>
+          <div class="mock-chart" aria-hidden="true">
+            <span style="height:45%;background:var(--gain);opacity:.85"></span>
+            <span style="height:62%;background:var(--expense);opacity:.75"></span>
+            <span style="height:38%;background:var(--gain)"></span>
+            <span style="height:55%;background:var(--saldo);opacity:.7"></span>
+            <span style="height:70%;background:var(--expense)"></span>
+            <span style="height:48%;background:var(--net)"></span>
+          </div>
+        </div>
+        <div class="ref-surface">
+          <h2 style="margin:0 0 .75rem;font-size:1rem;font-weight:600">Heatmap de caixa</h2>
+          <div class="heatmap-mini" id="heatmap-ref"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MUI -->
+    <section id="panel-mui" class="lib-panel" role="tabpanel" aria-hidden="true">
+      <div class="mui-dash">
+        <div class="mui-paper mui-toolbar">
+          <button type="button" class="mui-chip">2026</button>
+          <button type="button" class="mui-chip">Out</button>
+          <button type="button" class="mui-chip filled">Nov</button>
+          <button type="button" class="mui-chip">Dez</button>
+        </div>
+        <div class="mock-kpis">
+          <article class="mui-paper mui-kpi">
+            <h3>Saldo em conta</h3>
+            <div class="val">R$ 48.920,40</div>
+            <p class="mui-sub">Typography body2 — contas no período.</p>
+          </article>
+          <article class="mui-paper mui-kpi">
+            <h3>Entradas</h3>
+            <div class="val" style="color:#2e7d32">R$ 22.150,00</div>
+            <p class="mui-sub">Success tone</p>
+          </article>
+          <article class="mui-paper mui-kpi">
+            <h3>Saídas</h3>
+            <div class="val" style="color:#d32f2f">R$ 18.430,75</div>
+            <p class="mui-sub">Error tone</p>
+          </article>
+          <article class="mui-paper mui-kpi">
+            <h3>Balanço</h3>
+            <div class="val" style="color:#ed6c02">R$ 3.719,25</div>
+            <p class="mui-sub">Warning tone</p>
+          </article>
+        </div>
+        <div class="mui-paper">
+          <h2 class="mui-h2">Saídas pendentes</h2>
+          <ul class="ref-pending" style="list-style:none;margin:0;padding:0">
+            <li><span>Aluguel</span><span class="mui-sub" style="margin:0">R$ 2.800,00</span></li>
+            <li><span>Internet</span><span class="mui-sub" style="margin:0">R$ 119,90</span></li>
+          </ul>
+        </div>
+        <div class="mui-paper">
+          <h2 class="mui-h2">Fluxo financeiro</h2>
+          <div class="mock-chart"><span style="height:50%;background:#1976d2"></span><span style="height:70%;background:#d32f2f;opacity:.8"></span><span style="height:40%;background:#2e7d32"></span><span style="height:65%;background:#ed6c02"></span></div>
+        </div>
+        <div class="mui-paper">
+          <h2 class="mui-h2">Heatmap de caixa</h2>
+          <div class="heatmap-mini" data-heatmap></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Chakra -->
+    <section id="panel-chakra" class="lib-panel" role="tabpanel" aria-hidden="true">
+      <div class="chakra-dash">
+        <div class="chakra-card chakra-toolbar" style="display:flex;flex-wrap:wrap;gap:8px">
+          <button type="button" class="chakra-btn">2026</button>
+          <button type="button" class="chakra-btn solid">Nov</button>
+          <button type="button" class="chakra-btn">Dez</button>
+        </div>
+        <div class="mock-kpis">
+          <article class="chakra-card chakra-kpi"><h3>Saldo</h3><div class="val">R$ 48.920,40</div></article>
+          <article class="chakra-card chakra-kpi"><h3>Entradas</h3><div class="val" style="color:#38a169">R$ 22.150</div></article>
+          <article class="chakra-card chakra-kpi"><h3>Saídas</h3><div class="val" style="color:#e53e3e">R$ 18.430</div></article>
+          <article class="chakra-card chakra-kpi"><h3>Balanço</h3><div class="val" style="color:#d69e2e">R$ 3.719</div></article>
+        </div>
+        <div class="chakra-card">
+          <p style="margin:0 0 8px;font-weight:600;font-size:16px">Pendências</p>
+          <ul class="ref-pending" style="list-style:none;margin:0;padding:0;font-size:14px;color:#4a5568">
+            <li><span>Aluguel</span><strong>R$ 2.800</strong></li>
+            <li><span>Internet</span><strong>R$ 119,90</strong></li>
+          </ul>
+        </div>
+        <div class="chakra-card">
+          <p style="margin:0 0 8px;font-weight:600">Fluxo</p>
+          <div class="mock-chart"><span style="height:55%;background:#3182ce"></span><span style="height:68%;background:#e53e3e;opacity:.85"></span><span style="height:42%;background:#38a169"></span></div>
+        </div>
+        <div class="chakra-card">
+          <p style="margin:0 0 12px;font-weight:600">Heatmap</p>
+          <div class="heatmap-mini" data-heatmap></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tailwind -->
+    <section id="panel-tailwind" class="lib-panel" role="tabpanel" aria-hidden="true">
+      <div class="tw-dash bg-slate-50 p-5 space-y-5">
+        <div class="bg-white rounded-xl shadow-sm ring-1 ring-slate-200 p-4 flex flex-wrap gap-2">
+          <button type="button" class="rounded-full bg-slate-900 text-white px-3 py-1.5 text-sm font-medium">Nov 2026</button>
+          <button type="button" class="rounded-full px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100">Out</button>
+          <button type="button" class="rounded-full px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100">Dez</button>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+          <div class="bg-white rounded-xl shadow-sm ring-1 ring-slate-200 p-4">
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Saldo</p>
+            <p class="text-2xl font-bold text-slate-900 mt-1">R$ 48.920</p>
+          </div>
+          <div class="bg-white rounded-xl shadow-sm ring-1 ring-slate-200 p-4">
+            <p class="text-xs font-semibold uppercase text-slate-500">Entradas</p>
+            <p class="text-2xl font-bold text-emerald-600 mt-1">R$ 22.150</p>
+          </div>
+          <div class="bg-white rounded-xl shadow-sm ring-1 ring-slate-200 p-4">
+            <p class="text-xs font-semibold uppercase text-slate-500">Saídas</p>
+            <p class="text-2xl font-bold text-rose-600 mt-1">R$ 18.430</p>
+          </div>
+          <div class="bg-white rounded-xl shadow-sm ring-1 ring-slate-200 p-4">
+            <p class="text-xs font-semibold uppercase text-slate-500">Balanço</p>
+            <p class="text-2xl font-bold text-amber-500 mt-1">R$ 3.719</p>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm ring-1 ring-slate-200 p-4">
+          <h2 class="text-sm font-semibold text-slate-900 mb-3">Saídas pendentes</h2>
+          <div class="divide-y divide-slate-100 text-sm">
+            <div class="flex justify-between py-2"><span>Aluguel</span><span class="font-medium">R$ 2.800</span></div>
+            <div class="flex justify-between py-2"><span>Internet</span><span class="font-medium">R$ 119,90</span></div>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm ring-1 ring-slate-200 p-4">
+          <h2 class="text-sm font-semibold mb-2">Fluxo</h2>
+          <div class="mock-chart h-48"><span class="bg-emerald-500" style="height:52%"></span><span class="bg-rose-500 opacity-80" style="height:66%"></span><span class="bg-sky-500" style="height:44%"></span></div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm ring-1 ring-slate-200 p-4">
+          <h2 class="text-sm font-semibold mb-3">Heatmap</h2>
+          <div class="heatmap-mini" data-heatmap></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bootstrap -->
+    <section id="panel-bootstrap" class="lib-panel" role="tabpanel" aria-hidden="true">
+      <div class="bs-dash bg-light p-4">
+        <div class="card mb-3">
+          <div class="card-body d-flex flex-wrap gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm">2026</button>
+            <button type="button" class="btn btn-primary btn-sm">Nov</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm">Dez</button>
+          </div>
+        </div>
+        <div class="row g-3 mb-3">
+          <div class="col-sm-6 col-xl-3">
+            <div class="card h-100">
+              <div class="card-body">
+                <h6 class="card-subtitle text-muted mb-2">Saldo</h6>
+                <p class="card-title display-6 mb-0">R$ 48.920</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6 col-xl-3">
+            <div class="card h-100 border-success">
+              <div class="card-body">
+                <h6 class="text-success">Entradas</h6>
+                <p class="display-6 text-success mb-0">22.150</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6 col-xl-3">
+            <div class="card h-100 border-danger">
+              <div class="card-body">
+                <h6 class="text-danger">Saídas</h6>
+                <p class="display-6 text-danger mb-0">18.430</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6 col-xl-3">
+            <div class="card h-100 border-warning">
+              <div class="card-body">
+                <h6 class="text-warning">Balanço</h6>
+                <p class="display-6 mb-0">3.719</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card mb-3">
+          <div class="card-header">Pendências</div>
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item d-flex justify-content-between">Aluguel <span>R$ 2.800</span></li>
+            <li class="list-group-item d-flex justify-content-between">Internet <span>R$ 119,90</span></li>
+          </ul>
+        </div>
+        <div class="card mb-3">
+          <div class="card-body">
+            <h5 class="card-title">Fluxo</h5>
+            <div class="mock-chart">
+              <span class="bg-primary d-block w-100" style="height:60%"></span>
+              <span class="bg-danger opacity-75 d-block w-100" style="height:45%"></span>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">Heatmap</h5>
+            <div class="heatmap-mini" data-heatmap></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Headless UI style -->
+    <section id="panel-headless" class="lib-panel" role="tabpanel" aria-hidden="true">
+      <div class="hu-dash bg-gray-50 p-5 space-y-4">
+        <div class="bg-white rounded-2xl border border-gray-200 p-3 flex gap-2">
+          <button type="button" class="relative rounded-lg bg-gray-900 px-3 py-2 text-sm font-semibold text-white shadow-sm">Novembro 2026</button>
+          <button type="button" class="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Outubro</button>
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-950/5">
+            <dt class="text-sm font-medium text-gray-500">Saldo em conta</dt>
+            <dd class="mt-2 text-3xl font-semibold tracking-tight text-gray-900">R$ 48.920,40</dd>
+          </div>
+          <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-950/5">
+            <dt class="text-sm font-medium text-gray-500">Entradas</dt>
+            <dd class="mt-2 text-3xl font-semibold text-green-600">R$ 22.150</dd>
+          </div>
+          <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-950/5">
+            <dt class="text-sm font-medium text-gray-500">Saídas</dt>
+            <dd class="mt-2 text-3xl font-semibold text-red-600">R$ 18.430</dd>
+          </div>
+          <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-950/5">
+            <dt class="text-sm font-medium text-gray-500">Balanço</dt>
+            <dd class="mt-2 text-3xl font-semibold text-amber-600">R$ 3.719</dd>
+          </div>
+        </div>
+        <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-950/5">
+          <h3 class="text-base font-semibold text-gray-900">Listbox-style pendências</h3>
+          <ul class="mt-3 space-y-2 text-sm text-gray-700">
+            <li class="flex justify-between rounded-md px-2 py-1.5 hover:bg-gray-50"><span>Aluguel</span><span class="font-medium tabular-nums">R$ 2.800</span></li>
+            <li class="flex justify-between rounded-md px-2 py-1.5 bg-gray-50 ring-1 ring-gray-200"><span>Internet (foco)</span><span class="font-medium">R$ 119,90</span></li>
+          </ul>
+        </div>
+        <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-950/5">
+          <h3 class="text-base font-semibold">Fluxo (combobox / tabs vibe)</h3>
+          <div class="mock-chart mt-3 h-44"><span class="rounded-md bg-indigo-500" style="height:48%"></span><span class="rounded-md bg-rose-500/90" style="height:72%"></span><span class="rounded-md bg-emerald-500" style="height:55%"></span></div>
+        </div>
+        <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-950/5">
+          <h3 class="text-base font-semibold mb-3">Heatmap</h3>
+          <div class="heatmap-mini" data-heatmap></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="https://cdn.tailwindcss.com" defer></script>
+  <script>
+    const tabs = document.querySelectorAll('.lib-tab');
+    const panels = document.querySelectorAll('.lib-panel');
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        const id = tab.dataset.tab;
+        tabs.forEach((t) => t.setAttribute('aria-selected', t === tab ? 'true' : 'false'));
+        panels.forEach((p) => {
+          const on = p.id === 'panel-' + id;
+          p.classList.toggle('lib-panel--on', on);
+          p.setAttribute('aria-hidden', on ? 'false' : 'true');
+        });
+      });
+    });
+
+    function fillHeatmap(root) {
+      const tones = ['#e5e7eb', 'rgba(52,199,89,.25)', 'rgba(52,199,89,.55)', 'rgba(255,59,48,.35)', 'rgba(255,59,48,.6)', '#f3f4f6'];
+      for (let i = 0; i < 35; i++) {
+        const cell = document.createElement('i');
+        cell.style.background = tones[i % tones.length];
+        root.appendChild(cell);
+      }
+    }
+    document.querySelectorAll('[data-heatmap], #heatmap-ref').forEach(fillHeatmap);
+  </script>
+</body>
+</html>

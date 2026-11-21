@@ -1,8 +1,9 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import { useCategories } from '../../hooks/useCategories';
 import type { Account } from '../../lib/types/finance';
 import { patchGainsBatch } from '../../frentes/dinheiro/api/movements';
-import { ModalShell } from './ModalShell';
+import { DialogForm, DialogFrame } from '../ui/dialog';
+import { FormActions, FormAlert, FormField, FormSelect } from '../ui/form';
 
 type Props = {
     open: boolean;
@@ -33,7 +34,7 @@ export function GainBatchModal({ open, count, ids, accounts, onClose, onSaved }:
         setError('');
     }, [open]);
 
-    async function onSubmit(e: FormEvent) {
+    async function onSubmit(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();
         const patch: Record<string, unknown> = {};
         if (accountId) patch.accountId = accountId;
@@ -65,36 +66,33 @@ export function GainBatchModal({ open, count, ids, accounts, onClose, onSaved }:
     }
 
     return (
-        <ModalShell id="gain-batch-modal" open={open} title="Editar entradas em lote" onClose={onClose}>
-            <p id="gain-batch-modal-summary" className="card-metric-hint">
+        <DialogFrame id="gain-batch-modal" open={open} title="Editar entradas em lote" onClose={onClose}>
+            <p id="gain-batch-modal-summary" className="ui-form-hint-block">
                 {count} entrada(s) selecionada(s). Campos em branco não serão alterados.
             </p>
-            <form id="gain-batch-form" onSubmit={(e) => void onSubmit(e)}>
-                <div className="form-field">
-                    <label htmlFor="gain-batch-account">Conta</label>
-                    <select id="gain-batch-account" value={accountId} onChange={(e) => setAccountId(e.target.value)}>
+            <DialogForm id="gain-batch-form" onSubmit={(e) => void onSubmit(e)}>
+                <FormField id="gain-batch-account" label="Conta">
+                    <FormSelect id="gain-batch-account" value={accountId} onChange={(e) => setAccountId(e.target.value)}>
                         <option value="">— não alterar —</option>
                         {accounts.map((a) => (
                             <option key={a.id} value={a.id}>
                                 {a.name}
                             </option>
                         ))}
-                    </select>
-                </div>
-                <div className="form-field">
-                    <label htmlFor="gain-batch-category">Categoria</label>
-                    <select id="gain-batch-category" value={category} onChange={(e) => setCategory(e.target.value)}>
+                    </FormSelect>
+                </FormField>
+                <FormField id="gain-batch-category" label="Categoria">
+                    <FormSelect id="gain-batch-category" value={category} onChange={(e) => setCategory(e.target.value)}>
                         <option value="">— não alterar —</option>
                         {categories.map((c) => (
                             <option key={c.id} value={c.name}>
                                 {c.name}
                             </option>
                         ))}
-                    </select>
-                </div>
-                <div className="form-field">
-                    <label htmlFor="gain-batch-subcategory">Subcategoria</label>
-                    <select
+                    </FormSelect>
+                </FormField>
+                <FormField id="gain-batch-subcategory" label="Subcategoria">
+                    <FormSelect
                         id="gain-batch-subcategory"
                         value={subcategory}
                         onChange={(e) => setSubcategory(e.target.value)}
@@ -106,30 +104,18 @@ export function GainBatchModal({ open, count, ids, accounts, onClose, onSaved }:
                                 {s.name}
                             </option>
                         ))}
-                    </select>
-                </div>
-                <div className="form-field">
-                    <label htmlFor="gain-batch-received">Recebido</label>
-                    <select id="gain-batch-received" value={received} onChange={(e) => setReceived(e.target.value)}>
+                    </FormSelect>
+                </FormField>
+                <FormField id="gain-batch-received" label="Recebido">
+                    <FormSelect id="gain-batch-received" value={received} onChange={(e) => setReceived(e.target.value)}>
                         <option value="">— não alterar —</option>
                         <option value="1">Sim</option>
                         <option value="0">Não (pendente)</option>
-                    </select>
-                </div>
-                {error ? (
-                    <p role="alert" className="form-error">
-                        {error}
-                    </p>
-                ) : null}
-                <div className="modal-actions">
-                    <button type="button" id="gain-batch-cancel-btn" className="btn-secondary" onClick={onClose}>
-                        Cancelar
-                    </button>
-                    <button type="submit" className="btn-primary" disabled={busy}>
-                        {busy ? 'Salvando…' : 'Aplicar'}
-                    </button>
-                </div>
-            </form>
-        </ModalShell>
+                    </FormSelect>
+                </FormField>
+                <FormAlert message={error} />
+                <FormActions onCancel={onClose} submitLabel="Aplicar" busy={busy} />
+            </DialogForm>
+        </DialogFrame>
     );
 }

@@ -7,7 +7,8 @@ import { CategoryTreemap } from '../../../components/finance/CategoryTreemap';
 import { MovementListFilterDrawer } from '../../../components/finance/MovementListFilterDrawer';
 import { useFinanceData } from '../../../app/FinanceDataProvider';
 import { formatBRL } from '../../../lib/format';
-import { defaultCivilYear, defaultPeriod, getPeriodDateBounds, MONTH_NAMES, monthIndexFromPeriod } from '../../../lib/period';
+import { getPeriodDateBounds, MONTH_NAMES, monthIndexFromPeriod } from '../../../lib/period';
+import { useCivilPeriodState } from '../../../hooks/useCivilPeriodState';
 import { accountName, type ListFilter } from '../../../lib/movementList';
 import { expenseRowDisplayDate, filterExpensesInPeriod } from '../../../lib/filterExpensesInPeriod';
 import { EXPENSE_TREEMAP_PALETTE } from '../../../lib/treemapData';
@@ -17,14 +18,15 @@ import { compareExpenseRows, useMovementSort, type ExpenseSortKey } from '../../
 import { usePeriodSyncedDrawerDates } from '../../../hooks/usePeriodSyncedDrawerDates';
 import { ExpenseBatchModal } from '../../../components/finance/ExpenseBatchModal';
 import { expenseCashOutPeriodKey, expenseRowCanConfirmCashOut } from '../../../lib/expenseRowCashOut';
-import { ScreenLoader } from '../../../components/ui/ScreenLoader';
+import { MovementsPageSkeleton } from '../../../components/skeleton/MovementsPageSkeleton';
+import { useSkeletonMinDuration } from '../../../hooks/useSkeletonMinDuration';
 import { movementDate } from '../../../lib/period';
 import { useMovementListFilters } from '../context/MovementListFiltersContext';
 import { confirmExpenseCashOut, deleteExpense, patchExpensesBatch } from '../api/movements';
 import { useMovementStatusToggle } from '../../../hooks/useMovementStatusToggle';
 import { MovementBatchBar } from '../../../components/finance/MovementBatchBar';
 import { ExpenseSplitsBanner } from '../components/ExpenseSplitsBanner';
-import { MovementListToolbar } from '../components/MovementListToolbar';
+import { CivilPeriodToolbar } from '../../../components/finance/CivilPeriodToolbar';
 import { useMovementHeaderAdd } from '../hooks/useMovementHeaderAdd';
 import { expenseSummaryFromRows, expenseSummaryMomStates } from '../domain/expenseSummaryStats';
 import {
@@ -33,12 +35,14 @@ import {
 } from '../../../lib/movementSummaryCopy';
 import { SummaryMomVariation } from '../../../components/finance/SummaryMomVariation';
 import type { Movement } from '../../../lib/types/finance';
+import { useConfirm } from '../../../components/ui/confirm';
 
 export function SaidasPage() {
+    const { confirm } = useConfirm();
     const { data, loading, error, refresh } = useFinanceData();
+    const showSkeleton = useSkeletonMinDuration(loading);
     const listFilters = useMovementListFilters();
-    const [period, setPeriod] = useState(defaultPeriod);
-    const [year, setYear] = useState(defaultCivilYear);
+    const { period, year, onPeriodChange, onYearChange } = useCivilPeriodState();
     const [modalOpen, setModalOpen] = useState(false);
     const [editing, setEditing] = useState<Movement | null>(null);
     const [selected, setSelected] = useState<Set<string>>(() => new Set());
@@ -165,14 +169,27 @@ export function SaidasPage() {
     const expenseHint = EXPENSES_SUMMARY_COPY.filterRequiredHint;
 
     async function onDelete(m: Movement) {
-        if (!window.confirm('Excluir esta saída?')) return;
+        const ok = await confirm({
+            title: 'Excluir esta saída?',
+            message: 'O lançamento será removido permanentemente.',
+            confirmLabel: 'Excluir',
+            tone: 'danger'
+        });
+        if (!ok) return;
         await deleteExpense(m.id);
         await refresh();
     }
 
     async function onConfirmCashOut(m: Movement) {
         const key = expenseCashOutPeriodKey(m);
-        if (!window.confirm(`Confirmar débito no saldo para ${movementDate(m).toLocaleDateString('pt-BR')}?`)) return;
+        const label = movementDate(m).toLocaleDateString('pt-BR');
+        const ok = await confirm({
+            title: 'Confirmar débito no saldo?',
+            message: `O valor será considerado debitado da conta no período de ${label}.`,
+            confirmLabel: 'Confirmar débito',
+            tone: 'default'
+        });
+        if (!ok) return;
         await confirmExpenseCashOut(m.id, key);
         await refresh();
     }
@@ -197,11 +214,15 @@ export function SaidasPage() {
     }, []);
     useMovementHeaderAdd('add-expense-btn', openAddModal);
 
-    if (loading) {
+    if (showSkeleton) {
         return (
-            <section className="page active">
-                <ScreenLoader label="Carregando saídas" />
-            </section>
+            <MovementsPageSkeleton
+                pageId="expenses-page"
+                label="Carregando saídas"
+                summaryGroup="expenses"
+                summaryAriaLabel="Resumo de saídas"
+                cardCount={4}
+            />
         );
     }
 
@@ -216,12 +237,13 @@ export function SaidasPage() {
     return (
         <section id="expenses-page" className="page active movements-page--modern">
             <ExpenseSplitsBanner />
-            <MovementListToolbar
+            <CivilPeriodToolbar
                 period={period}
                 year={year}
-                onPeriodChange={setPeriod}
-                onYearChange={setYear}
-                timelineClass="civil-period-timeline--expenses"
+                onPeriodChange={onPeriodChange}
+                onYearChange={onYearChange}
+                accent="expenses"
+                inMovementsToolbar
             />
             <MovementSummaryCardsGrid group="expenses" ariaLabel="Resumo de saídas">
                 <MovementSummaryCard

@@ -10,6 +10,7 @@ import { viagensRoutes } from '../frentes/viagens/routes';
 import { ferramentasRoutes } from '../frentes/ferramentas/routes';
 import { perfilRoutes } from '../frentes/perfil/routes';
 import { ScreenLoader } from '../components/ui/ScreenLoader';
+import { ConfirmProvider } from '../components/ui/confirm';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
     const { loading, user } = useAuth();
@@ -28,7 +29,9 @@ export function App() {
                 element={
                     <RequireAuth>
                         <FinanceDataProvider>
-                            <LegacyAppShell />
+                            <ConfirmProvider>
+                                <LegacyAppShell />
+                            </ConfirmProvider>
                         </FinanceDataProvider>
                     </RequireAuth>
                 }

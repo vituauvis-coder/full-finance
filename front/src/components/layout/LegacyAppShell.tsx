@@ -5,6 +5,10 @@ import { bootstrapReactShell } from '../../legacy/bootstrapShell';
 import { legacyPageIdFromPath } from '../../legacy/routeMap';
 import { DashboardFacetsProvider } from '../../frentes/dashboard/context/DashboardFacetsContext';
 import { MovementListFiltersProvider } from '../../frentes/dinheiro/context/MovementListFiltersContext';
+import { ZeroBudgetHeaderSlotProvider } from '../../frentes/dinheiro/context/ZeroBudgetHeaderSlotContext';
+import { CofrinhosHeaderSlotProvider } from '../../frentes/dinheiro/context/CofrinhosHeaderSlotContext';
+import { DebtsHeaderSlotProvider } from '../../frentes/dinheiro/context/DebtsHeaderSlotContext';
+import { WalletHeaderSlotProvider } from '../../frentes/dinheiro/context/WalletHeaderSlotContext';
 import { ViagensHeaderSlotProvider } from '../../frentes/viagens/context/ViagensHeaderSlotContext';
 import { DashboardCategoryDrawer } from '../finance/DashboardCategoryDrawer';
 import { AppAmbientBackground } from './AppAmbientBackground';
@@ -68,6 +72,10 @@ export function LegacyAppShell() {
     return (
         <DashboardFacetsProvider>
             <MovementListFiltersProvider>
+                <ZeroBudgetHeaderSlotProvider>
+                <CofrinhosHeaderSlotProvider>
+                <DebtsHeaderSlotProvider>
+                <WalletHeaderSlotProvider>
                 <ViagensHeaderSlotProvider>
                     <UiChipsHydrator />
                     <div id="app" className="app-container">
@@ -90,6 +98,10 @@ export function LegacyAppShell() {
                         </motionMain>
                     </div>
                 </ViagensHeaderSlotProvider>
+                </WalletHeaderSlotProvider>
+                </DebtsHeaderSlotProvider>
+                </CofrinhosHeaderSlotProvider>
+                </ZeroBudgetHeaderSlotProvider>
             </MovementListFiltersProvider>
         </DashboardFacetsProvider>
     );

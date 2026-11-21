@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { MaterialIcon } from '../../../../components/icons/MaterialIcon';
+import { DeleteIcon } from '../../../../components/icons/DeleteIcon';
 import {
     sortHopsChronologically,
     suggestedVacationStart,
@@ -198,7 +199,7 @@ export function TripSimuladorVacationForm({ scenario, onChange, onVacationStart,
                                     className="viagens-sim-ferias__remove"
                                     onClick={() => patchVacations(vacations.filter((_, i) => i !== idx))}
                                 >
-                                    <MaterialIcon name="delete" variant="app" opticalSize={16} />
+                                    <DeleteIcon size="sm" />
                                     Excluir período
                                 </button>
                             ) : null}

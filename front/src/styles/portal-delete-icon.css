@@ -1,0 +1,49 @@
+/* Exclusão — ícone padrão delete_outline (React DeleteIcon + legado Font Awesome em botões de ação) */
+
+.delete-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.delete-action-btn .app-icon {
+    font-size: 1rem;
+    line-height: 1;
+}
+
+/* Legado: FA trash → Material delete_outline em controles de exclusão */
+.btn-action.btn-delete > i.fa-trash,
+.btn-action.btn-delete > i.fa-trash-alt,
+.btn-delete > i.fa-trash,
+.btn-delete > i.fa-trash-alt,
+.zb-todos-modal__remove > i.fa-trash,
+.zb-todos-modal__remove > i.fa-trash-alt,
+[class*='__delete'] > i.fa-trash,
+[class*='__delete'] > i.fa-trash-alt,
+.inv-goal-delete > i.fa-trash,
+.cof-app-delete > i.fa-trash-alt {
+    font-family: 'Material Symbols Rounded', sans-serif !important;
+    font-style: normal;
+    font-weight: normal !important;
+    line-height: 1;
+    font-size: 1.125rem;
+    -webkit-font-smoothing: antialiased;
+    font-variation-settings:
+        'FILL' 0,
+        'wght' 500,
+        'GRAD' 0,
+        'opsz' 20;
+}
+
+.btn-action.btn-delete > i.fa-trash::before,
+.btn-action.btn-delete > i.fa-trash-alt::before,
+.btn-delete > i.fa-trash::before,
+.btn-delete > i.fa-trash-alt::before,
+.zb-todos-modal__remove > i.fa-trash::before,
+.zb-todos-modal__remove > i.fa-trash-alt::before,
+[class*='__delete'] > i.fa-trash::before,
+[class*='__delete'] > i.fa-trash-alt::before,
+.inv-goal-delete > i.fa-trash::before,
+.cof-app-delete > i.fa-trash-alt::before {
+    content: 'delete_outline' !important;
+}

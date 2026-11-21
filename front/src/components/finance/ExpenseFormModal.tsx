@@ -8,7 +8,17 @@ import {
 } from '../../lib/accounts';
 import { EXPENSE_LOAN_PAYMENT_VALUE, isLoanExpense } from '../../lib/loanExpense';
 import { useCategories } from '../../hooks/useCategories';
-import { ModalShell } from './ModalShell';
+import { DialogForm, DialogFrame } from '../ui/dialog';
+import {
+    FormActions,
+    FormAlert,
+    FormCheckbox,
+    FormDatePicker,
+    FormField,
+    FormGrid,
+    FormInput,
+    FormSelect
+} from '../ui/form';
 import {
     createExpense,
     movementFromFormDate,
@@ -110,7 +120,7 @@ export function ExpenseFormModal({ open, editing, accounts, onClose, onSaved }: 
 
     const subs = categories.find((c) => c.name === category)?.subcategories ?? [];
 
-    async function onSubmit(e: FormEvent) {
+    async function onSubmit(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();
         const resolved = resolvePaymentMethod(
             paymentMethodId,
@@ -159,42 +169,74 @@ export function ExpenseFormModal({ open, editing, accounts, onClose, onSaved }: 
     }
 
     return (
-        <ModalShell id="expense-modal" open={open} title={editing ? 'Editar saída' : 'Nova saída'} onClose={onClose}>
-            <form className="modal-body" onSubmit={(e) => void onSubmit(e)} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {error ? <p role="alert">{error}</p> : null}
-                <div className="form-group">
-                    <label htmlFor="expense-category-select">Categoria</label>
-                    <select id="expense-category-select" value={category} onChange={(e) => setCategory(e.target.value)} required>
-                        <option value="">Selecione…</option>
-                        {categories.map((c) => (
-                            <option key={c.id} value={c.name}>
-                                {c.name}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-                <div className="form-group">
-                    <label htmlFor="expense-subcategory-select">Subcategoria</label>
-                    <select id="expense-subcategory-select" value={subcategory} onChange={(e) => setSubcategory(e.target.value)}>
-                        <option value="">—</option>
-                        {subs.map((s) => (
-                            <option key={s.id} value={s.name}>
-                                {s.name}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-                <div className="form-group">
-                    <label htmlFor="expense-description">Descrição</label>
-                    <input id="expense-description" value={description} onChange={(e) => setDescription(e.target.value)} required />
-                </div>
-                <div className="form-group">
-                    <label htmlFor="expense-amount">Valor</label>
-                    <input id="expense-amount" type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required />
-                </div>
-                <div className="form-group">
-                    <label htmlFor="expense-payment-method">Forma de pagamento</label>
-                    <select
+        <DialogFrame
+            id="expense-modal"
+            open={open}
+            title={editing ? 'Editar saída' : 'Nova saída'}
+            onClose={onClose}
+            size="lg"
+        >
+            <DialogForm onSubmit={(e) => void onSubmit(e)}>
+                <FormAlert message={error} />
+                <FormGrid columns={2}>
+                    <FormField id="expense-category-select" label="Categoria">
+                        <FormSelect
+                            id="expense-category-select"
+                            value={category}
+                            onChange={(e) => setCategory(e.target.value)}
+                            required
+                        >
+                            <option value="">Selecione…</option>
+                            {categories.map((c) => (
+                                <option key={c.id} value={c.name}>
+                                    {c.name}
+                                </option>
+                            ))}
+                        </FormSelect>
+                    </FormField>
+                    <FormField id="expense-subcategory-select" label="Subcategoria">
+                        <FormSelect
+                            id="expense-subcategory-select"
+                            value={subcategory}
+                            onChange={(e) => setSubcategory(e.target.value)}
+                        >
+                            <option value="">—</option>
+                            {subs.map((s) => (
+                                <option key={s.id} value={s.name}>
+                                    {s.name}
+                                </option>
+                            ))}
+                        </FormSelect>
+                    </FormField>
+                </FormGrid>
+                <FormField id="expense-description" label="Descrição">
+                    <FormInput
+                        id="expense-description"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        required
+                        autoComplete="off"
+                    />
+                </FormField>
+                <FormGrid columns={2}>
+                    <FormField id="expense-amount" label="Valor">
+                        <FormInput
+                            id="expense-amount"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            inputMode="decimal"
+                            value={amount}
+                            onChange={(e) => setAmount(e.target.value)}
+                            required
+                        />
+                    </FormField>
+                    <FormField id="expense-date" label="Data">
+                        <FormDatePicker id="expense-date" value={date} onChange={setDate} required placeholder="Data da saída" />
+                    </FormField>
+                </FormGrid>
+                <FormField id="expense-payment-method" label="Forma de pagamento">
+                    <FormSelect
                         id="expense-payment-method"
                         value={paymentMethodId}
                         onChange={(e) => setPaymentMethodId(e.target.value)}
@@ -223,12 +265,11 @@ export function ExpenseFormModal({ open, editing, accounts, onClose, onSaved }: 
                                     ))}
                             </optgroup>
                         ) : null}
-                    </select>
-                </div>
+                    </FormSelect>
+                </FormField>
                 {loanCategory && paymentMethodId === EXPENSE_LOAN_PAYMENT_VALUE ? (
-                    <div className="form-group">
-                        <label htmlFor="expense-loan-account">Conta de débito (empréstimo)</label>
-                        <select
+                    <FormField id="expense-loan-account" label="Conta de débito (empréstimo)">
+                        <FormSelect
                             id="expense-loan-account"
                             value={loanAccountId}
                             onChange={(e) => setLoanAccountId(e.target.value)}
@@ -240,17 +281,12 @@ export function ExpenseFormModal({ open, editing, accounts, onClose, onSaved }: 
                                     {a.name}
                                 </option>
                             ))}
-                        </select>
-                    </div>
+                        </FormSelect>
+                    </FormField>
                 ) : null}
-                <div className="form-group">
-                    <label htmlFor="expense-date">Data</label>
-                    <input id="expense-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-                </div>
                 {showInstallments ? (
-                    <div className="form-group" id="expense-installments-row">
-                        <label htmlFor="expense-installments">Parcelas</label>
-                        <input
+                    <FormField id="expense-installments" label="Parcelas">
+                        <FormInput
                             id="expense-installments"
                             type="number"
                             min={1}
@@ -258,45 +294,35 @@ export function ExpenseFormModal({ open, editing, accounts, onClose, onSaved }: 
                             value={installments}
                             onChange={(e) => setInstallments(e.target.value)}
                         />
-                    </div>
+                    </FormField>
                 ) : null}
+                <div className="ui-form-checkboxes">
+                    {!editing ? (
+                        <FormCheckbox
+                            id="expense-recurring"
+                            label="Repetir até dezembro"
+                            checked={recurringMonthly}
+                            onChange={setRecurringMonthly}
+                        />
+                    ) : null}
+                    <FormCheckbox id="expense-is-fixed" label="Essencial (fixo)" checked={isFixed} onChange={setIsFixed} />
+                    <FormCheckbox
+                        id="expense-is-cofrinho"
+                        label="Aplicar em cofrinho"
+                        checked={isCofrinho}
+                        onChange={setIsCofrinho}
+                    />
+                    {editing ? (
+                        <FormCheckbox id="expense-is-paid" label="Pago" checked={isPaid} onChange={setIsPaid} />
+                    ) : null}
+                </div>
                 {!editing ? (
-                    <div className="form-group form-group--checkbox">
-                        <label>
-                            <input type="checkbox" checked={recurringMonthly} onChange={(e) => setRecurringMonthly(e.target.checked)} /> Repetir até dezembro
-                        </label>
-                    </div>
-                ) : null}
-                <div className="form-group form-group--checkbox">
-                    <label>
-                        <input type="checkbox" checked={isFixed} onChange={(e) => setIsFixed(e.target.checked)} /> Essencial (fixo)
-                    </label>
-                </div>
-                <div className="form-group form-group--checkbox">
-                    <label>
-                        <input type="checkbox" checked={isCofrinho} onChange={(e) => setIsCofrinho(e.target.checked)} /> Aplicar em cofrinho
-                    </label>
-                </div>
-                {editing ? (
-                    <div className="form-group form-group--checkbox">
-                        <label>
-                            <input type="checkbox" checked={isPaid} onChange={(e) => setIsPaid(e.target.checked)} /> Pago
-                        </label>
-                    </div>
-                ) : (
-                    <p className="card-metric-hint">
+                    <p className="ui-form-hint-block">
                         Cartão de crédito entra como pendente; PIX/conta como pago (editável após salvar).
                     </p>
-                )}
-                <footer className="modal-footer">
-                    <button type="button" className="btn-secondary" onClick={onClose}>
-                        Cancelar
-                    </button>
-                    <button type="submit" className="btn-primary" disabled={saving}>
-                        {saving ? 'Salvando…' : 'Salvar'}
-                    </button>
-                </footer>
-            </form>
-        </ModalShell>
+                ) : null}
+                <FormActions onCancel={onClose} busy={saving} />
+            </DialogForm>
+        </DialogFrame>
     );
 }

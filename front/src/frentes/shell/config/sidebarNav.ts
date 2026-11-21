@@ -27,6 +27,7 @@ export const SIDEBAR_FERRAMENTAS: SidebarLeaf = {
 };
 
 const FINANCAS_ITEMS: readonly SidebarLeaf[] = [
+    { to: '/dashboard', page: 'dashboard', icon: 'pie_chart', label: 'Dashboard', end: true },
     { to: '/dinheiro/entradas', page: 'gains', icon: 'trending_up', label: 'Entradas' },
     { to: '/dinheiro/saidas', page: 'expenses', icon: 'trending_down', label: 'Saídas' },
     { to: '/dinheiro/planejamento', page: 'zero-budget', icon: 'track_changes', label: 'Planejamento' },

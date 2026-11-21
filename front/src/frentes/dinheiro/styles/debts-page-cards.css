@@ -1,0 +1,135 @@
+/* Cards — paridade cofrinhos / planejamento (zero-budget__block-card) */
+
+.page-content--dashboard-modern #debts-page .debt-bucket-card.zero-budget__block-card {
+    cursor: default;
+    border-color: color-mix(in srgb, var(--zb-accent) 24%, var(--dash-surface-border));
+}
+
+.page-content--dashboard-modern #debts-page .debt-bucket-card.zero-budget__block-card:hover .zero-budget__block-delete {
+    opacity: 1;
+}
+
+#debts-page .debt-bucket-card__amount.zero-budget__block-amount-value {
+    cursor: default;
+}
+
+#debts-page .debt-bucket-card__amount.zero-budget__block-amount-value:hover {
+    background: transparent;
+}
+
+#debts-page .debt-bucket-card__meta-unset {
+    font-style: italic;
+    opacity: 0.8;
+}
+
+#debts-page .debt-bucket-card__meta--discounted {
+    color: var(--gains-accent, #30d158);
+    font-weight: 600;
+}
+
+#debts-page .debt-bucket-card__meta--elevated {
+    color: var(--danger-color, #ff453a);
+    font-weight: 600;
+}
+
+#debts-page .debt-bucket-card__progress {
+    height: 0.45rem;
+    margin-top: 0.35rem;
+    border-radius: 999px;
+    background: var(--dash-layer-inset, var(--bg-color));
+    overflow: hidden;
+}
+
+#debts-page .debt-bucket-card__progress span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    transition: width 0.25s ease;
+}
+
+#debts-page .debt-bucket-card__foot {
+    margin-top: auto;
+}
+
+#debts-page .debt-bucket-card__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-left: auto;
+}
+
+.page-content--dashboard-modern #debts-page .zero-budget__blocks-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-width: 0;
+}
+
+#debts-page .debt-bucket-card--quitada.zero-budget__block-card {
+    --debt-quitada-accent: var(--gains-accent, #30d158);
+    border-style: solid;
+    border-color: color-mix(in srgb, var(--debt-quitada-accent) 55%, var(--dash-surface-border));
+    background: color-mix(in srgb, var(--debt-quitada-accent) 10%, var(--dash-surface-bg));
+    box-shadow:
+        var(--dash-surface-shadow),
+        inset 0 0 0 1px color-mix(in srgb, var(--debt-quitada-accent) 14%, transparent);
+}
+
+#debts-page .debt-bucket-card__amount-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.45rem;
+    width: 100%;
+    min-width: 0;
+}
+
+#debts-page .debt-bucket-card__amount-stack .zero-budget__block-amount-wrap {
+    width: 100%;
+}
+
+#debts-page .debt-bucket-card__dot-quitada {
+    background-color: var(--gains-accent, #30d158) !important;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--gains-accent, #30d158) 35%, transparent);
+}
+
+#debts-page .debt-bucket-card__badge-quitada {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    flex-shrink: 0;
+    padding: 0.15rem 0.5rem 0.15rem 0.4rem;
+    border-radius: 999px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--gains-accent, #30d158);
+    border: 1px solid color-mix(in srgb, var(--gains-accent, #30d158) 50%, transparent);
+    background: color-mix(in srgb, var(--gains-accent, #30d158) 16%, var(--dash-layer-inset));
+}
+
+#debts-page .debt-bucket-card__badge-quitada .app-icon {
+    font-size: 0.85rem;
+    color: inherit;
+}
+
+#debts-page .debt-bucket-card__meta--quitada {
+    color: color-mix(in srgb, var(--gains-accent, #30d158) 88%, var(--dash-text-primary));
+    font-weight: 600;
+    font-style: normal;
+}
+
+#debts-page .debt-bucket-card--quitada .debt-bucket-card__amount {
+    color: var(--gains-accent, #30d158);
+    font-weight: 700;
+}
+
+.page-content--dashboard-modern #debts-page .skeleton-debts-page .debt-bucket-card.skeleton-panel,
+.page-content--dashboard-modern #debts-page .skeleton-panel.debt-bucket-card {
+    background-color: var(--dash-surface-bg);
+    border: 1px solid var(--dash-surface-border);
+    border-radius: var(--dash-surface-radius);
+    box-shadow: var(--dash-surface-shadow);
+    padding: 0.95rem 1.1rem 1rem;
+}

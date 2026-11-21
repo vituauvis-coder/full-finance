@@ -2,7 +2,17 @@ import { type FormEvent, useEffect, useState } from 'react';
 import type { Account, Movement } from '../../lib/types/finance';
 import { useCategories } from '../../hooks/useCategories';
 import { sortedBankAccounts } from '../../lib/accounts';
-import { ModalShell } from './ModalShell';
+import { DialogForm, DialogFrame } from '../ui/dialog';
+import {
+    FormActions,
+    FormAlert,
+    FormCheckbox,
+    FormDatePicker,
+    FormField,
+    FormGrid,
+    FormInput,
+    FormSelect
+} from '../ui/form';
 import {
     createGain,
     movementFromFormDate,
@@ -58,7 +68,7 @@ export function GainFormModal({ open, editing, accounts, onClose, onSaved }: Pro
 
     const subs = categories.find((c) => c.name === category)?.subcategories ?? [];
 
-    async function onSubmit(e: FormEvent) {
+    async function onSubmit(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();
         const payload: GainFormPayload = {
             description: description.trim(),
@@ -93,75 +103,100 @@ export function GainFormModal({ open, editing, accounts, onClose, onSaved }: Pro
     }
 
     return (
-        <ModalShell id="gain-modal" open={open} title={editing ? 'Editar entrada' : 'Nova entrada'} onClose={onClose}>
-            <form className="modal-body" onSubmit={(e) => void onSubmit(e)} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {error ? <p role="alert">{error}</p> : null}
-                <div className="form-group">
-                    <label htmlFor="gain-category-select">Categoria</label>
-                    <select id="gain-category-select" value={category} onChange={(e) => setCategory(e.target.value)} required>
-                        <option value="">Selecione…</option>
-                        {categories.map((c) => (
-                            <option key={c.id} value={c.name}>
-                                {c.name}
-                            </option>
-                        ))}
-                    </select>
+        <DialogFrame
+            id="gain-modal"
+            open={open}
+            title={editing ? 'Editar entrada' : 'Nova entrada'}
+            onClose={onClose}
+            size="md"
+        >
+            <DialogForm onSubmit={(e) => void onSubmit(e)}>
+                <FormAlert message={error} />
+                <FormGrid columns={2}>
+                    <FormField id="gain-category-select" label="Categoria">
+                        <FormSelect
+                            id="gain-category-select"
+                            value={category}
+                            onChange={(e) => setCategory(e.target.value)}
+                            required
+                        >
+                            <option value="">Selecione…</option>
+                            {categories.map((c) => (
+                                <option key={c.id} value={c.name}>
+                                    {c.name}
+                                </option>
+                            ))}
+                        </FormSelect>
+                    </FormField>
+                    <FormField id="gain-subcategory-select" label="Subcategoria">
+                        <FormSelect
+                            id="gain-subcategory-select"
+                            value={subcategory}
+                            onChange={(e) => setSubcategory(e.target.value)}
+                        >
+                            <option value="">—</option>
+                            {subs.map((s) => (
+                                <option key={s.id} value={s.name}>
+                                    {s.name}
+                                </option>
+                            ))}
+                        </FormSelect>
+                    </FormField>
+                </FormGrid>
+                <FormField id="gain-description" label="Descrição">
+                    <FormInput
+                        id="gain-description"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        required
+                        autoComplete="off"
+                    />
+                </FormField>
+                <FormGrid columns={2}>
+                    <FormField id="gain-amount" label="Valor">
+                        <FormInput
+                            id="gain-amount"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            inputMode="decimal"
+                            value={amount}
+                            onChange={(e) => setAmount(e.target.value)}
+                            required
+                        />
+                    </FormField>
+                    <FormField id="gain-account" label="Conta">
+                        <FormSelect id="gain-account" value={accountId} onChange={(e) => setAccountId(e.target.value)} required>
+                            <option value="">Selecione…</option>
+                            {sortedBankAccounts(accounts).map((a) => (
+                                <option key={a.id} value={a.id}>
+                                    {a.name}
+                                </option>
+                            ))}
+                        </FormSelect>
+                    </FormField>
+                </FormGrid>
+                <FormField id="gain-date" label="Data">
+                    <FormDatePicker id="gain-date" value={date} onChange={setDate} required placeholder="Data da entrada" />
+                </FormField>
+                <div className="ui-form-checkboxes">
+                    {!editing ? (
+                        <FormCheckbox
+                            id="gain-recurring"
+                            label="Repetir até dezembro"
+                            checked={recurring}
+                            onChange={setRecurring}
+                        />
+                    ) : null}
+                    <FormCheckbox
+                        id="gain-is-received"
+                        label="Já recebi na conta"
+                        checked={isPaid}
+                        onChange={setIsPaid}
+                    />
                 </div>
-                <div className="form-group">
-                    <label htmlFor="gain-subcategory-select">Subcategoria</label>
-                    <select id="gain-subcategory-select" value={subcategory} onChange={(e) => setSubcategory(e.target.value)}>
-                        <option value="">—</option>
-                        {subs.map((s) => (
-                            <option key={s.id} value={s.name}>
-                                {s.name}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-                <div className="form-group">
-                    <label htmlFor="gain-description">Descrição</label>
-                    <input id="gain-description" value={description} onChange={(e) => setDescription(e.target.value)} required />
-                </div>
-                <div className="form-group">
-                    <label htmlFor="gain-amount">Valor</label>
-                    <input id="gain-amount" type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required />
-                </div>
-                <div className="form-group">
-                    <label htmlFor="gain-account">Conta</label>
-                    <select id="gain-account" value={accountId} onChange={(e) => setAccountId(e.target.value)} required>
-                        <option value="">Selecione…</option>
-                        {sortedBankAccounts(accounts).map((a) => (
-                            <option key={a.id} value={a.id}>
-                                {a.name}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-                <div className="form-group">
-                    <label htmlFor="gain-date">Data</label>
-                    <input id="gain-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-                </div>
-                {!editing ? (
-                    <div className="form-group form-group--checkbox">
-                        <label>
-                            <input type="checkbox" checked={recurring} onChange={(e) => setRecurring(e.target.checked)} /> Repetir até dezembro
-                        </label>
-                    </div>
-                ) : null}
-                <div className="form-group form-group--checkbox" id="gain-is-received-row">
-                    <label>
-                        <input id="gain-is-received" type="checkbox" checked={isPaid} onChange={(e) => setIsPaid(e.target.checked)} /> Recebido
-                    </label>
-                </div>
-                <footer className="modal-footer">
-                    <button type="button" className="btn-secondary" onClick={onClose}>
-                        Cancelar
-                    </button>
-                    <button type="submit" className="btn-primary" disabled={saving}>
-                        {saving ? 'Salvando…' : 'Salvar'}
-                    </button>
-                </footer>
-            </form>
-        </ModalShell>
+                <FormActions onCancel={onClose} busy={saving} />
+            </DialogForm>
+        </DialogFrame>
     );
 }

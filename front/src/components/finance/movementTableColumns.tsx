@@ -6,6 +6,8 @@ import { formatMovementDate } from '../../lib/movementList';
 import type { DataTableColumn } from '../ui/DataTable';
 import { DataTableActionsInner } from '../ui/DataTable';
 import { MovementStatusBadge } from '../ui/MovementStatusBadge';
+import { DeleteIcon } from '../icons/DeleteIcon';
+import { EditIcon } from '../icons/EditIcon';
 
 export type MovementSortKey = 'date' | 'description' | 'category' | 'account' | 'amount' | 'status';
 
@@ -49,11 +51,12 @@ export function buildMovementTableColumns(opts: GainsOpts | ExpensesOpts): DataT
             sortKey: 'date',
             cellClassName: 'movement-td-compact',
             render: (m) => {
-                const d =
-                    opts.kind === 'expense' && opts.expenseDisplayDate
-                        ? opts.expenseDisplayDate(m)
-                        : new Date((m.date as string) ?? '');
-                return formatMovementDate({ ...m, date: d.toISOString() });
+                if (opts.kind === 'expense' && opts.expenseDisplayDate) {
+                    const d = opts.expenseDisplayDate(m);
+                    if (Number.isNaN(d.getTime())) return '—';
+                    return formatMovementDate({ ...m, date: d.toISOString() });
+                }
+                return formatMovementDate(m);
             }
         },
         {
@@ -159,13 +162,25 @@ export function buildMovementTableColumns(opts: GainsOpts | ExpensesOpts): DataT
             render: (m) => (
                 <DataTableActionsInner>
                     {onEdit ? (
-                        <button type="button" className="btn-secondary btn-small" onClick={() => onEdit(m)}>
-                            Editar
+                        <button
+                            type="button"
+                            className="btn-secondary btn-small table-action-btn"
+                            aria-label="Editar lançamento"
+                            title="Editar"
+                            onClick={() => onEdit(m)}
+                        >
+                            <EditIcon size="sm" />
                         </button>
                     ) : null}
                     {onDelete ? (
-                        <button type="button" className="btn-secondary btn-small" onClick={() => onDelete(m)}>
-                            Excluir
+                        <button
+                            type="button"
+                            className="btn-secondary btn-small table-action-btn table-action-btn--delete"
+                            aria-label="Excluir lançamento"
+                            title="Excluir"
+                            onClick={() => onDelete(m)}
+                        >
+                            <DeleteIcon size="sm" />
                         </button>
                     ) : null}
                     {opts.kind === 'expense' ? opts.extraActions?.(m) : null}

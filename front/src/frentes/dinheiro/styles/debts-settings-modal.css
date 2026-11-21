@@ -1,0 +1,90 @@
+/* Modal Definições da dívida — padrão dashboard-modern */
+
+#debt-settings-modal.ui-dialog .ui-dialog__panel {
+    width: min(100%, 36rem);
+    max-width: min(94vw, 36rem);
+}
+
+#debt-settings-modal .ui-dialog__body {
+    padding-top: 0.15rem;
+}
+
+#debt-settings-modal #debt-settings-form.ui-form {
+    gap: 1rem;
+}
+
+#debt-settings-modal .debt-settings-modal__subtitle {
+    margin: 0 0 0.15rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--dash-text-secondary, var(--text-light));
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Grid de cores (mesmo padrão dos cards / cofrinhos no modal) */
+#debt-settings-modal .debt-form-color-swatches {
+    width: 100%;
+    min-width: 0;
+}
+
+#debt-settings-modal .debt-form-color-swatches .zero-budget__colors-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    align-items: center;
+    padding: 0.15rem 0;
+}
+
+#debt-settings-modal .debt-form-color-swatches .zero-budget__color-swatch {
+    width: 1.65rem;
+    height: 1.65rem;
+    padding: 0;
+    margin: 0;
+    border: 2px solid transparent;
+    border-radius: 999px;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition:
+        transform 0.12s ease,
+        border-color 0.12s ease,
+        box-shadow 0.12s ease;
+}
+
+#debt-settings-modal .debt-form-color-swatches .zero-budget__color-swatch:hover:not(:disabled) {
+    transform: scale(1.06);
+}
+
+#debt-settings-modal .debt-form-color-swatches .zero-budget__color-swatch.is-selected {
+    border-color: var(--dash-text-primary, var(--text-color));
+    transform: scale(1.1);
+    box-shadow: 0 0 0 2px var(--dash-layer-raised, #fff);
+}
+
+#debt-settings-modal .debt-form-color-swatches .zero-budget__color-swatch:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+#debt-settings-modal .ui-form-grid .ui-form-field {
+    min-width: 0;
+}
+
+#debt-settings-modal #debt-settings-form > .ui-form-actions {
+    margin-top: 0.15rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--dash-border, var(--border-color));
+}
+
+#debt-settings-modal .ui-form-checkbox {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+@media (max-width: 520px) {
+    #debt-settings-modal.ui-dialog .ui-dialog__panel {
+        width: min(100%, 94vw);
+    }
+}

@@ -11,6 +11,7 @@ import {
     simulationLabelLine
 } from '@motor/viagens/flight-simulation.js';
 import { MaterialIcon } from '../../../../components/icons/MaterialIcon';
+import { DeleteIcon } from '../../../../components/icons/DeleteIcon';
 import {
     ensureAfter,
     flightDurationLabel,
@@ -409,7 +410,7 @@ export function FlightEditorModal({
                             <MaterialIcon name="link" variant="app" opticalSize={20} />
                         </button>
                         <button type="button" className="voos-icon-btn voos-icon-btn--coral" onClick={onDelete} title="Apagar">
-                            <MaterialIcon name="delete" variant="app" opticalSize={20} />
+                            <DeleteIcon size="md" />
                         </button>
                         <button type="button" className="voos-icon-btn" onClick={onClose} title="Fechar" aria-label="Fechar">
                             <MaterialIcon name="close" variant="app" opticalSize={20} />

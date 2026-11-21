@@ -7,12 +7,14 @@ import { CategoryTreemap } from '../../../components/finance/CategoryTreemap';
 import { MovementListFilterDrawer } from '../../../components/finance/MovementListFilterDrawer';
 import { useFinanceData } from '../../../app/FinanceDataProvider';
 import { formatBRL } from '../../../lib/format';
-import { defaultCivilYear, defaultPeriod, getPeriodDateBounds, MONTH_NAMES, monthIndexFromPeriod } from '../../../lib/period';
+import { getPeriodDateBounds, MONTH_NAMES, monthIndexFromPeriod } from '../../../lib/period';
+import { useCivilPeriodState } from '../../../hooks/useCivilPeriodState';
 import { accountName, filterMovementsInPeriod, type ListFilter } from '../../../lib/movementList';
 import { INCOME_TREEMAP_PALETTE } from '../../../lib/treemapData';
 import { buildGainTreemapBlocks } from '../../../lib/gainTreemap';
 import { useTablePagination } from '../../../hooks/useTablePagination';
-import { ScreenLoader } from '../../../components/ui/ScreenLoader';
+import { MovementsPageSkeleton } from '../../../components/skeleton/MovementsPageSkeleton';
+import { useSkeletonMinDuration } from '../../../hooks/useSkeletonMinDuration';
 import { compareGainRows, useMovementSort, type GainSortKey } from '../../../hooks/useMovementSort';
 import { usePeriodSyncedDrawerDates } from '../../../hooks/usePeriodSyncedDrawerDates';
 import { GainBatchModal } from '../../../components/finance/GainBatchModal';
@@ -20,18 +22,20 @@ import { useMovementListFilters } from '../context/MovementListFiltersContext';
 import { deleteGain, patchGainsBatch } from '../api/movements';
 import { useMovementStatusToggle } from '../../../hooks/useMovementStatusToggle';
 import { MovementBatchBar } from '../../../components/finance/MovementBatchBar';
-import { MovementListToolbar } from '../components/MovementListToolbar';
+import { CivilPeriodToolbar } from '../../../components/finance/CivilPeriodToolbar';
 import { useMovementHeaderAdd } from '../hooks/useMovementHeaderAdd';
 import { gainSummaryFromRows, gainSummaryMomStates, gainSummaryMomWhenHint } from '../domain/gainSummaryStats';
 import { GAINS_SUMMARY_COPY, gainsSummaryTitles } from '../../../lib/movementSummaryCopy';
 import { SummaryMomVariation } from '../../../components/finance/SummaryMomVariation';
 import type { Movement } from '../../../lib/types/finance';
+import { useConfirm } from '../../../components/ui/confirm';
 
 export function EntradasPage() {
+    const { confirm } = useConfirm();
     const { data, loading, error, refresh } = useFinanceData();
+    const showSkeleton = useSkeletonMinDuration(loading);
     const listFilters = useMovementListFilters();
-    const [period, setPeriod] = useState(defaultPeriod);
-    const [year, setYear] = useState(defaultCivilYear);
+    const { period, year, onPeriodChange, onYearChange } = useCivilPeriodState();
     const [modalOpen, setModalOpen] = useState(false);
     const [editing, setEditing] = useState<Movement | null>(null);
     const [selected, setSelected] = useState<Set<string>>(() => new Set());
@@ -93,6 +97,9 @@ export function EntradasPage() {
     const periodLabel = useMemo(() => {
         const mi = monthIndexFromPeriod(period);
         const { startDate, endDate } = getPeriodDateBounds(period, year);
+        if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+            return `${MONTH_NAMES[mi]} ${year}`;
+        }
         return `${MONTH_NAMES[mi]} ${year} (${startDate.toLocaleDateString('pt-BR')} – ${endDate.toLocaleDateString('pt-BR')})`;
     }, [period, year]);
 
@@ -133,7 +140,13 @@ export function EntradasPage() {
     const gainHint = GAINS_SUMMARY_COPY.filterRequiredHint;
 
     async function onDelete(m: { id: string }) {
-        if (!window.confirm('Excluir esta entrada?')) return;
+        const ok = await confirm({
+            title: 'Excluir esta entrada?',
+            message: 'O lançamento será removido permanentemente.',
+            confirmLabel: 'Excluir',
+            tone: 'danger'
+        });
+        if (!ok) return;
         await deleteGain(m.id);
         await refresh();
     }
@@ -158,11 +171,15 @@ export function EntradasPage() {
     }, []);
     useMovementHeaderAdd('add-gain-btn', openAddModal);
 
-    if (loading) {
+    if (showSkeleton) {
         return (
-            <section className="page active">
-                <ScreenLoader label="Carregando entradas" />
-            </section>
+            <MovementsPageSkeleton
+                pageId="gains-page"
+                label="Carregando entradas"
+                summaryGroup="gains"
+                summaryAriaLabel="Resumo de entradas"
+                cardCount={3}
+            />
         );
     }
 
@@ -176,12 +193,13 @@ export function EntradasPage() {
 
     return (
         <section id="gains-page" className="page active movements-page--modern">
-            <MovementListToolbar
+            <CivilPeriodToolbar
                 period={period}
                 year={year}
-                onPeriodChange={setPeriod}
-                onYearChange={setYear}
-                timelineClass="civil-period-timeline--gains"
+                onPeriodChange={onPeriodChange}
+                onYearChange={onYearChange}
+                accent="gains"
+                inMovementsToolbar
             />
             <MovementSummaryCardsGrid group="gains" ariaLabel="Resumo de entradas">
                 <MovementSummaryCard
