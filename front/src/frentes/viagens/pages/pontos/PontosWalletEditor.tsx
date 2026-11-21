@@ -13,7 +13,6 @@ export type WalletDraft = {
     notes: string;
     expiresOn: string;
     balance?: number;
-    householdShared?: boolean;
     holderUserId?: string | null;
 };
 
@@ -37,7 +36,6 @@ export function PontosWalletEditor({ title, initial, showBalance, balance = 0, b
     const [notes, setNotes] = useState(initial?.notes ?? '');
     const [expiresOn, setExpiresOn] = useState((initial?.expiresOn ?? '').slice(0, 10));
     const [saldo, setSaldo] = useState(balance);
-    const [householdShared, setHouseholdShared] = useState(Boolean(initial?.householdId));
     const [holderUserId, setHolderUserId] = useState(initial?.holderUserId ?? '');
     const [members, setMembers] = useState<HouseholdMember[]>([]);
 
@@ -67,8 +65,7 @@ export function PontosWalletEditor({ title, initial, showBalance, balance = 0, b
             notes: notes.trim(),
             expiresOn,
             balance: showBalance ? saldo : undefined,
-            householdShared: showBalance ? householdShared : undefined,
-            holderUserId: showBalance && householdShared && holderUserId ? holderUserId : null
+            holderUserId: showBalance && holderUserId ? holderUserId : null
         });
     }
 
@@ -130,15 +127,8 @@ export function PontosWalletEditor({ title, initial, showBalance, balance = 0, b
                 <TextField label="Notas" value={notes} onChange={setNotes} placeholder="Clube, cartão, vencimento de pontos…" />
                 {showBalance ? (
                     <>
-                        <label className="voos-field pontos-household-share">
-                            <input
-                                type="checkbox"
-                                checked={householdShared}
-                                onChange={(e) => setHouseholdShared(e.target.checked)}
-                            />
-                            <span>Compartilhada com a casa (mesmo saldo nos logins da família)</span>
-                        </label>
-                        {householdShared && members.length > 0 ? (
+                        <p className="pontos-kicker">Carteira da casa (visível a todos no Meu Mundo)</p>
+                        {members.length > 0 ? (
                             <SelectField
                                 label="Titular do programa"
                                 value={holderUserId}

@@ -77,6 +77,7 @@ type Props = {
     scenarioCount?: number;
     onOpenSimulador?: () => void;
     onFlushSave?: () => void | Promise<void>;
+    expenseAuthors?: Record<string, { id: string; name: string }>;
 };
 
 function emptyPayload(): TripPayload {
@@ -127,7 +128,8 @@ export function ViagemFicha({
     onModuloChange,
     scenarioCount = 0,
     onOpenSimulador,
-    onFlushSave
+    onFlushSave,
+    expenseAuthors
 }: Props) {
     const [internalDraft, setInternalDraft] = useState(() => tripToDraft(trip));
     const draft = controlledDraft ?? internalDraft;
@@ -600,6 +602,7 @@ export function ViagemFicha({
                     draft={draft}
                     onPatch={patch}
                     onFlushSave={onFlushSave}
+                    expenseAuthors={expenseAuthors}
                 />
             ) : fichaModulo ? (
                 <ViagemModuloPanel modulo={fichaModulo}>

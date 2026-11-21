@@ -9,6 +9,7 @@ import { snapshot, snapshots, winner } from '../../motor/viagens/trip-scenario-e
 import { airportLabel, searchAirportsCatalog } from '../../motor/viagens/airports-catalog.js';
 import { fetchTaxFxQuotes } from '../../motor/viagens/fx-quotes.js';
 import { syncTripExpensesToFinance } from '../trip-finance-sync.js';
+import { listTripFinanceMovements } from '../trip-finance-household.js';
 import {
     coerceLatinGeocodeLabel,
     expandGeocodeQuery,
@@ -596,17 +597,35 @@ export function registerTripsRoutes(app, { requireAuth }) {
             const trip = normalizeTrip(row);
             const timeScenarios = trip.payload?.timeScenarios ?? trip.payload?.time_scenarios ?? [];
             const scenarioSnaps = snapshots(timeScenarios);
+            let financeMovements;
+            try {
+                financeMovements = await listTripFinanceMovements(req.session.userId, req.params.id);
+            } catch {
+                financeMovements = undefined;
+            }
             res.json({
                 trip: enrichTripSummary(row),
                 scenarioSnapshots: scenarioSnaps,
                 scenarioWinnerId: winner(
                     scenarioSnaps,
                     trip.payload?.scenarioCriteria ?? trip.payload?.scenario_criteria ?? []
-                )
+                ),
+                financeMovements
             });
         } catch (e) {
             console.error('GET /api/trips/:id', e);
             res.status(500).json({ error: 'Erro ao carregar viagem' });
+        }
+    });
+
+    app.get('/api/trips/:id/finance-movements', requireAuth, async (req, res) => {
+        try {
+            const view = await listTripFinanceMovements(req.session.userId, req.params.id);
+            res.json({ movements: view.lines, totals: view.totals });
+        } catch (e) {
+            if (e.statusCode === 404) return res.status(404).json({ error: e.message });
+            console.error('GET /api/trips/:id/finance-movements', e);
+            res.status(500).json({ error: 'Erro ao listar movimentos da viagem' });
         }
     });
 
