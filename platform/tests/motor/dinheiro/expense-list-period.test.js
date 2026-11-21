@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
     expenseMatchesListPeriod,
+    filterExpenseRowsForListPeriod,
     resolveCreditBillingDays
 } from '../../../../motor/dinheiro/expense-list-period.js';
 
@@ -43,4 +44,24 @@ test('cartão: só dueDay cadastrado usa fechamento 1 (compra após corte → de
 
     assert.equal(expenseMatchesListPeriod(expense, card, novStart, novEnd), false);
     assert.equal(expenseMatchesListPeriod(expense, card, dezStart, dezEnd), true);
+});
+
+test('regressão Saídas: dateFrom/dateTo sincronizados do drawer ainda usam vencimento (não data da compra)', () => {
+    const card = { id: 'c1', type: 'cartao_credito', closeDay: 1, dueDay: 5 };
+    const expense = {
+        id: 'e1',
+        amount: 1200,
+        installmentCount: 3,
+        date: '2026-11-19',
+        accountId: 'c1'
+    };
+    const dezStart = new Date(2026, 11, 1, 0, 0, 0, 0);
+    const dezEnd = new Date(2026, 11, 31, 23, 59, 59, 999);
+
+    const matched = filterExpenseRowsForListPeriod([expense], [card], dezStart, dezEnd, {
+        dateFrom: '2026-12-01',
+        dateTo: '2026-12-31'
+    });
+    assert.equal(matched.length, 1);
+    assert.equal(matched[0].id, 'e1');
 });

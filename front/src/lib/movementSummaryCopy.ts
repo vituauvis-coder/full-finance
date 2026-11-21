@@ -9,9 +9,11 @@ export const GAINS_SUMMARY_COPY = {
 } as const;
 
 export const EXPENSES_SUMMARY_COPY = {
+    month: 'Total de gastos no período. No cartão, entram as parcelas que vencem nesse mês; nos demais casos, a data em que você registrou o gasto.',
     projection:
         'Gastos que você marcou como essenciais no período — por exemplo aluguel, contas fixas e despesas do dia a dia que não podem faltar.',
-    creditCardDefault: 'Quanto você gastou no cartão de crédito neste período.',
+    creditCardDefault:
+        'Parcelas do cartão de crédito com vencimento neste período (mês da fatura), incluindo compras parceladas.',
     otherDefault:
         'Gastos fora do cartão que não estão marcados como essenciais — por exemplo PIX, débito, transferência ou dinheiro.',
     filterRequiredHint: 'Marque Pago ou Pendente acima para ver os valores.'

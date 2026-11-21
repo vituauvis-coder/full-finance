@@ -66,3 +66,40 @@ export function expenseMatchesListPeriod(expense, account, periodStart, periodEn
 
     return false;
 }
+
+/**
+ * Limites efetivos da lista: `dateFrom`/`dateTo` do drawer sobrescrevem o período civil.
+ * Sempre combinar com `expenseMatchesListPeriod` — nunca filtrar cartão só pela data da compra.
+ */
+export function resolveExpenseListBounds(periodStart, periodEnd, dateFrom, dateTo) {
+    let start = periodStart instanceof Date ? periodStart : new Date(periodStart);
+    let end = periodEnd instanceof Date ? periodEnd : new Date(periodEnd);
+    if (dateFrom) {
+        const from = new Date(`${dateFrom}T00:00:00`);
+        if (!Number.isNaN(from.getTime())) start = from;
+    }
+    if (dateTo) {
+        const to = new Date(`${dateTo}T23:59:59.999`);
+        if (!Number.isNaN(to.getTime())) end = to;
+    }
+    return { start, end };
+}
+
+/**
+ * Filtra saídas pelo período da lista (vencimento da fatura no cartão).
+ * Aceita dateFrom/dateTo sincronizados do drawer sem cair no filtro por data da compra.
+ */
+export function filterExpenseRowsForListPeriod(rows, accounts, periodStart, periodEnd, opts = {}) {
+    const { start, end } = resolveExpenseListBounds(
+        periodStart,
+        periodEnd,
+        opts.dateFrom,
+        opts.dateTo
+    );
+    const byId = new Map((accounts || []).map((a) => [a.id, a]));
+    return (rows || []).filter((m) => {
+        if (m?.referenceOnly) return false;
+        const acc = m.accountId ? byId.get(m.accountId) : undefined;
+        return expenseMatchesListPeriod(m, acc, start, end);
+    });
+}

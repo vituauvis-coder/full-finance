@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { getExpensePerInstallmentDisplayAmount } from '@motor/dinheiro/credit-installments.js';
 import type { Account, Movement } from '../../lib/types/finance';
+import { expenseRowAppearsPaid } from '../../lib/expenseRowCashOut';
 import { formatBRL } from '../../lib/format';
 import { formatMovementDate } from '../../lib/movementList';
 import type { DataTableColumn } from '../ui/DataTable';
@@ -131,13 +132,14 @@ export function buildMovementTableColumns(opts: GainsOpts | ExpensesOpts): DataT
             cellClassName: statusTdClass,
             render: (m) => {
                 const label = statusLabel(m);
-                const paid = m.isPaid !== false;
+                const paid =
+                    opts.kind === 'expense' ? expenseRowAppearsPaid(m) : m.isPaid !== false;
                 const gainTitles = paid
                     ? { title: 'Marcar como pendente', aria: 'Marcar entrada como pendente (a receber)' }
                     : { title: 'Marcar como recebido', aria: 'Marcar entrada como recebida' };
                 const expenseTitles = paid
                     ? { title: 'Clique para marcar como pendente', aria: 'Marcar saída como pendente (não paga)' }
-                    : { title: 'Clique para marcar como paga', aria: 'Marcar saída como paga' };
+                    : { title: 'Clique para confirmar / marcar como paga', aria: 'Marcar saída como paga' };
                 const meta = opts.kind === 'gain' ? gainTitles : expenseTitles;
                 return (
                     <MovementStatusBadge

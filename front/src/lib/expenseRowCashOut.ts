@@ -3,9 +3,20 @@ import { isPeriodConfirmedForDebit, monthKeyFromDate, parseCashOutConfirmedPerio
 import { movementDate } from './period';
 import type { Account, Movement } from './types/finance';
 
-/** Indica se a linha pode mostrar «Confirmar débito» (PIX/conta pendente, ainda não confirmada no período). */
+/** Pago na lista: `isPaid` ou débito do período já confirmado no caixa (legado). */
+export function expenseRowAppearsPaid(m: Movement) {
+    if (m.isPaid !== false) return true;
+    const d = movementDate(m);
+    if (Number.isNaN(d.getTime())) return false;
+    return isPeriodConfirmedForDebit(parseCashOutConfirmedPeriods(m), d);
+}
+
+/**
+ * Clique em Pendente deve confirmar débito no caixa (série/conta com confirmação manual),
+ * em vez de só marcar `isPaid`.
+ */
 export function expenseRowCanConfirmCashOut(m: Movement, account: Account | undefined) {
-    if (m.isPaid !== false) return false;
+    if (expenseRowAppearsPaid(m)) return false;
     if (!account || isCreditCardType(account.type)) return false;
     if (!isPixBankAccountType(account.type) && !account.type) return false;
     const d = movementDate(m);

@@ -17,13 +17,17 @@ import { useTablePagination } from '../../../hooks/useTablePagination';
 import { compareExpenseRows, useMovementSort, type ExpenseSortKey } from '../../../hooks/useMovementSort';
 import { usePeriodSyncedDrawerDates } from '../../../hooks/usePeriodSyncedDrawerDates';
 import { ExpenseBatchModal } from '../../../components/finance/ExpenseBatchModal';
-import { expenseCashOutPeriodKey, expenseRowCanConfirmCashOut } from '../../../lib/expenseRowCashOut';
+import {
+    expenseCashOutPeriodKey,
+    expenseRowAppearsPaid,
+    expenseRowCanConfirmCashOut
+} from '../../../lib/expenseRowCashOut';
 import { MovementsPageSkeleton } from '../../../components/skeleton/MovementsPageSkeleton';
 import { useSkeletonMinDuration } from '../../../hooks/useSkeletonMinDuration';
 import { movementDate } from '../../../lib/period';
 import { useMovementListFilters } from '../context/MovementListFiltersContext';
 import { confirmExpenseCashOut, deleteExpense, patchExpensesBatch } from '../api/movements';
-import { useMovementStatusToggle } from '../../../hooks/useMovementStatusToggle';
+import { playPingSound } from '../../../app/uiSounds';
 import { MovementBatchBar } from '../../../components/finance/MovementBatchBar';
 import { ExpenseSplitsBanner } from '../components/ExpenseSplitsBanner';
 import { CivilPeriodToolbar } from '../../../components/finance/CivilPeriodToolbar';
@@ -180,20 +184,6 @@ export function SaidasPage() {
         await refresh();
     }
 
-    async function onConfirmCashOut(m: Movement) {
-        const key = expenseCashOutPeriodKey(m);
-        const label = movementDate(m).toLocaleDateString('pt-BR');
-        const ok = await confirm({
-            title: 'Confirmar débito no saldo?',
-            message: `O valor será considerado debitado da conta no período de ${label}.`,
-            confirmLabel: 'Confirmar débito',
-            tone: 'default'
-        });
-        if (!ok) return;
-        await confirmExpenseCashOut(m.id, key);
-        await refresh();
-    }
-
     async function batchPatch(patch: { isPaid: boolean }) {
         const ids = [...selected];
         if (ids.length === 0) return;
@@ -202,11 +192,51 @@ export function SaidasPage() {
         await refresh();
     }
 
-    const patchExpensePaid = useCallback(
-        (id: string, isPaid: boolean) => patchExpensesBatch([id], { isPaid }),
-        []
+    const [statusBusy, setStatusBusy] = useState<Set<string>>(() => new Set());
+    const statusToggleBusy = useCallback((id: string) => statusBusy.has(id), [statusBusy]);
+
+    const onToggleStatus = useCallback(
+        async (m: Movement) => {
+            if (statusBusy.has(m.id)) return;
+            const acc = accountById.get(String(m.accountId));
+            const appearsPaid = expenseRowAppearsPaid(m);
+
+            setStatusBusy((prev) => new Set(prev).add(m.id));
+            try {
+                if (!appearsPaid && expenseRowCanConfirmCashOut(m, acc)) {
+                    const key = expenseCashOutPeriodKey(m);
+                    const label = movementDate(m).toLocaleDateString('pt-BR');
+                    const ok = await confirm({
+                        title: 'Confirmar débito no saldo?',
+                        message: `O valor será considerado debitado da conta no período de ${label}.`,
+                        confirmLabel: 'Confirmar',
+                        tone: 'default'
+                    });
+                    if (!ok) return;
+                    await confirmExpenseCashOut(m.id, key);
+                    await patchExpensesBatch([m.id], { isPaid: true });
+                    playPingSound();
+                    await refresh();
+                    return;
+                }
+
+                const nextIsPaid = !appearsPaid;
+                await patchExpensesBatch([m.id], { isPaid: nextIsPaid });
+                if (nextIsPaid) playPingSound();
+                await refresh();
+            } catch (error) {
+                console.error('Erro ao atualizar status da saída:', error);
+                window.alert('Não foi possível atualizar o status. Tente novamente.');
+            } finally {
+                setStatusBusy((prev) => {
+                    const next = new Set(prev);
+                    next.delete(m.id);
+                    return next;
+                });
+            }
+        },
+        [accountById, confirm, refresh, statusBusy]
     );
-    const { onToggleStatus, statusToggleBusy } = useMovementStatusToggle(patchExpensePaid, refresh);
 
     const openAddModal = useCallback(() => {
         setEditing(null);
@@ -260,7 +290,7 @@ export function SaidasPage() {
                             formatBRL(expenseSummary.total, currency)
                         )
                     }
-                    iconTooltip={false}
+                    description={EXPENSES_SUMMARY_COPY.month}
                     footer={
                         expenseSummary.showHint ? (
                             <span className="card-metric-hint">{expenseHint}</span>
@@ -283,7 +313,7 @@ export function SaidasPage() {
                             formatBRL(expenseSummary.essential, currency)
                         )
                     }
-                    iconTooltip={false}
+                    description={EXPENSES_SUMMARY_COPY.projection}
                     footer={
                         expenseSummary.showHint ? (
                             <span className="card-metric-hint">{expenseHint}</span>
@@ -306,7 +336,7 @@ export function SaidasPage() {
                             formatBRL(expenseSummary.creditCard, currency)
                         )
                     }
-                    iconTooltip={false}
+                    description={EXPENSES_SUMMARY_COPY.creditCardDefault}
                     footer={
                         expenseSummary.showHint ? (
                             <span className="card-metric-hint">{expenseHint}</span>
@@ -329,7 +359,7 @@ export function SaidasPage() {
                             formatBRL(expenseSummary.other, currency)
                         )
                     }
-                    iconTooltip={false}
+                    description={EXPENSES_SUMMARY_COPY.otherDefault}
                     footer={
                         expenseSummary.showHint ? (
                             <span className="card-metric-hint">{expenseHint}</span>
@@ -364,7 +394,7 @@ export function SaidasPage() {
                 expenseAccounts={data.userAccounts}
                 expenseDisplayDate={expenseDisplayDate}
                 accountLabel={(id) => accountName(data.userAccounts, id)}
-                statusLabel={(m) => (m.isPaid === false ? 'Pendente' : 'Pago')}
+                statusLabel={(m) => (expenseRowAppearsPaid(m) ? 'Pago' : 'Pendente')}
                 onToggleStatus={(m) => void onToggleStatus(m)}
                 statusToggleBusy={statusToggleBusy}
                 selectedIds={selected}
@@ -394,19 +424,6 @@ export function SaidasPage() {
                 sortKey={sortKey}
                 sortDir={sortDir}
                 onSort={(key) => toggleSort(key as ExpenseSortKey)}
-                renderRowActions={(m) => {
-                    const acc = accountById.get(String(m.accountId));
-                    if (!expenseRowCanConfirmCashOut(m, acc)) return null;
-                    return (
-                        <button
-                            type="button"
-                            className="btn-secondary btn-small"
-                            onClick={() => void onConfirmCashOut(m)}
-                        >
-                            Confirmar débito
-                        </button>
-                    );
-                }}
             />
             <TablePaginationBar
                 page={pagination.page}

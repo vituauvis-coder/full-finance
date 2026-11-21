@@ -2,7 +2,8 @@ import { getExpensePerInstallmentDisplayAmount } from '@motor/dinheiro/credit-in
 import { isCreditCardType } from '../../../lib/accounts';
 import type { Account, Movement } from '../../../lib/types/finance';
 import { computeMomVariation, type MomVariationState } from '../../dashboard/domain/momVariation';
-import { filterMovementsInPeriod, type ListFilter } from '../../../lib/movementList';
+import { filterExpensesInPeriod } from '../../../lib/filterExpensesInPeriod';
+import type { ListFilter } from '../../../lib/movementList';
 import { isSingleMonthPeriod, listFilterForMomCompare, previousCivilMonth } from './movementPeriodMom';
 
 export type ExpenseSummaryTotals = {
@@ -100,8 +101,9 @@ export function expenseSummaryMomStates(
         return { total: need, essential: need, creditCard: need, other: need };
     }
 
-    const prevRows = filterMovementsInPeriod(
+    const prevRows = filterExpensesInPeriod(
         allRows,
+        accounts,
         prev.period,
         prev.year,
         listFilterForMomCompare(listFilter)
