@@ -23,15 +23,61 @@ export type Account = {
     balance?: number;
     limit?: number;
     dueDay?: number;
+    dueDate?: number;
     closeDay?: number;
+    closingDay?: number;
     linkedAccountId?: string;
     plasticColor?: string;
     plasticTone?: string;
 };
 
+export type SplitUserRef = {
+    id?: string;
+    name?: string | null;
+    email?: string | null;
+};
+
+export type SplitSourceExpense = {
+    id?: string;
+    description?: string;
+    amount?: number;
+    date?: string | { seconds?: number };
+    category?: string;
+    subcategory?: string;
+    isCofrinho?: boolean;
+    isFixed?: boolean;
+    installmentCount?: number;
+    recurrenceGroupId?: string | null;
+};
+
+export type ExpenseSplitRequest = {
+    id: string;
+    sourceExpenseId?: string;
+    amount?: number;
+    status?: string;
+    splitScope?: string;
+    targetInstallmentIndex?: number | null;
+    targetPeriodKey?: string | null;
+    sourceInstallmentCount?: number | null;
+    requesterCreditAccountId?: string | null;
+    requester?: SplitUserRef;
+    recipient?: SplitUserRef;
+    sourceExpense?: SplitSourceExpense | null;
+    createdAt?: string;
+};
+
 export type SplitBundle = {
-    incoming: unknown[];
-    outgoing: unknown[];
+    incoming: ExpenseSplitRequest[];
+    outgoing: ExpenseSplitRequest[];
+};
+
+/** Pré-preenchimento do modal de saída ao aceitar um rateio. */
+export type ExpenseSplitSeed = {
+    splitRequestId: string;
+    splitAmount: number;
+    splitScope?: string;
+    sourceExpense?: SplitSourceExpense | null;
+    sourceInstallmentCount?: number;
 };
 
 export type UserProfile = {

@@ -23,6 +23,7 @@ import {
     loanInstallmentCashOutForCalendarMonth,
     shouldDeferCashOutForMonthlyFixedSeries
 } from '../../core/credit-installments.js';
+import { buildExpenseInstallmentCellView } from '../../core/expense-installment-cell-view.js';
 import {
     expenseContributionProjectedToMonthKey,
     expenseCreditInstallmentScheduledForMonthKey
@@ -848,60 +849,22 @@ function getExpenseInstallmentProgressTone(allPaid) {
 }
 
 function formatExpenseInstallmentCellHtml(parts) {
-    if (!parts || !Number.isFinite(parts.total) || parts.total < 2) {
+    const view = buildExpenseInstallmentCellView(parts);
+    if (!view) {
         return '<span class="expenses-installment-cell expenses-installment-cell--empty" aria-hidden="true">—</span>';
     }
-    const total = parts.total;
-    const paidCount = Math.min(total, Math.max(0, Number(parts.paidCount) || 0));
-    const remaining = Math.max(
-        0,
-        Number.isFinite(parts.remaining) ? parts.remaining : Math.max(0, total - paidCount)
-    );
-    const allPaid = parts.allPaid || remaining === 0;
-    const label = allPaid ? 'Quitado' : remaining === 1 ? '1 restante' : `${remaining} restantes`;
-    const paidHint =
-        paidCount === 0
-            ? 'Nenhuma parcela confirmada no caixa'
-            : paidCount === 1
-              ? '1 parcela paga'
-              : `${paidCount} parcelas pagas`;
-    const remainHint = allPaid
-        ? 'Contrato quitado no caixa'
-        : remaining === 1
-          ? 'Falta 1 parcela'
-          : `Faltam ${remaining} parcelas`;
-
-    const mp = parts.monthParcel;
-    let monthLine = '';
-    let monthHint = '';
-    if (!allPaid && mp && Number.isFinite(mp.index)) {
-        const fracLong = mp.total ? `${mp.index} de ${mp.total}` : `${mp.index}ª`;
-        const paidNote = mp.paid ? ' (paga)' : '';
-        monthLine = mp.total ? `${mp.index}/${mp.total}` : `${mp.index}ª`;
-        monthHint =
-            mp.scope === 'row'
-                ? `Vencimento desta linha: parcela ${fracLong}${paidNote}`
-                : `Parcela com vencimento no período filtrado: ${fracLong}${paidNote}`;
-    } else if (!allPaid) {
-        monthLine = 'Sem venc.';
-        monthHint = 'Nenhum vencimento desta compra no mês do filtro';
-    }
-
-    const title = [paidHint + ` de ${total}`, remainHint, monthHint].filter(Boolean).join(' · ');
-    const tone = getExpenseInstallmentProgressTone(allPaid);
-    const tAttr = htmlAttrEscape(title);
+    const tone = getExpenseInstallmentProgressTone(view.tone === 'settled');
+    const tAttr = htmlAttrEscape(view.title);
     const monthCls = [
         'expenses-installment-cell__month-parcel',
-        !mp && !allPaid ? 'expenses-installment-cell__month-parcel--none' : ''
+        view.monthNone ? 'expenses-installment-cell__month-parcel--none' : ''
     ]
         .filter(Boolean)
         .join(' ');
-    const monthHtml = monthLine
-        ? `<span class="${monthCls}">${escapeHtml(monthLine)}</span>`
-        : allPaid
-          ? ''
-          : `<span class="${monthCls}">—</span>`;
-    return `<span class="expenses-installment-stack ${tone}" title="${tAttr}" aria-label="${tAttr}"><span class="expenses-installment-cell__label">${escapeHtml(label)}</span>${monthHtml}</span>`;
+    const monthHtml = view.monthLine
+        ? `<span class="${monthCls}">${escapeHtml(view.monthLine)}</span>`
+        : '';
+    return `<span class="expenses-installment-stack ${tone}" title="${tAttr}" aria-label="${tAttr}"><span class="expenses-installment-cell__label">${escapeHtml(view.label)}</span>${monthHtml}</span>`;
 }
 
 let expensesFilterDebounce = null;

@@ -173,6 +173,18 @@
     gap: 0.5rem;
 }
 
+.ui-form-checkboxes--row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 0.5rem;
+}
+
+.ui-form-checkboxes--row .ui-form-checkbox {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
 .ui-form-segmented {
     display: flex;
     flex-wrap: wrap;

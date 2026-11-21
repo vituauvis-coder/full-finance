@@ -1,0 +1,157 @@
+/* Modal «Dividir saída» — alinhada às dialogs React (--dash-*) */
+
+.ui-dialog__panel.modal-content--expense-split {
+    max-width: 32rem;
+}
+
+#expense-split-modal .expense-split-modal__summary {
+    margin: 0;
+    padding: 0.75rem 0.85rem;
+    border-radius: 12px;
+    border: 1px solid var(--dash-border, var(--border-color));
+    background: var(--dash-layer-inset, rgba(255, 255, 255, 0.03));
+}
+
+#expense-split-modal .expense-split-modal__summary-title {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 650;
+    line-height: 1.35;
+    color: var(--dash-text-primary, var(--text-color));
+}
+
+#expense-split-modal .expense-split-modal__summary-meta {
+    margin: 0.3rem 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 0.35rem;
+    font-size: 0.8125rem;
+    color: var(--dash-text-secondary, var(--text-light));
+}
+
+#expense-split-modal .expense-split-modal__dot {
+    opacity: 0.55;
+}
+
+#expense-split-modal .expense-split-modal-existing-wrap {
+    margin: 0;
+    padding: 0.7rem 0.8rem;
+    border-radius: 12px;
+    border: 1px solid var(--dash-border, var(--border-color));
+    background: var(--dash-layer-inset, rgba(255, 255, 255, 0.02));
+}
+
+#expense-split-modal .expense-split-modal-existing-title {
+    margin: 0 0 0.4rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--dash-text-secondary, var(--text-light));
+}
+
+#expense-split-modal .expense-split-modal-existing-empty {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--dash-text-tertiary, var(--text-light));
+}
+
+#expense-split-modal .expense-split-modal-existing__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.65rem;
+    padding: 0.45rem 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--dash-border, #64748b) 55%, transparent);
+    font-size: 0.8125rem;
+}
+
+#expense-split-modal .expense-split-modal-existing__row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+#expense-split-modal .expense-split-modal-existing__meta {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.5rem;
+}
+
+#expense-split-modal .expense-split-modal-existing__detail {
+    opacity: 0.8;
+    color: var(--dash-text-secondary, var(--text-light));
+}
+
+#expense-split-modal .expense-split-status {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 650;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 0.15rem 0.4rem;
+    border-radius: 6px;
+    background: var(--dash-layer-control, var(--bg-color));
+    color: var(--dash-text-secondary, var(--text-light));
+}
+
+#expense-split-modal .expense-split-status--pending {
+    background: color-mix(in srgb, var(--warning-color, #f59e0b) 18%, transparent);
+    color: #fbbf24;
+}
+
+#expense-split-modal .expense-split-status--accepted {
+    background: color-mix(in srgb, var(--gains-accent, #34d399) 16%, transparent);
+    color: #6ee7b7;
+}
+
+#expense-split-modal .expense-split-status--rejected,
+#expense-split-modal .expense-split-status--cancelled {
+    background: color-mix(in srgb, var(--dash-text-secondary, #94a3b8) 16%, transparent);
+    color: var(--dash-text-secondary, var(--text-light));
+}
+
+#expense-split-modal .expense-split-modal-remove-btn {
+    margin: 0;
+    padding: 0.28rem 0.55rem;
+    border-radius: 8px;
+    border: 1px solid var(--dash-border, var(--border-color));
+    background: transparent;
+    color: var(--dash-text-secondary, var(--text-light));
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+#expense-split-modal .expense-split-modal-remove-btn:hover:not(:disabled) {
+    color: var(--dash-text-primary, var(--text-color));
+    border-color: var(--dash-border-strong, var(--border-color));
+}
+
+#expense-split-modal .expense-split-modal-remove-btn:disabled {
+    opacity: 0.55;
+    cursor: wait;
+}
+
+#expense-split-modal .expense-split-modal-locked {
+    font-size: 0.8rem;
+    color: var(--dash-text-tertiary, var(--text-light));
+    opacity: 0.85;
+}
+
+[data-theme='light'] #expense-split-modal .expense-split-status--pending {
+    color: #b45309;
+}
+
+[data-theme='light'] #expense-split-modal .expense-split-status--accepted {
+    color: #047857;
+}
+
+.input-readonly-locked {
+    opacity: 0.85;
+    cursor: default;
+}

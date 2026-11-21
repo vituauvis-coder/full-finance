@@ -65,3 +65,38 @@ test('regressão Saídas: dateFrom/dateTo sincronizados do drawer ainda usam ven
     assert.equal(matched.length, 1);
     assert.equal(matched[0].id, 'e1');
 });
+test('Saídas: referenceOnly (pré-âncora) ainda aparece no mês da competência — alinhado ao legacy', () => {
+    const bank = { id: 'b1', type: 'conta_corrente' };
+    const expense = {
+        id: 'e-ref',
+        amount: 200,
+        date: '2026-01-15',
+        accountId: 'b1',
+        referenceOnly: true
+    };
+    const janStart = new Date(2026, 0, 1);
+    const janEnd = new Date(2026, 0, 31, 23, 59, 59, 999);
+    const matched = filterExpenseRowsForListPeriod([expense], [bank], janStart, janEnd, {});
+    assert.equal(matched.length, 1);
+    assert.equal(matched[0].id, 'e-ref');
+});
+
+test('Saídas: cartão referenceOnly (compra pré-âncora) entra no mês do vencimento da parcela', () => {
+    const card = { id: 'c1', type: 'cartao_credito', closeDay: 4, dueDay: 10 };
+    const expense = {
+        id: 'e-watch',
+        amount: 1312,
+        installmentCount: 12,
+        date: '2026-01-05',
+        accountId: 'c1',
+        referenceOnly: true
+    };
+    // compra 05/01, fecha dia 4 → 1ª fatura vence 10/02
+    const fevStart = new Date(2026, 1, 1);
+    const fevEnd = new Date(2026, 1, 28, 23, 59, 59, 999);
+    const junStart = new Date(2026, 5, 1);
+    const junEnd = new Date(2026, 5, 30, 23, 59, 59, 999);
+
+    assert.equal(filterExpenseRowsForListPeriod([expense], [card], fevStart, fevEnd, {}).length, 1);
+    assert.equal(filterExpenseRowsForListPeriod([expense], [card], junStart, junEnd, {}).length, 1);
+});

@@ -2629,6 +2629,20 @@ button.wallet-plastic--placeholder:focus-visible {
     pointer-events: auto;
 }
 
+.installment-tooltip-panel--compact {
+    gap: 0.35rem;
+    padding: 0.55rem 0.75rem;
+    min-width: 0;
+    max-width: min(240px, calc(100vw - 20px));
+    border-radius: 8px;
+    font-size: 0.78rem;
+}
+
+.installment-tooltip-panel--compact .installment-tooltip-line {
+    margin: 0;
+    white-space: nowrap;
+}
+
 .installment-tooltip-head {
     display: flex;
     flex-direction: column;

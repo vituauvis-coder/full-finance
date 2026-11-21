@@ -1,8 +1,8 @@
-import type { Movement } from './types/finance';
+import { prepareExpenseRowsForTreemap } from '@motor/dinheiro/expense-treemap.js';
+import type { Account, Movement } from './types/finance';
 import { aggregateByCategory } from './treemapData';
 
-/** Linhas elegíveis ao treemap no período já filtrado (exclui referenceOnly). */
-export function buildExpenseTreemapBlocks(rows: Movement[]) {
-    const eligible = rows.filter((t) => t && !t.referenceOnly && (Number(t.amount) || 0) > 0);
-    return aggregateByCategory(eligible);
+/** Linhas elegíveis ao treemap no período já filtrado (inclui referenceOnly; valor = parcela). */
+export function buildExpenseTreemapBlocks(rows: Movement[], accounts: Account[] = []) {
+    return aggregateByCategory(prepareExpenseRowsForTreemap(rows, accounts) as Movement[]);
 }

@@ -1,0 +1,152 @@
+/* Preview de parcelas na modal de saída — tokens da dialog React */
+
+.expense-inst-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 0.15rem;
+}
+
+.expense-inst-preview__summary {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    padding: 0.75rem 0.85rem;
+    border-radius: 12px;
+    border: 1px solid var(--dash-border, var(--border-color));
+    background: var(--dash-layer-inset, rgba(255, 255, 255, 0.03));
+}
+
+.expense-inst-preview__ring {
+    position: relative;
+    flex-shrink: 0;
+    width: 52px;
+    height: 52px;
+}
+
+.expense-inst-preview__ring-svg {
+    display: block;
+}
+
+.expense-inst-preview__ring-track {
+    stroke: color-mix(in srgb, var(--dash-text-secondary, #94a3b8) 35%, transparent);
+    stroke-width: 4;
+}
+
+.expense-inst-preview__ring-progress {
+    stroke: var(--dash-accent, var(--primary-color, #6366f1));
+    stroke-width: 4;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.25s ease;
+}
+
+.expense-inst-preview__ring-num {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--dash-text-primary, var(--text-color));
+    line-height: 1;
+    pointer-events: none;
+}
+
+.expense-inst-preview__copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+}
+
+.expense-inst-preview__title {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--dash-text-primary, var(--text-color));
+}
+
+.expense-inst-preview__line {
+    font-size: 0.8125rem;
+    color: var(--dash-text-secondary, var(--text-light));
+}
+
+.expense-inst-preview__line strong {
+    color: var(--dash-text-primary, var(--text-color));
+    font-weight: 700;
+}
+
+.expense-inst-preview__hint,
+.expense-inst-preview__hint.ui-form-hint-block {
+    margin: 0;
+    font-size: 0.72rem;
+    line-height: 1.4;
+    color: var(--dash-text-tertiary, var(--text-light));
+}
+
+.expense-inst-preview__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    align-items: center;
+}
+
+.expense-inst-preview__tag {
+    margin: 0;
+    padding: 0.28rem 0.55rem;
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1.25;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    text-transform: lowercase;
+    appearance: none;
+    -webkit-appearance: none;
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease;
+}
+
+.expense-inst-preview__tag:focus-visible {
+    outline: 2px solid var(--dash-focus-ring, var(--primary-color));
+    outline-offset: 2px;
+}
+
+.expense-inst-preview__tag--paid {
+    background: color-mix(in srgb, var(--gains-accent, #34d399) 22%, transparent);
+    color: #6ee7b7;
+    border-color: color-mix(in srgb, var(--gains-accent, #34d399) 40%, transparent);
+}
+
+.expense-inst-preview__tag--pending {
+    background: color-mix(in srgb, var(--dash-text-secondary, #94a3b8) 14%, transparent);
+    color: var(--dash-text-secondary, #94a3b8);
+    border-color: color-mix(in srgb, var(--dash-text-secondary, #94a3b8) 28%, transparent);
+}
+
+.expense-inst-preview__tag--pending.expense-inst-preview__tag--due {
+    background: color-mix(in srgb, var(--warning-color, #fbbf24) 22%, transparent);
+    color: #fcd34d;
+    border-color: color-mix(in srgb, var(--warning-color, #fbbf24) 42%, transparent);
+}
+
+[data-theme='light'] .expense-inst-preview__tag--paid {
+    color: #047857;
+    background: rgba(16, 185, 129, 0.18);
+    border-color: rgba(16, 185, 129, 0.4);
+}
+
+[data-theme='light'] .expense-inst-preview__tag--pending {
+    color: #475569;
+    background: rgba(148, 163, 184, 0.22);
+    border-color: rgba(148, 163, 184, 0.4);
+}
+
+[data-theme='light'] .expense-inst-preview__tag--pending.expense-inst-preview__tag--due {
+    color: #a16207;
+    background: rgba(234, 179, 8, 0.28);
+    border-color: rgba(202, 138, 4, 0.5);
+}

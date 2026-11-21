@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import type { Account, Movement } from '../../lib/types/finance';
+import type { Account, ExpenseSplitRequest, Movement, UserProfile } from '../../lib/types/finance';
+import type { InstallmentListPeriod } from '../../frentes/dinheiro/domain/expenseInstallmentLabel';
 import { DataTable } from '../ui/DataTable';
 import { buildMovementTableColumns, type MovementSortKey } from './movementTableColumns';
 
@@ -10,11 +11,16 @@ type Props = {
     currency: string;
     idPrefix: 'gains' | 'expenses';
     expenseAccounts?: Account[];
+    allExpenses?: Movement[];
+    acceptedSplits?: ExpenseSplitRequest[];
+    userProfile?: UserProfile | null;
+    listPeriod?: InstallmentListPeriod | null;
     expenseDisplayDate?: (m: Movement) => Date;
     accountLabel: (accountId?: string) => string;
     statusLabel: (m: Movement) => string;
     onToggleStatus?: (m: Movement) => void;
     statusToggleBusy?: (id: string) => boolean;
+    onSplit?: (m: Movement) => void;
     onEdit?: (m: Movement) => void;
     onDelete?: (m: Movement) => void;
     selectedIds?: Set<string>;
@@ -35,6 +41,7 @@ export function MovementsTable({
     statusLabel,
     onToggleStatus,
     statusToggleBusy,
+    onSplit,
     onEdit,
     onDelete,
     selectedIds,
@@ -46,6 +53,10 @@ export function MovementsTable({
     renderRowActions,
     emptyMessage,
     expenseAccounts,
+    allExpenses,
+    acceptedSplits,
+    userProfile,
+    listPeriod,
     expenseDisplayDate
 }: Props) {
     const columns = buildMovementTableColumns(
@@ -66,11 +77,16 @@ export function MovementsTable({
                   prefix: 'expenses',
                   currency,
                   accounts: expenseAccounts,
+                  allExpenses,
+                  acceptedSplits,
+                  userProfile,
+                  listPeriod,
                   expenseDisplayDate,
                   accountLabel,
                   statusLabel,
                   onToggleStatus,
                   statusToggleBusy,
+                  onSplit,
                   onEdit,
                   onDelete,
                   extraActions: renderRowActions

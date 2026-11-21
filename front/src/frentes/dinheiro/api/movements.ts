@@ -61,17 +61,21 @@ export type ExpenseFormPayload = {
     date: string;
     isPaid: boolean;
     installmentCount?: number;
+    cashOutConfirmedPeriods?: string | null;
     recurringMonthly?: boolean;
     isFixed?: boolean;
     isCofrinho?: boolean;
+    splitRequestId?: string;
 };
 
 export async function createExpense(payload: ExpenseFormPayload) {
+    const { splitRequestId, ...rest } = payload;
     return apiFetch('/api/expenses', {
         method: 'POST',
         body: JSON.stringify({
-            ...payload,
-            date: movementToApiDate(payload.date)
+            ...rest,
+            date: movementToApiDate(payload.date),
+            ...(splitRequestId ? { splitRequestId } : {})
         })
     });
 }

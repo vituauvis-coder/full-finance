@@ -963,8 +963,10 @@ export function formatInstallmentTooltipPanelHtml(
     currency = 'BRL',
     now = new Date(),
     userProfile = null,
-    listPeriod = null
+    listPeriod = null,
+    options = null
 ) {
+    const interactive = options?.interactive !== false;
     const st0 = getInstallmentState(expense, account, now, userProfile);
     const st = listPeriod
         ? scopeInstallmentStateToListPeriod(st0, expense, account, now, userProfile, listPeriod)
@@ -1008,6 +1010,7 @@ export function formatInstallmentTooltipPanelHtml(
                 if (unpaidDueOrPast || paidCurrentMonthHighlight) cls += ' installment-tooltip-pill--current-month';
                 const periodKey = calendarDayKeyFromDate(d);
                 const asBtn =
+                    interactive &&
                     expense?.id &&
                     canConfirmInstallmentPeriodForCashOut(expense, account, d, userProfile, now);
                 if (asBtn) {

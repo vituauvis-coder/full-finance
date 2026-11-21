@@ -98,7 +98,9 @@ export function filterExpenseRowsForListPeriod(rows, accounts, periodStart, peri
     );
     const byId = new Map((accounts || []).map((a) => [a.id, a]));
     return (rows || []).filter((m) => {
-        if (m?.referenceOnly) return false;
+        // referenceOnly (pré-âncora) continua na lista de Saídas — como no legacy.
+        // Dashboard/ledger oficiais é que ignoram; aqui o usuário precisa ver jan–mar e
+        // parcelas de cartão cuja compra foi antes do âncora mas o vencimento cai no mês.
         const acc = m.accountId ? byId.get(m.accountId) : undefined;
         return expenseMatchesListPeriod(m, acc, start, end);
     });

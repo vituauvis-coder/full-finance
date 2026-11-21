@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
-import type { Account, Movement } from '../../lib/types/finance';
+import type { Account, ExpenseSplitSeed, Movement } from '../../lib/types/finance';
 import {
     buildPaymentMethodOptions,
     isCreditCardType,
@@ -25,16 +25,38 @@ import {
     updateExpense,
     type ExpenseFormPayload
 } from '../../frentes/dinheiro/api/movements';
+import { normalizeSplitScope } from '@motor/dinheiro/split-net.js';
+import {
+    calendarDayKeyFromDate,
+    parseCashOutConfirmedPeriods
+} from '@motor/dinheiro/cash-out-periods.js';
+import {
+    ExpenseInstallmentPreview,
+    resolveInstallmentDueDates
+} from './ExpenseInstallmentPreview';
 
 type Props = {
     open: boolean;
     editing: Movement | null;
     accounts: Account[];
+    splitSeed?: ExpenseSplitSeed | null;
     onClose: () => void;
     onSaved: () => void | Promise<void>;
 };
 
-export function ExpenseFormModal({ open, editing, accounts, onClose, onSaved }: Props) {
+function paidKeysFromExpense(expense: Movement | null | undefined): string[] {
+    if (!expense) return [];
+    return [...parseCashOutConfirmedPeriods(expense)];
+}
+
+export function ExpenseFormModal({
+    open,
+    editing,
+    accounts,
+    splitSeed = null,
+    onClose,
+    onSaved
+}: Props) {
     const { categories } = useCategories('expense');
     const [loanAccountId, setLoanAccountId] = useState('');
 
@@ -51,15 +73,30 @@ export function ExpenseFormModal({ open, editing, accounts, onClose, onSaved }: 
     const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
     const [isPaid, setIsPaid] = useState(false);
     const [installments, setInstallments] = useState('1');
+    const [paidPeriodKeys, setPaidPeriodKeys] = useState<string[]>([]);
     const [isFixed, setIsFixed] = useState(false);
     const [isCofrinho, setIsCofrinho] = useState(false);
     const [recurringMonthly, setRecurringMonthly] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
 
+    const fromRateio = Boolean(splitSeed?.splitRequestId) && !editing;
     const selectedAcc = accounts.find((a) => a.id === paymentMethodId);
-    const showInstallments =
-        (!editing && loanCategory) || (selectedAcc && isCreditCardType(selectedAcc.type) && !editing);
+    const loanDebitAcc = accounts.find((a) => a.id === loanAccountId);
+    const installmentAccount: Account | undefined =
+        loanCategory && paymentMethodId === EXPENSE_LOAN_PAYMENT_VALUE
+            ? loanDebitAcc
+            : selectedAcc;
+
+    const nInst = Math.min(99, Math.max(1, parseInt(installments, 10) || 1));
+    const paymentIsCredit = !!(selectedAcc && isCreditCardType(selectedAcc.type));
+    const showInstallmentsField =
+        paymentIsCredit ||
+        loanCategory ||
+        (fromRateio && nInst >= 2) ||
+        (editing && nInst >= 2);
+    const showInstallmentPreview =
+        nInst >= 2 && (paymentIsCredit || loanCategory || (fromRateio && nInst >= 2));
 
     useEffect(() => {
         if (!open) return;
@@ -73,6 +110,7 @@ export function ExpenseFormModal({ open, editing, accounts, onClose, onSaved }: 
             setDate(movementFromFormDate(editing));
             setIsPaid(editing.isPaid !== false);
             setInstallments(String(editing.installmentCount ?? 1));
+            setPaidPeriodKeys(paidKeysFromExpense(editing));
             setIsFixed(
                 editing.isFixed === true ||
                     editing.isFixed === 'true' ||
@@ -82,31 +120,58 @@ export function ExpenseFormModal({ open, editing, accounts, onClose, onSaved }: 
             setIsCofrinho(!!editing.isCofrinho);
             setRecurringMonthly(false);
             setLoanAccountId(editing.accountId ?? '');
-        } else {
-            setDescription('');
-            setAmount('');
+            return;
+        }
+
+        if (splitSeed) {
+            const src = splitSeed.sourceExpense;
+            setDescription(String(src?.description ?? '').trim());
+            setAmount(String(splitSeed.splitAmount));
             setPaymentMethodId(paymentOptions[0]?.value ?? '');
-            setCategory('');
-            setSubcategory('');
+            setCategory(String(src?.category ?? '').trim());
+            setSubcategory(String(src?.subcategory ?? '').trim());
             setDate(new Date().toISOString().slice(0, 10));
             setIsPaid(false);
-            setInstallments('1');
-            setIsFixed(false);
-            setIsCofrinho(false);
-            setRecurringMonthly(false);
+            const scope = normalizeSplitScope(splitSeed.splitScope || 'FULL_EXPENSE');
+            const srcInst =
+                scope === 'FULL_EXPENSE' &&
+                splitSeed.sourceInstallmentCount &&
+                splitSeed.sourceInstallmentCount >= 2
+                    ? Math.min(99, splitSeed.sourceInstallmentCount)
+                    : 1;
+            setInstallments(String(srcInst));
+            setPaidPeriodKeys([]);
+            setIsFixed(Boolean(src?.isFixed));
+            setIsCofrinho(!!src?.isCofrinho);
+            setRecurringMonthly(Boolean(src?.recurrenceGroupId));
             setLoanAccountId('');
+            return;
         }
-    }, [open, editing, accounts, paymentOptions]);
+
+        setDescription('');
+        setAmount('');
+        setPaymentMethodId(paymentOptions[0]?.value ?? '');
+        setCategory('');
+        setSubcategory('');
+        setDate(new Date().toISOString().slice(0, 10));
+        setIsPaid(false);
+        setInstallments('1');
+        setPaidPeriodKeys([]);
+        setIsFixed(false);
+        setIsCofrinho(false);
+        setRecurringMonthly(false);
+        setLoanAccountId('');
+    }, [open, editing, splitSeed, accounts, paymentOptions]);
 
     useEffect(() => {
-        if (!open || editing) return;
+        if (!open || editing || fromRateio) return;
         if (loanCategory) {
             setPaymentMethodId(EXPENSE_LOAN_PAYMENT_VALUE);
             if (!loanAccountId && sortedBankAccounts(accounts)[0]) {
                 setLoanAccountId(sortedBankAccounts(accounts)[0].id);
             }
         }
-    }, [loanCategory, open, editing, accounts, loanAccountId]);
+    }, [loanCategory, open, editing, accounts, loanAccountId, fromRateio]);
 
     useEffect(() => {
         if (!open || editing) return;
@@ -118,7 +183,33 @@ export function ExpenseFormModal({ open, editing, accounts, onClose, onSaved }: 
         if (resolved) setIsPaid(resolved.isPaid);
     }, [paymentMethodId, accounts, open, editing, loanAccountId, loanCategory]);
 
+    // Mantém só chaves válidas quando mudam data / nº de parcelas / conta.
+    useEffect(() => {
+        if (!open || !showInstallmentPreview) return;
+        const dues = resolveInstallmentDueDates(
+            date,
+            nInst,
+            installmentAccount,
+            loanCategory
+        );
+        if (dues.length < 2) return;
+        const valid = new Set(dues.map((d) => calendarDayKeyFromDate(d)));
+        setPaidPeriodKeys((prev) => {
+            const next = prev.filter((k) => valid.has(k));
+            return next.length === prev.length ? prev : next;
+        });
+    }, [open, showInstallmentPreview, date, nInst, installmentAccount, loanCategory]);
+
     const subs = categories.find((c) => c.name === category)?.subcategories ?? [];
+    const title = editing ? 'Editar saída' : fromRateio ? 'Confirmar sua parte do rateio' : 'Nova saída';
+
+    function togglePaidPeriod(periodKey: string) {
+        setPaidPeriodKeys((prev) => {
+            const i = prev.indexOf(periodKey);
+            if (i >= 0) return prev.filter((_, idx) => idx !== i);
+            return [...prev, periodKey];
+        });
+    }
 
     async function onSubmit(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();
@@ -133,6 +224,12 @@ export function ExpenseFormModal({ open, editing, accounts, onClose, onSaved }: 
             return;
         }
         const n = parseInt(installments, 10);
+        const useInstallments =
+            fromRateio && Number.isFinite(n) && n >= 2
+                ? n
+                : showInstallmentsField && Number.isFinite(n) && n >= 1
+                  ? n
+                  : 1;
         const payload: ExpenseFormPayload = {
             description: description.trim(),
             amount: parseFloat(amount),
@@ -141,11 +238,18 @@ export function ExpenseFormModal({ open, editing, accounts, onClose, onSaved }: 
             subcategory: subcategory || null,
             date,
             isPaid: editing ? isPaid : (resolved?.isPaid ?? isPaid),
-            installmentCount: showInstallments && Number.isFinite(n) && n >= 1 ? n : 1,
+            installmentCount: useInstallments,
             isFixed,
-            isCofrinho,
-            recurringMonthly: !editing && recurringMonthly ? true : undefined
+            isCofrinho: fromRateio ? !!splitSeed?.sourceExpense?.isCofrinho || isCofrinho : isCofrinho,
+            recurringMonthly: !editing && !fromRateio && recurringMonthly ? true : undefined,
+            ...(fromRateio && splitSeed?.splitRequestId
+                ? { splitRequestId: splitSeed.splitRequestId }
+                : {})
         };
+        if (useInstallments >= 2) {
+            payload.cashOutConfirmedPeriods =
+                paidPeriodKeys.length > 0 ? JSON.stringify(paidPeriodKeys) : null;
+        }
         if (!payload.description || !payload.category || !payload.accountId) {
             setError('Preencha descrição, categoria e forma de pagamento.');
             return;
@@ -169,15 +273,15 @@ export function ExpenseFormModal({ open, editing, accounts, onClose, onSaved }: 
     }
 
     return (
-        <DialogFrame
-            id="expense-modal"
-            open={open}
-            title={editing ? 'Editar saída' : 'Nova saída'}
-            onClose={onClose}
-            size="lg"
-        >
+        <DialogFrame id="expense-modal" open={open} title={title} onClose={onClose} size="lg">
             <DialogForm onSubmit={(e) => void onSubmit(e)}>
                 <FormAlert message={error} />
+                {fromRateio ? (
+                    <p className="ui-form-hint-block">
+                        Preencha e salve sua saída para concluir o aceite e gerar o estorno ao
+                        solicitante.
+                    </p>
+                ) : null}
                 <FormGrid columns={2}>
                     <FormField id="expense-category-select" label="Categoria">
                         <FormSelect
@@ -229,10 +333,19 @@ export function ExpenseFormModal({ open, editing, accounts, onClose, onSaved }: 
                             value={amount}
                             onChange={(e) => setAmount(e.target.value)}
                             required
+                            readOnly={fromRateio}
+                            className={fromRateio ? 'input-readonly-locked' : undefined}
                         />
                     </FormField>
                     <FormField id="expense-date" label="Data">
-                        <FormDatePicker id="expense-date" value={date} onChange={setDate} required placeholder="Data da saída" />
+                        <FormDatePicker
+                            id="expense-date"
+                            value={date}
+                            onChange={setDate}
+                            required
+                            placeholder="Data da saída"
+                            disabled={fromRateio}
+                        />
                     </FormField>
                 </FormGrid>
                 <FormField id="expense-payment-method" label="Forma de pagamento">
@@ -284,20 +397,29 @@ export function ExpenseFormModal({ open, editing, accounts, onClose, onSaved }: 
                         </FormSelect>
                     </FormField>
                 ) : null}
-                {showInstallments ? (
-                    <FormField id="expense-installments" label="Parcelas">
-                        <FormInput
-                            id="expense-installments"
-                            type="number"
-                            min={1}
-                            max={99}
-                            value={installments}
-                            onChange={(e) => setInstallments(e.target.value)}
+                <div className="ui-form-checkboxes ui-form-checkboxes--row">
+                    <FormCheckbox
+                        id="expense-is-fixed"
+                        label="Essencial (fixo)"
+                        checked={isFixed}
+                        onChange={setIsFixed}
+                    />
+                    {!fromRateio ? (
+                        <FormCheckbox
+                            id="expense-is-cofrinho"
+                            label="Aplicar em cofrinho"
+                            checked={isCofrinho}
+                            onChange={setIsCofrinho}
                         />
-                    </FormField>
-                ) : null}
-                <div className="ui-form-checkboxes">
-                    {!editing ? (
+                    ) : null}
+                    {editing ? (
+                        <FormCheckbox
+                            id="expense-is-paid"
+                            label="Pago"
+                            checked={isPaid}
+                            onChange={setIsPaid}
+                        />
+                    ) : !fromRateio ? (
                         <FormCheckbox
                             id="expense-recurring"
                             label="Repetir até dezembro"
@@ -305,23 +427,52 @@ export function ExpenseFormModal({ open, editing, accounts, onClose, onSaved }: 
                             onChange={setRecurringMonthly}
                         />
                     ) : null}
-                    <FormCheckbox id="expense-is-fixed" label="Essencial (fixo)" checked={isFixed} onChange={setIsFixed} />
-                    <FormCheckbox
-                        id="expense-is-cofrinho"
-                        label="Aplicar em cofrinho"
-                        checked={isCofrinho}
-                        onChange={setIsCofrinho}
-                    />
-                    {editing ? (
-                        <FormCheckbox id="expense-is-paid" label="Pago" checked={isPaid} onChange={setIsPaid} />
-                    ) : null}
                 </div>
-                {!editing ? (
+                {showInstallmentsField ? (
+                    <FormField
+                        id="expense-installments"
+                        label={
+                            paymentIsCredit
+                                ? 'Parcelas no cartão de crédito'
+                                : loanCategory
+                                  ? 'Parcelas do empréstimo'
+                                  : 'Parcelas'
+                        }
+                    >
+                        <FormInput
+                            id="expense-installments"
+                            type="number"
+                            min={1}
+                            max={99}
+                            value={installments}
+                            onChange={(e) => setInstallments(e.target.value)}
+                            readOnly={fromRateio}
+                            className={fromRateio ? 'input-readonly-locked' : undefined}
+                        />
+                    </FormField>
+                ) : null}
+                {showInstallmentPreview ? (
+                    <ExpenseInstallmentPreview
+                        date={date}
+                        installmentCount={nInst}
+                        amount={parseFloat(amount) || 0}
+                        account={installmentAccount}
+                        loan={loanCategory}
+                        paidKeys={paidPeriodKeys}
+                        onTogglePeriod={togglePaidPeriod}
+                    />
+                ) : null}
+                {!editing && !fromRateio ? (
                     <p className="ui-form-hint-block">
-                        Cartão de crédito entra como pendente; PIX/conta como pago (editável após salvar).
+                        Cartão de crédito entra como pendente; PIX/conta como pago (editável após
+                        salvar).
                     </p>
                 ) : null}
-                <FormActions onCancel={onClose} busy={saving} />
+                <FormActions
+                    onCancel={onClose}
+                    busy={saving}
+                    submitLabel={fromRateio ? 'Aceitar e lançar' : 'Salvar'}
+                />
             </DialogForm>
         </DialogFrame>
     );

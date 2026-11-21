@@ -51,13 +51,17 @@ export function aggregateExpenseTotals(rows: Movement[], accounts: Account[]): E
         const amt = getExpensePerInstallmentDisplayAmount(t, acc) || Number(t.amount) || 0;
         total += amt;
         count += 1;
+        // Alinhado ao legacy: essencial e cartão são eixos independentes (cartão essencial
+        // entra nos dois cards). «Outras» = nem essencial nem cartão.
         if (expenseIsMarkedFixed(t)) {
             essential += amt;
             essentialCount += 1;
-        } else if (acc && isCreditCardType(acc.type)) {
+        }
+        if (acc && isCreditCardType(acc.type)) {
             creditCard += amt;
             creditCardCount += 1;
-        } else {
+        }
+        if (!expenseIsMarkedFixed(t) && !(acc && isCreditCardType(acc.type))) {
             other += amt;
             otherCount += 1;
         }

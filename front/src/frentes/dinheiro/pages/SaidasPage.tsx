@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import { acceptedOutgoingSplits } from '../../dashboard/domain/splitRequestsForBalance';
 import { MovementSummaryCard, MovementSummaryCardsGrid } from '../../../components/finance/MovementSummaryCard';
 import { MovementsTable } from '../../../components/finance/MovementsTable';
 import { ExpenseFormModal } from '../../../components/finance/ExpenseFormModal';
@@ -30,6 +31,8 @@ import { confirmExpenseCashOut, deleteExpense, patchExpensesBatch } from '../api
 import { playPingSound } from '../../../app/uiSounds';
 import { MovementBatchBar } from '../../../components/finance/MovementBatchBar';
 import { ExpenseSplitsBanner } from '../components/ExpenseSplitsBanner';
+import { ExpenseSplitsOutgoingPanel } from '../components/ExpenseSplitsOutgoingPanel';
+import { ExpenseSplitModal } from '../components/ExpenseSplitModal';
 import { CivilPeriodToolbar } from '../../../components/finance/CivilPeriodToolbar';
 import { useMovementHeaderAdd } from '../hooks/useMovementHeaderAdd';
 import { expenseSummaryFromRows, expenseSummaryMomStates } from '../domain/expenseSummaryStats';
@@ -38,7 +41,7 @@ import {
     expensesSummaryTitles
 } from '../../../lib/movementSummaryCopy';
 import { SummaryMomVariation } from '../../../components/finance/SummaryMomVariation';
-import type { Movement } from '../../../lib/types/finance';
+import type { ExpenseSplitSeed, Movement } from '../../../lib/types/finance';
 import { useConfirm } from '../../../components/ui/confirm';
 
 export function SaidasPage() {
@@ -49,6 +52,9 @@ export function SaidasPage() {
     const { period, year, onPeriodChange, onYearChange } = useCivilPeriodState();
     const [modalOpen, setModalOpen] = useState(false);
     const [editing, setEditing] = useState<Movement | null>(null);
+    const [splitSeed, setSplitSeed] = useState<ExpenseSplitSeed | null>(null);
+    const [splitModalOpen, setSplitModalOpen] = useState(false);
+    const [splitExpense, setSplitExpense] = useState<Movement | null>(null);
     const [selected, setSelected] = useState<Set<string>>(() => new Set());
     const [batchModalOpen, setBatchModalOpen] = useState(false);
 
@@ -116,13 +122,17 @@ export function SaidasPage() {
     const pagination = useTablePagination(sorted.length, 'expenses');
     const rows = sorted.slice(pagination.start, pagination.end);
 
+    const listPeriod = useMemo(() => getPeriodDateBounds(period, year), [period, year]);
+
     const periodLabel = useMemo(() => {
         const mi = monthIndexFromPeriod(period);
-        const { startDate, endDate } = getPeriodDateBounds(period, year);
-        return `${MONTH_NAMES[mi]} ${year} (${startDate.toLocaleDateString('pt-BR')} – ${endDate.toLocaleDateString('pt-BR')})`;
-    }, [period, year]);
+        return `${MONTH_NAMES[mi]} ${year} (${listPeriod.startDate.toLocaleDateString('pt-BR')} – ${listPeriod.endDate.toLocaleDateString('pt-BR')})`;
+    }, [period, year, listPeriod]);
 
-    const treemapBlocks = useMemo(() => buildExpenseTreemapBlocks(filtered), [filtered]);
+    const treemapBlocks = useMemo(
+        () => buildExpenseTreemapBlocks(filtered, data?.userAccounts ?? []),
+        [filtered, data?.userAccounts]
+    );
 
     const statusFilterActive = Boolean(listFilters?.expensesStatus.paid || listFilters?.expensesStatus.unpaid);
     const listFilter = useMemo<ListFilter>(
@@ -240,6 +250,7 @@ export function SaidasPage() {
 
     const openAddModal = useCallback(() => {
         setEditing(null);
+        setSplitSeed(null);
         setModalOpen(true);
     }, []);
     useMovementHeaderAdd('add-expense-btn', openAddModal);
@@ -266,7 +277,18 @@ export function SaidasPage() {
 
     return (
         <section id="expenses-page" className="page active movements-page--modern">
-            <ExpenseSplitsBanner />
+            <ExpenseSplitsBanner
+                onAcceptSplit={(seed) => {
+                    setEditing(null);
+                    setSplitSeed(seed);
+                    setModalOpen(true);
+                }}
+            />
+            <ExpenseSplitsOutgoingPanel
+                outgoing={data.expenseSplitRequests?.outgoing ?? []}
+                currency={currency}
+                onChanged={refresh}
+            />
             <CivilPeriodToolbar
                 period={period}
                 year={year}
@@ -392,6 +414,10 @@ export function SaidasPage() {
                 rows={rows}
                 currency={currency}
                 expenseAccounts={data.userAccounts}
+                allExpenses={data.userExpenses}
+                acceptedSplits={acceptedOutgoingSplits(data.expenseSplitRequests)}
+                userProfile={data.userProfile}
+                listPeriod={listPeriod}
                 expenseDisplayDate={expenseDisplayDate}
                 accountLabel={(id) => accountName(data.userAccounts, id)}
                 statusLabel={(m) => (expenseRowAppearsPaid(m) ? 'Pago' : 'Pendente')}
@@ -416,7 +442,12 @@ export function SaidasPage() {
                         return next;
                     })
                 }
+                onSplit={(m) => {
+                    setSplitExpense(m);
+                    setSplitModalOpen(true);
+                }}
                 onEdit={(m) => {
+                    setSplitSeed(null);
                     setEditing(m);
                     setModalOpen(true);
                 }}
@@ -438,7 +469,24 @@ export function SaidasPage() {
                 open={modalOpen}
                 editing={editing}
                 accounts={data.userAccounts}
-                onClose={() => setModalOpen(false)}
+                splitSeed={splitSeed}
+                onClose={() => {
+                    setModalOpen(false);
+                    setSplitSeed(null);
+                    setEditing(null);
+                }}
+                onSaved={refresh}
+            />
+            <ExpenseSplitModal
+                open={splitModalOpen}
+                expense={splitExpense}
+                accounts={data.userAccounts}
+                outgoing={data.expenseSplitRequests?.outgoing ?? []}
+                currency={currency}
+                onClose={() => {
+                    setSplitModalOpen(false);
+                    setSplitExpense(null);
+                }}
                 onSaved={refresh}
             />
             <ExpenseBatchModal

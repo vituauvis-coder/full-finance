@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import { getExpensePerInstallmentDisplayAmount } from '@motor/dinheiro/credit-installments.js';
-import type { Account, Movement } from '../../lib/types/finance';
+import { getNetExpenseTotalAmount } from '@motor/dinheiro/split-net.js';
+import type { Account, ExpenseSplitRequest, Movement, UserProfile } from '../../lib/types/finance';
+import type { InstallmentListPeriod } from '../../frentes/dinheiro/domain/expenseInstallmentLabel';
 import { expenseRowAppearsPaid } from '../../lib/expenseRowCashOut';
 import { formatBRL } from '../../lib/format';
 import { formatMovementDate } from '../../lib/movementList';
@@ -9,6 +11,8 @@ import { DataTableActionsInner } from '../ui/DataTable';
 import { MovementStatusBadge } from '../ui/MovementStatusBadge';
 import { DeleteIcon } from '../icons/DeleteIcon';
 import { EditIcon } from '../icons/EditIcon';
+import { SplitIcon } from '../icons/SplitIcon';
+import { ExpenseInstallmentCell } from './ExpenseInstallmentCell';
 
 export type MovementSortKey = 'date' | 'description' | 'category' | 'account' | 'amount' | 'status';
 
@@ -30,10 +34,15 @@ type GainsOpts = BaseOpts & {
 type ExpensesOpts = BaseOpts & {
     kind: 'expense';
     accounts?: Account[];
+    allExpenses?: Movement[];
+    acceptedSplits?: ExpenseSplitRequest[];
+    userProfile?: UserProfile | null;
+    listPeriod?: InstallmentListPeriod | null;
     expenseDisplayDate?: (m: Movement) => Date;
     statusLabel: (m: Movement) => string;
     onToggleStatus?: (m: Movement) => void;
     statusToggleBusy?: (id: string) => boolean;
+    onSplit?: (m: Movement) => void;
     onEdit?: (m: Movement) => void;
     onDelete?: (m: Movement) => void;
     extraActions?: (m: Movement) => ReactNode;
@@ -88,7 +97,18 @@ export function buildMovementTableColumns(opts: GainsOpts | ExpensesOpts): DataT
             headerClassName: 'expenses-th-installments',
             cellClassName: 'expenses-td-installments',
             align: 'center',
-            render: (m) => ((m.installmentCount ?? 0) > 1 ? `${m.installmentCount}x` : '—')
+            render: (m) => {
+                const acc = m.accountId && accountById ? accountById.get(m.accountId) : undefined;
+                return (
+                    <ExpenseInstallmentCell
+                        expense={m}
+                        account={acc}
+                        userProfile={opts.userProfile}
+                        listPeriod={opts.listPeriod}
+                        currency={currency}
+                    />
+                );
+            }
         });
     }
 
@@ -108,20 +128,36 @@ export function buildMovementTableColumns(opts: GainsOpts | ExpensesOpts): DataT
             cellClassName: amountClass,
             render: (m) => {
                 const acc = m.accountId && accountById ? accountById.get(m.accountId) : undefined;
-                const display =
-                    opts.kind === 'expense'
-                        ? getExpensePerInstallmentDisplayAmount(m, acc)
-                        : Number(m.amount) || 0;
+                if (opts.kind !== 'expense') {
+                    return <span>{formatBRL(Number(m.amount) || 0, currency)}</span>;
+                }
+                const splits = opts.acceptedSplits ?? [];
+                const allEx = opts.allExpenses ?? null;
+                const perGross = getExpensePerInstallmentDisplayAmount(m, acc);
+                const nParc = Math.max(1, parseInt(String(m.installmentCount ?? '1'), 10) || 1);
+                const netTotal = getNetExpenseTotalAmount(m, splits, allEx);
+                const display = nParc >= 2 ? netTotal / nParc : netTotal;
+                const gross = nParc >= 2 ? perGross : Number(m.amount) || 0;
+                const showStrike = display < gross - 0.0001;
                 const total = Number(m.amount) || 0;
                 const title =
-                    opts.kind === 'expense' && display < total - 0.001
+                    display < total - 0.001
                         ? `Total da compra: ${formatBRL(total, currency)}`
                         : undefined;
-                return (
-                    <span title={title}>
-                        {formatBRL(display, currency)}
-                    </span>
-                );
+                if (showStrike) {
+                    return (
+                        <span className="expense-split-amount-stack" title={title}>
+                            <span className="expense-split-net-amount">{formatBRL(display, currency)}</span>
+                            <span
+                                className="expense-split-gross-strike"
+                                title="Valor original antes do rateio"
+                            >
+                                {formatBRL(gross, currency)}
+                            </span>
+                        </span>
+                    );
+                }
+                return <span title={title}>{formatBRL(display, currency)}</span>;
             }
         },
         {
@@ -163,6 +199,18 @@ export function buildMovementTableColumns(opts: GainsOpts | ExpensesOpts): DataT
             cellClassName: 'transaction-actions',
             render: (m) => (
                 <DataTableActionsInner>
+                    {opts.kind === 'expense' && opts.onSplit ? (
+                        <button
+                            type="button"
+                            className="btn-secondary btn-small table-action-btn"
+                            aria-label="Dividir com outro usuário"
+                            title="Dividir com outro usuário"
+                            onClick={() => opts.onSplit?.(m)}
+                        >
+                            <SplitIcon size="sm" />
+                        </button>
+                    ) : null}
+                    {opts.kind === 'expense' ? opts.extraActions?.(m) : null}
                     {onEdit ? (
                         <button
                             type="button"
@@ -185,7 +233,6 @@ export function buildMovementTableColumns(opts: GainsOpts | ExpensesOpts): DataT
                             <DeleteIcon size="sm" />
                         </button>
                     ) : null}
-                    {opts.kind === 'expense' ? opts.extraActions?.(m) : null}
                 </DataTableActionsInner>
             )
         }
