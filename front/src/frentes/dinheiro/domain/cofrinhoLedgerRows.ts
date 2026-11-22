@@ -177,19 +177,68 @@ function payloadMarksCofrinhoOutflow(
     );
 }
 
-function outflowRowAlreadyListed(rows: CofrinhoLedgerRow[], bucketId: string, hint: {
-    financeExpenseId?: string;
-    tripExpenseId?: string;
-}): boolean {
-    if (hint.financeExpenseId && rows.some((r) => r.expenseId === hint.financeExpenseId)) return true;
-    if (hint.tripExpenseId && rows.some((r) => r.id === `trip-out-${hint.tripExpenseId}-${bucketId}`)) {
-        return true;
-    }
-    if (hint.financeExpenseId) {
-        const legacyId = `exp-out-${hint.financeExpenseId}-${bucketId}`;
+function outflowRowAlreadyListed(
+    rows: CofrinhoLedgerRow[],
+    bucketId: string,
+    hint: { financeExpenseId?: string; tripExpenseId?: string; tripId?: string },
+    expenses: Movement[] = []
+): boolean {
+    const financeExpenseId = hint.financeExpenseId ? String(hint.financeExpenseId).trim() : '';
+    if (financeExpenseId && rows.some((r) => r.expenseId === financeExpenseId)) return true;
+    if (financeExpenseId) {
+        const legacyId = `exp-out-${financeExpenseId}-${bucketId}`;
         if (rows.some((r) => r.id === legacyId)) return true;
     }
+
+    const tripExpenseId = hint.tripExpenseId ? String(hint.tripExpenseId).trim() : '';
+    const hintTripId = hint.tripId ? String(hint.tripId).trim() : '';
+
+    if (tripExpenseId) {
+        if (rows.some((r) => r.id === `trip-out-${tripExpenseId}-${bucketId}`)) return true;
+        if (
+            rows.some((r) => {
+                if (r.kind !== 'out' || !r.expenseId) return false;
+                const exp = expenses.find((e) => String(e.id) === r.expenseId);
+                if (!exp) return false;
+                if (movementFinanceTripExpenseId(exp) !== tripExpenseId) return false;
+                const expTripId = movementTripIdFromExpense(exp);
+                if (hintTripId && expTripId && expTripId !== hintTripId) return false;
+                return true;
+            })
+        ) {
+            return true;
+        }
+    }
+
     return false;
+}
+
+/** Remove saídas espelhadas 2× (expenses + payload da viagem). */
+function dedupeCofrinhoOutflowRows(rows: CofrinhoLedgerRow[], expenses: Movement[]): CofrinhoLedgerRow[] {
+    const seenFinance = new Set<string>();
+    const seenTripExpense = new Set<string>();
+
+    return rows.filter((r) => {
+        if (r.kind !== 'out') return true;
+
+        if (r.expenseId) {
+            const id = String(r.expenseId);
+            if (seenFinance.has(id)) return false;
+            seenFinance.add(id);
+            const exp = expenses.find((e) => String(e.id) === id);
+            const tripExpId = exp ? movementFinanceTripExpenseId(exp) : '';
+            if (tripExpId) seenTripExpense.add(`${tripExpId}|${r.bucketId}`);
+        }
+
+        const tripOut = r.id.match(/^trip-out-(.+)-(.+)$/);
+        if (tripOut) {
+            const key = `${tripOut[1]}|${tripOut[2]}`;
+            if (seenTripExpense.has(key)) return false;
+            seenTripExpense.add(key);
+        }
+
+        return true;
+    });
 }
 
 function yearMonthFromIsoDate(iso: string): string {
@@ -251,10 +300,16 @@ export function buildCofrinhoLedgerRows(
         if (delta >= 0) continue;
 
         if (
-            outflowRowAlreadyListed(rows, bucket.id, {
-                financeExpenseId: String(e.id),
-                tripExpenseId: movementFinanceTripExpenseId(e) || payloadHint?.tripExpenseId
-            })
+            outflowRowAlreadyListed(
+                rows,
+                bucket.id,
+                {
+                    financeExpenseId: String(e.id),
+                    tripExpenseId: movementFinanceTripExpenseId(e) || payloadHint?.tripExpenseId,
+                    tripId: movementTripIdFromExpense(e) || payloadHint?.tripId
+                },
+                expenses
+            )
         ) {
             continue;
         }
@@ -289,10 +344,16 @@ export function buildCofrinhoLedgerRows(
         if (!tripOutflowMatchesScope(t.spentOn, scope)) continue;
 
         if (
-            outflowRowAlreadyListed(rows, bucket.id, {
-                financeExpenseId: t.financeExpenseId,
-                tripExpenseId: t.tripExpenseId
-            })
+            outflowRowAlreadyListed(
+                rows,
+                bucket.id,
+                {
+                    financeExpenseId: t.financeExpenseId,
+                    tripExpenseId: t.tripExpenseId,
+                    tripId
+                },
+                expenses
+            )
         ) {
             continue;
         }
@@ -324,5 +385,7 @@ export function buildCofrinhoLedgerRows(
         });
     }
 
-    return rows.sort((a, b) => String(b.sortAt).localeCompare(String(a.sortAt)));
+    return dedupeCofrinhoOutflowRows(rows, expenses).sort((a, b) =>
+        String(b.sortAt).localeCompare(String(a.sortAt))
+    );
 }
