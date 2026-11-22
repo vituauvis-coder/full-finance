@@ -1,5 +1,19 @@
-/** Dev: sempre `/api` via proxy do Vite (cookie na mesma origem). Prod: `VITE_API_URL` opcional. */
-const API = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL ?? '');
+/** Dev: `/api` via proxy. Prod: URL relativa na mesma origem; `VITE_API_URL` só se for outro host. */
+function resolveApiBase(): string {
+    if (import.meta.env.DEV) return '';
+    const envUrl = String(import.meta.env.VITE_API_URL ?? '').trim();
+    if (!envUrl) return '';
+    if (typeof window === 'undefined') return envUrl.replace(/\/$/, '');
+    try {
+        const target = new URL(envUrl, window.location.href);
+        if (target.origin === window.location.origin) return '';
+        return envUrl.replace(/\/$/, '');
+    } catch {
+        return '';
+    }
+}
+
+const API = resolveApiBase();
 
 export async function apiFetch(path: string, init?: RequestInit) {
     const res = await fetch(`${API}${path}`, {

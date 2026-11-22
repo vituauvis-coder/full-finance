@@ -5,7 +5,6 @@ import fs from 'fs';
 import path from 'path';
 import express from 'express';
 import cors from 'cors';
-import session from 'express-session';
 import bcrypt from 'bcryptjs';
 import multer from 'multer';
 import { fileURLToPath } from 'url';
@@ -50,6 +49,7 @@ import { ensureExpenseTripLinkColumns } from './migrations/expense-trip-link.js'
 import { ensureCofrinhoViagemLedgerColumns } from './migrations/cofrinho-viagem-ledger.js';
 import { ensureAccountWalletColumns } from './migrations/account-wallet-columns.js';
 import { requireAuth, requireAdmin } from './middleware/auth.js';
+import { createSessionMiddleware } from './session-middleware.js';
 import { publicAuthUser, ROLE_USER, ROLE_ADMIN, userIsAdmin } from './lib/roles.js';
 import {
     backupContentType,
@@ -250,21 +250,7 @@ app.use(
 );
 app.use(express.json({ limit: '10mb' }));
 
-app.use(
-    session({
-        name: AppBrandKey.sessionCookie,
-        secret: SESSION_SECRET,
-        resave: false,
-        saveUninitialized: false,
-        proxy: crossSiteSession,
-        cookie: {
-            httpOnly: true,
-            maxAge: 7 * 24 * 60 * 60 * 1000,
-            sameSite: crossSiteSession ? 'none' : 'lax',
-            secure: crossSiteSession
-        }
-    })
-);
+app.use(createSessionMiddleware({ secret: SESSION_SECRET, crossSiteSession }));
 
 app.use('/uploads', express.static(UPLOAD_DIR));
 

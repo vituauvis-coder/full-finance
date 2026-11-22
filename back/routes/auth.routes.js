@@ -26,7 +26,13 @@ export function registerAuthRoutes(app) {
             }
             const user = rows[0];
             req.session.userId = user.id;
-            res.json({ user: publicAuthUser(user) });
+            req.session.save((err) => {
+                if (err) {
+                    console.error('[auth/register] session', err);
+                    return res.status(500).json({ error: 'Erro ao iniciar sessão' });
+                }
+                res.json({ user: publicAuthUser(user) });
+            });
         } catch (e) {
             console.error('[auth/register]', e.message, e.code, e.detail || '');
             if (e.code === '23505') {
@@ -51,7 +57,13 @@ export function registerAuthRoutes(app) {
                 return res.status(401).json({ code: 'auth/wrong-password', error: 'Email ou senha incorretos' });
             }
             req.session.userId = user.id;
-            res.json({ user: publicAuthUser(user) });
+            req.session.save((err) => {
+                if (err) {
+                    console.error('[auth/login] session', err);
+                    return res.status(500).json({ error: 'Erro ao iniciar sessão' });
+                }
+                res.json({ user: publicAuthUser(user) });
+            });
         } catch (e) {
             console.error('[auth/login]', e);
             res.status(500).json({ error: 'Erro ao entrar' });
