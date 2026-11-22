@@ -17,7 +17,7 @@ import { formatBRL } from '../../../lib/format';
 import { getPeriodDateBounds, MONTH_NAMES } from '../../../lib/period';
 import { useCivilPeriodState } from '../../../hooks/useCivilPeriodState';
 import { accountName, filterMovementsInPeriod, type ListFilter } from '../../../lib/movementList';
-import { INCOME_TREEMAP_PALETTE } from '../../../lib/treemapData';
+import { useGainsTreemapPalette } from '../../../lib/treemapAccentPalette';
 import { buildGainTreemapBlocks } from '../../../lib/gainTreemap';
 import { useTablePagination } from '../../../hooks/useTablePagination';
 import { MovementsPageSkeleton } from '../../../components/skeleton/MovementsPageSkeleton';
@@ -53,6 +53,7 @@ export function EntradasPage() {
     const [batchModalOpen, setBatchModalOpen] = useState(false);
 
     const currency = data?.userProfile?.currency ?? 'BRL';
+    const treemapPalette = useGainsTreemapPalette();
     const paymentStatus = useMemo(() => {
         const s = new Set<'paid' | 'unpaid'>();
         if (listFilters?.gainsStatus.paid) s.add('paid');
@@ -334,7 +335,7 @@ export function EntradasPage() {
                         canvasId="gains-income-treemap-canvas"
                         blocks={treemapBlocks}
                         currency={currency}
-                        palette={INCOME_TREEMAP_PALETTE}
+                        palette={treemapPalette}
                         periodLabel={periodLabel}
                         title="Mapa de Entradas"
                         emptyMessage="Nenhuma entrada no período selecionado."

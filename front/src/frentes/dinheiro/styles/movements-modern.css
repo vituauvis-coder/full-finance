@@ -11,7 +11,9 @@
     width: 100%;
 }
 
-.page-content--dashboard-modern .movements-summary .movement-summary-card {
+.page-content--dashboard-modern
+    .movements-summary:not(.movements-treemap-hero__summary)
+    .movement-summary-card {
     gap: 0.85rem;
 }
 
@@ -48,67 +50,121 @@
     gap: 0.7rem;
     width: 100%;
     align-items: stretch;
+    min-height: 0;
 }
 
 :is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern .movements-treemap-hero__summary.summary-cards {
     display: flex;
     flex-direction: column;
+    justify-content: stretch;
+    align-self: stretch;
+    height: 100%;
     gap: 0.45rem;
     margin-bottom: 0;
     min-width: 0;
+    min-height: 0;
 }
 
-:is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern .movements-treemap-hero__summary .movement-summary-card {
+:is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern
+    .movements-treemap-hero__summary.movements-summary
+    .movement-summary-card {
     flex: 1 1 0;
     display: flex;
-    flex-direction: row;
-    align-items: flex-start;
-    gap: 0.62rem;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.34rem;
     min-height: 0;
-    padding: 0.72rem 0.82rem;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+    padding: 0.52rem 0.62rem 0.56rem;
     border-radius: 12px;
     border: 1px solid var(--dash-surface-border);
     box-shadow: var(--dash-surface-shadow);
+    background: var(--dash-surface-bg);
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-#gains-page.movements-page--modern .movements-treemap-hero__summary .movement-summary-card {
-    background: linear-gradient(
-        155deg,
-        color-mix(in srgb, var(--gains-accent, #10b981) 6%, var(--dash-surface-bg)) 0%,
-        var(--dash-surface-bg) 58%
-    );
+/* Legado: flex:1 no .card-content e margin-top:auto no rodapé empurram o texto para fora */
+:is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern
+    .movements-treemap-hero__summary.movements-summary
+    .movement-summary-card.card {
+    align-items: center;
+    min-height: 0;
 }
 
-#expenses-page.movements-page--modern .movements-treemap-hero__summary .movement-summary-card {
-    padding: 0.58rem 0.72rem;
-    background: linear-gradient(
-        155deg,
-        color-mix(in srgb, var(--expenses-accent, #f43f5e) 6%, var(--dash-surface-bg)) 0%,
-        var(--dash-surface-bg) 58%
-    );
+:is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern
+    .movements-treemap-hero__summary.movements-summary
+    .movement-summary-card
+    .card-content {
+    flex: 0 0 auto;
+    flex-grow: 0;
+    flex-shrink: 0;
+}
+
+:is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern
+    .movements-treemap-hero__summary.movements-summary
+    .movement-summary-card__footer {
+    margin-top: 0;
+    flex: 0 0 auto;
+    flex-shrink: 0;
+    min-height: 0;
+    padding: 0;
+    justify-content: center;
 }
 
 #expenses-page.movements-page--modern .movements-treemap-hero__summary.summary-cards {
-    gap: 0.35rem;
+    gap: 0.32rem;
 }
 
-#gains-page.movements-page--modern .movements-treemap-hero__summary .movement-summary-card:hover {
-    border-color: color-mix(in srgb, var(--gains-accent, #10b981) 34%, var(--dash-border));
-    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+#expenses-page.movements-page--modern .movements-treemap-hero__summary.movements-summary .movement-summary-card {
+    gap: 0.24rem;
+    padding: 0.38rem 0.52rem 0.44rem;
 }
 
-#expenses-page.movements-page--modern .movements-treemap-hero__summary .movement-summary-card:hover {
-    border-color: color-mix(in srgb, var(--expenses-accent, #f43f5e) 34%, var(--dash-border));
-    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+#expenses-page.movements-page--modern .movements-treemap-hero__summary .card-icon {
+    width: 1.85rem;
+    height: 1.85rem;
+    min-width: 1.85rem;
+    min-height: 1.85rem;
+    font-size: 0.95rem;
 }
 
-:is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern .movements-treemap-hero__summary .card-icon {
+#expenses-page.movements-page--modern .movements-treemap-hero__summary .card-content h3 {
+    font-size: 0.54rem;
+    letter-spacing: 0.035em;
+    line-height: 1.1;
+    overflow-wrap: anywhere;
+}
+
+#expenses-page.movements-page--modern .movements-treemap-hero__summary .card-content p.movement-summary-card__value {
+    margin: 0.05rem 0 0;
+    font-size: clamp(0.7rem, 1.5vw, 0.84rem);
+    line-height: 1.1;
+}
+
+#expenses-page.movements-page--modern .movements-treemap-hero__summary .movement-summary-card__footer .dashboard-card-scope {
+    margin-top: 0;
+    font-size: 0.56rem;
+    line-height: 1.15;
+}
+
+:is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern
+    .movements-treemap-hero__summary
+    .movement-summary-card:hover {
+    border-color: var(--dash-border-strong, var(--dash-border));
+}
+
+:is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern
+    .movements-treemap-hero__summary
+    .card-icon {
     width: 2.2rem;
     height: 2.2rem;
     min-width: 2.2rem;
     min-height: 2.2rem;
-    margin-right: 0;
+    margin: 0;
+    flex-shrink: 0;
     border-radius: 10px;
     font-size: 1.05rem;
 }
@@ -118,8 +174,14 @@
 }
 
 :is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern .movements-treemap-hero__summary .card-content {
-    flex: 1;
+    width: 100%;
     min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
 }
 
 :is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern .movements-treemap-hero__summary .card-content h3 {
@@ -132,23 +194,39 @@
     line-height: 1.2;
 }
 
-:is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern .movements-treemap-hero__summary .movement-summary-card__value {
-    margin-top: 0.2rem;
-    font-size: 1.02rem;
+:is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern
+    .movements-treemap-hero__summary
+    .card-content
+    p.movement-summary-card__value {
+    margin: 0.1rem 0 0;
+    font-size: clamp(0.82rem, 2.4vw, 1.02rem);
     font-weight: 700;
-    line-height: 1.2;
+    line-height: 1.12;
     color: var(--dash-text-primary);
     letter-spacing: -0.02em;
 }
 
-:is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern .movements-treemap-hero__summary .movement-summary-card__footer {
-    margin-top: 0.28rem;
-    min-height: 0;
-    font-size: 0.72rem;
+#expenses-page.movements-page--modern .movements-treemap-hero__summary .card-content p.movement-summary-card__value {
+    font-size: clamp(0.78rem, 2.2vw, 0.94rem);
+}
+
+:is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern
+    .movements-treemap-hero__summary
+    .movement-summary-card__footer
+    .dashboard-card-scope {
+    display: inline-block;
+    max-width: 100%;
+    margin-top: 0;
+    text-align: center;
+    line-height: 1.2;
+    font-size: 0.64rem;
 }
 
 :is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern .movements-treemap-hero__map {
     min-width: 0;
+    min-height: 0;
+    height: 100%;
+    align-self: stretch;
     display: flex;
     flex-direction: column;
 }
@@ -156,30 +234,10 @@
 :is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern .movements-treemap-hero__map .treemap-container {
     flex: 1 1 auto;
     margin-bottom: 0;
+    min-height: 0;
+    height: 100%;
     display: flex;
     flex-direction: column;
-}
-
-[data-theme='dark']
-    #gains-page.movements-page--modern
-    .movements-treemap-hero__summary
-    .movement-summary-card {
-    background: linear-gradient(
-        155deg,
-        color-mix(in srgb, var(--gains-accent, #34d399) 10%, var(--dash-surface-bg)) 0%,
-        var(--dash-surface-bg) 55%
-    );
-}
-
-[data-theme='dark']
-    #expenses-page.movements-page--modern
-    .movements-treemap-hero__summary
-    .movement-summary-card {
-    background: linear-gradient(
-        155deg,
-        color-mix(in srgb, var(--expenses-accent, #fb7185) 10%, var(--dash-surface-bg)) 0%,
-        var(--dash-surface-bg) 55%
-    );
 }
 
 @media (max-width: 960px) {
@@ -212,6 +270,16 @@
     overflow: visible;
 }
 
+.movements-page--modern .treemap-container--chartjs {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.movements-page--modern .treemap-container--chartjs .treemap-header {
+    flex-shrink: 0;
+}
+
 .movements-page--modern .treemap-header {
     margin-bottom: var(--dash-stack-gap-tight);
     gap: var(--dash-stack-gap-tight);
@@ -235,18 +303,22 @@
     text-align: center;
 }
 
-/* Altura fixa — igual legado; evita canvas “régua” de 1 linha */
+/* Preenche o card; mínimo legado evita canvas “régua” de 1 linha */
 .movements-page--modern .treemap-squarify-host {
     position: relative;
     width: 100%;
-    min-height: 400px;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 20rem;
 }
 
 .movements-page--modern .treemap-squarify-host .treemap-chartjs-wrap {
     position: relative;
+    flex: 1 1 auto;
     width: 100%;
-    height: 400px;
-    min-height: 400px;
+    height: 100%;
+    min-height: 20rem;
     overflow: hidden;
 }
 
@@ -311,9 +383,9 @@
 }
 
 .movements-page--modern .movement-category-tag--gains {
-    border-color: color-mix(in srgb, var(--gains-accent, #10b981) 32%, var(--dash-border));
-    background: color-mix(in srgb, var(--gains-accent, #10b981) 11%, var(--dash-surface-bg));
-    color: color-mix(in srgb, var(--gains-accent, #059669) 72%, var(--dash-text-primary));
+    border-color: color-mix(in srgb, var(--gains-accent, #2ec4b6) 32%, var(--dash-border));
+    background: color-mix(in srgb, var(--gains-accent, #2ec4b6) 11%, var(--dash-surface-bg));
+    color: color-mix(in srgb, var(--gains-accent, #2ec4b6) 72%, var(--dash-text-primary));
 }
 
 .movements-page--modern .movement-category-tag--expenses {
@@ -399,8 +471,8 @@
 
 :is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern.movements-page--compact .treemap-squarify-host,
 :is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern.movements-page--compact .treemap-squarify-host .treemap-chartjs-wrap {
-    min-height: 400px;
-    height: 400px;
+    min-height: 20rem;
+    height: 100%;
 }
 
 :is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern.movements-page--compact .treemap-empty {
@@ -504,8 +576,8 @@
 }
 
 #gains-page .movement-filter-ribbon__group:focus-within {
-    border-color: color-mix(in srgb, var(--gains-accent, #10b981) 45%, var(--dash-border));
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--gains-accent, #10b981) 16%, transparent);
+    border-color: color-mix(in srgb, var(--gains-accent, #2ec4b6) 45%, var(--dash-border));
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--gains-accent, #2ec4b6) 16%, transparent);
 }
 
 #expenses-page .movement-filter-ribbon__group:focus-within {
@@ -710,7 +782,7 @@
 .movements-page--modern
     .movement-filter-ribbon__status[data-treemap-toolbar-accent='gains']
     .movement-status-pill.is-on {
-    color: var(--gains-accent, #10b981);
+    color: var(--gains-accent, #2ec4b6);
 }
 
 .movements-page--modern
@@ -723,9 +795,9 @@
     .movements-page--modern
     .movement-filter-ribbon__status[data-treemap-toolbar-accent='gains']
     .movement-status-pill.is-on {
-    background: rgba(46, 196, 182, 0.14);
-    box-shadow: inset 0 0 0 1px rgba(46, 196, 182, 0.32);
-    color: #5eead4;
+    background: color-mix(in srgb, var(--gains-accent, #2ec4b6) 14%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gains-accent, #2ec4b6) 32%, transparent);
+    color: var(--gains-accent-soft, color-mix(in srgb, var(--gains-accent, #2ec4b6) 55%, #fff));
 }
 
 .movements-page--modern .movement-filter-ribbon__icon-pop {
@@ -759,7 +831,7 @@
 .movements-page--modern
     .movement-filter-ribbon__status[data-treemap-toolbar-accent='gains']
     .movement-filter-ribbon__icon-btn.is-open {
-    color: var(--gains-accent, #10b981);
+    color: var(--gains-accent, #2ec4b6);
 }
 
 .movements-page--modern .movement-filter-ribbon__popover,
@@ -895,8 +967,8 @@
 #gains-page.movements-page--modern .gains-tabbed-ledger__tab.is-active {
     color: var(--dash-text-primary);
     font-weight: 700;
-    border-bottom-color: var(--gains-accent, #10b981);
-    background: color-mix(in srgb, var(--gains-accent, #10b981) 7%, transparent);
+    border-bottom-color: var(--gains-accent, #2ec4b6);
+    background: color-mix(in srgb, var(--gains-accent, #2ec4b6) 7%, transparent);
 }
 
 #expenses-page.movements-page--modern .gains-tabbed-ledger__tab.is-active,
@@ -1000,16 +1072,16 @@
 }
 
 [data-theme='dark'] #gains-page .movement-treemap__footer[data-treemap-toolbar-accent='gains'] .chart-type-btn.is-active:not(:disabled) {
-    background: rgba(46, 196, 182, 0.16);
-    color: #5eead4;
-    box-shadow: inset 0 0 0 1px rgba(46, 196, 182, 0.35);
+    background: color-mix(in srgb, var(--gains-accent, #2ec4b6) 16%, transparent);
+    color: var(--gains-accent-soft, color-mix(in srgb, var(--gains-accent, #2ec4b6) 55%, #fff));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gains-accent, #2ec4b6) 35%, transparent);
 }
 
 @media (max-width: 720px) {
     #gains-page.movements-page--modern.movements-page--compact .treemap-squarify-host,
     #gains-page.movements-page--modern.movements-page--compact .treemap-squarify-host .treemap-chartjs-wrap {
-        min-height: 280px;
-        height: 280px;
+        min-height: 17.5rem;
+        height: 100%;
     }
 
     #gains-page .movement-treemap__footer {
@@ -1187,7 +1259,7 @@
 @media (max-width: 720px) {
     :is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern.movements-page--compact .treemap-squarify-host,
     :is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern.movements-page--compact .treemap-squarify-host .treemap-chartjs-wrap {
-        min-height: 280px;
-        height: 280px;
+        min-height: 17.5rem;
+        height: 100%;
     }
 }

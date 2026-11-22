@@ -148,7 +148,8 @@ export function useTreemapChart(
         const applyHostSize = () => {
             wrap.style.width = '100%';
             wrap.style.minHeight = `${hostHeight}px`;
-            wrap.style.height = `${hostHeight}px`;
+            wrap.style.height = '100%';
+            wrap.style.flex = '1 1 auto';
         };
         applyHostSize();
 
@@ -174,7 +175,11 @@ export function useTreemapChart(
                       scheduleResize();
                   })
                 : null;
+        const squarifyHost = wrap.parentElement;
         ro?.observe(wrap);
+        if (squarifyHost?.classList.contains('treemap-squarify-host')) {
+            ro?.observe(squarifyHost);
+        }
 
         try {
             const { width, height } = measure();

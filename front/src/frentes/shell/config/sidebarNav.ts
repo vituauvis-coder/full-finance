@@ -31,13 +31,6 @@ export const SIDEBAR_FERRAMENTAS: SidebarLeaf = {
 
 const FINANCAS_ITEMS: readonly SidebarLeaf[] = [
     {
-        to: '/dinheiro/carteira',
-        page: 'wallet',
-        icon: 'account_balance_wallet',
-        label: 'Carteira',
-        subtitle: 'Contas e saldos'
-    },
-    {
         to: '/dinheiro/entradas',
         page: 'gains',
         icon: 'trending_up',
@@ -50,6 +43,13 @@ const FINANCAS_ITEMS: readonly SidebarLeaf[] = [
         icon: 'trending_down',
         label: 'Saídas',
         subtitle: 'Despesas do mês'
+    },
+    {
+        to: '/dinheiro/carteira',
+        page: 'wallet',
+        icon: 'account_balance_wallet',
+        label: 'Carteira',
+        subtitle: 'Contas e saldos'
     },
     {
         to: '/dinheiro/cofrinhos',
