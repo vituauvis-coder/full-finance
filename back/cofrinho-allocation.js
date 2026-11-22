@@ -4,7 +4,13 @@
  */
 import crypto from 'node:crypto';
 import { query, withTransaction } from './db.js';
-import { accountsVisibleToUserSql, expensesOnHouseholdAccountsSql } from './household.js';
+import {
+    accountsVisibleToUserSql,
+    cofrinhoApplicationAccessibleSql,
+    cofrinhoBucketAccessibleSql,
+    expenseAccessibleToUserSql,
+    expensesOnHouseholdAccountsSql
+} from './household.js';
 import { referenceOnlyForUserMovement } from './reference-only.js';
 import { safeUpsertBalanceSnapshot } from './balance-snapshot.js';
 import { ensureCofrinhoViagemLedgerColumns } from './migrations/cofrinho-viagem-ledger.js';
@@ -431,10 +437,14 @@ export async function fetchCofrinhoBundle(userId) {
     await normalizeLegacyAspirationBucket(userId);
     await withTransaction((client) => ensurePoolSubcategory(userId, client));
     const [bucketsRes, appsRes, goalsRes] = await Promise.all([
-        query(`${BUCKET_SELECT} WHERE user_id = $1 ORDER BY sort_order ASC, name ASC`, [userId]),
-        query(`${APPLICATION_SELECT} WHERE user_id = $1 ORDER BY reference_month DESC, created_at DESC`, [
-            userId
-        ]),
+        query(
+            `${BUCKET_SELECT} WHERE user_id = $1 OR ${cofrinhoBucketAccessibleSql(1)} ORDER BY sort_order ASC, name ASC`,
+            [userId]
+        ),
+        query(
+            `${APPLICATION_SELECT} WHERE ${cofrinhoApplicationAccessibleSql(1)} ORDER BY reference_month DESC, created_at DESC`,
+            [userId]
+        ),
         query(`${GOAL_SELECT} WHERE user_id = $1 ORDER BY year DESC, bucket_id ASC`, [userId])
     ]);
     return {
@@ -752,10 +762,10 @@ export function registerCofrinhoRoutes(app, requireAuth) {
 
     const handleUpdateAllocation = async (req, res) => {
         const uid = req.session.userId;
-        const { rows: existingRows } = await query(`${APPLICATION_SELECT} WHERE id = $1 AND user_id = $2`, [
-            req.params.id,
-            uid
-        ]);
+        const { rows: existingRows } = await query(
+            `${APPLICATION_SELECT} WHERE id = $1 AND ${cofrinhoApplicationAccessibleSql(2)}`,
+            [req.params.id, uid]
+        );
         const existing = existingRows[0];
         if (!existing) return res.status(404).json({ error: 'Não encontrado' });
 
@@ -778,14 +788,14 @@ export function registerCofrinhoRoutes(app, requireAuth) {
         let bucket = null;
         if (req.body.bucketId !== undefined) {
             bucketId = String(req.body.bucketId || '').trim();
-            const { rows: bucketRows } = await query(`${BUCKET_SELECT} WHERE id = $1 AND user_id = $2`, [
+            const { rows: bucketRows } = await query(`${BUCKET_SELECT} WHERE id = $1 AND ${cofrinhoBucketAccessibleSql(2)}`, [
                 bucketId,
                 uid
             ]);
             bucket = bucketRows[0];
             if (!bucket) return res.status(400).json({ error: 'Caixinha inválida' });
         } else {
-            const { rows: bucketRows } = await query(`${BUCKET_SELECT} WHERE id = $1 AND user_id = $2`, [
+            const { rows: bucketRows } = await query(`${BUCKET_SELECT} WHERE id = $1 AND ${cofrinhoBucketAccessibleSql(2)}`, [
                 bucketId,
                 uid
             ]);
@@ -835,32 +845,30 @@ export function registerCofrinhoRoutes(app, requireAuth) {
                     }
                 }
 
+                const expenseAccessWhere = `id = $1 AND ${expenseAccessibleToUserSql(2)}`;
                 if (existing.allocatedExpenseId) {
-                    await client.query(`UPDATE expenses SET amount = $3 WHERE id = $1 AND user_id = $2`, [
+                    await client.query(`UPDATE expenses SET amount = $3 WHERE ${expenseAccessWhere}`, [
                         existing.allocatedExpenseId,
                         uid,
                         newAmount
                     ]);
                     if (bucket && req.body.bucketId !== undefined) {
-                        await client.query(
-                            `UPDATE expenses SET subcategory = $3, description = $4 WHERE id = $1 AND user_id = $2`,
-                            [
-                                existing.allocatedExpenseId,
-                                uid,
-                                bucket.name,
-                                `Aporte — ${bucket.name}`
-                            ]
-                        );
+                        await client.query(`UPDATE expenses SET subcategory = $3, description = $4 WHERE ${expenseAccessWhere}`, [
+                            existing.allocatedExpenseId,
+                            uid,
+                            bucket.name,
+                            `Aporte — ${bucket.name}`
+                        ]);
                     }
                     if (req.body.accountId !== undefined) {
-                        await client.query(`UPDATE expenses SET account_id = $3 WHERE id = $1 AND user_id = $2`, [
+                        await client.query(`UPDATE expenses SET account_id = $3 WHERE ${expenseAccessWhere}`, [
                             existing.allocatedExpenseId,
                             uid,
                             accountId
                         ]);
                     }
                     if (recordDate) {
-                        await client.query(`UPDATE expenses SET date = $3 WHERE id = $1 AND user_id = $2`, [
+                        await client.query(`UPDATE expenses SET date = $3 WHERE ${expenseAccessWhere}`, [
                             existing.allocatedExpenseId,
                             uid,
                             recordDate
@@ -868,7 +876,7 @@ export function registerCofrinhoRoutes(app, requireAuth) {
                     }
                     if (req.body.description !== undefined && existing.allocatedExpenseId) {
                         const desc = String(req.body.description ?? '').trim() || `Aporte — ${bucket?.name ?? 'Caixinha'}`;
-                        await client.query(`UPDATE expenses SET description = $3 WHERE id = $1 AND user_id = $2`, [
+                        await client.query(`UPDATE expenses SET description = $3 WHERE ${expenseAccessWhere}`, [
                             existing.allocatedExpenseId,
                             uid,
                             desc
@@ -880,7 +888,7 @@ export function registerCofrinhoRoutes(app, requireAuth) {
                     `UPDATE cofrinho_applications
                      SET bucket_id = $3, amount = $4, account_id = $5, reference_month = $6::date,
                          status = COALESCE($7, status)
-                     WHERE id = $1 AND user_id = $2
+                     WHERE id = $1 AND ${cofrinhoApplicationAccessibleSql(2)}
                      RETURNING
                         id, user_id AS "userId", bucket_id AS "bucketId", reference_month AS "referenceMonth",
                         amount, account_id AS "accountId", status,
@@ -899,6 +907,7 @@ export function registerCofrinhoRoutes(app, requireAuth) {
                 );
                 return rows[0];
             });
+            if (!row) return res.status(404).json({ error: 'Não encontrado' });
             await safeUpsertBalanceSnapshot(uid);
             res.json(row);
         } catch (e) {
@@ -913,10 +922,10 @@ export function registerCofrinhoRoutes(app, requireAuth) {
 
     const handleDeleteAllocation = async (req, res) => {
         const uid = req.session.userId;
-        const { rows: existingRows } = await query(`${APPLICATION_SELECT} WHERE id = $1 AND user_id = $2`, [
-            req.params.id,
-            uid
-        ]);
+        const { rows: existingRows } = await query(
+            `${APPLICATION_SELECT} WHERE id = $1 AND ${cofrinhoApplicationAccessibleSql(2)}`,
+            [req.params.id, uid]
+        );
         const existing = existingRows[0];
         if (!existing) return res.status(404).json({ error: 'Não encontrado' });
 
@@ -926,11 +935,11 @@ export function registerCofrinhoRoutes(app, requireAuth) {
                 if (existing.allocatedExpenseId) {
                     const { rows: allocExp } = await client.query(
                         `SELECT account_id AS "accountId", date, description, amount
-                         FROM expenses WHERE id = $1 AND user_id = $2`,
+                         FROM expenses WHERE id = $1 AND ${expenseAccessibleToUserSql(2)}`,
                         [existing.allocatedExpenseId, uid]
                     );
                     poolTemplate = allocExp[0];
-                    await client.query(`DELETE FROM expenses WHERE id = $1 AND user_id = $2`, [
+                    await client.query(`DELETE FROM expenses WHERE id = $1 AND ${expenseAccessibleToUserSql(2)}`, [
                         existing.allocatedExpenseId,
                         uid
                     ]);
@@ -939,7 +948,7 @@ export function registerCofrinhoRoutes(app, requireAuth) {
                 if (existing.sourceExpenseId && amt > 0) {
                     await restorePoolAmount(client, uid, existing.sourceExpenseId, amt, poolTemplate);
                 }
-                await client.query(`DELETE FROM cofrinho_applications WHERE id = $1 AND user_id = $2`, [
+                await client.query(`DELETE FROM cofrinho_applications WHERE id = $1 AND ${cofrinhoApplicationAccessibleSql(2)}`, [
                     req.params.id,
                     uid
                 ]);

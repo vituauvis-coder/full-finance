@@ -110,7 +110,16 @@ export function collectCofrinhoInflowEvents(
         if (!resolved) continue;
         const delta = cofrinhoBucketDeltaForMovement(e, resolved);
         if (delta <= 0) continue;
-            events.push({
+
+        const dupApp = (applications ?? []).some((a) => {
+            const bId = applicationBucketId(a);
+            const refYm = referenceMonthToYearMonth(applicationReferenceMonth(a));
+            const appAmt = Number(a.amount) || 0;
+            return bId === resolved.id && refYm === ym && Math.abs(appAmt - delta) < 0.01;
+        });
+        if (dupApp) continue;
+
+        events.push({
                 id: `exp-in-${e.id}-${resolved.id}`,
                 bucketId: resolved.id,
                 yearMonth: ym,

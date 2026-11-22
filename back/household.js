@@ -56,6 +56,43 @@ export function expensesOnHouseholdAccountsSql(uidParamIndex = 1) {
     )`;
 }
 
+/** Saída/ganho visível pelo dono ou por conta compartilhada da casa. */
+export function expenseAccessibleToUserSql(uidParamIndex = 1, alias = 'e') {
+    return `(
+        ${alias}.user_id = $${uidParamIndex}
+        OR ${alias}.account_id IN (
+            SELECT a.id FROM accounts a
+            WHERE ${accountsVisibleToUserSql(uidParamIndex)}
+        )
+    )`;
+}
+
+/** Aplicação de cofrinho visível pelo autor ou pela saída alocada na casa. */
+export function cofrinhoApplicationAccessibleSql(uidParamIndex = 1) {
+    return `(
+        cofrinho_applications.user_id = $${uidParamIndex}
+        OR EXISTS (
+            SELECT 1 FROM expenses e
+            WHERE e.id = cofrinho_applications.allocated_expense_id
+              AND ${expenseAccessibleToUserSql(uidParamIndex, 'e')}
+        )
+    )`;
+}
+
+/** Caixinha do usuário ou caixinha-viagem da mesma casa. */
+export function cofrinhoBucketAccessibleSql(uidParamIndex = 1) {
+    return `(
+        user_id = $${uidParamIndex}
+        OR (
+            trip_id IS NOT NULL
+            AND trip_id IN (
+                SELECT t.id FROM trips t
+                WHERE t.household_id IN ${householdIdsForUserSql(uidParamIndex)}
+            )
+        )
+    )`;
+}
+
 export function gainsOnHouseholdAccountsSql(uidParamIndex = 1) {
     return `g.account_id IN (
         SELECT a.id FROM accounts a

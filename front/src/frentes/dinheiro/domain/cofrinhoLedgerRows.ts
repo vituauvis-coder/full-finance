@@ -213,30 +213,59 @@ function outflowRowAlreadyListed(
     return false;
 }
 
+function normalizeLedgerTitle(title: string): string {
+    return String(title ?? '')
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, ' ');
+}
+
+function outflowLogicalKeys(row: CofrinhoLedgerRow, expenses: Movement[]): string[] {
+    const keys: string[] = [];
+    if (row.expenseId) keys.push(`fin:${row.expenseId}`);
+
+    const tripOut = row.id.match(/^trip-out-(.+)-(.+)$/);
+    if (tripOut) keys.push(`trip:${tripOut[1]}|${tripOut[2]}`);
+
+    if (row.expenseId) {
+        const exp = expenses.find((e) => String(e.id) === row.expenseId);
+        if (exp) {
+            const tripExpId = movementFinanceTripExpenseId(exp);
+            if (tripExpId) keys.push(`trip:${tripExpId}|${row.bucketId}`);
+        }
+    }
+
+    if (row.recordDate && row.amount > 0) {
+        keys.push(
+            `sig:${row.bucketId}|${row.amount.toFixed(2)}|${row.recordDate}|${normalizeLedgerTitle(row.title)}`
+        );
+    }
+
+    return keys;
+}
+
+function findMirrorExpenseForPayload(
+    t: CofrinhoTripPayloadOutflow,
+    expenses: Movement[]
+): Movement | undefined {
+    if (t.financeExpenseId) {
+        const e = expenses.find((x) => String(x.id) === String(t.financeExpenseId));
+        if (e && e.isPaid !== false) return e;
+    }
+    const tripExpId = String(t.tripExpenseId ?? '').trim();
+    if (!tripExpId) return undefined;
+    return expenses.find((e) => e.isPaid !== false && movementFinanceTripExpenseId(e) === tripExpId);
+}
+
 /** Remove saídas espelhadas 2× (expenses + payload da viagem). */
 function dedupeCofrinhoOutflowRows(rows: CofrinhoLedgerRow[], expenses: Movement[]): CofrinhoLedgerRow[] {
-    const seenFinance = new Set<string>();
-    const seenTripExpense = new Set<string>();
+    const seen = new Set<string>();
 
     return rows.filter((r) => {
         if (r.kind !== 'out') return true;
-
-        if (r.expenseId) {
-            const id = String(r.expenseId);
-            if (seenFinance.has(id)) return false;
-            seenFinance.add(id);
-            const exp = expenses.find((e) => String(e.id) === id);
-            const tripExpId = exp ? movementFinanceTripExpenseId(exp) : '';
-            if (tripExpId) seenTripExpense.add(`${tripExpId}|${r.bucketId}`);
-        }
-
-        const tripOut = r.id.match(/^trip-out-(.+)-(.+)$/);
-        if (tripOut) {
-            const key = `${tripOut[1]}|${tripOut[2]}`;
-            if (seenTripExpense.has(key)) return false;
-            seenTripExpense.add(key);
-        }
-
+        const keys = outflowLogicalKeys(r, expenses);
+        if (keys.some((k) => seen.has(k))) return false;
+        for (const k of keys) seen.add(k);
         return true;
     });
 }
@@ -354,6 +383,14 @@ export function buildCofrinhoLedgerRows(
                 },
                 expenses
             )
+        ) {
+            continue;
+        }
+
+        const mirrorExpense = findMirrorExpenseForPayload(t, expenses);
+        if (
+            mirrorExpense &&
+            rows.some((r) => r.kind === 'out' && r.expenseId === String(mirrorExpense.id))
         ) {
             continue;
         }

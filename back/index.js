@@ -28,6 +28,7 @@ import { fetchCofrinhoTripPayloadOutflows } from './cofrinho-trip-outflows.js';
 import {
     assertAccountAccessible,
     ensureHouseholdForUser,
+    expenseAccessibleToUserSql,
     expensesOnHouseholdAccountsSql,
     gainsOnHouseholdAccountsSql,
     fetchHouseholdMembers,
@@ -1601,7 +1602,7 @@ app.put('/api/expenses/:id', requireAuth, async (req, res) => {
                 split_request_id AS "splitRequestId",
                 recurrence_group_id AS "recurrenceGroupId"
              FROM expenses
-             WHERE id = $1 AND user_id = $2`,
+             WHERE id = $1 AND ${expenseAccessibleToUserSql(2)}`,
             [req.params.id, uid]
         );
         const existing = existingRows[0] || null;
@@ -1646,11 +1647,13 @@ app.put('/api/expenses/:id', requireAuth, async (req, res) => {
             addSet('paid_from_cofrinho', data.paidFromCofrinho === true);
         }
 
+        const idParam = i;
+        const uidParam = i + 1;
         params.push(req.params.id, uid);
         const { rows: updatedRows } = await query(
             `UPDATE expenses
              SET ${sets.join(', ')}
-             WHERE id = $${i++} AND user_id = $${i++}
+             WHERE id = $${idParam} AND ${expenseAccessibleToUserSql(uidParam)}
              RETURNING
                 id,
                 user_id AS "userId",
