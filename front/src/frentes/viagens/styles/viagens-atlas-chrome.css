@@ -1,0 +1,45 @@
+/**
+ * Atlas — uma peça contínua (header + grid), sem cantos “quadrados” entre blocos.
+ */
+
+.page-content.page-content--dashboard-modern:has(#viagens-page .viagens-casa-layout) {
+    /* Laterais/topo = .page-content do portal; só zera o rodapé para o atlas preencher a viewport */
+    padding: 2rem 2rem 0;
+}
+
+@media (max-width: 768px) {
+    .page-content.page-content--dashboard-modern:has(#viagens-page .viagens-casa-layout) {
+        padding: 1rem 1rem 0;
+    }
+}
+
+.page-content.page-content--dashboard-modern:has(#viagens-page .viagens-casa-layout) > .app-header {
+    margin-bottom: var(--dash-stack-gap, 1.25rem);
+    border-radius: 12px;
+    border: 1px solid var(--dash-border, var(--v-borda));
+    box-shadow: none !important;
+}
+
+#viagens-page .viagens-root:has(.viagens-casa-layout) {
+    background: transparent;
+}
+
+#viagens-page .viagens-casa-layout {
+    gap: 0 !important;
+    border: 1px solid var(--dash-border, var(--v-borda));
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--dash-layer-raised, var(--v-painel));
+}
+
+#viagens-page .viagens-casa-main {
+    padding: 0 !important;
+    background: var(--dash-layer-inset, var(--v-noite));
+}
+
+#viagens-page .viagens-casa-main #viagens-map-host .viagens-map-frame,
+#viagens-page .viagens-map-frame {
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none;
+}

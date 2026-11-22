@@ -3,7 +3,10 @@ import Map, { Layer, Marker, NavigationControl, Popup, Source, type MapRef } fro
 import type { ReactNode } from 'react';
 import { isHomeDestination, routeStops } from '@motor/viagens/trip-places.js';
 import { VIAGENS_HOME } from '@motor/viagens/viagens-atlas.js';
-import type { TripDestination, TripPayload, TripStatus } from '../types';
+import type { Trip, TripDestination, TripPayload, TripStatus } from '../types';
+import { useAtlasMapModelForTrip } from '../hooks/useAtlasMapModel';
+import { AtlasMapRouteLayers } from './atlas-map/AtlasMapRouteLayers';
+import { applyMapRoutePaint, bindMapRoutePaint } from '../utils/map-route-paint';
 import {
     roteirosRouteIcon,
     ROTEIROS_ROUTE_PAINT,
@@ -38,6 +41,8 @@ ensureMapLibreWorker();
 
 type Props = {
     destinations: TripDestination[];
+    /** Quando informado (modo não-roteiros), rotas usam `atlas-map-model`. */
+    trip?: Trip | null;
     status?: TripStatus;
     visual?: 'default' | 'roteiros';
     focusDestId?: string | null;
@@ -54,6 +59,7 @@ type Props = {
 
 export function ViagemMiniMap({
     destinations,
+    trip = null,
     status = 'planejada',
     visual = 'default',
     focusDestId,
@@ -77,6 +83,8 @@ export function ViagemMiniMap({
             .flatMap((d) => (d.items ?? []).map((i) => `${i.id}:${i.destinationId ?? ''}:${i.travelMode ?? ''}`))
             .join('|');
     }, [roteirosPayload]);
+
+    const atlasRouteLegs = useAtlasMapModelForTrip(!roteiros ? trip : null);
 
     const roteirosRoutes = useMemo(() => {
         if (!roteiros) return null;
@@ -171,7 +179,17 @@ export function ViagemMiniMap({
 
     const activeSegments = roadSegments ?? roteirosRoutes?.segments ?? null;
 
+  const useAtlasRoutes = !roteiros && atlasRouteLegs != null;
+
+    useEffect(() => {
+        if (!useAtlasRoutes) return;
+        const map = mapRef.current?.getMap();
+        if (!map) return;
+        return bindMapRoutePaint(map, 'mini');
+    }, [useAtlasRoutes, atlasRouteLegs]);
+
     const hopGeo = useMemo(() => {
+        if (useAtlasRoutes) return null;
         if (activeSegments) return featureCollectionFromSegments(activeSegments);
         // Sem roteiros: só ida pelos stops — não inventa volta para Recife.
         const coords: [number, number][] = [[VIAGENS_HOME.longitude, VIAGENS_HOME.latitude]];
@@ -185,7 +203,7 @@ export function ViagemMiniMap({
             });
         }
         return { type: 'FeatureCollection' as const, features };
-    }, [stops, activeSegments]);
+    }, [stops, activeSegments, useAtlasRoutes]);
 
     const hopIcons = useMemo(
         () =>
@@ -264,6 +282,7 @@ export function ViagemMiniMap({
                         }
                         tuneRoteiros();
                     }
+                    if (useAtlasRoutes) applyMapRoutePaint(map, 'mini');
                 }}
                 onStyleData={tuneRoteiros}
                 onClick={
@@ -277,6 +296,14 @@ export function ViagemMiniMap({
                 dragPan
             >
                 {roteiros ? <NavigationControl position="top-right" showCompass={false} /> : null}
+                {useAtlasRoutes && atlasRouteLegs ? (
+                    <AtlasMapRouteLayers
+                        idPrefix="mini"
+                        routeLegs={atlasRouteLegs}
+                        visibility={{ flights: true, roteiro: true }}
+                        flightsGlow={false}
+                    />
+                ) : hopGeo ? (
                 <Source id="mini-routes" type="geojson" data={hopGeo}>
                     {roteiros ? (
                         (['flight_out', 'flight_back', 'ground', 'walk'] as RoteirosRouteMode[]).map(
@@ -314,6 +341,7 @@ export function ViagemMiniMap({
                         />
                     )}
                 </Source>
+                ) : null}
                 {roteiros
                     ? flightAirports.map((aero) => (
                           <Marker

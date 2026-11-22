@@ -5,6 +5,7 @@ import { TripCalendarCard } from './TripCalendarCard';
 import { TripChecklistPanel } from './TripChecklistPanel';
 import { TripResumoPanel } from './TripResumoPanel';
 import '../styles/trip-ficha-top.css';
+import '../styles/viagens-ficha-panels.css';
 
 type Props = {
     trip: Trip;

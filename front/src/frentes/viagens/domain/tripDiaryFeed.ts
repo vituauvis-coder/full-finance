@@ -10,7 +10,7 @@ import {
     TRIP_DIARY_HOME_LABEL
 } from '@motor/viagens/trip-diary-feed.js';
 import { countryTravelBrief } from '@motor/viagens/trip-country-travel.js';
-import { routeStops } from '@motor/viagens/trip-places.js';
+import { isHomeDestination, routeStops } from '@motor/viagens/trip-places.js';
 import type { Trip, TripCheckItem, TripDestination, TripItineraryDay } from '../types';
 import type { TripDraft } from '../components/ViagemFicha';
 import {
@@ -29,9 +29,12 @@ import {
     mergeChosenFlightsIntoItinerary,
     mergeHolidayLeaveIntoItinerary,
     mergeRemoteWorkIntoItinerary,
+    mergeTimelineWithRouteStops,
+    orderedStops,
     remoteDayKeysFromPayload,
     resolveDayLocationForResumo,
     resolveUserDayPlace,
+    resumoStopCityLabel,
     resumoStopsForTrip,
     sortedItineraryDays
 } from '../components/roteiros/roteiros-display';
@@ -204,6 +207,7 @@ const TRAIL_CITY_ALIASES: Record<string, string> = {
 };
 
 const TRAIL_CITY_DISPLAY: Record<string, string> = {
+    recife: 'Recife',
     pequim: 'Pequim',
     xangai: 'Xangai',
     madri: 'Madri',
@@ -237,24 +241,105 @@ function trailCityDisplayName(raw: string, key: string): string {
     );
 }
 
-function trailCountryCovered(pins: TripFeedCityPin[], country: string): boolean {
-    const c = foldTrailKey(canonicalCountryLabel(country) || country);
-    if (!c) return false;
-    return pins.some((p) => {
-        const pc = foldTrailKey(p.country || '');
-        const pn = canonTrailCityKey(p.name);
-        if (pc && pc === c) return true;
-        if (c.includes('espan') && /madri|madrid|barcel|bilbao|sevilh|valencia/.test(pn)) return true;
-        if (c.includes('china') && /xangai|shanghai|pequim|beijing|changsha|cantao|guangzhou/.test(pn))
-            return true;
-        if (c.includes('portugal') && /lisboa|lisbon|porto/.test(pn)) return true;
-        return pn === c;
-    });
+function makeTrailCityPusher(): {
+    pins: TripFeedCityPin[];
+    push: (raw: string, id: string, country?: string, sub?: string) => void;
+} {
+    const pins: TripFeedCityPin[] = [];
+    let lastKey = '';
+    const push = (raw: string, id: string, country?: string, sub?: string) => {
+        const key = canonTrailCityKey(raw);
+        if (!key || key === lastKey) return;
+        lastKey = key;
+        pins.push({
+            id,
+            name: trailCityDisplayName(raw, key),
+            sub,
+            country: country?.trim() || (key === 'recife' ? 'Brasil' : undefined)
+        });
+    };
+    return { pins, push };
+}
+
+function trailCityFromDestination(dest: TripDestination): { raw: string; country?: string } | null {
+    if (dest.kind === 'continent') return null;
+    if (isHomeDestination(dest)) return { raw: 'Recife', country: 'Brasil' };
+
+    const country =
+        canonicalCountryLabel(dest.country ?? dest.name ?? '') || String(dest.country ?? '').trim() || undefined;
+    const fromResumo = resumoStopCityLabel(dest);
+    if (fromResumo) return { raw: fromResumo, country };
+
+    if (dest.kind === 'country' || isCountryOnlyDestination(dest)) {
+        const rep = countryRepresentativeCity(country ?? dest.name ?? '');
+        if (rep) return { raw: rep, country };
+    }
+
+    const fromPin = trailPinLabel(dest);
+    if (fromPin && fromPin !== 'Local') return { raw: fromPin, country };
+    return null;
+}
+
+function trailIncludesCityKey(pins: TripFeedCityPin[], cityKey: string): boolean {
+    return pins.some((p) => canonTrailCityKey(p.name) === cityKey);
+}
+
+/** Pins cadastrados no mapa (ordem da viagem) que ainda não estão na trilha por nome. */
+function appendCadastroCitiesMissingFromTrail(
+    pins: TripFeedCityPin[],
+    timeline: TripDestination[]
+): TripFeedCityPin[] {
+    if (!timeline.length) return pins;
+    const out = [...pins];
+    const extra: TripFeedCityPin[] = [];
+
+    for (const dest of timeline) {
+        const mapped = trailCityFromDestination(dest);
+        if (!mapped) continue;
+        const key = canonTrailCityKey(mapped.raw);
+        if (!key || trailIncludesCityKey(out, key) || trailIncludesCityKey(extra, key)) continue;
+        extra.push({
+            id: `trail-cadastro-${dest.id}`,
+            name: trailCityDisplayName(mapped.raw, key),
+            sub: trailStaySub(dest),
+            country: mapped.country?.trim() || (key === 'recife' ? 'Brasil' : undefined)
+        });
+    }
+
+    if (!extra.length) return out;
+
+    const endsAtHome = out.length > 0 && canonTrailCityKey(out[out.length - 1]!.name) === 'recife';
+    const insertAt = endsAtHome ? Math.max(0, out.length - 1) : out.length;
+    out.splice(insertAt, 0, ...extra);
+    return out;
+}
+
+/** Cidades na ordem dos dias do roteiro (ida, volta e escalas). */
+function cityTrailFromDays(
+    itinerary: TripItineraryDay[],
+    resumoStops: TripDestination[],
+    destinations: TripDestination[]
+): TripFeedCityPin[] {
+    const { pins, push } = makeTrailCityPusher();
+
+    for (const day of sortedItineraryDays(itinerary)) {
+        const key = dayKeyOf(day);
+        if (!key) continue;
+        const loc = resolveDayLocationForResumo(day, key, resumoStops, destinations);
+        if (!loc.city && !loc.country) continue;
+        push(
+            loc.city || countryRepresentativeCity(loc.country) || loc.country,
+            `trail-day-${key}`,
+            loc.country
+        );
+    }
+
+    return pins;
 }
 
 /**
- * Trilha do feed: cidades na ordem dos dias do roteiro (1ª aparição),
- * sem misturar POI/hotel nem duplicar Pek/Pequim.
+ * Trilha do feed: cidades visitadas na ordem do roteiro,
+ * mais locais cadastrados no mapa que ainda não aparecem na sequência.
  */
 export function buildCityTrail(draft: TripDraft, destinations: TripDestination[]): TripFeedCityPin[] {
     const itinerary = enrichedItinerary(draft);
@@ -264,43 +349,28 @@ export function buildCityTrail(draft: TripDraft, destinations: TripDestination[]
         draft.startsOn,
         draft.endsOn
     );
-    const seen = new Set<string>();
-    const pins: TripFeedCityPin[] = [];
 
-    const pushCity = (raw: string, id: string, country?: string, sub?: string) => {
-        const key = canonTrailCityKey(raw);
-        if (!key || seen.has(key) || /^(brasil|brazil)$/.test(key)) return;
-        seen.add(key);
-        pins.push({
-            id,
-            name: key === 'recife' ? 'Recife' : trailCityDisplayName(raw, key),
-            sub,
-            country: country?.trim() || (key === 'recife' ? 'Brasil' : undefined)
-        });
-    };
+    const timeline = mergeTimelineWithRouteStops(itinerary, destinations, resumoStops);
+    const cadastroStops = timeline.length
+        ? timeline
+        : resumoStops.length
+          ? [...resumoStops].sort((a, b) =>
+                String(a.arrivedOn ?? '').localeCompare(String(b.arrivedOn ?? ''))
+            )
+          : orderedStops(destinations);
 
-    // Ordem = dias do roteiro com local do resumo (mesma lógica do panorama).
-    for (const day of sortedItineraryDays(itinerary)) {
-        const key = dayKeyOf(day);
-        if (!key) continue;
-        const loc = resolveDayLocationForResumo(day, key, resumoStops, destinations);
-        if (!loc.city && !loc.country) continue;
-        pushCity(
-            loc.city || countryRepresentativeCity(loc.country) || loc.country,
-            `trail-day-${key}`,
-            loc.country
-        );
-    }
+    let pins = cityTrailFromDays(itinerary, resumoStops, destinations);
 
-    // País do resumo ainda sem cidade na trilha → representante.
-    for (const dest of resumoStops) {
-        const country =
-            canonicalCountryLabel(dest.country ?? dest.name ?? '') || String(dest.name ?? '').trim();
-        if (!country || /brasil|brazil/i.test(country)) continue;
-        if (trailCountryCovered(pins, country)) continue;
-        const city = countryRepresentativeCity(country);
-        if (!city) continue;
-        pushCity(city, `trail-resumo-${dest.id}`, country, trailStaySub(dest));
+    if (!pins.length && cadastroStops.length) {
+        const { pins: fromCadastro, push } = makeTrailCityPusher();
+        for (const dest of cadastroStops) {
+            const mapped = trailCityFromDestination(dest);
+            if (!mapped) continue;
+            push(mapped.raw, `trail-dest-${dest.id}`, mapped.country, trailStaySub(dest));
+        }
+        pins = fromCadastro;
+    } else if (cadastroStops.length) {
+        pins = appendCadastroCitiesMissingFromTrail(pins, cadastroStops);
     }
 
     return pins;

@@ -1,5 +1,5 @@
 import { query } from './db.js';
-import { ensureHouseholdForUser, householdIdsForUserSql } from './household.js';
+import { ensureHouseholdForUser } from './household.js';
 import { canAccessTrip } from '../motor/viagens/trip-household-gate.js';
 
 const TRIP_COLUMNS = `t.id, t.user_id, t.household_id, t.title, t.starts_on, t.ends_on, t.status_override, t.budget_caps, t.payload, t.created_at, t.updated_at`;
@@ -12,14 +12,6 @@ function mapAccessFields(row) {
         householdId: row.household_id ?? null,
         userId: row.user_id
     };
-}
-
-async function householdIdsForUser(userId) {
-    const { rows } = await query(
-        `SELECT household_id AS "householdId" FROM household_members WHERE user_id = $1`,
-        [userId]
-    );
-    return rows.map((r) => r.householdId).filter(Boolean);
 }
 
 async function backfillOrphanTrips(userId) {
@@ -44,16 +36,7 @@ export async function listTrips() {
 
 export async function listTripsForUser(userId) {
     await backfillOrphanTrips(userId);
-    const { rows } = await query(
-        `SELECT ${SELECT_FIELDS}
-         FROM trips t
-         ${CREATOR_JOIN}
-         WHERE t.household_id IN ${householdIdsForUserSql(1)}
-            OR (t.household_id IS NULL AND t.user_id = $1)
-         ORDER BY t.updated_at DESC`,
-        [userId]
-    );
-    return rows;
+    return listTrips();
 }
 
 export async function getTrip(tripId) {
@@ -71,8 +54,7 @@ export async function getTripForUser(userId, tripId) {
     await backfillOrphanTrips(userId);
     const row = await getTrip(tripId);
     if (!row) return null;
-    const householdIds = await householdIdsForUser(userId);
-    if (!canAccessTrip(mapAccessFields(row), { userId, householdIds })) return null;
+    if (!canAccessTrip(mapAccessFields(row), { userId })) return null;
     return row;
 }
 

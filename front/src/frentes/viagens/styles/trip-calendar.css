@@ -1,6 +1,13 @@
 /* Calendário da ficha — layout alinhado ao simulador (sem legenda) */
 
-#viagens-page .viagens-cal--smart.viagens-panel--cal {
+#viagens-page .viagens-ficha-top > .viagens-ficha-panel.viagens-cal--smart {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    min-height: 0;
+}
+
+#viagens-page .viagens-cal--smart.viagens-panel--cal:not(.viagens-ficha-panel) {
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
@@ -315,7 +322,7 @@
     transform: scale(1.04);
 }
 
-#viagens-page .viagens-cal__sim {
+#viagens-page .viagens-cal__sim:not(.viagens-ficha-panel__cta) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -334,7 +341,7 @@
     flex-shrink: 0;
 }
 
-#viagens-page .viagens-cal__sim:hover {
+#viagens-page .viagens-cal__sim:not(.viagens-ficha-panel__cta):hover {
     filter: brightness(1.05);
 }
 
@@ -350,10 +357,11 @@
 
 /* Escala alinhada ao trio calendário / resumo / checklist */
 #viagens-page .viagens-ficha-top .viagens-cal--smart.viagens-panel--cal {
-    min-height: calc(26.5rem * var(--ficha-top-scale, 1.14));
-    padding: calc(0.85rem * var(--ficha-top-scale, 1.14)) calc(0.9rem * var(--ficha-top-scale, 1.14))
-        calc(0.75rem * var(--ficha-top-scale, 1.14));
-    gap: calc(0.4rem * var(--ficha-top-scale, 1.14));
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    min-height: 0;
+    height: 100%;
 }
 
 #viagens-page .viagens-ficha-top .viagens-cal--smart .viagens-cal__grid {
@@ -379,10 +387,4 @@
 }
 
 @media (max-width: 1024px) {
-    #viagens-page .viagens-ficha-top > .viagens-panel,
-    #viagens-page .viagens-ficha-top .viagens-cal--smart.viagens-panel--cal {
-        height: calc(24.5rem * var(--ficha-top-scale, 1.14));
-        min-height: calc(24.5rem * var(--ficha-top-scale, 1.14));
-        max-height: calc(24.5rem * var(--ficha-top-scale, 1.14));
-    }
 }

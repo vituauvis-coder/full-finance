@@ -22,10 +22,6 @@ export async function listTripFinanceMovements(userId, tripId) {
          FROM expenses e
          JOIN users u ON u.id = e.user_id
          WHERE e.trip_id = $1
-           AND e.user_id IN (
-             SELECT user_id FROM household_members
-             WHERE household_id = (SELECT household_id FROM trips WHERE id = $1)
-           )
          ORDER BY e.date DESC NULLS LAST, e.created_at DESC`,
         [tripId]
     );

@@ -1,3 +1,4 @@
+import { buildAtlasMapModel } from '@motor/viagens/atlas-map-model.js';
 import {
     destinationHopFeatures,
     flightRouteLegFeatures,
@@ -6,6 +7,21 @@ import {
 import type { MapVisit, Trip } from '../types';
 
 export type RouteLegCollection = GeoJSON.FeatureCollection;
+
+export type AtlasMapLayerBundle = ReturnType<typeof atlasMapLayers>;
+
+/** Camadas do atlas (voos + roteiro terrestre/caminhada). */
+export function atlasMapLayers(trips: Trip[]) {
+    const model = buildAtlasMapModel(trips);
+    return {
+        ida: model.layers.flightOut as RouteLegCollection,
+        volta: model.layers.flightBack as RouteLegCollection,
+        ground: model.layers.ground as RouteLegCollection,
+        walk: model.layers.walk as RouteLegCollection,
+        itineraryFlight: model.layers.itineraryFlight as RouteLegCollection,
+        meta: model.meta
+    };
+}
 
 export function flightRoutesForMap(trips: Trip[], visits: MapVisit[] = []) {
     const { ida, volta } = flightRouteLegFeatures(trips);

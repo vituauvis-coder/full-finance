@@ -3,6 +3,7 @@ import { AIRPORT_COORDS } from './airport-coords.js';
 import { sortFlightSimulations, tripFlightSegments } from './flight-simulation.js';
 import { isHomeDestination, isHomeName, routeStops } from './trip-places.js';
 import { effectiveStatus } from './trips-engine.js';
+import { offsetArcCoordinates } from './atlas-route-geometry.js';
 import { greatCircleArc, smoothRouteCoordinates } from './great-circle.js';
 import { VIAGENS_HOME } from './viagens-atlas.js';
 
@@ -164,6 +165,32 @@ function startsNearHome(point) {
     return samePoint(point, { lng: VIAGENS_HOME.longitude, lat: VIAGENS_HOME.latitude });
 }
 
+/** Alinha vértice do voo ao pin da ficha quando nome/IATA batem. */
+export function snapPointToDestinations(pt, destinations = []) {
+    if (!pt || startsNearHome(pt)) return pt;
+    const label = str(pt.label);
+    const iata = extractIata(label);
+    const fLabel = folded(label);
+    for (const d of destinations ?? []) {
+        const lat = Number(d.latitude);
+        const lng = Number(d.longitude);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+        const di = extractIata(d.name);
+        if (iata && di && iata === di) {
+            return { lng, lat, label: str(d.name) || label };
+        }
+        const dn = folded(d.name);
+        if (dn && (dn === fLabel || fLabel.includes(dn) || dn.includes(fLabel))) {
+            return { lng, lat, label: str(d.name) || label };
+        }
+    }
+    return pt;
+}
+
+function snapPathPoints(points, destinations) {
+    return (points ?? []).map((p) => snapPointToDestinations(p, destinations));
+}
+
 function placeMarkerKey(point) {
     if (!point) return '';
     const label = folded(point.label ?? '');
@@ -303,7 +330,16 @@ function lineFeaturesForPath(tripId, leg, points, inferred = false) {
     for (let i = 0; i < points.length - 1; i++) {
         const from = points[i];
         const to = points[i + 1];
-        const coordinates = greatCircleArc(from, to, 64);
+        let coordinates = greatCircleArc(from, to, 72);
+        if (leg === 'volta' && !inferred) {
+            coordinates = offsetArcCoordinates(coordinates, -0.28);
+        } else if (leg === 'ida' && coordinates.length > 2) {
+            coordinates = offsetArcCoordinates(coordinates, 0.14);
+        }
+        if (coordinates.length >= 2) {
+            coordinates[0] = [from.lng, from.lat];
+            coordinates[coordinates.length - 1] = [to.lng, to.lat];
+        }
         if (coordinates.length < 2) continue;
         features.push({
             type: 'Feature',
@@ -330,9 +366,12 @@ export function flightRouteLegFeatures(trips = []) {
     for (const trip of trips) {
         const paths = tripFlightPaths(trip);
         if (!paths) continue;
-        ida.push(...lineFeaturesForPath(trip.id, 'ida', paths.ida, false));
-        if (!paths.inferredVolta && paths.volta.length >= 2) {
-            volta.push(...lineFeaturesForPath(trip.id, 'volta', paths.volta, false));
+        const destinations = trip.payload?.destinations ?? [];
+        const idaPts = snapPathPoints(paths.ida, destinations);
+        const voltaPts = snapPathPoints(paths.volta, destinations);
+        ida.push(...lineFeaturesForPath(trip.id, 'ida', idaPts, false));
+        if (!paths.inferredVolta && voltaPts.length >= 2) {
+            volta.push(...lineFeaturesForPath(trip.id, 'volta', voltaPts, false));
         }
     }
     return {

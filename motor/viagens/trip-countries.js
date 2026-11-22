@@ -145,8 +145,49 @@ const PLACE_ALIASES_TO_ISO = {
     'rio de janeiro': 'BR'
 };
 
+let _allCountryCatalogCache = null;
+
+function discoverIsoRegionCodes() {
+    if (typeof Intl === 'undefined' || !Intl.DisplayNames) return [];
+    const pt = new Intl.DisplayNames(['pt-BR'], { type: 'region' });
+    const codes = [];
+    for (let a = 65; a <= 90; a++) {
+        for (let b = 65; b <= 90; b++) {
+            const iso = String.fromCharCode(a) + String.fromCharCode(b);
+            const label = pt.of(iso);
+            if (!label || label === iso) continue;
+            codes.push(iso);
+        }
+    }
+    return codes;
+}
+
+/** Catálogo completo (prioriza entradas ricas de TRIP_COUNTRY_CATALOG). */
+export function allCountryCatalog() {
+    if (_allCountryCatalogCache) return _allCountryCatalogCache;
+    const byIso = new Map(
+        TRIP_COUNTRY_CATALOG.map((c) => [c.iso2, { label: c.label, iso2: c.iso2, geoNames: [...c.geoNames] }])
+    );
+    const pt = typeof Intl !== 'undefined' ? new Intl.DisplayNames(['pt-BR'], { type: 'region' }) : null;
+    const en = typeof Intl !== 'undefined' ? new Intl.DisplayNames(['en'], { type: 'region' }) : null;
+    for (const iso of discoverIsoRegionCodes()) {
+        if (byIso.has(iso)) continue;
+        const label = pt?.of(iso);
+        if (!label || label === iso) continue;
+        const enName = en?.of(iso);
+        const geoNames = [];
+        if (enName && enName !== iso) geoNames.push(enName);
+        if (!geoNames.includes(label)) geoNames.push(label);
+        byIso.set(iso, { label, iso2: iso, geoNames });
+    }
+    _allCountryCatalogCache = [...byIso.values()].sort((a, b) =>
+        a.label.localeCompare(b.label, 'pt-BR', { sensitivity: 'base' })
+    );
+    return _allCountryCatalogCache;
+}
+
 function entryByIso(iso) {
-    return TRIP_COUNTRY_CATALOG.find((c) => c.iso2 === iso) ?? null;
+    return allCountryCatalog().find((c) => c.iso2 === iso) ?? null;
 }
 
 function matchAliasMap(foldedLabel, aliasMap) {
@@ -166,9 +207,10 @@ function catalogEntryForLabel(label, opts = {}) {
     const includePlaces = opts.includePlaces !== false;
     const f = folded(label);
     if (!f) return null;
+    const catalog = allCountryCatalog();
     const direct =
-        TRIP_COUNTRY_CATALOG.find((c) => folded(c.label) === f) ??
-        TRIP_COUNTRY_CATALOG.find((c) => c.geoNames.some((g) => folded(g) === f)) ??
+        catalog.find((c) => folded(c.label) === f) ??
+        catalog.find((c) => c.geoNames.some((g) => folded(g) === f)) ??
         null;
     if (direct) return direct;
     const countryAlias = matchAliasMap(f, COUNTRY_ALIASES_TO_ISO);
@@ -250,11 +292,13 @@ export function geoNamesForCountryLabels(labels) {
 }
 
 export function countriesCatalogSuggestions(query, limit = 8) {
+    const catalog = allCountryCatalog();
     const q = folded(query);
-    if (!q) return TRIP_COUNTRY_CATALOG.map((c) => c.label).slice(0, limit);
-    return TRIP_COUNTRY_CATALOG.filter(
-        (c) => folded(c.label).includes(q) || c.geoNames.some((g) => folded(g).includes(q))
-    )
-        .map((c) => c.label)
-        .slice(0, limit);
+    const filtered = !q
+        ? catalog
+        : catalog.filter(
+              (c) => folded(c.label).includes(q) || c.geoNames.some((g) => folded(g).includes(q))
+          );
+    const cap = q ? limit : filtered.length;
+    return filtered.map((c) => c.label).slice(0, cap);
 }

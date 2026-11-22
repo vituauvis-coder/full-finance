@@ -1,0 +1,411 @@
+/**
+ * Sidebar do atlas — paridade com dashboard modern (Minimal / Apple-like).
+ * Depende de dashboard-tokens no #viagens-page.
+ */
+
+#viagens-page .viagens-casa-sidebar {
+    --atlas-sidebar-pad: 0.85rem;
+    --atlas-type-section: 0.8125rem;
+    --atlas-type-body: 0.8125rem;
+    --atlas-type-meta: 0.75rem;
+    --atlas-type-metric: 0.875rem;
+    --atlas-leading: 1.3;
+
+    gap: 0;
+    padding: 0;
+    background: var(--dash-layer-raised) !important;
+    border-right: 1px solid var(--dash-border);
+    box-shadow: none;
+}
+
+#viagens-page .atlas-sidebar-divider {
+    flex-shrink: 0;
+    height: 1px;
+    margin: 0.15rem var(--atlas-sidebar-pad);
+    background: var(--dash-border);
+    border: none;
+}
+
+/* Seções da coluna — superfície única, sem “card flutuante” */
+#viagens-page .atlas-sidebar-panel {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+#viagens-page .atlas-miles-panel {
+    flex-shrink: 0;
+    padding-bottom: 0.1rem;
+}
+
+#viagens-page .atlas-sidebar-panel__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.65rem var(--atlas-sidebar-pad) 0.4rem;
+    border-bottom: none;
+}
+
+#viagens-page .atlas-sidebar-panel__title,
+#viagens-page .viagens-trail-header h2.atlas-sidebar-panel__title {
+    margin: 0;
+    font-size: var(--atlas-type-section) !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.01em;
+    line-height: var(--atlas-leading);
+    color: var(--dash-text-primary);
+}
+
+#viagens-page .atlas-sidebar-panel__link,
+#viagens-page .viagens-trail-new {
+    font-size: var(--atlas-type-meta);
+    font-weight: 600;
+    color: var(--v-turquesa, #2ec4b6);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+#viagens-page .atlas-sidebar-panel__link:hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+#viagens-page .atlas-miles-panel__body {
+    padding: 0  var(--atlas-sidebar-pad) 0.65rem;
+}
+
+#viagens-page .atlas-miles-panel__hint {
+    margin: 0;
+    padding: 0.55rem 0.35rem;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--dash-text-tertiary);
+    text-align: center;
+}
+
+#viagens-page .atlas-miles-panel__cta {
+    display: block;
+    width: 100%;
+    padding: 0.65rem 0.75rem;
+    border-radius: 0.65rem;
+    border: 1px dashed var(--dash-border);
+    background: var(--dash-layer-inset);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--dash-text-secondary);
+    text-align: center;
+    text-decoration: none;
+}
+
+#viagens-page .atlas-miles-panel__cta:hover {
+    border-color: var(--dash-border-strong);
+    color: var(--dash-text-primary);
+}
+
+#viagens-page .atlas-miles-panel__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+#viagens-page .atlas-miles-row {
+    --mile-brand: var(--v-turquesa, #2ec4b6);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.65rem;
+    width: 100%;
+    padding: 0.55rem 0.6rem;
+    border-radius: 10px;
+    border: 1px solid var(--dash-border);
+    background: color-mix(in srgb, var(--dash-layer-inset) 88%, var(--dash-layer-raised));
+    text-decoration: none;
+    color: inherit;
+    transition:
+        border-color 0.15s ease,
+        background 0.15s ease;
+}
+
+#viagens-page .atlas-miles-row:hover {
+    border-color: var(--dash-border);
+    background: color-mix(in srgb, var(--dash-layer-control) 55%, var(--dash-layer-inset));
+}
+
+#viagens-page .atlas-miles-row--esfera {
+    --mile-brand: #e30613;
+}
+#viagens-page .atlas-miles-row--livelo {
+    --mile-brand: #5b2eff;
+}
+#viagens-page .atlas-miles-row--azul {
+    --mile-brand: #0b67ce;
+}
+#viagens-page .atlas-miles-row--latam {
+    --mile-brand: #1b1464;
+}
+#viagens-page .atlas-miles-row--smiles {
+    --mile-brand: #ff6a00;
+}
+#viagens-page .atlas-miles-row--iberia {
+    --mile-brand: #d70428;
+}
+#viagens-page .atlas-miles-row--tap {
+    --mile-brand: #0b6b4c;
+}
+#viagens-page .atlas-miles-row--outro {
+    --mile-brand: var(--v-turquesa, #2ec4b6);
+}
+
+#viagens-page .atlas-miles-row__meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+#viagens-page .atlas-miles-row__dot {
+    flex-shrink: 0;
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+    background: var(--mile-brand);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--mile-brand) 20%, transparent);
+}
+
+#viagens-page .atlas-miles-row__text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.06rem;
+    min-width: 0;
+}
+
+#viagens-page .atlas-miles-row__name {
+    font-size: var(--atlas-type-body);
+    font-weight: 600;
+    color: var(--dash-text-primary);
+    line-height: var(--atlas-leading);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#viagens-page .atlas-miles-row__unit {
+    font-size: var(--atlas-type-meta);
+    font-weight: 500;
+    color: var(--dash-text-tertiary);
+    line-height: var(--atlas-leading);
+}
+
+#viagens-page .atlas-miles-row__values {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.08rem;
+    flex-shrink: 0;
+}
+
+#viagens-page .atlas-miles-row__pts {
+    font-size: var(--atlas-type-metric);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    color: var(--dash-text-primary);
+    line-height: var(--atlas-leading);
+}
+
+#viagens-page .atlas-miles-row__brl {
+    font-size: var(--atlas-type-meta);
+    font-weight: 500;
+    color: var(--dash-text-tertiary);
+    white-space: nowrap;
+}
+
+/* —— Lista de viagens —— */
+#viagens-page .atlas-trips-panel {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+}
+
+#viagens-page .viagens-casa__trail,
+#viagens-page .viagens-casa__trail.atlas-trips-panel {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+}
+
+#viagens-page .viagens-trail-header {
+    flex-shrink: 0;
+    padding: 0.5rem var(--atlas-sidebar-pad) 0.35rem;
+    border: none;
+}
+
+#viagens-page .viagens-trail-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.35rem var(--atlas-sidebar-pad) 0.85rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+#viagens-page .viagens-trail-empty {
+    padding: 0.75rem 0.65rem;
+    border-radius: 0.65rem;
+    border: 1px dashed var(--dash-border);
+    background: var(--dash-layer-inset);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--dash-text-secondary);
+}
+
+#viagens-page .viagens-trail-header .viagens-trail-new {
+    border-radius: 0.5rem;
+    border-color: var(--dash-border);
+    background: var(--dash-layer-inset);
+    color: var(--dash-text-primary);
+    padding: 0.28rem 0.5rem;
+}
+
+/* —— Card viagem —— */
+#viagens-page .atlas-trips-panel button.atlas-trip-card {
+    appearance: none;
+    width: 100%;
+    margin: 0;
+    padding: 0.75rem 0.85rem 0.7rem;
+    border-radius: 10px;
+    border: 1px solid var(--dash-border);
+    background: var(--dash-layer-inset);
+    box-shadow: none !important;
+    text-align: left;
+    font-family: inherit;
+    color: var(--dash-text-primary);
+    cursor: pointer;
+    transition:
+        transform 0.16s ease,
+        border-color 0.16s ease,
+        box-shadow 0.16s ease;
+}
+
+#viagens-page .atlas-trips-panel button.atlas-trip-card:hover {
+    border-color: var(--dash-border-strong);
+    background: color-mix(in srgb, var(--dash-layer-control) 40%, var(--dash-layer-inset));
+}
+
+#viagens-page button.atlas-trip-card:focus-visible {
+    outline: 2px solid var(--dash-focus-ring);
+    outline-offset: 2px;
+}
+
+#viagens-page .atlas-trip-card__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.35rem;
+}
+
+#viagens-page .atlas-trip-card__status {
+    font-size: var(--atlas-type-meta);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 0.18rem 0.45rem;
+    border-radius: 999px;
+    border: 1px solid var(--dash-border);
+    color: var(--dash-text-secondary);
+    background: var(--dash-layer-inset);
+}
+
+#viagens-page .atlas-trip-card__status--em_curso {
+    color: var(--v-turquesa, #2ec4b6);
+    border-color: color-mix(in srgb, var(--v-turquesa) 35%, var(--dash-border));
+    background: color-mix(in srgb, var(--v-turquesa) 10%, var(--dash-layer-inset));
+}
+
+#viagens-page .atlas-trip-card__status--planejada {
+    color: var(--dash-chart-net, #ff9f0a);
+    border-color: color-mix(in srgb, var(--dash-chart-net) 35%, var(--dash-border));
+    background: color-mix(in srgb, var(--dash-chart-net) 10%, var(--dash-layer-inset));
+}
+
+#viagens-page .atlas-trip-card__flags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    justify-content: flex-end;
+}
+
+#viagens-page .atlas-trip-card__title {
+    margin: 0 0 0.25rem;
+    font-size: var(--atlas-type-body);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: var(--atlas-leading);
+    color: var(--dash-text-primary);
+}
+
+#viagens-page .atlas-trip-card__route {
+    margin: 0 0 0.4rem;
+    font-size: var(--atlas-type-meta);
+    font-weight: 500;
+    line-height: var(--atlas-leading);
+    color: var(--dash-text-secondary);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+#viagens-page .atlas-trip-card__cap {
+    height: 2px;
+    margin-bottom: 0.4rem;
+    border-radius: 999px;
+    background: var(--dash-border);
+}
+
+#viagens-page .atlas-trip-card__cap .viagens-cap-bar__fill {
+    background: color-mix(in srgb, var(--v-turquesa, #2ec4b6) 75%, var(--dash-border));
+}
+
+#viagens-page .atlas-trip-card__foot {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding-top: 0.4rem;
+    margin-top: 0.15rem;
+    border-top: none;
+}
+
+#viagens-page .atlas-trip-card__foot-label,
+#viagens-page .atlas-trip-card__countdown {
+    font-size: var(--atlas-type-meta);
+    line-height: var(--atlas-leading);
+    white-space: nowrap;
+}
+
+#viagens-page .atlas-trip-card__foot-label {
+    font-weight: 500;
+    color: var(--dash-text-tertiary);
+}
+
+#viagens-page .atlas-trip-card__countdown {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+    color: var(--dash-text-primary);
+}

@@ -25,7 +25,7 @@ export function ViagensHeaderActions({ hidden }: Props) {
                     onClick={slot.onNew}
                 >
                     <MaterialIcon name="add" variant="app" />
-                    Nova viagem
+                    Nova
                 </button>
             </div>
         </div>

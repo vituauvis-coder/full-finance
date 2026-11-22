@@ -1,18 +1,17 @@
-/* Módulos da ficha — cinco faixas compactas na mesma linha */
+/* Módulos da ficha — minimal UI (paridade trip-feed / dashboard) */
 
 #viagens-page .viagens-ficha-home {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: var(--ficha-section-gap, var(--dash-stack-gap, 1.25rem));
     width: 100%;
-    padding-bottom: 1.5rem;
+    padding-bottom: 0;
 }
-
 
 #viagens-page .viagem-modulos {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 0.42rem;
+    gap: 0.5rem;
     width: 100%;
     margin: 0;
     padding: 0;
@@ -21,133 +20,98 @@
 
 #viagens-page .viagem-modulo {
     --modulo-ink: var(--v-turquesa, #2ec4b6);
+    --mod-surface: var(--dash-surface-bg, var(--v-painel, #1c1c20));
+    --mod-border: var(--dash-surface-border, var(--v-borda, rgba(255, 255, 255, 0.1)));
+    --mod-shadow: var(--dash-surface-shadow, 0 0 0 1px rgba(255, 255, 255, 0.06));
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     align-items: center;
-    gap: 0.42rem;
+    justify-content: center;
+    gap: 0.35rem;
     margin: 0;
-    height: 3.35rem;
-    min-height: 3.35rem;
-    padding: 0 0.55rem 0 0.5rem;
-    border: 1px solid var(--v-borda, rgba(255, 255, 255, 0.1));
-    border-radius: 0.95rem;
-    background: var(--v-painel, #1c1c20);
+    min-height: 4.25rem;
+    padding: 0.55rem 0.4rem 0.5rem;
+    border: 1px solid var(--mod-border);
+    border-radius: var(--dash-surface-radius, 16px);
+    background: var(--mod-surface);
     color: inherit;
     font: inherit;
     text-decoration: none;
     cursor: pointer;
-    text-align: left;
+    text-align: center;
     appearance: none;
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+    box-shadow: var(--mod-shadow);
     transition:
-        transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
-        border-color 0.2s ease,
-        background 0.2s ease,
-        box-shadow 0.2s ease;
+        border-color 0.15s ease,
+        background 0.15s ease;
 }
 
 @media (hover: hover) {
     #viagens-page .viagem-modulo:hover {
-        transform: translateY(-3px);
-        border-color: color-mix(in srgb, var(--modulo-ink) 58%, rgba(255, 255, 255, 0.08));
-        background: color-mix(in srgb, var(--modulo-ink) 14%, var(--v-painel, #1c1c20));
-        box-shadow:
-            0 1px 0 rgba(255, 255, 255, 0.06) inset,
-            0 10px 22px color-mix(in srgb, var(--modulo-ink) 22%, transparent);
+        border-color: color-mix(in srgb, var(--modulo-ink) 28%, var(--mod-border));
+        background: color-mix(in srgb, var(--modulo-ink) 6%, var(--mod-surface));
     }
 
     #viagens-page .viagem-modulo:hover .viagem-modulo__icon-well {
-        background: color-mix(in srgb, var(--modulo-ink) 22%, transparent);
-        transform: scale(1.06);
+        background: color-mix(in srgb, var(--modulo-ink) 14%, transparent);
     }
 
     #viagens-page .viagem-modulo:hover .viagem-modulo__label {
-        color: #fff;
-    }
-
-    #viagens-page .viagem-modulo:hover .viagem-modulo__chev {
-        background: color-mix(in srgb, var(--modulo-ink) 22%, transparent);
-        transform: translateX(2px);
-    }
-
-    #viagens-page .viagem-modulo:hover .viagem-modulo__chev .app-icon {
-        color: var(--modulo-ink);
+        color: var(--dash-text-primary, var(--v-tinta, #f5f5f7));
     }
 }
 
 #viagens-page .viagem-modulo:focus-visible {
     outline: none;
-    transform: translateY(-3px);
-    border-color: color-mix(in srgb, var(--modulo-ink) 58%, rgba(255, 255, 255, 0.08));
-    background: color-mix(in srgb, var(--modulo-ink) 14%, var(--v-painel, #1c1c20));
+    border-color: color-mix(in srgb, var(--modulo-ink) 35%, var(--mod-border));
     box-shadow:
-        0 0 0 3px color-mix(in srgb, var(--modulo-ink) 28%, transparent),
-        0 10px 22px color-mix(in srgb, var(--modulo-ink) 22%, transparent);
+        var(--mod-shadow),
+        0 0 0 2px color-mix(in srgb, var(--modulo-ink) 22%, transparent);
 }
 
 #viagens-page .viagem-modulo:active {
-    transform: translateY(-1px) scale(0.985);
-    transition-duration: 0.08s;
+    opacity: 0.92;
 }
 
 #viagens-page .viagem-modulo__icon-well {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 2rem;
-    height: 2rem;
-    border-radius: 0.62rem;
-    background: color-mix(in srgb, var(--modulo-ink) 12%, transparent);
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 10px;
+    background: var(--dash-layer-inset, color-mix(in srgb, var(--v-campo) 50%, transparent));
     flex-shrink: 0;
-    transition:
-        background 0.2s ease,
-        transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: background 0.15s ease;
 }
 
 #viagens-page .viagem-modulo .viagem-modulo__icon.app-icon {
-    font-size: 1.15rem;
+    font-size: 1.2rem;
     line-height: 1;
     color: var(--modulo-ink);
 }
 
 #viagens-page .viagem-modulo__label {
-    flex: 1 1 auto;
+    flex: 0 0 auto;
+    width: 100%;
     min-width: 0;
-    font-size: 0.76rem;
-    font-weight: 700;
-    letter-spacing: -0.015em;
-    color: var(--v-tinta, #f4f4f6);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--dash-text-secondary, var(--v-legenda, rgba(244, 244, 246, 0.72)));
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    transition: color 0.2s ease;
+    transition: color 0.15s ease;
 }
 
 #viagens-page .viagem-modulo__chev {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.45rem;
-    height: 1.45rem;
-    margin-left: auto;
-    border-radius: 50%;
-    background: var(--v-campo, rgba(255, 255, 255, 0.06));
-    flex-shrink: 0;
-    transition:
-        background 0.2s ease,
-        transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-#viagens-page .viagem-modulo__chev .app-icon {
-    font-size: 1.05rem;
-    color: var(--v-legenda, rgba(244, 244, 246, 0.58));
-    transition: color 0.2s ease;
+    display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
     #viagens-page .viagem-modulo,
-    #viagens-page .viagem-modulo__icon-well,
-    #viagens-page .viagem-modulo__chev {
+    #viagens-page .viagem-modulo__icon-well {
         transition: none;
     }
 }
@@ -193,10 +157,11 @@
     display: flex;
     flex-direction: column;
     gap: 0.55rem;
-    padding: 0.85rem 0.95rem 1rem;
-    border-radius: 0.95rem;
-    background: var(--v-painel);
-    border: 1px solid var(--v-borda);
+    padding: var(--dash-surface-pad-y, 1rem) var(--dash-surface-pad-x, 1.15rem);
+    border-radius: var(--dash-surface-radius, 16px);
+    background: var(--dash-surface-bg, var(--v-painel));
+    border: 1px solid var(--dash-surface-border, var(--v-borda));
+    box-shadow: var(--dash-surface-shadow, none);
 }
 
 @media (max-width: 900px) {
@@ -208,5 +173,9 @@
 @media (max-width: 640px) {
     #viagens-page .viagem-modulos {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    #viagens-page .viagem-modulo {
+        min-height: 3.85rem;
     }
 }

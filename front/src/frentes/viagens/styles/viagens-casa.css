@@ -57,20 +57,14 @@
     border-bottom-color: color-mix(in srgb, var(--v-borda) 70%, transparent);
 }
 
-#viagens-page .viagens-trail-item:has(.viagens-trail-countdown-hang) .trip-ticket--no-dates {
+#viagens-page .viagens-trail-item:has(.viagens-trail-countdown-hang) .trip-ticket--atlas {
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
-    border-bottom: none;
-    border-color: color-mix(in srgb, var(--v-coral, #ff5a36) 12%, var(--ticket-line));
+    border-bottom-color: transparent;
     box-shadow: none;
 }
 
 #viagens-page .viagens-trail-countdown-hang {
-    --trail-cream: #e9d9ca;
-    --trail-green: #0e7c7b;
-    --trail-green-deep: #0a6561;
-    --trail-orange: var(--v-coral, #ff5a36);
-
     display: flex;
     flex-direction: column;
     align-items: stretch;
@@ -84,21 +78,28 @@
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    gap: 0.35rem;
+    gap: 0.4rem;
     margin: 0;
-    padding: 0.55rem 0.75rem 0.65rem;
-    border: 1px solid color-mix(in srgb, var(--trail-green) 42%, #b9a48f);
+    padding: 0.65rem 0.85rem 0.75rem;
+    border: 1px solid color-mix(in srgb, var(--v-turquesa) 28%, var(--v-borda));
     border-top: none;
-    border-radius: 0 0 8px 8px;
-    background: linear-gradient(180deg, var(--trail-green) 0%, var(--trail-green-deep) 100%);
-    box-shadow: 0 6px 16px color-mix(in srgb, var(--trail-green-deep) 28%, transparent);
+    border-radius: 0 0 14px 14px;
+    background: linear-gradient(
+        165deg,
+        color-mix(in srgb, var(--v-turquesa) 14%, var(--v-janela)) 0%,
+        color-mix(in srgb, var(--v-janela) 92%, var(--v-painel)) 100%
+    );
+    box-shadow: 0 10px 24px color-mix(in srgb, var(--v-noite) 12%, transparent);
     text-decoration: none;
     color: inherit;
-    transition: filter 0.15s ease;
+    transition:
+        border-color 0.18s ease,
+        box-shadow 0.18s ease;
 }
 
 #viagens-page .viagens-trail-countdown__plate:hover {
-    filter: brightness(1.04);
+    border-color: color-mix(in srgb, var(--v-turquesa) 42%, var(--v-borda));
+    box-shadow: 0 12px 28px color-mix(in srgb, var(--v-turquesa) 10%, transparent);
 }
 
 #viagens-page .viagens-trail-countdown__sign {
@@ -113,13 +114,12 @@
     display: block;
     max-width: 100%;
     padding: 0;
-    font-size: 0.67rem;
-    font-weight: 800;
+    font-size: 0.68rem;
+    font-weight: 700;
     line-height: 1.3;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    letter-spacing: 0.04em;
     text-align: center;
-    color: var(--trail-orange);
+    color: var(--v-legenda);
     background: transparent;
     border: none;
     box-shadow: none;
@@ -132,10 +132,10 @@
     scrollbar-width: thin;
     -webkit-overflow-scrolling: touch;
     margin: 0;
-    padding: 0.35rem 0.25rem 0.15rem;
+    padding: 0.2rem 0.15rem 0.1rem;
     border: none;
-    border-radius: 0.45rem;
-    background: color-mix(in srgb, var(--trail-cream) 14%, transparent);
+    border-radius: 0.65rem;
+    background: color-mix(in srgb, var(--v-painel) 55%, transparent);
 }
 
 #viagens-page .viagens-trail-countdown__clock.viagens-flip-clock {
@@ -147,22 +147,22 @@
 #viagens-page .viagens-trail-countdown__clock {
     width: max-content;
     min-width: 100%;
-    min-height: 5.1rem;
-    padding: 0.15rem 0.1rem 0.35rem;
-    --fcc-label-color: color-mix(in srgb, var(--trail-cream) 92%, #fff);
+    min-height: 4.6rem;
+    padding: 0.1rem 0.05rem 0.25rem;
+    --fcc-label-color: var(--v-legenda);
     --fcc-background: linear-gradient(
         168deg,
-        color-mix(in srgb, #fff 94%, var(--trail-cream)),
-        color-mix(in srgb, var(--trail-cream) 55%, #fff)
+        color-mix(in srgb, var(--v-janela) 88%, var(--v-turquesa) 12%),
+        color-mix(in srgb, var(--v-painel) 90%, var(--v-janela))
     );
-    --fcc-digit-color: var(--trail-orange);
-    --fcc-divider-color: color-mix(in srgb, var(--trail-orange) 18%, var(--trail-cream));
-    --fcc-shadow: 0 2px 5px color-mix(in srgb, #062624 22%, transparent);
-    --fcc-separator-color: color-mix(in srgb, var(--trail-cream) 75%, var(--trail-orange));
-    --fcc-digit-block-width: 1.42rem;
-    --fcc-digit-block-height: 2.25rem;
-    --fcc-digit-font-size: 1.28rem;
-    --fcc-label-font-size: 0.48rem;
+    --fcc-digit-color: var(--v-tinta);
+    --fcc-divider-color: color-mix(in srgb, var(--v-borda) 75%, transparent);
+    --fcc-shadow: 0 2px 8px color-mix(in srgb, var(--v-noite) 18%, transparent);
+    --fcc-separator-color: color-mix(in srgb, var(--v-turquesa) 55%, var(--v-legenda));
+    --fcc-digit-block-width: 1.38rem;
+    --fcc-digit-block-height: 2.1rem;
+    --fcc-digit-font-size: 1.22rem;
+    --fcc-label-font-size: 0.5rem;
     --fcc-spacing: 6px;
     --fcc-digit-block-spacing: 3px;
     --fcc-separator-size: 5px;
@@ -176,7 +176,7 @@
 }
 
 #viagens-page .viagens-trail-countdown__clock .viagens-flip-clock__widget ._2aOn7 {
-    color: color-mix(in srgb, var(--trail-cream) 90%, #fff);
+    color: var(--v-legenda);
     opacity: 1;
 }
 
@@ -205,68 +205,90 @@
     width: 100%;
 }
 
-#viagens-page .viagens-trail-scroll .trip-ticket--no-dates {
-    --ticket-paper: #e9d9ca;
-    --ticket-stub-bg: color-mix(in srgb, #e9d9ca 72%, #cbb9a8);
-    --ticket-art-bg: color-mix(in srgb, #e9d9ca 80%, #d8c8b8);
-    --ticket-ink: color-mix(in srgb, var(--v-coral, #ff5a36) 78%, #6b2a18);
-    --ticket-muted: color-mix(in srgb, var(--v-coral, #ff5a36) 62%, #7a5a48);
-    --ticket-line: color-mix(in srgb, var(--v-coral, #ff5a36) 14%, #d5c4b4);
-    --ticket-status: var(--v-coral, #ff5a36);
-    --ticket-shadow: 0 1px 0 rgba(255, 255, 255, 0.75) inset, 0 6px 18px rgba(42, 28, 18, 0.08);
-    --ticket-shadow-hover: 0 1px 0 rgba(255, 255, 255, 0.82) inset, 0 8px 22px rgba(42, 28, 18, 0.12);
-    --ticket-border-hover: color-mix(in srgb, var(--v-coral, #ff5a36) 38%, #c9b8a8);
-    --ticket-cap-track: color-mix(in srgb, var(--v-coral, #ff5a36) 16%, #e9d9ca);
+#viagens-page .viagens-trail-scroll .trip-ticket--atlas {
+    --ticket-stub-w: 0;
+    --ticket-paper: var(--v-janela);
+    --ticket-stub-bg: var(--v-janela);
+    --ticket-art-bg: var(--v-painel);
+    --ticket-ink: var(--v-tinta);
+    --ticket-muted: var(--v-legenda);
+    --ticket-line: var(--v-borda);
+    --ticket-shadow: 0 8px 24px color-mix(in srgb, var(--v-noite) 10%, transparent);
+    --ticket-shadow-hover: 0 12px 28px color-mix(in srgb, var(--v-turquesa) 12%, transparent);
+    --ticket-border-hover: color-mix(in srgb, var(--v-turquesa) 40%, var(--v-borda));
+    --ticket-cap-track: color-mix(in srgb, var(--v-turquesa) 18%, var(--v-painel));
 
-    min-height: 7.75rem;
-    color-scheme: light;
-    background-color: var(--ticket-paper);
-    border-color: var(--ticket-line);
+    grid-template-columns: 1fr;
+    min-height: 0;
+    border-radius: 14px;
+    border: 1px solid var(--v-borda);
+    background: linear-gradient(
+        155deg,
+        color-mix(in srgb, var(--v-janela) 94%, var(--v-turquesa) 6%),
+        color-mix(in srgb, var(--v-painel) 88%, var(--v-janela))
+    );
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    transition:
+        transform 0.18s ease,
+        border-color 0.18s ease,
+        box-shadow 0.18s ease;
 }
 
-#viagens-page .viagens-trail-scroll .trip-ticket--no-dates[data-status='em_curso'],
-#viagens-page .viagens-trail-scroll .trip-ticket--no-dates[data-status='realizada'],
-#viagens-page .viagens-trail-scroll .trip-ticket--no-dates[data-status='planejada'] {
-    --ticket-status: var(--v-coral, #ff5a36);
+#viagens-page .viagens-trail-scroll .trip-ticket--atlas:hover {
+    transform: translateY(-2px);
 }
 
-[data-theme='dark'] #viagens-page .viagens-trail-scroll .trip-ticket--no-dates {
-    background-color: var(--ticket-paper);
-    background-image: none;
-    border-color: var(--ticket-line);
-    color: var(--ticket-ink);
+#viagens-page .viagens-trail-scroll .trip-ticket--atlas .trip-ticket__main {
+    padding: 0.85rem 0.95rem 0.75rem;
+    gap: 0.45rem;
 }
 
-#viagens-page .viagens-trail-scroll .trip-ticket--no-dates .trip-ticket__destination {
-    color: color-mix(in srgb, var(--v-coral, #ff5a36) 82%, #4a2010);
+#viagens-page .viagens-trail-scroll .trip-ticket--atlas .trip-ticket__status {
+    border-radius: 999px;
+    padding: 0.22rem 0.55rem;
+    font-size: 0.58rem;
+    letter-spacing: 0.06em;
+    border-color: color-mix(in srgb, var(--ticket-status) 35%, var(--v-borda));
+    background: color-mix(in srgb, var(--ticket-status) 12%, var(--v-janela));
 }
 
-#viagens-page .viagens-trail-scroll .trip-ticket--no-dates .trip-ticket__field dd {
-    color: var(--ticket-ink);
+#viagens-page .viagens-trail-scroll .trip-ticket--atlas .trip-ticket__destination {
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+    color: var(--v-tinta);
 }
 
-#viagens-page .viagens-trail-scroll .trip-ticket--no-dates .viagens-cap-bar__fill {
+#viagens-page .viagens-trail-scroll .trip-ticket--atlas .trip-ticket__field dt {
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--v-legenda);
+}
+
+#viagens-page .viagens-trail-scroll .trip-ticket--atlas .trip-ticket__field dd {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: color-mix(in srgb, var(--v-tinta) 88%, var(--v-legenda));
+    line-height: 1.35;
+}
+
+#viagens-page .viagens-trail-scroll .trip-ticket--atlas .viagens-cap-bar__fill {
     background: linear-gradient(
         90deg,
-        color-mix(in srgb, var(--v-coral, #ff5a36) 88%, #fff),
-        var(--v-coral, #ff5a36)
+        color-mix(in srgb, var(--v-turquesa) 85%, var(--v-janela)),
+        var(--v-turquesa)
     );
 }
 
-#viagens-page .viagens-trail-scroll .trip-ticket--no-dates .trip-ticket__fields {
+#viagens-page .viagens-trail-scroll .trip-ticket--atlas .trip-ticket__fields {
     margin-top: 0.05rem;
 }
 
-#viagens-page .viagens-trail-scroll .trip-ticket--no-dates .trip-ticket__field--route {
+#viagens-page .viagens-trail-scroll .trip-ticket--atlas .trip-ticket__field--route {
     grid-column: 1 / -1;
-}
-
-:root:not([data-theme='dark']) #viagens-page .viagens-trail-scroll .trip-ticket {
-    color-scheme: light;
-}
-
-[data-theme='dark'] #viagens-page .viagens-trail-scroll .trip-ticket {
-    color-scheme: dark;
 }
 
 #viagens-page .viagens-root > .screen-loader--page {

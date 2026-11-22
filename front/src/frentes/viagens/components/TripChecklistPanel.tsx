@@ -4,6 +4,8 @@ import type { TripCheckItem, TripDocItem } from '../types';
 import type { TripDraft } from './ViagemFicha';
 import { TripDocumentsModal } from './TripDocumentsModal';
 import { ChecklistDueField } from './ChecklistDueField';
+import { TripChecklistRow } from './ficha/TripChecklistRow';
+import { TripFichaPanel, TripFichaPanelBody, TripFichaPanelHeader } from './ficha/TripFichaPanel';
 import { checkDueOn, isCheckDone } from '../domain/tripChecklistUtils';
 
 type Props = {
@@ -96,36 +98,40 @@ export function TripChecklistPanel({ checks, documents, onPatch }: Props) {
 
     return (
         <>
-            <article className="viagens-panel viagens-panel--checklist viagens-panel--checklist-smart" aria-label="Checklist">
-                <header className="viagens-checklist__head">
-                    <div className="viagens-checklist__title-row">
-                        <span className="viagens-checklist__dot" aria-hidden />
-                        <h3 className="viagens-panel__title">Checklist</h3>
-                    </div>
-                    <div className="viagens-checklist__head-actions">
-                        {pendingDocs > 0 ? (
-                            <span className="viagens-checklist__docs-count">
-                                {pendingDocs} doc
-                            </span>
-                        ) : null}
-                        {checks.length > 0 ? (
-                            <span className="viagens-checklist__progress">
-                                {doneCount}/{checks.length}
-                            </span>
-                        ) : null}
-                        <button
-                            type="button"
-                            className="viagens-checklist__docs-btn"
-                            title="Documentos da viagem"
-                            aria-label={`Documentos (${documents.length})`}
-                            onClick={() => setDocsOpen(true)}
-                        >
-                            <MaterialIcon name="folder" filled variant="app" opticalSize={16} />
-                        </button>
-                    </div>
-                </header>
+            <TripFichaPanel
+                className="viagens-panel--checklist viagens-panel--checklist-smart viagens-ficha-panel--checklist"
+                aria-label="Checklist"
+            >
+                <TripFichaPanelHeader
+                    icon="playlist_add_check"
+                    title="Checklist"
+                    tone="turquesa"
+                    actions={
+                        <>
+                            {pendingDocs > 0 ? (
+                                <span className="viagens-ficha-panel__pill viagens-ficha-panel__pill--turquesa">
+                                    {pendingDocs} doc
+                                </span>
+                            ) : null}
+                            {checks.length > 0 ? (
+                                <span className="viagens-ficha-panel__pill viagens-ficha-panel__pill--muted">
+                                    {doneCount}/{checks.length}
+                                </span>
+                            ) : null}
+                            <button
+                                type="button"
+                                className="viagens-ficha-panel__icon-btn"
+                                title="Documentos da viagem"
+                                aria-label={`Documentos (${documents.length})`}
+                                onClick={() => setDocsOpen(true)}
+                            >
+                                <MaterialIcon name="folder" filled variant="app" opticalSize={16} />
+                            </button>
+                        </>
+                    }
+                />
 
-                <div className="viagens-checklist__body">
+                <TripFichaPanelBody className="viagens-checklist__body viagens-ficha-panel__body--checklist">
                     {checks.length === 0 ? (
                         <div className="viagens-checklist__empty">
                             <p className="viagens-checklist__empty-lead">Mala, visto, vacina…</p>
@@ -141,7 +147,7 @@ export function TripChecklistPanel({ checks, documents, onPatch }: Props) {
                                         <h4 className="viagens-checklist__group-label">A fazer</h4>
                                     ) : null}
                                     {pending.map((i) => (
-                                        <ChecklistRow
+                                        <TripChecklistRow
                                             key={checks[i].id}
                                             item={checks[i]}
                                             due={checkDueOn(checks[i])}
@@ -155,7 +161,7 @@ export function TripChecklistPanel({ checks, documents, onPatch }: Props) {
                                 <section className="viagens-checklist__group" aria-label="Feito">
                                     <h4 className="viagens-checklist__group-label">Feito</h4>
                                     {completed.map((i) => (
-                                        <ChecklistRow
+                                        <TripChecklistRow
                                             key={checks[i].id}
                                             item={checks[i]}
                                             due={checkDueOn(checks[i])}
@@ -168,12 +174,12 @@ export function TripChecklistPanel({ checks, documents, onPatch }: Props) {
                         </div>
                     )}
 
-                    <button type="button" className="viagens-checklist__add" onClick={addCheck}>
+                    <button type="button" className="viagens-ficha-panel__cta viagens-checklist__add" onClick={addCheck}>
                         <MaterialIcon name="add" variant="app" opticalSize={16} />
                         Adicionar item
                     </button>
-                </div>
-            </article>
+                </TripFichaPanelBody>
+            </TripFichaPanel>
             <TripDocumentsModal
                 open={docsOpen}
                 documents={documents}
@@ -185,60 +191,5 @@ export function TripChecklistPanel({ checks, documents, onPatch }: Props) {
                 onPromoteToChecklist={promoteDocToChecklist}
             />
         </>
-    );
-}
-
-function ChecklistRow({
-    item,
-    due,
-    onPatch,
-    onRemove
-}: {
-    item: TripCheckItem;
-    due?: string;
-    onPatch: (id: string, patch: Partial<TripCheckItem>) => void;
-    onRemove: () => void;
-}) {
-    const done = isDone(item);
-
-    return (
-        <div className={`viagens-checklist-item${done ? ' is-done' : ''}`} data-check-id={item.id}>
-            <button
-                type="button"
-                className="viagens-checklist-item__toggle"
-                aria-pressed={done}
-                aria-label={done ? 'Feito' : 'A fazer'}
-                onClick={() => onPatch(item.id, { done: !done, completed: !done })}
-            >
-                <MaterialIcon
-                    name={done ? 'check_circle' : 'radio_button_unchecked'}
-                    filled={done}
-                    variant="app"
-                    opticalSize={20}
-                />
-            </button>
-            <input
-                className="viagens-checklist-item__title"
-                value={item.title}
-                placeholder="Item"
-                onChange={(e) => onPatch(item.id, { title: e.target.value })}
-            />
-            <div className="viagens-checklist-item__actions">
-                <div className={`viagens-checklist-item__due${due ? ' has-date' : ''}`}>
-                    <ChecklistDueField
-                        value={due}
-                        onChange={(next) =>
-                            onPatch(item.id, {
-                                dueOn: next,
-                                due_on: next
-                            })
-                        }
-                    />
-                </div>
-                <button type="button" className="viagens-checklist-item__remove" aria-label="Remover item" onClick={onRemove}>
-                    <MaterialIcon name="close" filled={false} variant="app" opticalSize={14} />
-                </button>
-            </div>
-        </div>
     );
 }

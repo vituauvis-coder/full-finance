@@ -14,6 +14,7 @@ import {
     type ScenarioLegendKind
 } from '../utils/tripScenarioCalendarLayers';
 import { anchorMonth, monthTitlePt, shiftMonth, toDateKeyLocal, todayKey, WEEK_SHORT_PT } from '../utils/tripCalendar';
+import { TripFichaPanel, TripFichaPanelBody, TripFichaPanelFooter, TripFichaPanelHeader } from './ficha/TripFichaPanel';
 import '../styles/trip-calendar.css';
 
 function inRange(key: string, start: string, end: string): boolean {
@@ -118,20 +119,37 @@ export function TripCalendarCard({
     const calMod = legendHover ? ` viagens-cal--legend-${legendHover}` : '';
 
     return (
-        <article className={`viagens-panel viagens-panel--cal viagens-cal--smart${calMod}`} aria-label="Calendário da viagem">
-            <header className="viagens-cal__head">
-                <MaterialIcon name="calendar_month" variant="app" opticalSize={16} />
-                <span>Calendário</span>
-                <nav className="viagens-cal__head-nav" aria-label="Mudar mês">
-                    <button type="button" className="viagens-cal__nav-btn" aria-label="Mês anterior" onClick={() => goMonth(-1)}>
-                        <MaterialIcon name="chevron_left" variant="app" opticalSize={18} />
-                    </button>
-                    <button type="button" className="viagens-cal__nav-btn" aria-label="Próximo mês" onClick={() => goMonth(1)}>
-                        <MaterialIcon name="chevron_right" variant="app" opticalSize={18} />
-                    </button>
-                </nav>
-            </header>
+        <TripFichaPanel
+            className={`viagens-panel--cal viagens-cal--smart viagens-ficha-panel--cal${calMod}`}
+            aria-label="Calendário da viagem"
+        >
+            <TripFichaPanelHeader
+                icon="calendar_month"
+                title="Calendário"
+                tone="turquesa"
+                actions={
+                    <nav className="viagens-cal__head-nav" aria-label="Mudar mês">
+                        <button
+                            type="button"
+                            className="viagens-ficha-panel__icon-btn"
+                            aria-label="Mês anterior"
+                            onClick={() => goMonth(-1)}
+                        >
+                            <MaterialIcon name="chevron_left" variant="app" opticalSize={18} />
+                        </button>
+                        <button
+                            type="button"
+                            className="viagens-ficha-panel__icon-btn"
+                            aria-label="Próximo mês"
+                            onClick={() => goMonth(1)}
+                        >
+                            <MaterialIcon name="chevron_right" variant="app" opticalSize={18} />
+                        </button>
+                    </nav>
+                }
+            />
 
+            <TripFichaPanelBody className="viagens-ficha-panel__body--cal">
             <div className="viagens-cal__chips" role="toolbar" aria-label="Atalhos do calendário">
                 <button type="button" className="viagens-cal__chip" onClick={() => focusMonthOf(tripAnchor)}>
                     <MaterialIcon name="flag" variant="app" opticalSize={14} />
@@ -292,14 +310,17 @@ export function TripCalendarCard({
                     );
                 })}
             </footer>
+            </TripFichaPanelBody>
 
             {onOpenSimulador ? (
-                <button type="button" className="viagens-cal__sim" onClick={onOpenSimulador}>
-                    <MaterialIcon name="query_stats" variant="app" opticalSize={18} />
-                    Simulador
-                    <span className="viagens-badge">{scenarioCount}</span>
-                </button>
+                <TripFichaPanelFooter>
+                    <button type="button" className="viagens-ficha-panel__cta viagens-cal__sim" onClick={onOpenSimulador}>
+                        <MaterialIcon name="query_stats" variant="app" opticalSize={18} />
+                        Simulador
+                        <span className="viagens-badge">{scenarioCount}</span>
+                    </button>
+                </TripFichaPanelFooter>
             ) : null}
-        </article>
+        </TripFichaPanel>
     );
 }

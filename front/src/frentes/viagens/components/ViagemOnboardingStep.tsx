@@ -193,6 +193,7 @@ export function ViagemOnboardingStep({
                 <div className="viagens-onboarding__map">
                     <ViagemMiniMap
                         destinations={destinations}
+                        trip={{ ...trip, payload: draft.payload }}
                         status={trip.effectiveStatus}
                         onTapCoord={dropPin}
                     />

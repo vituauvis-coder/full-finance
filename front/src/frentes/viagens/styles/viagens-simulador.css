@@ -1486,12 +1486,7 @@
     width: 100%;
     padding: 10px 10px 12px;
     border-radius: 10px;
-    background: linear-gradient(
-        165deg,
-        color-mix(in srgb, var(--v-oceano) 10%, var(--v-painel)) 0%,
-        color-mix(in srgb, var(--v-painel) 70%, var(--v-janela)) 55%,
-        var(--v-janela) 100%
-    );
+    background: var(--v-painel);
     border: 1px solid color-mix(in srgb, var(--v-borda) 80%, transparent);
     box-sizing: border-box;
 }
@@ -1516,12 +1511,8 @@
     max-width: 4.25rem;
     margin-top: 1.05rem;
     height: 1.35rem;
-    opacity: 0.55;
-    transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-.viagens-sim-rota-rail__leg.is-live {
     opacity: 1;
+    transition: opacity 0.2s ease;
 }
 
 .viagens-sim-rota-rail__leg-track {
@@ -1529,31 +1520,19 @@
     left: 2px;
     right: 2px;
     top: 50%;
-    height: 3px;
+    height: 2px;
     transform: translateY(-50%);
     border-radius: 99px;
-    overflow: hidden;
-    background: color-mix(in srgb, var(--v-legenda) 22%, var(--v-borda));
+    background: color-mix(in srgb, var(--v-legenda) 28%, var(--v-borda));
+    transition: background-color 0.2s ease;
 }
 
 .viagens-sim-rota-rail__leg-glow {
-    display: block;
-    width: 100%;
-    height: 100%;
-    border-radius: inherit;
-    background: linear-gradient(
-        90deg,
-        color-mix(in srgb, var(--v-coral) 35%, transparent),
-        var(--v-turquesa),
-        color-mix(in srgb, var(--v-oceano) 55%, var(--v-turquesa))
-    );
-    transform: scaleX(0.25);
-    transform-origin: left center;
-    transition: transform 0.25s ease;
+    display: none;
 }
 
-.viagens-sim-rota-rail__leg.is-live .viagens-sim-rota-rail__leg-glow {
-    transform: scaleX(1);
+.viagens-sim-rota-rail__leg.is-live .viagens-sim-rota-rail__leg-track {
+    background: color-mix(in srgb, var(--v-turquesa) 72%, var(--v-borda));
 }
 
 .viagens-sim-rota-rail__leg-icon {
@@ -1565,9 +1544,9 @@
     height: 1.25rem;
     border-radius: 999px;
     background: var(--v-janela);
-    border: 1px solid var(--v-borda);
-    box-shadow: 0 1px 4px color-mix(in srgb, var(--v-tinta) 12%, transparent);
-    transition: border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+    border: 1px solid color-mix(in srgb, var(--v-legenda) 22%, var(--v-borda));
+    box-shadow: none;
+    transition: border-color 0.2s ease, color 0.2s ease;
 }
 
 .viagens-sim-rota-rail__leg-icon .app-icon {
@@ -1577,8 +1556,7 @@
 }
 
 .viagens-sim-rota-rail__leg.is-live .viagens-sim-rota-rail__leg-icon {
-    border-color: color-mix(in srgb, var(--v-turquesa) 55%, var(--v-borda));
-    transform: scale(1.08);
+    border-color: color-mix(in srgb, var(--v-turquesa) 48%, var(--v-borda));
 }
 
 .viagens-sim-rota-rail__leg.is-live .viagens-sim-rota-rail__leg-icon .app-icon {
@@ -1651,13 +1629,24 @@
 }
 
 .viagens-sim-rota-rail__node.is-on .viagens-sim-rota-rail__ring {
-    border-color: color-mix(in srgb, var(--v-turquesa) 50%, transparent);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--v-turquesa) 18%, transparent);
+    border-color: color-mix(in srgb, var(--v-turquesa) 55%, var(--v-borda));
+    box-shadow: none;
 }
 
 .viagens-sim-rota-rail__node.is-hover .viagens-sim-rota-rail__ring {
-    transform: scale(1.12);
-    border-color: color-mix(in srgb, var(--v-turquesa) 35%, transparent);
+    transform: scale(1.06);
+    border-color: color-mix(in srgb, var(--v-turquesa) 40%, var(--v-borda));
+}
+
+.viagens-sim-rota-rail__node.is-readonly .viagens-sim-rota-rail__ring {
+    display: none;
+}
+
+.viagens-sim-rota-rail__node.is-readonly.is-on .viagens-sim-rota-rail__pin,
+.viagens-sim-rota-rail__node.is-readonly.is-hover .viagens-sim-rota-rail__pin {
+    transform: none;
+    border-color: var(--v-borda);
+    background: var(--v-janela);
 }
 
 .viagens-sim-rota-rail__node--home {

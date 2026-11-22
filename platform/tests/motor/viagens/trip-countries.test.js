@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+    allCountryCatalog,
     canonicalCountryLabel,
+    countriesCatalogSuggestions,
     countryIso2ForLabel,
     isCountryCatalogLabel
 } from '../../../../motor/viagens/trip-countries.js';
@@ -29,4 +31,16 @@ test('isCountryCatalogLabel distinguishes country vs city', () => {
     assert.equal(isCountryCatalogLabel('Xangai'), false);
     assert.equal(isCountryCatalogLabel('Madri'), false);
     assert.equal(isCountryCatalogLabel('Furong'), false);
+});
+
+test('allCountryCatalog includes full ISO list with pt-BR labels', () => {
+    assert.ok(allCountryCatalog().length >= 190);
+    assert.ok(allCountryCatalog().some((c) => c.label === 'Brasil'));
+    assert.ok(allCountryCatalog().some((c) => c.label === 'Afeganistão' || c.iso2 === 'AF'));
+});
+
+test('countriesCatalogSuggestions lists all countries when query is empty', () => {
+    const all = countriesCatalogSuggestions('', 8);
+    assert.ok(all.length >= 190);
+    assert.ok(all.includes('Brasil'));
 });

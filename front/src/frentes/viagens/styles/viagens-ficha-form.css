@@ -7,7 +7,8 @@
 
 #viagens-page.viagens-page--ficha .viagens-ficha {
     min-height: 0;
-    padding: 0.15rem 0.15rem 1.25rem;
+    gap: var(--ficha-section-gap, var(--dash-stack-gap, 1.25rem));
+    padding: 0 0.15rem 1.25rem;
 }
 
 #viagens-page.viagens-page--ficha .viagens-root {

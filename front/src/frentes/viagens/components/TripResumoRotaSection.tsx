@@ -28,6 +28,8 @@ export function TripResumoRotaSection({ draft, destinations }: Props) {
                 hops={rota.hops}
                 focusedCountry={focusedCountry}
                 onCountry={setFocusedCountry}
+                readOnly
+                showLegend={false}
             />
         </section>
     );

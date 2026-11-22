@@ -481,6 +481,7 @@ export function ViagemFicha({
                         >
                             <ViagemMiniMap
                                 destinations={destinations}
+                                trip={{ ...trip, payload: draft.payload }}
                                 status={trip.effectiveStatus}
                                 onTapCoord={dropPin}
                             />

@@ -5,6 +5,7 @@ import type { TripDraft } from './ViagemFicha';
 import { chosenScenarioFromPayload } from '../domain/chosenScenarioResumo';
 import { destinationTags, tripResumoDatesLine, tripResumoDayStats } from '../domain/tripResumoStats';
 import { buildOrcamentoSnapshot } from './orcamento/orcamento-model';
+import { TripFichaPanel, TripFichaPanelBody, TripFichaPanelHeader } from './ficha/TripFichaPanel';
 import { TripResumoOrcamentoViz } from './TripResumoOrcamentoViz';
 import { TripResumoRotaSection } from './TripResumoRotaSection';
 
@@ -56,15 +57,13 @@ export function TripResumoPanel({ trip, draft, destinations }: Props) {
     );
     const badge = planBadge(draft.payload, destinations, draft.startsOn, draft.endsOn);
 
-    return (
-        <article className="viagens-panel viagens-panel--resumo viagens-panel--resumo-mac" aria-label="Resumo da viagem">
-            <header className="viagens-resumo__head">
-                <h3 className="viagens-panel__title viagens-resumo__title">
-                    <MaterialIcon name="luggage" variant="app" opticalSize={16} />
-                    Resumo da viagem
-                </h3>
+    const meta =
+        badge || datesLine !== 'Sem datas' ? (
+            <>
                 {badge ? (
-                    <span className={`viagens-resumo__badge viagens-resumo__badge--${badge.kind}`}>
+                    <span
+                        className="viagens-ficha-panel__pill viagens-ficha-panel__pill--turquesa"
+                    >
                         <MaterialIcon
                             name={badge.kind === 'scenario' ? 'verified' : 'calendar_clock'}
                             variant="app"
@@ -73,47 +72,65 @@ export function TripResumoPanel({ trip, draft, destinations }: Props) {
                         {badge.label}
                     </span>
                 ) : null}
-                {datesLine !== 'Sem datas' ? <span className="viagens-resumo__dates">{datesLine}</span> : null}
-            </header>
+                {datesLine !== 'Sem datas' ? (
+                    <span className="viagens-ficha-panel__meta-note">{datesLine}</span>
+                ) : null}
+            </>
+        ) : null;
 
-            <div className="viagens-resumo__stats" role="list">
-                {STATS.map((s) => (
-                    <div
-                        key={s.key}
-                        className={`viagens-resumo-stat viagens-resumo-stat--${s.tint}`}
-                        title={s.hint}
-                        role="listitem"
-                    >
-                        <span className="viagens-resumo-stat__icon" aria-hidden>
-                            <MaterialIcon name={s.icon} variant="app" opticalSize={14} />
-                        </span>
-                        <span className="viagens-resumo-stat__copy">
-                            <span className="viagens-resumo-stat__value">
-                                {stats[s.key]}
-                                {s.unit ? <span className="viagens-resumo-stat__unit"> {s.unit}</span> : null}
-                            </span>
-                            <span className="viagens-resumo-stat__label">{s.label}</span>
-                        </span>
+    return (
+        <TripFichaPanel
+            className="viagens-panel--resumo viagens-panel--resumo-mac viagens-ficha-panel--resumo"
+            aria-label="Resumo da viagem"
+        >
+            <TripFichaPanelHeader icon="luggage" title="Resumo da viagem" tone="turquesa" meta={meta} />
+
+            <TripFichaPanelBody className="viagens-ficha-panel__body--resumo">
+                <section className="viagens-resumo__section viagens-resumo__section--stats" aria-label="Indicadores">
+                    <div className="viagens-resumo__stats" role="list">
+                        {STATS.map((s) => (
+                            <div
+                                key={s.key}
+                                className={`viagens-resumo-stat viagens-resumo-stat--${s.tint}`}
+                                title={s.hint}
+                                role="listitem"
+                            >
+                                <span className="viagens-resumo-stat__icon" aria-hidden>
+                                    <MaterialIcon name={s.icon} variant="app" opticalSize={14} />
+                                </span>
+                                <span className="viagens-resumo-stat__copy">
+                                    <span className="viagens-resumo-stat__value">
+                                        {stats[s.key]}
+                                        {s.unit ? <span className="viagens-resumo-stat__unit"> {s.unit}</span> : null}
+                                    </span>
+                                    <span className="viagens-resumo-stat__label">{s.label}</span>
+                                </span>
+                            </div>
+                        ))}
                     </div>
-                ))}
-            </div>
+                </section>
 
-            {hasChosenScenario ? (
-                <TripResumoRotaSection draft={draft} destinations={destinations} />
-            ) : tags.length > 0 ? (
-                <div className="viagens-resumo__tags" aria-label="Destinos">
-                    {tags.map((t, i) => (
-                        <span key={`${t.region}-${t.label}`} className={`viagens-resumo-tag viagens-resumo-tag--${i % 5}`}>
-                            {t.region ? <span className="viagens-resumo-tag__region">{t.region}</span> : null}
-                            <span className="viagens-resumo-tag__name">{t.label}</span>
-                        </span>
-                    ))}
-                </div>
-            ) : (
-                <p className="viagens-muted viagens-resumo__no-dest">{trip.cityCount ?? 0} destinos</p>
-            )}
+                <section className="viagens-resumo__section viagens-resumo__section--route" aria-label="Rota e destinos">
+                    {hasChosenScenario ? (
+                        <TripResumoRotaSection draft={draft} destinations={destinations} />
+                    ) : tags.length > 0 ? (
+                        <div className="viagens-resumo__tags" aria-label="Destinos">
+                            {tags.map((t, i) => (
+                                <span key={`${t.region}-${t.label}`} className={`viagens-resumo-tag viagens-resumo-tag--${i % 5}`}>
+                                    {t.region ? <span className="viagens-resumo-tag__region">{t.region}</span> : null}
+                                    <span className="viagens-resumo-tag__name">{t.label}</span>
+                                </span>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="viagens-muted viagens-resumo__no-dest">{trip.cityCount ?? 0} destinos</p>
+                    )}
+                </section>
 
-            <TripResumoOrcamentoViz snap={orcSnap} />
-        </article>
+                <section className="viagens-resumo__section viagens-resumo__section--orc" aria-label="Metas de valores">
+                    <TripResumoOrcamentoViz snap={orcSnap} />
+                </section>
+            </TripFichaPanelBody>
+        </TripFichaPanel>
     );
 }

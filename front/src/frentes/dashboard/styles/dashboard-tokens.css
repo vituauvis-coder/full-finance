@@ -10,6 +10,7 @@
 .page-content--dashboard-modern,
 .page-content--profile-modern,
 .page-content--dashboard-modern > section.page.active,
+#viagens-page:not(.viagens-page--ficha),
 #dashboard-page.dashboard-page--modern,
 #zero-budget-page.zero-budget-page,
 #profile-page.profile-page--modern {
@@ -59,6 +60,7 @@
 [data-theme='dark'] .page-content--dashboard-modern,
 [data-theme='dark'] .page-content--profile-modern,
 [data-theme='dark'] .page-content--dashboard-modern > section.page.active,
+[data-theme='dark'] #viagens-page:not(.viagens-page--ficha),
 [data-theme='dark'] #dashboard-page.dashboard-page--modern,
 [data-theme='dark'] #zero-budget-page.zero-budget-page,
 [data-theme='dark'] #profile-page.profile-page--modern {

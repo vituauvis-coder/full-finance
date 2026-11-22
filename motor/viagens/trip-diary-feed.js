@@ -207,7 +207,7 @@ export function tripFeedCountdown({ startsOn, endsOn, statusOverride, now = new 
     if (days == null) return { status, label: 'Defina a data de início', days: null, mode: 'no_dates' };
     if (days === 0) return { status, label: 'Sua viagem começa', days: 0, suffix: 'hoje', mode: 'until_start' };
     if (days < 0) return { status, label: 'Datas no passado', days: null, mode: 'past' };
-    return { status, label: 'Faltam', days, suffix: 'para a viagem', mode: 'until_start' };
+    return { status, label: 'Faltam', days, suffix: 'para viajar', mode: 'until_start' };
 }
 
 function sumDailyCaps(trip) {

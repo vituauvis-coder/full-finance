@@ -25,9 +25,14 @@ export function TripCountriesSelector({ payload, destinations, onChange }: Props
     const fromRoute = useMemo(() => placesSummary(destinations).countries, [destinations]);
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState('');
+    const [popoverBox, setPopoverBox] = useState<{ top: number; left: number; width: number } | null>(null);
     const wrapRef = useRef<HTMLDivElement>(null);
+    const addRef = useRef<HTMLButtonElement>(null);
 
-    const suggestions = useMemo(() => countriesCatalogSuggestions(query, 10), [query]);
+    const suggestions = useMemo(
+        () => countriesCatalogSuggestions(query, query.trim() ? 24 : 400),
+        [query]
+    );
 
     const routeOnly = useMemo(() => {
         if (selected.length) return [];
@@ -37,6 +42,11 @@ export function TripCountriesSelector({ payload, destinations, onChange }: Props
 
     const displayCountries = selected.length ? selected : fromRoute;
 
+    const selectedKeys = useMemo(
+        () => new Set(selected.map((c) => canonicalCountryLabel(c).toLowerCase())),
+        [selected]
+    );
+
     const patchCountries = useCallback(
         (next: string[]) => {
             onChange(uniqueCountryLabels(next));
@@ -44,15 +54,21 @@ export function TripCountriesSelector({ payload, destinations, onChange }: Props
         [onChange]
     );
 
+    const closePopover = useCallback(() => {
+        setOpen(false);
+        setPopoverBox(null);
+        setQuery('');
+    }, []);
+
     const addCountry = useCallback(
         (raw: string) => {
             const label = canonicalCountryLabel(raw);
             if (!label) return;
             patchCountries([...selected, label]);
             setQuery('');
-            setOpen(false);
+            closePopover();
         },
-        [patchCountries, selected]
+        [closePopover, patchCountries, selected]
     );
 
     const removeCountry = useCallback(
@@ -63,13 +79,52 @@ export function TripCountriesSelector({ payload, destinations, onChange }: Props
         [patchCountries, selected]
     );
 
+    const placePopover = useCallback(() => {
+        const btn = addRef.current;
+        if (!btn) return;
+        const r = btn.getBoundingClientRect();
+        const width = Math.max(16 * 16, r.width);
+        let left = r.left;
+        const margin = 8;
+        if (left + width > window.innerWidth - margin) {
+            left = window.innerWidth - width - margin;
+        }
+        left = Math.max(margin, left);
+        setPopoverBox({ top: r.bottom + 6, left, width });
+    }, []);
+
+    useEffect(() => {
+        if (!open) return;
+        placePopover();
+        const onResize = () => placePopover();
+        window.addEventListener('resize', onResize);
+        window.addEventListener('scroll', onResize, true);
+        return () => {
+            window.removeEventListener('resize', onResize);
+            window.removeEventListener('scroll', onResize, true);
+        };
+    }, [open, placePopover]);
+
     useEffect(() => {
         if (!open) return;
         const onDoc = (e: MouseEvent) => {
-            if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+            const t = e.target as Node;
+            if (wrapRef.current?.contains(t)) return;
+            const pop = document.getElementById('trip-countries-popover-layer');
+            if (pop?.contains(t)) return;
+            closePopover();
         };
         document.addEventListener('mousedown', onDoc);
         return () => document.removeEventListener('mousedown', onDoc);
+    }, [open, closePopover]);
+
+    useEffect(() => {
+        if (!open) return;
+        const id = window.requestAnimationFrame(() => {
+            const el = document.getElementById('trip-countries-popover-search');
+            if (el instanceof HTMLInputElement) el.focus();
+        });
+        return () => window.cancelAnimationFrame(id);
     }, [open]);
 
     return (
@@ -78,28 +133,35 @@ export function TripCountriesSelector({ payload, destinations, onChange }: Props
                 {displayCountries.length === 0 ? (
                     <span className="trip-countries__empty">Países da rota</span>
                 ) : (
-                    displayCountries.map((c) => (
-                        <span key={c} className="trip-countries__chip" role="listitem">
-                            <CountryFlag label={c} showLabel className="country-flag country-flag--chip" />
-                            {selected.length > 0 ? (
-                                <button
-                                    type="button"
-                                    className="trip-countries__chip-remove"
-                                    aria-label={`Remover ${c}`}
-                                    onClick={() => removeCountry(c)}
-                                >
-                                    ×
-                                </button>
-                            ) : null}
-                        </span>
-                    ))
+                    displayCountries.map((c) => {
+                        const canRemove = selectedKeys.has(canonicalCountryLabel(c).toLowerCase());
+                        return (
+                            <span key={c} className="trip-countries__chip" role="listitem">
+                                <CountryFlag label={c} showLabel className="country-flag country-flag--chip" />
+                                {canRemove ? (
+                                    <button
+                                        type="button"
+                                        className="trip-countries__chip-remove"
+                                        aria-label={`Remover ${c}`}
+                                        onClick={() => removeCountry(c)}
+                                    >
+                                        ×
+                                    </button>
+                                ) : null}
+                            </span>
+                        );
+                    })
                 )}
                 <button
+                    ref={addRef}
                     type="button"
                     className="trip-countries__add"
                     aria-expanded={open}
                     aria-haspopup="listbox"
-                    onClick={() => setOpen((v) => !v)}
+                    onClick={() => {
+                        if (open) closePopover();
+                        else setOpen(true);
+                    }}
                 >
                     + País
                 </button>
@@ -114,9 +176,19 @@ export function TripCountriesSelector({ payload, destinations, onChange }: Props
                     ))}
                 </p>
             ) : null}
-            {open ? (
-                <div className="trip-countries__popover" role="listbox">
+            {open && popoverBox ? (
+                <div
+                    id="trip-countries-popover-layer"
+                    className="trip-countries__popover trip-countries__popover--fixed"
+                    role="listbox"
+                    style={{
+                        top: popoverBox.top,
+                        left: popoverBox.left,
+                        width: popoverBox.width
+                    }}
+                >
                     <input
+                        id="trip-countries-popover-search"
                         className="trip-countries__search"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
@@ -127,7 +199,7 @@ export function TripCountriesSelector({ payload, destinations, onChange }: Props
                                 e.preventDefault();
                                 addCountry(suggestions[0]);
                             }
-                            if (e.key === 'Escape') setOpen(false);
+                            if (e.key === 'Escape') closePopover();
                         }}
                     />
                     <ul className="trip-countries__suggest">

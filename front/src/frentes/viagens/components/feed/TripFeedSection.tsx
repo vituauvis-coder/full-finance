@@ -14,10 +14,8 @@ import {
 import { useTaxFxQuotes } from '../../hooks/useTaxFxQuotes';
 import { isCheckDone } from '../../domain/tripChecklistUtils';
 import { formatBRL } from '../../utils/map-utils';
-import '../../styles/viagens-simulador.css';
+import '../../styles/viagens-dash-hero.css';
 import '../../styles/trip-feed.css';
-
-const PIN_TINTS = ['coral', 'oceano', 'turquesa', 'ouro', 'coral'] as const;
 
 type Props = {
     trip: Trip;
@@ -28,9 +26,7 @@ function FeedCountdownCard({ countdown }: { countdown: ReturnType<typeof buildTr
     if (countdown.mode === 'done') {
         return (
             <div className="trip-feed__countdown trip-feed__countdown--done">
-                <span className="trip-feed__countdown-icon" aria-hidden>
-                    <MaterialIcon name="check_circle" variant="app" opticalSize={28} />
-                </span>
+                <MaterialIcon name="check_circle" variant="app" opticalSize={22} />
                 <span className="trip-feed__countdown-done-label">{countdown.label}</span>
             </div>
         );
@@ -45,20 +41,56 @@ function FeedCountdownCard({ countdown }: { countdown: ReturnType<typeof buildTr
                 ? 'hoje'
                 : 'dias';
 
+    const stackLines =
+        countdown.suffix &&
+        countdown.days != null &&
+        unit &&
+        unit !== 'hoje' &&
+        (countdown.mode === 'until_start' || countdown.mode === 'until_end');
+
+    if (stackLines) {
+        return (
+            <div
+                className={`trip-feed__countdown trip-feed__countdown--stack${
+                    countdown.mode === 'until_end' ? ' trip-feed__countdown--live' : ''
+                }`}
+                aria-live="polite"
+            >
+                <p className="trip-feed__countdown-prelude">
+                    <MaterialIcon
+                        name={countdown.mode === 'until_end' ? 'flight_land' : 'flight_takeoff'}
+                        variant="app"
+                        opticalSize={14}
+                    />
+                    <span>{countdown.label}</span>
+                </p>
+                <p className="trip-feed__countdown-metric" aria-label={`${countdown.days} ${unit}`}>
+                    <strong className="trip-feed__countdown-days">{countdown.days}</strong>
+                    <span className="trip-feed__countdown-unit">{unit}</span>
+                </p>
+                <p className="trip-feed__countdown-tail">{countdown.suffix}</p>
+            </div>
+        );
+    }
+
+    const leadText = [countdown.label, countdown.suffix].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+
     return (
         <div
             className={`trip-feed__countdown${countdown.mode === 'until_end' ? ' trip-feed__countdown--live' : ''}`}
             aria-live="polite"
         >
-            <span className="trip-feed__countdown-eyebrow">
-                <MaterialIcon
-                    name={countdown.mode === 'until_end' ? 'flight_land' : 'flight_takeoff'}
-                    variant="app"
-                    opticalSize={14}
-                />
-                {countdown.label}
-            </span>
-            <div className="trip-feed__countdown-hero">
+            {leadText ? (
+                <p className="trip-feed__countdown-copy">
+                    <MaterialIcon
+                        name={countdown.mode === 'until_end' ? 'flight_land' : 'flight_takeoff'}
+                        variant="app"
+                        opticalSize={14}
+                    />
+                    <span className="trip-feed__countdown-lead">{leadText}</span>
+                </p>
+            ) : null}
+            <div className="trip-feed__countdown-metric">
                 {countdown.days != null ? (
                     <>
                         <strong className="trip-feed__countdown-days">{countdown.days}</strong>
@@ -67,10 +99,9 @@ function FeedCountdownCard({ countdown }: { countdown: ReturnType<typeof buildTr
                         ) : null}
                     </>
                 ) : (
-                    <MaterialIcon name="hourglass_empty" variant="app" opticalSize={32} />
+                    <MaterialIcon name="hourglass_empty" variant="app" opticalSize={28} />
                 )}
             </div>
-            {countdown.suffix ? <span className="trip-feed__countdown-suffix">{countdown.suffix}</span> : null}
         </div>
     );
 }
@@ -82,20 +113,17 @@ function FeedWorldClocks({ zones }: { zones: ReturnType<typeof buildTripDiaryFee
         return () => window.clearInterval(id);
     }, []);
 
+    if (!zones.length) return null;
+
     return (
         <div className="trip-feed__clocks" aria-label="Horários locais">
             {zones.map((z) => (
                 <div key={z.id} className={`trip-feed__clock${z.id === 'home' ? ' trip-feed__clock--home' : ''}`}>
-                    <span className="trip-feed__clock-ico" aria-hidden>
-                        <MaterialIcon name="schedule" variant="app" opticalSize={16} />
-                    </span>
                     <span className="trip-feed__clock-flag" aria-hidden>
                         {z.flag}
                     </span>
-                    <div className="trip-feed__clock-meta">
-                        <span className="trip-feed__clock-city">{z.label}</span>
-                        <time className="trip-feed__clock-time">{formatClockInZone(now, z.timeZone)}</time>
-                    </div>
+                    <span className="trip-feed__clock-city">{z.label}</span>
+                    <time className="trip-feed__clock-time">{formatClockInZone(now, z.timeZone)}</time>
                 </div>
             ))}
         </div>
@@ -105,45 +133,21 @@ function FeedWorldClocks({ zones }: { zones: ReturnType<typeof buildTripDiaryFee
 function FeedCityTrail({ cities }: { cities: TripFeedCityPin[] }) {
     if (!cities.length) return null;
 
-    const n = Math.max(cities.length, 2);
     return (
-        <div className="trip-feed__trail trip-feed__trail--rota">
-            <div
-                className="viagens-sim-rota-rail trip-feed__rail"
-                style={{ ['--sim-rota-n' as string]: String(n) }}
-                role="list"
-                aria-label="Locais do roteiro"
-            >
-                {cities.map((city, i) => (
-                    <Fragment key={city.id}>
-                        {i > 0 ? (
-                            <div className="viagens-sim-rota-rail__leg is-live" aria-hidden>
-                                <span className="viagens-sim-rota-rail__leg-track">
-                                    <span className="viagens-sim-rota-rail__leg-glow" />
-                                </span>
-                                <span className="viagens-sim-rota-rail__leg-icon">
-                                    <MaterialIcon name="route" variant="app" opticalSize={12} />
-                                </span>
-                            </div>
-                        ) : null}
-                        <div
-                            className={`viagens-sim-rota-rail__node viagens-sim-rota-rail__node--${
-                                PIN_TINTS[i % PIN_TINTS.length]
-                            } trip-feed__rail-node`}
-                            style={{ ['--node-i' as string]: String(i + 1) }}
-                            role="listitem"
-                        >
-                            <span className="viagens-sim-rota-rail__ring" aria-hidden />
-                            <span className="viagens-sim-rota-rail__pin" aria-hidden>
-                                <MaterialIcon name="location_on" variant="app" opticalSize={16} />
-                            </span>
-                            <span className="viagens-sim-rota-rail__label">{city.name}</span>
-                            {city.sub ? <span className="viagens-sim-rota-rail__sub">{city.sub}</span> : null}
-                        </div>
-                    </Fragment>
-                ))}
-            </div>
-        </div>
+        <nav className="trip-feed__route" aria-label="Locais do roteiro">
+            {cities.map((city, i) => (
+                <Fragment key={city.id}>
+                    {i > 0 ? (
+                        <span className="trip-feed__route-sep" aria-hidden>
+                            →
+                        </span>
+                    ) : null}
+                    <span className="trip-feed__route-stop" title={city.sub || undefined}>
+                        {city.name}
+                    </span>
+                </Fragment>
+            ))}
+        </nav>
     );
 }
 
@@ -161,54 +165,49 @@ function DayBudget({
     const foreign = fx && fx.code !== 'BRL' ? formatForeignMoney(fx.amount, fx.code) : null;
     const rate = showFx ? rates?.[code] : null;
 
+    const rateLabel = !hasAmount
+        ? 'Sem teto diário'
+        : showFx
+          ? rate != null
+              ? `1 ${code} ≈ ${formatBRL(rate)}`
+              : `Moeda local: ${code}`
+          : 'Real (BRL)';
+
     return (
-        <div className={`trip-feed__budget${hasAmount ? '' : ' trip-feed__budget--empty'}`}>
-            <div className="trip-feed__budget-top">
-                <span className="trip-feed__budget-icon" aria-hidden>
-                    <MaterialIcon name="account_balance_wallet" variant="app" opticalSize={15} />
-                </span>
-                <span className="trip-feed__budget-kicker">Carteira</span>
-            </div>
-            {hasAmount ? (
-                <>
-                    <strong className="trip-feed__budget-brl">{day.budget.formatted}</strong>
-                    {showFx ? (
-                        <span className="trip-feed__budget-fx">{foreign ?? `— ${code}`}</span>
-                    ) : null}
-                    {showFx ? (
-                        <span className="trip-feed__budget-rate">
-                            {rate != null
-                                ? `1 ${code} ≈ ${formatBRL(rate)}`
-                                : `Moeda local: ${code}`}
-                        </span>
-                    ) : (
-                        <span className="trip-feed__budget-rate">Real (BRL)</span>
-                    )}
-                </>
-            ) : (
-                <>
-                    <strong className="trip-feed__budget-brl trip-feed__budget-brl--muted">—</strong>
-                    <span className="trip-feed__budget-rate">Sem teto diário</span>
-                </>
-            )}
+        <div
+            className={`trip-feed__budget trip-feed__budget--card${hasAmount ? '' : ' trip-feed__budget--empty'}`}
+        >
+            <span className="trip-feed__budget-label">Carteira</span>
+            <strong className={`trip-feed__budget-brl${hasAmount ? '' : ' trip-feed__budget-brl--muted'}`}>
+                {hasAmount ? day.budget.formatted : '—'}
+            </strong>
+            {hasAmount && showFx ? (
+                <span className="trip-feed__budget-fx">{foreign ?? `— ${code}`}</span>
+            ) : null}
+            <span className="trip-feed__budget-rate">{rateLabel}</span>
         </div>
     );
 }
 
-function HighlightTimes({ times }: { times: TripDiaryTimeTwin[] }) {
+function HighlightTimes({ times, stacked }: { times: TripDiaryTimeTwin[]; stacked?: boolean }) {
     return (
-        <div className="trip-feed__hl-times" aria-label="Horários">
+        <div
+            className={`trip-feed__hl-times${stacked ? ' trip-feed__hl-times--stacked' : ''}`}
+            aria-label="Horários"
+        >
             {times.map((t, i) => (
                 <Fragment key={`${t.role}-${t.label}`}>
-                    {i > 0 ? <span className="trip-feed__hl-time-sep" aria-hidden>·</span> : null}
+                    {i > 0 ? <span className="trip-feed__hl-time-sep" aria-hidden>→</span> : null}
                     <span
                         className={`trip-feed__hl-time trip-feed__hl-time--${t.role}`}
                         data-tip={t.tip}
                         aria-label={t.tip}
                     >
-                        <span className="trip-feed__hl-time-flag" aria-hidden>
-                            {t.flag}
-                        </span>
+                        {!stacked ? (
+                            <span className="trip-feed__hl-time-flag" aria-hidden>
+                                {t.flag}
+                            </span>
+                        ) : null}
                         <time className="trip-feed__hl-time-hm" dateTime={t.hm}>
                             {t.hm}
                         </time>
@@ -250,61 +249,52 @@ function FeedDayCard({
           })()
         : null;
 
+    const city = cityTagLabel(day);
+    const where = city || day.countryLabel.trim() || '—';
+
     return (
         <article className={`trip-feed__day${day.isToday ? ' trip-feed__day--today' : ''}`} id={`trip-feed-day-${day.dayKey}`}>
             <header className="trip-feed__day-head">
-                <div className="trip-feed__day-id">
-                    <span className="trip-feed__day-badge">Dia {day.dayIndex}</span>
+                <h3 className="trip-feed__day-title">
+                    <span className="trip-feed__day-index">Dia {day.dayIndex}</span>
                     {dateLine ? (
-                        <span className="trip-feed__day-date" title={day.label?.long}>
-                            {dateLine}
-                        </span>
-                    ) : null}
-                </div>
-                {(() => {
-                    const city = cityTagLabel(day);
-                    return (
-                        <span
-                            className={[
-                                'trip-feed__place-tag',
-                                city ? '' : 'trip-feed__place-tag--flag-only'
-                            ]
-                                .filter(Boolean)
-                                .join(' ')}
-                            title={city || day.countryLabel || undefined}
-                        >
-                            <span className="trip-feed__place-pin" aria-hidden>
-                                <MaterialIcon name="location_on" variant="app" opticalSize={13} />
+                        <>
+                            <span className="trip-feed__day-sep" aria-hidden>
+                                ·
                             </span>
-                            <span aria-hidden>{day.countryFlag || '📍'}</span>
-                            {city ? <span>{city}</span> : null}
-                        </span>
-                    );
-                })()}
+                            <time className="trip-feed__day-date" title={day.label?.long}>
+                                {dateLine}
+                            </time>
+                        </>
+                    ) : null}
+                </h3>
+                <p className="trip-feed__day-where" title={where}>
+                    <span aria-hidden>{day.countryFlag || ''}</span>
+                    <span>{where}</span>
+                </p>
                 {day.isToday ? <span className="trip-feed__day-live">Hoje</span> : null}
             </header>
 
-            <div className="trip-feed__day-body">
+            <div className="trip-feed__day-panel">
                 <div className="trip-feed__day-main">
                     {day.highlights.length > 0 ? (
                         <ul className="trip-feed__highlights">
                             {day.highlights.map((h) => (
                                 <li key={h.id} className={`trip-feed__hl trip-feed__hl--${h.kind}`}>
-                                    <div
-                                        className={`trip-feed__hl-row${h.times?.length ? ' trip-feed__hl-row--timed' : ''}`}
-                                    >
+                                    <div className="trip-feed__hl-row">
                                         <span className="trip-feed__hl-icon" aria-hidden>
-                                            <MaterialIcon name={highlightIcon(h.kind)} variant="app" opticalSize={14} />
+                                            <MaterialIcon
+                                                name={highlightIcon(h.kind)}
+                                                variant="app"
+                                                opticalSize={16}
+                                            />
                                         </span>
-                                        <span className="trip-feed__hl-text">{h.text}</span>
-                                        {h.times?.length ? (
-                                            <>
-                                                <span className="trip-feed__hl-dash" aria-hidden />
-                                                <HighlightTimes times={h.times} />
-                                            </>
-                                        ) : null}
+                                        <div className="trip-feed__hl-copy">
+                                            <span className="trip-feed__hl-text">{h.text}</span>
+                                            {h.times?.length ? <HighlightTimes times={h.times} stacked /> : null}
+                                            {h.sub ? <span className="trip-feed__hl-sub">{h.sub}</span> : null}
+                                        </div>
                                     </div>
-                                    {h.sub ? <span className="trip-feed__hl-sub">{h.sub}</span> : null}
                                 </li>
                             ))}
                         </ul>
@@ -314,7 +304,7 @@ function FeedDayCard({
 
                     {day.checklist.length > 0 ? (
                         <section className="trip-feed__checks" aria-label={`Checklist do dia ${day.dayIndex}`}>
-                            <h3 className="trip-feed__checks-title">Checklist</h3>
+                            <h4 className="trip-feed__checks-title">Checklist</h4>
                             <ul>
                                 {day.checklist.map((c) => (
                                     <li key={c.id} className={isCheckDone(c) ? 'is-done' : undefined}>
@@ -331,7 +321,7 @@ function FeedDayCard({
                     ) : null}
                 </div>
 
-                <aside className="trip-feed__day-aside">
+                <aside className="trip-feed__day-aside" aria-label={`Carteira do dia ${day.dayIndex}`}>
                     <DayBudget day={day} rates={rates} />
                 </aside>
             </div>
@@ -346,52 +336,25 @@ export function TripFeedSection({ trip, draft }: Props) {
 
     if (!draft.startsOn || !draft.endsOn) return null;
 
-    const dayRows: TripDiaryDayEntry[][] = [];
-    for (let i = 0; i < feed.days.length; i += 2) {
-        dayRows.push(feed.days.slice(i, i + 2));
-    }
-
     return (
         <section className="trip-feed" aria-label="Diário da viagem">
-            <div className="trip-feed__hub">
+            <header className="viagens-hero trip-feed__hub">
                 <FeedCountdownCard countdown={feed.countdown} />
-                <div className="trip-feed__hub-main">
-                    <FeedCityTrail cities={feed.cityTrail} />
-                    <FeedWorldClocks zones={feed.clocks} />
+                <div className="trip-feed__hub-body">
+                    <div className="trip-feed__hub-inset">
+                        <FeedCityTrail cities={feed.cityTrail} />
+                        <FeedWorldClocks zones={feed.clocks} />
+                    </div>
                 </div>
-            </div>
+            </header>
 
-            <div className="trip-feed__diary" aria-label="Diário por dia">
-                {dayRows.map((row, rowIdx) => (
-                    <Fragment key={row[0]?.dayKey ?? rowIdx}>
-                        <div className="trip-feed__day-row">
-                            {row.map((day, colIdx) => (
-                                <Fragment key={day.dayKey}>
-                                    <FeedDayCard day={day} rates={rates} />
-                                    {colIdx === 0 && row[1] ? (
-                                        <div className="trip-feed__seq trip-feed__seq--across" aria-hidden>
-                                            <span className="trip-feed__seq-line" />
-                                            <span className="trip-feed__seq-icon">
-                                                <MaterialIcon name="arrow_forward" variant="app" opticalSize={16} />
-                                            </span>
-                                            <span className="trip-feed__seq-line" />
-                                        </div>
-                                    ) : null}
-                                </Fragment>
-                            ))}
-                        </div>
-                        {rowIdx < dayRows.length - 1 ? (
-                            <div className="trip-feed__seq trip-feed__seq--down" aria-hidden>
-                                <span className="trip-feed__seq-line trip-feed__seq-line--vert" />
-                                <span className="trip-feed__seq-icon">
-                                    <MaterialIcon name="south" variant="app" opticalSize={16} />
-                                </span>
-                                <span className="trip-feed__seq-line trip-feed__seq-line--vert" />
-                            </div>
-                        ) : null}
-                    </Fragment>
+            <ol className="trip-feed__diary" aria-label="Diário por dia">
+                {feed.days.map((day) => (
+                    <li key={day.dayKey} className="trip-feed__diary-item">
+                        <FeedDayCard day={day} rates={rates} />
+                    </li>
                 ))}
-            </div>
+            </ol>
         </section>
     );
 }

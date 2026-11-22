@@ -6,7 +6,11 @@ import { ViagensMap } from '../components/ViagensMap';
 import { ViagensPortalSection } from '../components/ViagensPortalSection';
 import { ViagensCasaCentral } from '../components/ViagensCasaCentral';
 import { ViagensTrilho } from '../components/ViagensTrilho';
+import '../../dashboard/styles/dashboard-tokens.css';
 import '../styles/viagens-casa.css';
+import '../styles/viagens-atlas-sidebar.css';
+import '../styles/viagens-atlas-chrome.css';
+import '../styles/viagens-map-atlas-theme.css';
 import '../styles/viagens-header-actions.css';
 import '../theme/viagens-theme.css';
 import { ScreenLoader } from '../../../components/ui/ScreenLoader';
@@ -17,6 +21,7 @@ export function AtlasPage() {
     const [visits, setVisits] = useState<MapVisit[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
+    const [focusedTripId, setFocusedTripId] = useState<string | null>(null);
     const load = useCallback(async () => {
         try {
             setError(null);
@@ -49,13 +54,16 @@ export function AtlasPage() {
                     <div className="viagens-casa-layout">
                         <div className="viagens-casa-sidebar">
                             <ViagensCasaCentral />
-                            <ViagensTrilho trips={trips} />
+                            <div className="atlas-sidebar-divider" aria-hidden />
+                            <ViagensTrilho trips={trips} focusedTripId={focusedTripId} />
                         </div>
                         <main className="viagens-casa-main">
                             <div id="viagens-map-host">
                                 <ViagensMap
                                     trips={trips}
                                     visits={visits}
+                                    focusedTripId={focusedTripId}
+                                    onFocusedTripIdChange={setFocusedTripId}
                                     onOpenTrip={(id) => navigate(`/viagens/${id}`)}
                                 />
                             </div>

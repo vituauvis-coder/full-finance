@@ -65,12 +65,12 @@ export function TripTicketCard({ trip, hideDates = false }: Props) {
     return (
         <button
             type="button"
-            className={`trip-ticket${showArt ? ' trip-ticket--has-art' : ''}${hideDates ? ' trip-ticket--no-dates' : ''}`}
+            className={`trip-ticket${showArt ? ' trip-ticket--has-art' : ''}${hideDates ? ' trip-ticket--no-dates trip-ticket--atlas' : ''}`}
             data-status={status}
             aria-label={`Abrir viagem ${title}`}
             onClick={openTrip}
         >
-            <span className="trip-ticket__perforation" aria-hidden />
+            {hideDates ? null : <span className="trip-ticket__perforation" aria-hidden />}
             {showArt ? (
                 <div className="trip-ticket__art">
                     <img
@@ -126,11 +126,13 @@ export function TripTicketCard({ trip, hideDates = false }: Props) {
                 </dl>
                 <CapBar fraction={trip.capUsedFraction ?? 0} />
             </div>
-            <div className="trip-ticket__stub" aria-hidden>
-                <span className="trip-ticket__stub-label">REF</span>
-                <span className="trip-ticket__stub-code">{tripTicketRef(trip)}</span>
-                <span className="trip-ticket__barcode" />
-            </div>
+            {hideDates ? null : (
+                <div className="trip-ticket__stub" aria-hidden>
+                    <span className="trip-ticket__stub-label">REF</span>
+                    <span className="trip-ticket__stub-code">{tripTicketRef(trip)}</span>
+                    <span className="trip-ticket__barcode" />
+                </div>
+            )}
         </button>
     );
 }
