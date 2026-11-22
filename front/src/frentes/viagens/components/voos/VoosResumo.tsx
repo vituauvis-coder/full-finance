@@ -92,6 +92,21 @@ export function VoosResumo({
             return { program, needed, gap: Math.max(0, needed - have) };
         });
     }, [programs, payload]);
+    const walletTripHint = useMemo(() => {
+        const withNeed = needs.filter((n) => n.needed > 0);
+        if (!withNeed.length) return null;
+        const totalGap = withNeed.reduce((sum, n) => sum + n.gap, 0);
+        if (totalGap > 0) {
+            const wallets = withNeed.filter((n) => n.gap > 0).length;
+            return {
+                tone: 'warn' as const,
+                text: `Para emitir os voos desta viagem faltam ${formatPts(totalGap)}${
+                    wallets > 1 ? ` em ${wallets} carteiras` : ''
+                }.`
+            };
+        }
+        return { tone: 'ok' as const, text: 'Pontos cobertos para os voos desta viagem.' };
+    }, [needs]);
     const scene = useMemo(
         () => tripFlightScenario(tripFlightSegments(payload) as TripFlightSegment[], programsForLedger),
         [payload, programsForLedger]
@@ -170,6 +185,13 @@ export function VoosResumo({
                     </div>
                 </div>
                 {walletError ? <p className="voos-resumo__hint">{walletError}</p> : null}
+                {walletTripHint ? (
+                    <p
+                        className={`voos-resumo__hint voos-resumo__hint--trip voos-resumo__hint--${walletTripHint.tone}`}
+                    >
+                        {walletTripHint.text}
+                    </p>
+                ) : null}
                 {walletLoading && programs.length === 0 ? (
                     <p className="voos-resumo__hint voos-resumo__hint--loading" aria-live="polite">
                         Carregando carteira…

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     duplicateFlightSimulation,
     emptyFlightSimulation,
@@ -6,7 +6,7 @@ import {
     normalizeFlightSegment,
     tripFlightSegments
 } from '@motor/viagens/flight-simulation.js';
-import { cheapestOptionId, chosenDayTotal, optionScore } from '@motor/viagens/flight-ledger.js';
+import { cheapestOptionId, optionScore } from '@motor/viagens/flight-ledger.js';
 import { MaterialIcon } from '../../../../components/icons/MaterialIcon';
 import { DeleteIcon } from '../../../../components/icons/DeleteIcon';
 import { formatBRL } from '../../utils/map-utils';
@@ -23,6 +23,8 @@ type Props = {
     tripEndsOn?: string;
     programsForLedger: MilesProgram[];
     onChangeSegments: (segments: TripFlightSegment[]) => void;
+    focusEdit?: EditTarget | null;
+    onFocusEditHandled?: () => void;
 };
 
 type EditTarget = { segmentId: string; simulationId: string };
@@ -48,18 +50,21 @@ export function VoosSimulationsPanel({
     tripStartsOn,
     tripEndsOn,
     programsForLedger,
-    onChangeSegments
+    onChangeSegments,
+    focusEdit = null,
+    onFocusEditHandled
 }: Props) {
     const segments = asSegments(payload);
     const [editing, setEditing] = useState<EditTarget | null>(null);
+
+    useEffect(() => {
+        if (!focusEdit) return;
+        setEditing(focusEdit);
+        onFocusEditHandled?.();
+    }, [focusEdit, onFocusEditHandled]);
     const [showDiscarded, setShowDiscarded] = useState<Record<string, boolean>>({});
     const [undo, setUndo] = useState<{ segmentId: string; simulation: TripFlightSimulation; index: number } | null>(
         null
-    );
-
-    const dayTotal = useMemo(
-        () => chosenDayTotal(segments.flatMap((s) => s.simulations), programsForLedger),
-        [segments, programsForLedger]
     );
 
     const editingSim = editing
@@ -151,32 +156,43 @@ export function VoosSimulationsPanel({
     const compact = segments.length <= 1;
 
     return (
-        <div className="voos-board">
-            <header className="voos-board__head">
-                <div>
-                    <p className="pontos-kicker">Lista</p>
-                    <h2>Voos desta viagem</h2>
-                </div>
-                {segments.length === 0 ? (
-                    <button type="button" className="voos-add-segment" onClick={() => addVoo()}>
-                        + Novo voo
-                    </button>
+        <>
+            <div className="voos-lista-stack" id="voos-board" aria-label="Voos desta viagem">
+                {undo ? (
+                    <div className="voos-undo voos-lista-stack__undo">
+                        <span>Removido: {undo.simulation.label || 'voo'}</span>
+                        <button
+                            type="button"
+                            className="voos-text-btn"
+                            onClick={() => {
+                                const seg = segments.find((s) => s.id === undo.segmentId);
+                                if (seg) {
+                                    const next = [...seg.simulations];
+                                    next.splice(Math.min(undo.index, next.length), 0, undo.simulation);
+                                    patchSegment(undo.segmentId, { simulations: next });
+                                }
+                                setUndo(null);
+                            }}
+                        >
+                            Desfazer
+                        </button>
+                    </div>
                 ) : null}
-            </header>
-
-            {segments.length === 0 ? (
-                <div className="voos-empty voos-empty--board">
-                    <span className="voos-empty__icon" aria-hidden>
-                        <MaterialIcon name="flight_takeoff" variant="app" opticalSize={32} />
-                    </span>
-                    <p>Nenhum voo nesta viagem.</p>
-                    <p>
-                        Cada opção guarda trecho, datas, pessoas e a simulação em milhas e dinheiro — com o custo do
-                        dia em reais.
-                    </p>
-                </div>
-            ) : (
-                segments.map((segment) => {
+                {segments.length === 0 ? (
+                    <section className="transporte-segment-section transporte-segment-section--empty" aria-label="Voos desta viagem">
+                        <div className="voos-empty voos-empty--board">
+                            <span className="voos-empty__icon" aria-hidden>
+                                <MaterialIcon name="flight_takeoff" variant="app" opticalSize={32} />
+                            </span>
+                            <p>Nenhum voo nesta viagem.</p>
+                            <p>
+                                Cada opção guarda trecho, datas, pessoas e a simulação em milhas e dinheiro — com o
+                                custo do dia em reais.
+                            </p>
+                        </div>
+                    </section>
+                ) : (
+                    segments.map((segment) => {
                     const rank = { escolhida: 0, candidata: 1, descartada: 2 } as Record<string, number>;
                     const sorted = [...segment.simulations].sort((a, b) => {
                         const r = (rank[a.status] ?? 9) - (rank[b.status] ?? 9);
@@ -196,7 +212,11 @@ export function VoosSimulationsPanel({
                     const cheapestMark = cheapestSim ? letters.get(cheapestSim.id) : null;
                     const openDiscarded = !!showDiscarded[segment.id];
                     return (
-                        <section key={segment.id} className={`voos-segment${compact ? ' voos-segment--solo' : ''}`}>
+                        <section
+                            key={segment.id}
+                            className={`transporte-segment-section voos-segment${compact ? ' voos-segment--solo' : ''}`}
+                            aria-label={segment.title || 'Trecho aéreo'}
+                        >
                             <header className="voos-segment__head">
                                 <span className="voos-segment__plane" aria-hidden>
                                     <MaterialIcon name="flight" variant="app" opticalSize={18} />
@@ -327,44 +347,8 @@ export function VoosSimulationsPanel({
                         </section>
                     );
                 })
-            )}
-
-            {segments.length > 0 ? (
-                <div className="voos-sims__foot">
-                    <button type="button" className="voos-text-btn" onClick={addSegment}>
-                        + Novo trecho aéreo
-                    </button>
-                    {dayTotal.total > 0 ? (
-                        <p className="voos-muted">
-                            Registrados · custo do dia {formatBRL(dayTotal.total)}
-                            {dayTotal.club > 0
-                                ? ` · voos ${formatBRL(dayTotal.flights)} + clube ${formatBRL(dayTotal.club)}`
-                                : ''}
-                        </p>
-                    ) : null}
-                </div>
-            ) : null}
-
-            {undo ? (
-                <div className="voos-undo">
-                    <span>Removido: {undo.simulation.label || 'voo'}</span>
-                    <button
-                        type="button"
-                        className="voos-text-btn"
-                        onClick={() => {
-                            const seg = segments.find((s) => s.id === undo.segmentId);
-                            if (seg) {
-                                const next = [...seg.simulations];
-                                next.splice(Math.min(undo.index, next.length), 0, undo.simulation);
-                                patchSegment(undo.segmentId, { simulations: next });
-                            }
-                            setUndo(null);
-                        }}
-                    >
-                        Desfazer
-                    </button>
-                </div>
-            ) : null}
+                )}
+            </div>
 
             <FlightEditorModal
                 open={!!editingSim}
@@ -385,6 +369,6 @@ export function VoosSimulationsPanel({
                     }
                 }}
             />
-        </div>
+        </>
     );
 }

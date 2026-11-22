@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { MutableRefObject } from 'react';
 import { MaterialIcon } from '../../../../components/icons/MaterialIcon';
 import {
     groundTransportRoteiroStats,
@@ -16,6 +17,9 @@ type Props = {
     payload: TripPayload;
     destinations: TripDestination[];
     onChange: (mutate: TripGroundTransport[] | ((prev: TripGroundTransport[]) => TripGroundTransport[])) => void;
+    /** Liga o botão do header da página ao fluxo de novo registro. */
+    registerAddRef?: MutableRefObject<(() => void) | null>;
+    showResumo?: boolean;
 };
 
 function formatDay(iso?: string) {
@@ -25,7 +29,14 @@ function formatDay(iso?: string) {
     return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-export function TransporteTerrestrePanel({ draft, payload, destinations, onChange }: Props) {
+export function TransporteTerrestrePanel({
+    draft,
+    payload,
+    destinations,
+    onChange,
+    registerAddRef,
+    showResumo = false
+}: Props) {
     const rows = useMemo(() => normalizeGroundTransports(payload), [payload]);
     const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -50,11 +61,19 @@ export function TransporteTerrestrePanel({ draft, payload, destinations, onChang
         onChange(mutate);
     }
 
-    function openNew() {
+    const openNew = useCallback(() => {
         const row = newGroundTransport({ tripDestinationId: defaultDestId });
-        persist((prev) => [...prev, row]);
+        onChange((prev) => [...prev, row]);
         setEditingId(row.id);
-    }
+    }, [defaultDestId, onChange]);
+
+    useEffect(() => {
+        if (!registerAddRef) return;
+        registerAddRef.current = openNew;
+        return () => {
+            if (registerAddRef.current === openNew) registerAddRef.current = null;
+        };
+    }, [registerAddRef, openNew]);
 
     function patchRow(id: string, next: TripGroundTransport) {
         persist((prev) => prev.map((r) => (r.id === id ? next : r)));
@@ -67,23 +86,18 @@ export function TransporteTerrestrePanel({ draft, payload, destinations, onChang
 
     return (
         <>
-            <TerrestreResumo draft={draft} terrestreTotal={terrestreTotal} count={rows.length} />
+            {showResumo ? (
+                <TerrestreResumo draft={draft} terrestreTotal={terrestreTotal} count={rows.length} />
+            ) : null}
 
             <section className="terrestre-registry" aria-label="Transportes terrestres">
-                <header className="terrestre-registry__head terrestre-registry__head--actions">
-                    <button type="button" className="voos-add-segment" onClick={openNew}>
-                        <MaterialIcon name="add" variant="app" opticalSize={18} />
-                        Adicionar
-                    </button>
-                </header>
-
                 {rows.length === 0 ? (
                     <div className="terrestre-empty">
                         <div className="terrestre-empty__art" aria-hidden>
                             <MaterialIcon name="confirmation_number" variant="app" opticalSize={48} />
                         </div>
                         <p>Nenhum bilhete ainda.</p>
-                        <button type="button" className="voos-text-btn" onClick={openNew}>
+                        <button type="button" className="voos-text-btn" onClick={() => openNew()}>
                             Criar primeiro registro
                         </button>
                     </div>
