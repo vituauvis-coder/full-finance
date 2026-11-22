@@ -1,59 +1,58 @@
-import { CivilPeriodToolbar } from '../../../../components/finance/CivilPeriodToolbar';
 import type { Account } from '../../../../lib/types/finance';
 import type { CofrinhosPageModel } from '../../hooks/useCofrinhosPageModel';
-import { CofrinhosSummaryPanel } from './CofrinhosSummaryPanel';
 import { CofrinhosPendingBanner } from './CofrinhosPendingBanner';
-import { CofrinhosChartPlaceholder } from './CofrinhosChartPlaceholder';
 import { CofrinhoGoalCardsGrid } from './CofrinhoGoalCardsGrid';
-import { CofrinhosApplicationsTable } from './CofrinhosApplicationsTable';
+import { CofrinhosLedgerStatement } from './CofrinhosLedgerStatement';
+import { CofrinhosTreemapHero } from './CofrinhosTreemapHero';
 import type { CofrinhoBucket } from '../../domain/cofrinhoAggregations';
 
 type Props = {
     model: CofrinhosPageModel;
-    goalYear: number;
     accounts: Account[];
-    period: string;
-    year: number;
-    onPeriodChange: (period: string) => void;
-    onYearChange: (year: number) => void;
     onEditBucket: (bucket: CofrinhoBucket) => void;
-    onAllocate: (bucketId?: string) => void;
-    onRefresh: () => Promise<void>;
+    onAllocate: (bucketId?: string, poolYearMonth?: string) => void;
+    onOpenHistory: (bucket: CofrinhoBucket) => void;
     onDeleteApplication: (id: string) => void;
+    onRefresh: () => Promise<void>;
 };
 
 export function CofrinhosPageWorkspace({
     model,
-    goalYear,
     accounts,
-    period,
-    year,
-    onPeriodChange,
-    onYearChange,
     onEditBucket,
     onAllocate,
-    onRefresh,
-    onDeleteApplication
+    onOpenHistory,
+    onDeleteApplication,
+    onRefresh
 }: Props) {
-    const { currency, yearMonth, buckets, applications, goals, expenses, summary } = model;
+    const {
+        currency,
+        chartYear,
+        goalYear,
+        buckets,
+        applications,
+        goals,
+        expenses,
+        tripPayloadOutflows,
+        summary,
+        pendingByMonth
+    } = model;
 
     return (
         <>
-            <CivilPeriodToolbar
-                period={period}
-                year={year}
-                onPeriodChange={onPeriodChange}
-                onYearChange={onYearChange}
-                accent="cofrinhos"
+            <CofrinhosTreemapHero
+                currency={currency}
+                summary={summary}
+                chartYear={chartYear}
+                buckets={buckets}
+                applications={applications}
+                expenses={expenses}
             />
-            <CofrinhosSummaryPanel currency={currency} summary={summary} />
             <CofrinhosPendingBanner
-                pending={summary.pending}
-                yearMonth={yearMonth}
+                items={pendingByMonth}
                 currency={currency}
                 onDistribute={() => onAllocate()}
             />
-            <CofrinhosChartPlaceholder />
             <CofrinhoGoalCardsGrid
                 buckets={buckets}
                 applications={applications}
@@ -63,15 +62,17 @@ export function CofrinhosPageWorkspace({
                 goalYear={goalYear}
                 onEdit={onEditBucket}
                 onAllocate={onAllocate}
-                onRefresh={onRefresh}
+                onOpenHistory={onOpenHistory}
             />
-            <CofrinhosApplicationsTable
+            <CofrinhosLedgerStatement
+                expenses={expenses}
+                tripPayloadOutflows={tripPayloadOutflows}
                 applications={applications}
                 buckets={buckets}
                 accounts={accounts}
-                yearMonth={yearMonth}
                 currency={currency}
-                onDelete={onDeleteApplication}
+                onDeleteApplication={onDeleteApplication}
+                onRefresh={onRefresh}
             />
         </>
     );

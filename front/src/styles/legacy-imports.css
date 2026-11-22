@@ -34,6 +34,9 @@
 @import '../frentes/dashboard/styles/dashboard-portal-tooltip.css';
 @import '../frentes/dashboard/styles/dashboard-heatmap-legend.css';
 @import '../frentes/dashboard/styles/dashboard-heatmap-layout.css';
+@import '../frentes/dashboard/styles/dashboard-tri-column.css';
+@import '../frentes/dashboard/styles/dashboard-ledger-buckets.css';
+@import '../frentes/dashboard/styles/dashboard-page-filters.css';
 @import '../frentes/dashboard/styles/dashboard-header-facets.css';
 @import '../frentes/dashboard/styles/dashboard-page-spacing.css';
 @import '../frentes/dinheiro/styles/zero-budget-page-spacing.css';
@@ -45,7 +48,11 @@
 @import '../frentes/dinheiro/styles/expense-split.css';
 @import '../frentes/dinheiro/styles/expense-splits-incoming-modern.css';
 @import '../components/finance/expense-form-installment-preview.css';
+@import '../components/finance/expense-form-modal.css';
 @import '../frentes/dinheiro/styles/wallet-modern.css';
+@import '../frentes/dinheiro/styles/wallet-catalog.css';
+@import '../frentes/dinheiro/styles/wallet-account-modal.css';
+@import '../frentes/dinheiro/styles/wallet-mini-cards.css';
 @import '../frentes/dinheiro/styles/movements-header-facets.css';
 @import '../frentes/dinheiro/styles/cofrinhos-page-spacing.css';
 @import '../../../legacy-web/css/pages/viagens/viagens-malote.css';

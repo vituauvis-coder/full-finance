@@ -10,16 +10,26 @@ export type GainSummaryTotals = {
     total: number;
     receivedCount: number;
     pendingCount: number;
-    topCategory: string;
-    topCategoryAmount: number;
+    fixed: number;
+    extra: number;
 };
+
+export function isGainFixedCategory(category: string): boolean {
+    const raw = String(category || '').trim().toLowerCase();
+    const c = raw.normalize('NFD').replace(/\p{M}/gu, '');
+    if (c === 'vr') return true;
+    if (c === 'salario') return true;
+    if (raw === 'salário') return true;
+    if (c === 'vale refeicao') return true;
+    return false;
+}
 
 export type GainSummaryStats = { showHint: true } | ({ showHint: false } & GainSummaryTotals);
 
 export type GainSummaryMom = {
-    received: MomVariationState;
-    pending: MomVariationState;
-    topCategory: MomVariationState;
+    total: MomVariationState;
+    fixed: MomVariationState;
+    extra: MomVariationState;
 };
 
 export function aggregateGainTotals(rows: Movement[]): GainSummaryTotals {
@@ -27,7 +37,8 @@ export function aggregateGainTotals(rows: Movement[]): GainSummaryTotals {
     let pending = 0;
     let receivedCount = 0;
     let pendingCount = 0;
-    const byCat = new Map<string, number>();
+    let fixed = 0;
+    let extra = 0;
 
     for (const t of rows) {
         if (!gainCountsInTotals(t)) continue;
@@ -40,17 +51,9 @@ export function aggregateGainTotals(rows: Movement[]): GainSummaryTotals {
             receivedCount += 1;
         }
         const cat = gainTopLevelCategory(t);
-        byCat.set(cat, (byCat.get(cat) ?? 0) + amt);
+        if (isGainFixedCategory(cat)) fixed += amt;
+        else extra += amt;
     }
-
-    let topCategory = '—';
-    let topAmt = 0;
-    byCat.forEach((amt, cat) => {
-        if (amt > topAmt) {
-            topAmt = amt;
-            topCategory = cat;
-        }
-    });
 
     return {
         received,
@@ -58,8 +61,8 @@ export function aggregateGainTotals(rows: Movement[]): GainSummaryTotals {
         total: received + pending,
         receivedCount,
         pendingCount,
-        topCategory: topAmt > 0 ? topCategory : '—',
-        topCategoryAmount: topAmt
+        fixed,
+        extra
     };
 }
 
@@ -81,7 +84,7 @@ export function gainSummaryMomStates(
 
     if (!isSingle || !prev) {
         const need = { kind: 'need_single_month' as const };
-        return { received: need, pending: need, topCategory: need };
+        return { total: need, fixed: need, extra: need };
     }
 
     const prevRows = filterMovementsInPeriod(
@@ -93,13 +96,13 @@ export function gainSummaryMomStates(
     const prevAgg = aggregateGainTotals(prevRows);
 
     return {
-        received: computeMomVariation(current.received, prevAgg.received, true, false),
-        pending: computeMomVariation(current.pending, prevAgg.pending, true, false),
-        topCategory: computeMomVariation(current.topCategoryAmount, prevAgg.topCategoryAmount, true, false)
+        total: computeMomVariation(current.total, prevAgg.total, true, false),
+        fixed: computeMomVariation(current.fixed, prevAgg.fixed, true, false),
+        extra: computeMomVariation(current.extra, prevAgg.extra, true, false)
     };
 }
 
 export function gainSummaryMomWhenHint(): GainSummaryMom {
     const hidden = { kind: 'hidden' as const };
-    return { received: hidden, pending: hidden, topCategory: hidden };
+    return { total: hidden, fixed: hidden, extra: hidden };
 }

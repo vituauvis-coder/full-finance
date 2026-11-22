@@ -41,6 +41,165 @@
     line-height: 1.2;
 }
 
+/* —— Entradas / Saídas: resumo em coluna + treemap —— */
+:is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern .movements-treemap-hero {
+    display: grid;
+    grid-template-columns: minmax(12.75rem, 15.25rem) minmax(0, 1fr);
+    gap: 0.7rem;
+    width: 100%;
+    align-items: stretch;
+}
+
+:is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern .movements-treemap-hero__summary.summary-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    margin-bottom: 0;
+    min-width: 0;
+}
+
+:is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern .movements-treemap-hero__summary .movement-summary-card {
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 0.62rem;
+    min-height: 0;
+    padding: 0.72rem 0.82rem;
+    border-radius: 12px;
+    border: 1px solid var(--dash-surface-border);
+    box-shadow: var(--dash-surface-shadow);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+#gains-page.movements-page--modern .movements-treemap-hero__summary .movement-summary-card {
+    background: linear-gradient(
+        155deg,
+        color-mix(in srgb, var(--gains-accent, #10b981) 6%, var(--dash-surface-bg)) 0%,
+        var(--dash-surface-bg) 58%
+    );
+}
+
+#expenses-page.movements-page--modern .movements-treemap-hero__summary .movement-summary-card {
+    padding: 0.58rem 0.72rem;
+    background: linear-gradient(
+        155deg,
+        color-mix(in srgb, var(--expenses-accent, #f43f5e) 6%, var(--dash-surface-bg)) 0%,
+        var(--dash-surface-bg) 58%
+    );
+}
+
+#expenses-page.movements-page--modern .movements-treemap-hero__summary.summary-cards {
+    gap: 0.35rem;
+}
+
+#gains-page.movements-page--modern .movements-treemap-hero__summary .movement-summary-card:hover {
+    border-color: color-mix(in srgb, var(--gains-accent, #10b981) 34%, var(--dash-border));
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+}
+
+#expenses-page.movements-page--modern .movements-treemap-hero__summary .movement-summary-card:hover {
+    border-color: color-mix(in srgb, var(--expenses-accent, #f43f5e) 34%, var(--dash-border));
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+}
+
+:is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern .movements-treemap-hero__summary .card-icon {
+    width: 2.2rem;
+    height: 2.2rem;
+    min-width: 2.2rem;
+    min-height: 2.2rem;
+    margin-right: 0;
+    border-radius: 10px;
+    font-size: 1.05rem;
+}
+
+:is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern .movements-treemap-hero__summary .card-icon .app-icon {
+    font-size: 1.15rem;
+}
+
+:is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern .movements-treemap-hero__summary .card-content {
+    flex: 1;
+    min-width: 0;
+}
+
+:is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern .movements-treemap-hero__summary .card-content h3 {
+    margin: 0;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--dash-text-tertiary);
+    line-height: 1.2;
+}
+
+:is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern .movements-treemap-hero__summary .movement-summary-card__value {
+    margin-top: 0.2rem;
+    font-size: 1.02rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--dash-text-primary);
+    letter-spacing: -0.02em;
+}
+
+:is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern .movements-treemap-hero__summary .movement-summary-card__footer {
+    margin-top: 0.28rem;
+    min-height: 0;
+    font-size: 0.72rem;
+}
+
+:is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern .movements-treemap-hero__map {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+:is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern .movements-treemap-hero__map .treemap-container {
+    flex: 1 1 auto;
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+[data-theme='dark']
+    #gains-page.movements-page--modern
+    .movements-treemap-hero__summary
+    .movement-summary-card {
+    background: linear-gradient(
+        155deg,
+        color-mix(in srgb, var(--gains-accent, #34d399) 10%, var(--dash-surface-bg)) 0%,
+        var(--dash-surface-bg) 55%
+    );
+}
+
+[data-theme='dark']
+    #expenses-page.movements-page--modern
+    .movements-treemap-hero__summary
+    .movement-summary-card {
+    background: linear-gradient(
+        155deg,
+        color-mix(in srgb, var(--expenses-accent, #fb7185) 10%, var(--dash-surface-bg)) 0%,
+        var(--dash-surface-bg) 55%
+    );
+}
+
+@media (max-width: 960px) {
+    :is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern .movements-treemap-hero {
+        grid-template-columns: 1fr;
+        gap: var(--dash-stack-gap-tight);
+    }
+
+    :is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern .movements-treemap-hero__summary.summary-cards {
+        flex-direction: row;
+        overflow-x: auto;
+        padding-bottom: 0.15rem;
+        scrollbar-width: thin;
+    }
+
+    :is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern .movements-treemap-hero__summary .movement-summary-card {
+        flex: 0 0 min(14.5rem, 78vw);
+    }
+}
+
 /* —— Treemap —— */
 .movements-page--modern .treemap-container {
     width: 100%;
@@ -50,6 +209,7 @@
     box-shadow: var(--dash-surface-shadow);
     margin-bottom: 0;
     padding: var(--dash-surface-pad-y) var(--dash-surface-pad-x);
+    overflow: visible;
 }
 
 .movements-page--modern .treemap-header {
@@ -95,7 +255,939 @@
     vertical-align: top;
 }
 
+.movements-page--modern .treemap-chartjs-wrap .treemap-hover-panel {
+    min-width: 252px;
+    max-width: 328px;
+    border-radius: 14px;
+}
+
+.movements-page--modern .treemap-chartjs-wrap .treemap-hover-panel .stm-cat-name {
+    font-size: 0.9375rem;
+    letter-spacing: -0.01em;
+}
+
+.movements-page--modern .treemap-chartjs-wrap .treemap-hover-panel .stm-cat-total {
+    font-size: 1.125rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.movements-page--modern .treemap-chartjs-wrap .treemap-hover-panel .stm-cat-pct {
+    font-size: 0.75rem;
+}
+
+.movements-page--modern .treemap-chartjs-wrap .treemap-hover-panel .stm-sub-name {
+    max-width: 128px;
+    font-size: 0.8125rem;
+}
+
+.movements-page--modern .treemap-chartjs-wrap .treemap-hover-panel .stm-sub-val {
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+}
+
+
 .movements-page--modern .table-pagination-bar,
 .movements-page--modern .movement-batch-bar {
     width: 100%;
+}
+
+/* Categoria em tag (extrato entradas / saídas) */
+.movements-page--modern .movement-category-tag {
+    display: inline-flex;
+    align-items: center;
+    max-width: min(12rem, 100%);
+    padding: 0.22rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 650;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+    border: 1px solid var(--dash-border);
+    background: var(--dash-layer-inset);
+    color: var(--dash-text-secondary);
+}
+
+.movements-page--modern .movement-category-tag--gains {
+    border-color: color-mix(in srgb, var(--gains-accent, #10b981) 32%, var(--dash-border));
+    background: color-mix(in srgb, var(--gains-accent, #10b981) 11%, var(--dash-surface-bg));
+    color: color-mix(in srgb, var(--gains-accent, #059669) 72%, var(--dash-text-primary));
+}
+
+.movements-page--modern .movement-category-tag--expenses {
+    border-color: color-mix(in srgb, var(--expenses-accent, #f43f5e) 32%, var(--dash-border));
+    background: color-mix(in srgb, var(--expenses-accent, #f43f5e) 11%, var(--dash-surface-bg));
+    color: color-mix(in srgb, var(--expenses-accent, #e11d48) 72%, var(--dash-text-primary));
+}
+
+.movements-page--modern .movement-category-tag--empty {
+    border-color: transparent;
+    background: transparent;
+    color: var(--dash-text-tertiary);
+    padding-inline: 0;
+}
+
+:is(#gains-page, #expenses-page).movements-page--modern .movement-th-category .sortable-th__btn,
+:is(#gains-page, #expenses-page).movements-page--modern .movement-th-category .data-table__th-label {
+    justify-content: center;
+    text-align: center;
+    width: 100%;
+}
+
+:is(#gains-page, #expenses-page).movements-page--modern #gains-table td.movement-td-category,
+:is(#gains-page, #expenses-page).movements-page--modern #expenses-table td.movement-td-category {
+    text-align: center;
+}
+
+:is(#gains-page, #expenses-page).movements-page--modern #gains-table th.movement-th-category,
+:is(#gains-page, #expenses-page).movements-page--modern #expenses-table th.movement-th-category {
+    text-align: center;
+}
+
+.movements-page--modern .movement-td-category {
+    width: 7.25rem;
+    min-width: 6.5rem;
+    max-width: 10.5rem;
+    padding-inline: 0.55rem !important;
+    text-align: center;
+    vertical-align: middle;
+    white-space: normal;
+}
+
+.movements-page--modern .movement-td-category .movement-category-tag {
+    margin-inline: auto;
+    max-width: 100%;
+    justify-content: center;
+}
+
+.movements-page--modern .movement-td-category .movement-category-tag--empty {
+    justify-content: center;
+}
+
+/* —— Entradas / Saídas: escala compacta (mesma proporção) —— */
+:is(#gains-page, #expenses-page).movements-page--modern.movements-page--compact {
+    gap: calc(var(--dash-stack-gap) * 0.92);
+}
+
+:is(#gains-page, #expenses-page).movements-page--modern.movements-page--compact .movements-summary .card-content p.movement-summary-card__value {
+    font-size: 1.35rem;
+}
+
+:is(#gains-page, #expenses-page).movements-page--modern.movements-page--compact .movements-summary .card-content p.movement-summary-card__subtitle {
+    font-size: 0.78rem;
+    margin-bottom: 0.35rem;
+}
+
+:is(#gains-page, #expenses-page).movements-page--modern.movements-page--compact .movements-toolbar .civil-period-timeline {
+    padding-block: 0.45rem;
+    padding-inline: 0.48rem;
+}
+
+:is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern.movements-page--compact .treemap-container {
+    padding: calc(var(--dash-surface-pad-y) * 0.88) calc(var(--dash-surface-pad-x) * 0.92);
+}
+
+:is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern.movements-page--compact .treemap-header--compact {
+    margin-bottom: 0.55rem;
+}
+
+:is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern.movements-page--compact .treemap-title {
+    font-size: 0.94rem;
+}
+
+:is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern.movements-page--compact .treemap-squarify-host,
+:is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern.movements-page--compact .treemap-squarify-host .treemap-chartjs-wrap {
+    min-height: 400px;
+    height: 400px;
+}
+
+:is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern.movements-page--compact .treemap-empty {
+    padding: 1.5rem 0;
+    font-size: 0.8125rem;
+}
+
+#expenses-page.movements-page--modern.movements-page--compact
+    .movements-treemap-hero__summary
+    .movement-summary-card__value {
+    font-size: 0.96rem;
+}
+
+/* Faixa única de filtros (abaixo do mapa) */
+.movements-page--modern .movement-filter-ribbon {
+    margin-top: 0.65rem;
+    padding-top: 0.7rem;
+    border-top: 1px solid var(--dash-border);
+    overflow: visible;
+}
+
+.movements-page--modern .movement-filter-ribbon__track {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 2.25rem;
+    overflow-x: auto;
+    overflow-y: visible;
+    padding-bottom: 0.15rem;
+    scrollbar-width: thin;
+}
+
+.movements-page--modern .movement-filter-ribbon__group {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 0.35rem;
+    height: 2.125rem;
+    padding: 0 0.5rem 0 0.4rem;
+    border-radius: 10px;
+    border: 1px solid var(--dash-border);
+    background: var(--dash-layer-inset);
+    box-sizing: border-box;
+}
+
+.movements-page--modern .movement-filter-ribbon__group--grow {
+    flex: 1 1 12rem;
+    min-width: 9.5rem;
+    max-width: 22rem;
+}
+
+.movements-page--modern .movement-filter-ribbon__group--period {
+    min-width: 9.5rem;
+    max-width: 14rem;
+    padding: 0 0.45rem 0 0.35rem;
+}
+
+.movements-page--modern .movement-filter-ribbon__glyph {
+    flex-shrink: 0;
+    font-size: 1.05rem !important;
+    color: var(--dash-text-tertiary);
+    opacity: 0.92;
+}
+
+.movements-page--modern .movement-filter-ribbon__control {
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--dash-text-primary);
+    background: transparent;
+    border: 0;
+    min-width: 0;
+    padding: 0;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.movements-page--modern .movement-filter-ribbon__control--bare {
+    flex: 1;
+    min-width: 4rem;
+}
+
+.movements-page--modern .movement-filter-ribbon__control--bare::placeholder {
+    color: var(--dash-text-tertiary);
+}
+
+.movements-page--modern .movement-filter-ribbon__control--select {
+    max-width: 7.5rem;
+    padding-right: 0.15rem;
+    cursor: pointer;
+}
+
+.movements-page--modern .movement-filter-ribbon__control:focus-visible {
+    outline: none;
+}
+
+.movements-page--modern .movement-filter-ribbon__group:focus-within {
+    border-color: var(--dash-border-strong);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--dash-text-primary) 8%, transparent);
+}
+
+#gains-page .movement-filter-ribbon__group:focus-within {
+    border-color: color-mix(in srgb, var(--gains-accent, #10b981) 45%, var(--dash-border));
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--gains-accent, #10b981) 16%, transparent);
+}
+
+#expenses-page .movement-filter-ribbon__group:focus-within {
+    border-color: color-mix(in srgb, var(--expenses-accent, #f43f5e) 45%, var(--dash-border));
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--expenses-accent, #f43f5e) 16%, transparent);
+}
+
+.movements-page--modern .movement-filter-ribbon__sep {
+    font-size: 0.7rem;
+    color: var(--dash-text-tertiary);
+    flex-shrink: 0;
+}
+
+.movements-page--modern .movement-filter-ribbon__clear {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    height: 2.125rem;
+    padding: 0 0.55rem;
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--dash-text-secondary);
+    background: var(--dash-layer-inset);
+    border: 1px solid var(--dash-border);
+    border-radius: 10px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.movements-page--modern .movement-filter-ribbon__clear:hover {
+    color: var(--dash-text-primary);
+    background: var(--dash-layer-control);
+    border-color: var(--dash-border-strong);
+}
+
+.movements-page--modern .movement-filter-ribbon__divider {
+    flex-shrink: 0;
+    width: 1px;
+    height: 1.5rem;
+    margin: 0 0.1rem;
+    background: var(--dash-border-strong);
+}
+
+.movements-page--modern .movement-filter-ribbon__status {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 0.4rem;
+    margin-left: auto;
+}
+
+.movements-page--modern .movement-filter-ribbon__trailing {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 0.35rem;
+    margin-left: auto;
+}
+
+.movements-page--modern .movement-filter-ribbon__trailing .movement-filter-ribbon__status {
+    margin-left: 0;
+}
+
+.movements-page--modern .movement-filter-ribbon__ledger-tools {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+/* Painel do extrato (faixa + tabela) */
+:is(#gains-page, #expenses-page).movements-page--modern .movements-extrato-panel {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    background: var(--dash-surface-bg);
+    border: 1px solid var(--dash-surface-border);
+    border-radius: var(--dash-surface-radius);
+    box-shadow: var(--dash-surface-shadow);
+    overflow: visible;
+}
+
+:is(#gains-page, #expenses-page).movements-page--modern .movements-extrato-panel .movement-filter-ribbon {
+    margin-top: 0;
+    padding: 0.6rem var(--dash-surface-pad-x);
+    border-top: 0;
+    border-bottom: 1px solid var(--dash-border);
+    background: color-mix(in srgb, var(--dash-layer-inset) 88%, var(--dash-surface-bg));
+    border-radius: var(--dash-surface-radius) var(--dash-surface-radius) 0 0;
+}
+
+:is(#gains-page, #expenses-page).movements-page--modern .movements-extrato-panel .movement-filter-ribbon__track {
+    flex-wrap: nowrap;
+    width: 100%;
+    min-width: 0;
+}
+
+:is(#gains-page, #expenses-page).movements-page--modern .movements-extrato-panel .movement-status-pill {
+    padding: 0 0.48rem;
+    font-size: 0.75rem;
+}
+
+:is(#gains-page, #expenses-page).movements-page--modern .movements-extrato-panel .movement-filter-ribbon__control--select {
+    max-width: 7.25rem;
+}
+
+:is(#gains-page, #expenses-page).movements-page--modern .movements-extrato-panel .movement-filter-ribbon__group--grow {
+    flex: 1 1 8rem;
+    min-width: 6.5rem;
+    max-width: 16rem;
+}
+
+
+:is(#gains-page, #expenses-page).movements-page--modern .movements-extrato-panel .gains-tabbed-ledger,
+:is(#gains-page, #expenses-page).movements-page--modern .movements-extrato-panel .expenses-tabbed-ledger,
+:is(#gains-page, #expenses-page).movements-page--modern .movements-extrato-panel .movements-tabbed-ledger {
+    padding: 0 0 var(--dash-surface-pad-y);
+}
+
+:is(#gains-page, #expenses-page).movements-page--modern .movements-extrato-panel .gains-tabbed-ledger__panel > .table-container,
+:is(#gains-page, #expenses-page).movements-page--modern .movements-extrato-panel .expenses-tabbed-ledger__panel > .table-container,
+:is(#gains-page, #expenses-page).movements-page--modern .movements-extrato-panel .movements-tabbed-ledger__panel > .table-container {
+    padding: 0.35rem var(--dash-surface-pad-x) 0;
+}
+
+:is(#gains-page, #expenses-page).movements-page--modern .movements-extrato-panel .gains-tabbed-ledger__panel > .table-pagination-bar,
+:is(#gains-page, #expenses-page).movements-page--modern .movements-extrato-panel .expenses-tabbed-ledger__panel > .table-pagination-bar,
+:is(#gains-page, #expenses-page).movements-page--modern .movements-extrato-panel .movements-tabbed-ledger__panel > .table-pagination-bar {
+    padding: 0.5rem var(--dash-surface-pad-x) 0;
+    border-top: 1px solid var(--dash-border);
+}
+
+:is(#gains-page, #expenses-page).movements-page--modern .movements-extrato-panel > .table-container,
+:is(#gains-page, #expenses-page).movements-page--modern .movements-extrato-panel > .table-pagination-bar {
+    border: 0;
+    box-shadow: none;
+    border-radius: 0;
+}
+
+:is(#gains-page, #expenses-page).movements-page--modern .movements-extrato-panel > .table-container {
+    padding: 0.35rem var(--dash-surface-pad-x) 0;
+}
+
+:is(#gains-page, #expenses-page).movements-page--modern .movements-extrato-panel > .table-container.data-table-host {
+    border: 0;
+    box-shadow: none;
+    border-radius: 0;
+    background: transparent;
+}
+
+:is(#gains-page, #expenses-page).movements-page--modern .movements-extrato-panel > .table-pagination-bar {
+    padding: 0.5rem var(--dash-surface-pad-x) var(--dash-surface-pad-y);
+    border-top: 1px solid var(--dash-border);
+}
+
+.movements-page--modern .movement-status-pills {
+    display: inline-flex;
+    align-items: stretch;
+    height: 2.125rem;
+    padding: 3px;
+    gap: 3px;
+    border-radius: 10px;
+    border: 1px solid var(--dash-border);
+    background: var(--dash-layer-inset);
+    box-sizing: border-box;
+}
+
+.movements-page--modern .movement-status-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.32rem;
+    height: 100%;
+    padding: 0 0.65rem;
+    border: 0;
+    border-radius: 8px;
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--dash-text-secondary);
+    background: transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.movements-page--modern .movement-status-pill:hover {
+    color: var(--dash-text-primary);
+    background: var(--dash-layer-control);
+}
+
+.movements-page--modern .movement-status-pill.is-on {
+    color: var(--dash-text-primary);
+    background: var(--dash-layer-control);
+    box-shadow: inset 0 0 0 1px var(--dash-border-strong);
+}
+
+.movements-page--modern
+    .movement-filter-ribbon__status[data-treemap-toolbar-accent='gains']
+    .movement-status-pill.is-on {
+    color: var(--gains-accent, #10b981);
+}
+
+.movements-page--modern
+    .movement-filter-ribbon__status[data-treemap-toolbar-accent='expenses']
+    .movement-status-pill.is-on {
+    color: var(--expenses-accent, #f43f5e);
+}
+
+[data-theme='dark']
+    .movements-page--modern
+    .movement-filter-ribbon__status[data-treemap-toolbar-accent='gains']
+    .movement-status-pill.is-on {
+    background: rgba(46, 196, 182, 0.14);
+    box-shadow: inset 0 0 0 1px rgba(46, 196, 182, 0.32);
+    color: #5eead4;
+}
+
+.movements-page--modern .movement-filter-ribbon__icon-pop {
+    position: relative;
+    display: inline-flex;
+    flex-shrink: 0;
+}
+
+.movements-page--modern .movement-filter-ribbon__icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.125rem;
+    height: 2.125rem;
+    padding: 0;
+    border: 1px solid var(--dash-border);
+    border-radius: 10px;
+    background: var(--dash-layer-control);
+    color: var(--dash-text-secondary);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.movements-page--modern .movement-filter-ribbon__icon-btn:hover,
+.movements-page--modern .movement-filter-ribbon__icon-btn.is-open {
+    color: var(--dash-text-primary);
+    border-color: var(--dash-border-strong);
+    background: var(--dash-layer-inset);
+}
+
+.movements-page--modern
+    .movement-filter-ribbon__status[data-treemap-toolbar-accent='gains']
+    .movement-filter-ribbon__icon-btn.is-open {
+    color: var(--gains-accent, #10b981);
+}
+
+.movements-page--modern .movement-filter-ribbon__popover,
+.movement-filter-ribbon__popover--floating {
+    min-width: 12.5rem;
+    padding: 0.5rem;
+    border-radius: 12px;
+    border: 1px solid var(--dash-border-strong, var(--border-color));
+    background: var(--dash-layer-raised, var(--bg-light));
+    color: var(--dash-text-primary, var(--text-color));
+    box-shadow:
+        0 20px 48px rgba(0, 0, 0, 0.22),
+        0 0 0 1px rgba(0, 0, 0, 0.04);
+    isolation: isolate;
+}
+
+[data-theme='dark'] .movement-filter-ribbon__popover--floating {
+    background: var(--dash-layer-control, #2c2c2e);
+    border-color: var(--dash-border-strong, rgba(255, 255, 255, 0.16));
+    box-shadow:
+        0 22px 52px rgba(0, 0, 0, 0.58),
+        0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.movements-page--modern .movement-filter-ribbon__popover-title,
+.movement-filter-ribbon__popover--floating .movement-filter-ribbon__popover-title {
+    margin: 0.15rem 0.4rem 0.35rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--dash-text-tertiary, var(--text-light));
+}
+
+.movements-page--modern .movement-filter-ribbon__menu,
+.movement-filter-ribbon__popover--floating .movement-filter-ribbon__menu {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.movements-page--modern .movement-filter-ribbon__menu-item,
+.movement-filter-ribbon__popover--floating .movement-filter-ribbon__menu-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.5rem 0.55rem;
+    border: 0;
+    border-radius: 8px;
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-align: left;
+    color: var(--dash-text-secondary, var(--text-light));
+    background: transparent;
+    cursor: pointer;
+}
+
+.movements-page--modern .movement-filter-ribbon__menu-item:hover,
+.movement-filter-ribbon__popover--floating .movement-filter-ribbon__menu-item:hover {
+    background: var(--dash-layer-inset, var(--bg-color));
+    color: var(--dash-text-primary, var(--text-color));
+}
+
+.movements-page--modern .movement-filter-ribbon__menu-item.is-active,
+.movement-filter-ribbon__popover--floating .movement-filter-ribbon__menu-item.is-active {
+    color: var(--dash-text-primary, var(--text-color));
+    background: var(--dash-layer-inset, var(--bg-color));
+    box-shadow: inset 0 0 0 1px var(--dash-border, var(--border-color));
+}
+
+/* Modo personalizado — abas (mesma tabela do modo simples) */
+:is(#gains-page, #expenses-page).movements-page--modern .gains-tabbed-ledger__tabs,
+:is(#gains-page, #expenses-page).movements-page--modern .expenses-tabbed-ledger__tabs,
+:is(#gains-page, #expenses-page).movements-page--modern .movements-tabbed-ledger__tabs {
+    display: flex;
+    gap: 0;
+    padding: 0.35rem var(--dash-surface-pad-x) 0;
+    border-bottom: 1px solid var(--dash-border);
+}
+
+:is(#gains-page, #expenses-page).movements-page--modern .gains-tabbed-ledger__tab,
+:is(#gains-page, #expenses-page).movements-page--modern .expenses-tabbed-ledger__tab,
+:is(#gains-page, #expenses-page).movements-page--modern .movements-tabbed-ledger__tab {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 0.65rem;
+    margin-bottom: -1px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    background: transparent;
+    color: var(--dash-text-tertiary);
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.25;
+    cursor: pointer;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition:
+        color 0.15s ease,
+        border-color 0.15s ease,
+        background 0.15s ease;
+}
+
+#expenses-page.movements-page--modern .gains-tabbed-ledger__tabs--triple .gains-tabbed-ledger__tab,
+#expenses-page.movements-page--modern .gains-tabbed-ledger__tabs--quad .gains-tabbed-ledger__tab {
+    font-size: 0.75rem;
+    padding-inline: 0.45rem;
+}
+
+:is(#gains-page, #expenses-page).movements-page--modern .gains-tabbed-ledger__tab + .gains-tabbed-ledger__tab,
+:is(#gains-page, #expenses-page).movements-page--modern .expenses-tabbed-ledger__tab + .expenses-tabbed-ledger__tab,
+:is(#gains-page, #expenses-page).movements-page--modern .movements-tabbed-ledger__tab + .movements-tabbed-ledger__tab {
+    border-left: 1px solid color-mix(in srgb, var(--dash-border) 85%, transparent);
+}
+
+:is(#gains-page, #expenses-page).movements-page--modern .gains-tabbed-ledger__tab:hover,
+:is(#gains-page, #expenses-page).movements-page--modern .expenses-tabbed-ledger__tab:hover,
+:is(#gains-page, #expenses-page).movements-page--modern .movements-tabbed-ledger__tab:hover {
+    color: var(--dash-text-primary);
+    background: color-mix(in srgb, var(--dash-layer-inset) 65%, transparent);
+}
+
+#gains-page.movements-page--modern .gains-tabbed-ledger__tab.is-active {
+    color: var(--dash-text-primary);
+    font-weight: 700;
+    border-bottom-color: var(--gains-accent, #10b981);
+    background: color-mix(in srgb, var(--gains-accent, #10b981) 7%, transparent);
+}
+
+#expenses-page.movements-page--modern .gains-tabbed-ledger__tab.is-active,
+#expenses-page.movements-page--modern .expenses-tabbed-ledger__tab.is-active,
+#expenses-page.movements-page--modern .movements-tabbed-ledger__tab.is-active {
+    color: var(--dash-text-primary);
+    font-weight: 700;
+    border-bottom-color: var(--expenses-accent, #f43f5e);
+    background: color-mix(in srgb, var(--expenses-accent, #f43f5e) 7%, transparent);
+}
+
+:is(#gains-page, #expenses-page).movements-page--modern .gains-tabbed-ledger__panel > .table-container.data-table-host,
+:is(#gains-page, #expenses-page).movements-page--modern .expenses-tabbed-ledger__panel > .table-container.data-table-host,
+:is(#gains-page, #expenses-page).movements-page--modern .movements-tabbed-ledger__panel > .table-container.data-table-host {
+    border: 0;
+    box-shadow: none;
+    border-radius: 0;
+    background: transparent;
+}
+
+/* Faixa de controles do mapa (legado — só se ainda usar toolbar separada) */
+
+#gains-page .movement-treemap__footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.65rem 1rem;
+    margin-top: 0.65rem;
+    padding-top: 0.7rem;
+    border-top: 1px solid var(--dash-border);
+}
+
+#gains-page .movement-treemap__footer-label {
+    margin: 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--dash-text-tertiary);
+}
+
+#gains-page .movement-treemap__footer-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.45rem;
+    margin-left: auto;
+}
+
+#gains-page .movement-treemap__footer .chart-type-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15rem;
+    background: var(--dash-layer-inset);
+    border: 1px solid var(--dash-border);
+    border-radius: 10px;
+    padding: 3px;
+    height: 2rem;
+    box-sizing: border-box;
+}
+
+#gains-page .movement-treemap__footer .chart-type-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    height: 1.625rem;
+    min-height: 1.625rem;
+    padding: 0 0.55rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1;
+    border-radius: 7px;
+    border: none;
+    background: transparent;
+    color: var(--dash-text-secondary);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+#gains-page .movement-treemap__footer .chart-type-btn:hover:not(:disabled) {
+    background: var(--dash-layer-control);
+    color: var(--dash-text-primary);
+}
+
+#gains-page .movement-treemap__footer .chart-type-btn.is-active:not(:disabled) {
+    background: var(--dash-layer-control);
+    color: var(--dash-text-primary);
+    box-shadow: inset 0 0 0 1px var(--dash-border-strong);
+}
+
+#gains-page .movement-treemap__footer .chart-type-btn:disabled {
+    cursor: default;
+    opacity: 1;
+}
+
+#gains-page .movement-treemap__footer[data-treemap-toolbar-accent='gains'] .chart-type-btn.is-active:not(:disabled) {
+    color: var(--gains-accent, #2ec4b6);
+}
+
+[data-theme='dark'] #gains-page .movement-treemap__footer[data-treemap-toolbar-accent='gains'] .chart-type-btn.is-active:not(:disabled) {
+    background: rgba(46, 196, 182, 0.16);
+    color: #5eead4;
+    box-shadow: inset 0 0 0 1px rgba(46, 196, 182, 0.35);
+}
+
+@media (max-width: 720px) {
+    #gains-page.movements-page--modern.movements-page--compact .treemap-squarify-host,
+    #gains-page.movements-page--modern.movements-page--compact .treemap-squarify-host .treemap-chartjs-wrap {
+        min-height: 280px;
+        height: 280px;
+    }
+
+    #gains-page .movement-treemap__footer {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    #gains-page .movement-treemap__footer-actions {
+        justify-content: flex-start;
+        margin-left: 0;
+    }
+}
+
+#expenses-page .data-table__row--clickable.expenses-invoice-row {
+    cursor: pointer;
+}
+
+#expenses-page .data-table__row--clickable.expenses-invoice-row:hover td {
+    background: var(--dash-layer-inset);
+}
+
+/* Modal fatura (portal): mesmo ritmo do extrato em #expenses-page */
+.ui-dialog__panel.expense-invoice-detail-modal.ui-dialog__panel--invoice-wide {
+    width: min(100%, 58rem);
+    max-width: min(96vw, 58rem);
+}
+
+.expense-invoice-detail__table-shell.page-content--dashboard-modern .data-table-host {
+    overflow-x: auto;
+}
+
+.expense-invoice-detail__table-shell.page-content--dashboard-modern #expense-invoice-detail-table.data-table {
+    table-layout: auto;
+    min-width: 52rem;
+}
+
+.expense-invoice-detail.movements-page--modern #expense-invoice-detail-table .movement-td-compact {
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.expense-invoice-detail.movements-page--modern #expense-invoice-detail-table td.expenses-td-description {
+    min-width: 9.5rem;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.4;
+}
+
+.expense-invoice-detail.movements-page--modern #expense-invoice-detail-table td.despesa {
+    color: var(--movement-expense-color, var(--expenses-accent, #f43f5e));
+    font-weight: 700;
+    font-size: 0.95rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.expense-invoice-detail.movements-page--modern #expense-invoice-detail-table th.expenses-th-installments,
+.expense-invoice-detail.movements-page--modern #expense-invoice-detail-table td.expenses-td-installments {
+    white-space: nowrap;
+    text-align: center;
+    vertical-align: middle;
+    min-width: 7.25rem;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
+
+.expense-invoice-detail.movements-page--modern #expense-invoice-detail-table td.expenses-td-installments {
+    font-size: 0.82rem;
+    font-weight: 500;
+    line-height: 1.2;
+    padding-top: 0.55rem;
+    padding-bottom: 0.55rem;
+}
+
+.expense-invoice-detail.movements-page--modern #expense-invoice-detail-table .expenses-installment-stack {
+    --exp-inst-pill-w: 6.85rem;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.15rem;
+    width: var(--exp-inst-pill-w);
+    max-width: 100%;
+    margin-inline: auto;
+}
+
+.expense-invoice-detail.movements-page--modern #expense-invoice-detail-table .expenses-installment-cell__label {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 1.45rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    font-size: 0.82rem;
+    line-height: 1.2;
+    padding: 0.12rem 0.35rem;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.expense-invoice-detail.movements-page--modern #expense-invoice-detail-table .expenses-installment-cell__month-parcel {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 0.62rem;
+    font-weight: 600;
+    line-height: 1.15;
+    color: var(--dash-text-tertiary, var(--text-light));
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.expense-invoice-detail.movements-page--modern #expense-invoice-detail-table .expenses-installment-cell--open .expenses-installment-cell__label {
+    color: var(--warning-text);
+    background: var(--warning-chip-bg);
+    border-color: var(--warning-chip-border-strong);
+}
+
+.expense-invoice-detail.movements-page--modern #expense-invoice-detail-table .expenses-installment-cell--settled .expenses-installment-cell__label {
+    color: #15803d;
+    background: color-mix(in srgb, var(--gains-accent) 16%, transparent);
+    border-color: color-mix(in srgb, var(--gains-accent) 38%, transparent);
+    font-weight: 700;
+}
+
+.expense-invoice-detail.movements-page--modern #expense-invoice-detail-table td.expenses-td-status {
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.expense-invoice-detail.movements-page--modern #expense-invoice-detail-table th.movement-th-category,
+.expense-invoice-detail.movements-page--modern #expense-invoice-detail-table td.movement-td-category {
+    text-align: center;
+}
+
+.expense-invoice-detail.movements-page--modern #expense-invoice-detail-table thead th:last-child {
+    text-align: center;
+}
+
+.expense-invoice-detail__total {
+    margin: 0 0 0.75rem;
+    font-size: 0.9375rem;
+    color: var(--dash-text-secondary);
+}
+
+.expense-invoice-detail__count {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--dash-text-tertiary);
+}
+
+.expense-invoice-detail-modal .expense-invoice-detail .table-container.data-table-host {
+    margin: 0;
+    max-height: min(62vh, 34rem);
+    overflow: auto;
+    border: 1px solid var(--dash-border);
+    border-radius: var(--dash-surface-radius, 12px);
+    background: var(--dash-surface-bg);
+    box-shadow: var(--dash-surface-shadow);
+}
+
+.expense-invoice-detail__table {
+    margin: 0;
+}
+
+.expense-invoice-detail__empty {
+    margin: 0;
+    color: var(--dash-text-tertiary);
+    font-size: 0.875rem;
+}
+
+@media (max-width: 720px) {
+    :is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern.movements-page--compact .treemap-squarify-host,
+    :is(#gains-page, #expenses-page, #cofrinhos-page).movements-page--modern.movements-page--compact .treemap-squarify-host .treemap-chartjs-wrap {
+        min-height: 280px;
+        height: 280px;
+    }
 }

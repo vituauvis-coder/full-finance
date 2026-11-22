@@ -1,13 +1,20 @@
 import { useCallback, useMemo, useState } from 'react';
+import {
+    ALL_YEARS_PERIOD,
+    CIVIL_YEAR_PERIOD,
+    isAllYearsPeriod,
+    isCivilYearPeriod,
+    monthIndexFromPeriod
+} from '../../../lib/period';
 import { MovementSummaryCard, MovementSummaryCardsGrid } from '../../../components/finance/MovementSummaryCard';
 import { MovementsTable } from '../../../components/finance/MovementsTable';
 import { GainFormModal } from '../../../components/finance/GainFormModal';
 import { TablePaginationBar } from '../../../components/finance/TablePaginationBar';
 import { CategoryTreemap } from '../../../components/finance/CategoryTreemap';
-import { MovementListFilterDrawer } from '../../../components/finance/MovementListFilterDrawer';
+import { MovementListFilterRibbon } from '../../../components/finance/MovementListFilterRibbon';
 import { useFinanceData } from '../../../app/FinanceDataProvider';
 import { formatBRL } from '../../../lib/format';
-import { getPeriodDateBounds, MONTH_NAMES, monthIndexFromPeriod } from '../../../lib/period';
+import { getPeriodDateBounds, MONTH_NAMES } from '../../../lib/period';
 import { useCivilPeriodState } from '../../../hooks/useCivilPeriodState';
 import { accountName, filterMovementsInPeriod, type ListFilter } from '../../../lib/movementList';
 import { INCOME_TREEMAP_PALETTE } from '../../../lib/treemapData';
@@ -24,11 +31,15 @@ import { useMovementStatusToggle } from '../../../hooks/useMovementStatusToggle'
 import { MovementBatchBar } from '../../../components/finance/MovementBatchBar';
 import { CivilPeriodToolbar } from '../../../components/finance/CivilPeriodToolbar';
 import { useMovementHeaderAdd } from '../hooks/useMovementHeaderAdd';
+import { useOpenCreateFromNavigation } from '../hooks/useOpenCreateFromNavigation';
 import { gainSummaryFromRows, gainSummaryMomStates, gainSummaryMomWhenHint } from '../domain/gainSummaryStats';
 import { GAINS_SUMMARY_COPY, gainsSummaryTitles } from '../../../lib/movementSummaryCopy';
 import { SummaryMomVariation } from '../../../components/finance/SummaryMomVariation';
 import type { Movement } from '../../../lib/types/finance';
 import { useConfirm } from '../../../components/ui/confirm';
+import { useGainsLedgerViewMode } from '../../../hooks/useGainsLedgerViewMode';
+import { gainEstornoAppearsInLists, isGainEstornoRow } from '../domain/gainEstorno';
+import { GainsTabbedLedger } from '../components/GainsTabbedLedger';
 
 export function EntradasPage() {
     const { confirm } = useConfirm();
@@ -66,16 +77,22 @@ export function EntradasPage() {
 
     const filtered = useMemo(() => {
         if (!data) return [];
-        return filterMovementsInPeriod(data.userGains, period, year, {
-            q: listFilters?.searchQ ?? '',
-            paymentStatus,
-            accountId: drawer?.accountId || undefined,
-            category: drawer?.category || undefined,
-            amountMin: Number.isFinite(amountMin) ? amountMin : null,
-            amountMax: Number.isFinite(amountMax) ? amountMax : null,
-            dateFrom: drawer?.dateFrom || undefined,
-            dateTo: drawer?.dateTo || undefined
-        });
+        return filterMovementsInPeriod(
+            data.userGains,
+            period,
+            year,
+            {
+                q: listFilters?.searchQ ?? '',
+                paymentStatus,
+                accountId: drawer?.accountId || undefined,
+                category: drawer?.category || undefined,
+                amountMin: Number.isFinite(amountMin) ? amountMin : null,
+                amountMax: Number.isFinite(amountMax) ? amountMax : null,
+                dateFrom: drawer?.dateFrom || undefined,
+                dateTo: drawer?.dateTo || undefined
+            },
+            data.userAccounts
+        );
     }, [data, period, year, listFilters?.searchQ, paymentStatus, drawer, amountMin, amountMax]);
 
     const accountLabelFn = useMemo(
@@ -88,13 +105,37 @@ export function EntradasPage() {
         'date',
         compareGainRows
     );
+    const { viewMode, setViewMode } = useGainsLedgerViewMode();
 
     const sorted = useMemo(() => sortRows(accountLabelFn), [sortRows, accountLabelFn]);
+
+    const splitSorted = useMemo(() => {
+        const category: Movement[] = [];
+        const estorno: Movement[] = [];
+        for (const m of sorted) {
+            if (isGainEstornoRow(m)) {
+                if (gainEstornoAppearsInLists(m)) estorno.push(m);
+            } else category.push(m);
+        }
+        return { category, estorno };
+    }, [sorted]);
 
     const pagination = useTablePagination(sorted.length, 'gains');
     const rows = sorted.slice(pagination.start, pagination.end);
 
+    const gainsLedgerControls = {
+        sortKey,
+        sortDir,
+        onSelectSort: toggleSort,
+        viewMode,
+        onViewModeChange: setViewMode
+    };
+
     const periodLabel = useMemo(() => {
+        if (isAllYearsPeriod(period)) return 'Todos os anos';
+        if (isCivilYearPeriod(period)) {
+            return `${year} (ano inteiro)`;
+        }
         const mi = monthIndexFromPeriod(period);
         const { startDate, endDate } = getPeriodDateBounds(period, year);
         if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
@@ -102,6 +143,11 @@ export function EntradasPage() {
         }
         return `${MONTH_NAMES[mi]} ${year} (${startDate.toLocaleDateString('pt-BR')} – ${endDate.toLocaleDateString('pt-BR')})`;
     }, [period, year]);
+
+    const onYearScopeSelect = useCallback(() => {
+        onPeriodChange(CIVIL_YEAR_PERIOD);
+    }, [onPeriodChange]);
+    const onAllYearsSelect = useCallback(() => onPeriodChange(ALL_YEARS_PERIOD), [onPeriodChange]);
 
     const treemapBlocks = useMemo(() => buildGainTreemapBlocks(filtered), [filtered]);
 
@@ -170,6 +216,7 @@ export function EntradasPage() {
         setModalOpen(true);
     }, []);
     useMovementHeaderAdd('add-gain-btn', openAddModal);
+    useOpenCreateFromNavigation(openAddModal);
 
     if (showSkeleton) {
         return (
@@ -192,7 +239,7 @@ export function EntradasPage() {
     }
 
     return (
-        <section id="gains-page" className="page active movements-page--modern">
+        <section id="gains-page" className="page active movements-page--modern movements-page--compact">
             <CivilPeriodToolbar
                 period={period}
                 year={year}
@@ -200,78 +247,101 @@ export function EntradasPage() {
                 onYearChange={onYearChange}
                 accent="gains"
                 inMovementsToolbar
+                onYearScopeSelect={onYearScopeSelect}
+                onAllYearsSelect={onAllYearsSelect}
             />
-            <MovementSummaryCardsGrid group="gains" ariaLabel="Resumo de entradas">
-                <MovementSummaryCard
-                    cardId="gains-summary-total"
-                    tone="income"
-                    icon="fa-calendar-check"
-                    title={gainTitles.total}
-                    value={
-                        gainSummary.showHint ? (
-                            <span className="card-metric-hint" title={gainHint}>
-                                —
-                            </span>
-                        ) : (
-                            formatBRL(gainSummary.received, currency)
-                        )
-                    }
-                    iconTooltip={false}
-                    footer={
-                        gainSummary.showHint ? (
-                            <span className="card-metric-hint">{gainHint}</span>
-                        ) : (
-                            <SummaryMomVariation state={gainMom.received} />
-                        )
-                    }
-                />
-                <MovementSummaryCard
-                    cardId="gains-summary-projection"
-                    tone="income"
-                    icon="fa-clock"
-                    title={gainTitles.projection}
-                    value={
-                        gainSummary.showHint ? (
-                            <span className="card-metric-hint" title={gainHint}>
-                                —
-                            </span>
-                        ) : (
-                            formatBRL(gainSummary.pending, currency)
-                        )
-                    }
-                    iconTooltip={false}
-                    footer={
-                        gainSummary.showHint ? (
-                            <span className="card-metric-hint">{gainHint}</span>
-                        ) : (
-                            <SummaryMomVariation state={gainMom.pending} />
-                        )
-                    }
-                />
-                <MovementSummaryCard
-                    cardId="gains-summary-top-cat"
-                    tone="income"
-                    icon="fa-tags"
-                    title={gainTitles.topCategory}
-                    value={
-                        gainSummary.showHint ? (
-                            <span className="card-metric-hint" title={gainHint}>
-                                —
-                            </span>
-                        ) : (
-                            gainSummary.topCategory
-                        )
-                    }
-                    iconTooltip={false}
-                    footer={
-                        gainSummary.showHint ? (
-                            <span className="card-metric-hint">{gainHint}</span>
-                        ) : (
-                            <SummaryMomVariation state={gainMom.topCategory} />
-                        )
-                    }
-                />
-            </MovementSummaryCardsGrid>
+            <div className="movements-treemap-hero movements-treemap-hero--gains">
+                <MovementSummaryCardsGrid
+                    group="gains"
+                    ariaLabel="Resumo de entradas"
+                    className="movements-treemap-hero__summary"
+                >
+                    <MovementSummaryCard
+                        cardId="gains-summary-total"
+                        tone="income"
+                        icon="event_available"
+                        title={gainTitles.total}
+                        value={
+                            gainSummary.showHint ? (
+                                <span className="card-metric-hint" title={gainHint}>
+                                    —
+                                </span>
+                            ) : (
+                                formatBRL(gainSummary.total, currency)
+                            )
+                        }
+                        iconTooltip={false}
+                        footer={
+                            gainSummary.showHint ? (
+                                <span className="card-metric-hint">{gainHint}</span>
+                            ) : (
+                                <SummaryMomVariation state={gainMom.total} />
+                            )
+                        }
+                    />
+                    <MovementSummaryCard
+                        cardId="gains-summary-fixed"
+                        tone="income"
+                        icon="work"
+                        title={gainTitles.fixed}
+                        description={GAINS_SUMMARY_COPY.fixed}
+                        value={
+                            gainSummary.showHint ? (
+                                <span className="card-metric-hint" title={gainHint}>
+                                    —
+                                </span>
+                            ) : (
+                                formatBRL(gainSummary.fixed, currency)
+                            )
+                        }
+                        iconTooltip={false}
+                        footer={
+                            gainSummary.showHint ? (
+                                <span className="card-metric-hint">{gainHint}</span>
+                            ) : (
+                                <SummaryMomVariation state={gainMom.fixed} />
+                            )
+                        }
+                    />
+                    <MovementSummaryCard
+                        cardId="gains-summary-extra"
+                        tone="income"
+                        icon="trending_up"
+                        title={gainTitles.extra}
+                        description={GAINS_SUMMARY_COPY.extra}
+                        value={
+                            gainSummary.showHint ? (
+                                <span className="card-metric-hint" title={gainHint}>
+                                    —
+                                </span>
+                            ) : (
+                                formatBRL(gainSummary.extra, currency)
+                            )
+                        }
+                        iconTooltip={false}
+                        footer={
+                            gainSummary.showHint ? (
+                                <span className="card-metric-hint">{gainHint}</span>
+                            ) : (
+                                <SummaryMomVariation state={gainMom.extra} />
+                            )
+                        }
+                    />
+                </MovementSummaryCardsGrid>
+                <div className="movements-treemap-hero__map" aria-label="Mapa de entradas por categoria">
+                    <CategoryTreemap
+                        containerId="gains-treemap-container"
+                        canvasId="gains-income-treemap-canvas"
+                        blocks={treemapBlocks}
+                        currency={currency}
+                        palette={INCOME_TREEMAP_PALETTE}
+                        periodLabel={periodLabel}
+                        title="Mapa de Entradas"
+                        emptyMessage="Nenhuma entrada no período selecionado."
+                        compact
+                    />
+                </div>
+            </div>
             <MovementBatchBar
                 count={selected.size}
                 entityLabel="entrada"
@@ -280,63 +350,92 @@ export function EntradasPage() {
                 onMarkPending={() => void batchPatch({ isPaid: false })}
                 onEditBatch={() => setBatchModalOpen(true)}
             />
-            <CategoryTreemap
-                containerId="gains-treemap-container"
-                canvasId="gains-income-treemap-canvas"
-                blocks={treemapBlocks}
-                currency={currency}
-                palette={INCOME_TREEMAP_PALETTE}
-                periodLabel={periodLabel}
-                title="Mapa de Entradas"
-                emptyMessage="Nenhuma entrada no período selecionado."
-            />
-            <MovementsTable
-                idPrefix="gains"
-                rows={rows}
-                currency={currency}
-                accountLabel={(id) => accountName(data.userAccounts, id)}
-                statusLabel={(m) => (m.isPaid === false ? 'Pendente' : 'Recebido')}
-                onToggleStatus={(m) => void onToggleStatus(m)}
-                statusToggleBusy={statusToggleBusy}
-                selectedIds={selected}
-                onToggleRow={(id) =>
-                    setSelected((prev) => {
-                        const next = new Set(prev);
-                        if (next.has(id)) next.delete(id);
-                        else next.add(id);
-                        return next;
-                    })
-                }
-                onTogglePage={(on) =>
-                    setSelected((prev) => {
-                        const next = new Set(prev);
-                        for (const r of rows) {
-                            if (on) next.add(r.id);
-                            else next.delete(r.id);
+            <div className="movements-extrato-panel movements-extrato-panel--gains" aria-label="Extrato de entradas">
+                <MovementListFilterRibbon
+                    kind="gain"
+                    tone="gains"
+                    mapStatus={{ paidLabel: 'Recebido', unpaidLabel: 'Pendente' }}
+                    gainsLedgerControls={gainsLedgerControls}
+                />
+            {viewMode === 'split' ? (
+                <GainsTabbedLedger
+                    categoryRows={splitSorted.category}
+                    estornoRows={splitSorted.estorno}
+                    currency={currency}
+                    accountLabel={(id) => accountName(data.userAccounts, id)}
+                    statusLabel={(m) => (m.isPaid === false ? 'Pendente' : 'Recebido')}
+                    onToggleStatus={(m) => void onToggleStatus(m)}
+                    statusToggleBusy={statusToggleBusy}
+                    selectedIds={selected}
+                    onToggleRow={(id) =>
+                        setSelected((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(id)) next.delete(id);
+                            else next.add(id);
+                            return next;
+                        })
+                    }
+                    onEdit={(m) => {
+                        setEditing(m);
+                        setModalOpen(true);
+                    }}
+                    onDelete={(m) => void onDelete(m)}
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onSort={toggleSort}
+                />
+            ) : (
+                <>
+                    <MovementsTable
+                        idPrefix="gains"
+                        rows={rows}
+                        currency={currency}
+                        accountLabel={(id) => accountName(data.userAccounts, id)}
+                        statusLabel={(m) => (m.isPaid === false ? 'Pendente' : 'Recebido')}
+                        onToggleStatus={(m) => void onToggleStatus(m)}
+                        statusToggleBusy={statusToggleBusy}
+                        selectedIds={selected}
+                        onToggleRow={(id) =>
+                            setSelected((prev) => {
+                                const next = new Set(prev);
+                                if (next.has(id)) next.delete(id);
+                                else next.add(id);
+                                return next;
+                            })
                         }
-                        return next;
-                    })
-                }
-                onEdit={(m) => {
-                    setEditing(m);
-                    setModalOpen(true);
-                }}
-                onDelete={(m) => void onDelete(m)}
-                sortKey={sortKey === 'received' ? 'status' : sortKey}
-                sortDir={sortDir}
-                onSort={(key) =>
-                    toggleSort((key === 'status' ? 'received' : key) as GainSortKey)
-                }
-            />
-            <TablePaginationBar
-                page={pagination.page}
-                pageCount={pagination.pageCount}
-                total={sorted.length}
-                pageSize={pagination.pageSize}
-                onPageSizeChange={pagination.setPageSize}
-                onPrev={pagination.prev}
-                onNext={pagination.next}
-            />
+                        onTogglePage={(on) =>
+                            setSelected((prev) => {
+                                const next = new Set(prev);
+                                for (const r of rows) {
+                                    if (on) next.add(r.id);
+                                    else next.delete(r.id);
+                                }
+                                return next;
+                            })
+                        }
+                        onEdit={(m) => {
+                            setEditing(m);
+                            setModalOpen(true);
+                        }}
+                        onDelete={(m) => void onDelete(m)}
+                        sortKey={sortKey === 'received' ? 'status' : sortKey}
+                        sortDir={sortDir}
+                        onSort={(key) =>
+                            toggleSort((key === 'status' ? 'received' : key) as GainSortKey)
+                        }
+                    />
+                    <TablePaginationBar
+                        page={pagination.page}
+                        pageCount={pagination.pageCount}
+                        total={sorted.length}
+                        pageSize={pagination.pageSize}
+                        onPageSizeChange={pagination.setPageSize}
+                        onPrev={pagination.prev}
+                        onNext={pagination.next}
+                    />
+                </>
+            )}
+            </div>
             <GainFormModal
                 open={modalOpen}
                 editing={editing}
@@ -355,7 +454,6 @@ export function EntradasPage() {
                     await refresh();
                 }}
             />
-            <MovementListFilterDrawer id="gains-filter-drawer" title="Filtrar entradas" kind="gain" />
         </section>
     );
 }

@@ -264,7 +264,6 @@
 }
 
 .page-content--dashboard-modern :is(#zero-budget-page, #cofrinhos-page, #debts-page) .zero-budget__block-card {
-    --zb-accent: #f59e0b;
     gap: 0.55rem;
     padding: 0.95rem 1.1rem 1rem;
     cursor: pointer;

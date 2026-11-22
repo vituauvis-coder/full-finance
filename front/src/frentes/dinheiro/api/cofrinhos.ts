@@ -6,6 +6,8 @@ export async function createCofrinhoBucket(body: {
     colorKey?: string;
     icon?: string;
     yieldMultiplier?: number;
+    kind?: string;
+    tripId?: string;
 }): Promise<CofrinhoBucket> {
     return apiFetch<CofrinhoBucket>('/api/cofrinho-buckets', {
         method: 'POST',
@@ -20,6 +22,8 @@ export async function updateCofrinhoBucket(
         colorKey: string;
         icon: string;
         yieldMultiplier: number;
+        kind: string;
+        tripId?: string;
     }>
 ): Promise<CofrinhoBucket> {
     return apiFetch<CofrinhoBucket>(`/api/cofrinho-buckets/${id}`, {
@@ -69,6 +73,24 @@ export async function createCofrinhoApplication(body: {
 }): Promise<CofrinhoApplication> {
     return apiFetch<CofrinhoApplication>('/api/cofrinho-applications', {
         method: 'POST',
+        body: JSON.stringify(body)
+    });
+}
+
+export async function updateCofrinhoApplication(
+    id: string,
+    body: Partial<{
+        bucketId: string;
+        amount: number;
+        accountId: string | null;
+        status: string;
+        referenceMonth: string;
+        recordDate: string;
+        description?: string;
+    }>
+): Promise<CofrinhoApplication> {
+    return apiFetch<CofrinhoApplication>(`/api/cofrinho-applications/${encodeURIComponent(id)}`, {
+        method: 'PUT',
         body: JSON.stringify(body)
     });
 }

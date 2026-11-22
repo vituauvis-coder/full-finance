@@ -94,9 +94,9 @@
     width: 0.5rem;
     height: 0.5rem;
     border-radius: 50%;
-    background: var(--dash-chart-net, #ffd60a);
-    border: 1px solid color-mix(in srgb, var(--dash-chart-net, #ffd60a) 55%, #000);
-    box-shadow: 0 0 0 1px color-mix(in srgb, var(--dash-chart-net, #ffd60a) 25%, transparent);
+    background: var(--dash-bucket-orange, var(--dash-v-coral, #ff5a36));
+    border: 1px solid color-mix(in srgb, var(--dash-bucket-orange, #ff5a36) 55%, #000);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--dash-bucket-orange, #ff5a36) 25%, transparent);
 }
 
 @media (max-width: 720px) {

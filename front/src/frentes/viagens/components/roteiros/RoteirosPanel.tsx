@@ -46,6 +46,14 @@ import {
     mergeFlightAirportsIntoPlaces
 } from './roteiros-map-routes';
 import { normalizeGroundTransports } from '../../domain/ground-transport';
+import {
+    buildChinaRouteLegs,
+    chinaRouteStops,
+    resolveChinaRouteOrder
+} from '../../domain/chinaCityRoute';
+import { useChinaRouteGeometry } from '../../hooks/useChinaRouteGeometry';
+import { RoteirosChinaRouteModal } from './RoteirosChinaRouteModal';
+import { RoteirosChinaRouteTooltip } from './RoteirosChinaRouteTooltip';
 
 type Props = {
     payload: TripPayload;
@@ -114,7 +122,22 @@ export function RoteirosPanel({
     const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
     const [editingDestId, setEditingDestId] = useState<string | null>(null);
     const [pinSuggest, setPinSuggest] = useState<PinSuggestState | null>(null);
+    const [chinaSelectedLegId, setChinaSelectedLegId] = useState<string | null>(null);
+    const [chinaRouteModalOpen, setChinaRouteModalOpen] = useState(false);
     const itinerary = payload.itinerary ?? [];
+    const { order: chinaRouteOrder, poolSize: chinaRoutePoolSize } = useMemo(
+        () => resolveChinaRouteOrder(destinations, payload),
+        [destinations, payload]
+    );
+    const chinaLegMeta = useMemo(
+        () => buildChinaRouteLegs(chinaRouteOrder, destinations),
+        [chinaRouteOrder, destinations]
+    );
+    const chinaRouteLegs = useChinaRouteGeometry(chinaLegMeta, destinations);
+    const chinaStops = useMemo(
+        () => chinaRouteStops(chinaRouteOrder, destinations),
+        [chinaRouteOrder, destinations]
+    );
     const groundTransports = useMemo(() => normalizeGroundTransports(payload), [payload]);
     const navStops = useMemo(
         () =>
@@ -553,6 +576,16 @@ export function RoteirosPanel({
                                 Marcar pin
                             </button>
                         </div>
+                        {chinaRoutePoolSize >= 2 ? (
+                            <button
+                                type="button"
+                                className="rote-map-tools__btn rote-map-tools__btn--pill"
+                                onClick={() => setChinaRouteModalOpen(true)}
+                            >
+                                <MaterialIcon name="route" variant="app" opticalSize={16} />
+                                Rota China
+                            </button>
+                        ) : null}
                     </div>
 
                     <div className="rote-board__map">
@@ -563,6 +596,15 @@ export function RoteirosPanel({
                             status={status ?? 'planejada'}
                             visual="roteiros"
                             focusDestId={focusDestId}
+                            chinaRouteLegs={chinaRouteLegs}
+                            chinaRouteStops={chinaStops.length >= 2 ? chinaStops : undefined}
+                            chinaSelectedLegId={chinaSelectedLegId}
+                            renderChinaLegTooltip={(leg) => (
+                                <RoteirosChinaRouteTooltip
+                                    leg={leg}
+                                    onClose={() => setChinaSelectedLegId(null)}
+                                />
+                            )}
                             onFocusDest={mapPinMode ? undefined : (id) => (id ? selectMapPin(id) : onFocusDestChange?.(null))}
                             onTapCoord={mapPinMode ? dropPin : undefined}
                             pinPopoverId={mapPinMode ? null : pinPopoverId}
@@ -768,6 +810,19 @@ export function RoteirosPanel({
                     const base = mapDestinations.find((d) => d.id === editingDestId);
                     if (base) onChangeDestinations([...destinations, { ...base, ...partial }]);
                 }}
+            />
+
+            <RoteirosChinaRouteModal
+                open={chinaRouteModalOpen}
+                destinations={destinations}
+                payload={payload}
+                onPatchPayload={(update) => {
+                    onPatchPayload(update);
+                    void onFlushSave?.();
+                }}
+                selectedLegId={chinaSelectedLegId}
+                onSelectLeg={setChinaSelectedLegId}
+                onClose={() => setChinaRouteModalOpen(false)}
             />
         </div>
     );

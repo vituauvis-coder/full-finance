@@ -36,11 +36,11 @@ export function buildPendingCashOutItems(userAccounts, userExpenses, userProfile
     const manualEnabled = !!prefs.manualCashOut?.enabled;
 
     const items = [];
-    const byId = new Map((userAccounts || []).map((a) => [a.id, a]));
+    const byId = new Map((userAccounts || []).map((a) => [String(a.id), a]));
     const t0 = startOfDay(now).getTime();
 
     for (const e of userExpenses || []) {
-        const acc = byId.get(e.accountId);
+        const acc = byId.get(String(e.accountId));
         if (e.isPaid === true) {
             const isRecSeries = e.recurrenceGroupId != null && String(e.recurrenceGroupId).trim() !== '';
             const stillNeedsCashConfirm =

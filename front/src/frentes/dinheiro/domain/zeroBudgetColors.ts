@@ -7,7 +7,7 @@ export function getColorHex(colorClass: string | undefined): string {
         'bg-blue-500': '#3b82f6',
         'bg-cyan-500': '#06b6d4',
         'bg-emerald-500': '#10b981',
-        'bg-amber-500': '#f59e0b',
+        'bg-amber-500': '#f2c94c',
         'bg-orange-500': '#f97316',
         'bg-fuchsia-500': '#d946ef',
         'bg-teal-500': '#14b8a6',
@@ -18,13 +18,13 @@ export function getColorHex(colorClass: string | undefined): string {
         'bg-yellow-500': '#eab308',
         'bg-gray-500': '#6b7280'
     };
-    return colorMap[String(colorClass || '').trim()] || '#f59e0b';
+    return colorMap[String(colorClass || '').trim()] || '#f2c94c';
 }
 
 export const ZERO_BUDGET_COLORS = [
     { class: 'bg-rose-500', hex: '#f43f5e', label: 'Rosa' },
     { class: 'bg-purple-500', hex: '#a855f7', label: 'Roxo' },
-    { class: 'bg-amber-500', hex: '#f59e0b', label: 'Âmbar' },
+    { class: 'bg-amber-500', hex: '#f2c94c', label: 'Âmbar' },
     { class: 'bg-yellow-500', hex: '#eab308', label: 'Amarelo' },
     { class: 'bg-blue-500', hex: '#3b82f6', label: 'Azul' },
     { class: 'bg-cyan-500', hex: '#06b6d4', label: 'Ciano' },

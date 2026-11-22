@@ -41,19 +41,34 @@ export function effectiveStatus({ startsOn, endsOn, statusOverride, now = new Da
     return 'em_curso';
 }
 
-export function spent(trip, { category = null, customCategoryId = null, destinationId = null } = {}) {
-    const payload = trip.payload ?? {};
+function filterTripExpenses(payload, { category = null, customCategoryId = null, destinationId = null } = {}) {
     let expenses = payload.expenses ?? [];
     if (category) {
-        expenses = expenses.filter((e) => !e.customCategoryId && e.category === category);
+        expenses = expenses.filter((e) => !e.customCategoryId && !e.custom_category_id && e.category === category);
     }
     if (customCategoryId) {
-        expenses = expenses.filter((e) => e.customCategoryId === customCategoryId);
+        expenses = expenses.filter((e) => (e.customCategoryId ?? e.custom_category_id) === customCategoryId);
     }
     if (destinationId) {
-        expenses = expenses.filter((e) => e.destinationId === destinationId);
+        expenses = expenses.filter((e) => (e.destinationId ?? e.destination_id) === destinationId);
     }
-    let sum = expenses.reduce((p, e) => p + Number(e.amount ?? 0), 0);
+    return expenses;
+}
+
+/** Só lançamentos do orçamento (sem hospedagem/transporte da ficha). */
+export function expensesSpent(trip, filters = {}) {
+    const payload = trip.payload ?? {};
+    const expenses = filterTripExpenses(payload, filters);
+    return expenses.reduce((p, e) => p + Math.max(0, Number(e.amount ?? 0) || 0), 0);
+}
+
+export function tripExpensesTotal(trip) {
+    return expensesSpent(trip);
+}
+
+export function spent(trip, { category = null, customCategoryId = null, destinationId = null } = {}) {
+    const payload = trip.payload ?? {};
+    let sum = expensesSpent(trip, { category, customCategoryId, destinationId });
 
     if (!category || category === 'hospedagem') {
         for (const stay of payload.stays ?? []) {

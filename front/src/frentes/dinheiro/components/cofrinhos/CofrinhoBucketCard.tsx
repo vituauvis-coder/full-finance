@@ -7,13 +7,13 @@ import {
     type CofrinhoBucketGoal
 } from '../../domain/cofrinhoAggregations';
 import { bucketColorHex } from '../../domain/cofrinhoConstants';
+import { cofrinhoKindMeta } from '../../domain/cofrinhoBucketTypes';
 import type { Movement } from '../../../../lib/types/finance';
 import { MaterialIcon } from '../../../../components/icons/MaterialIcon';
-import { CofrinhoBucketColorPicker } from './CofrinhoBucketColorPicker';
-import { updateCofrinhoBucket } from '../../api/cofrinhos';
 
 type Props = {
     bucket: CofrinhoBucket;
+    buckets: CofrinhoBucket[];
     applications: CofrinhoApplication[];
     expenses: Movement[];
     goals: CofrinhoBucketGoal[];
@@ -21,11 +21,12 @@ type Props = {
     goalYear: number;
     onEdit: (bucket: CofrinhoBucket) => void;
     onAllocate: (bucketId: string) => void;
-    onRefresh: () => Promise<void>;
+    onOpenHistory: (bucket: CofrinhoBucket) => void;
 };
 
 export function CofrinhoBucketCard({
     bucket,
+    buckets,
     applications,
     expenses,
     goals,
@@ -33,85 +34,93 @@ export function CofrinhoBucketCard({
     goalYear,
     onEdit,
     onAllocate,
-    onRefresh
+    onOpenHistory
 }: Props) {
     const name = bucket.name ?? 'Caixinha';
+    const kindMeta = cofrinhoKindMeta(bucket);
     const hex = bucketColorHex(bucket.colorKey);
-    const resultado = sumAllocatedByBucket(expenses, bucket, applications);
+    const resultado = sumAllocatedByBucket(expenses, bucket, applications, buckets);
     const goal = getBucketGoalForYear(goals, bucket.id, goalYear);
     const meta = goal ? Number(goal.targetAmount) || 0 : 0;
     const perc = meta > 0 ? Math.min((resultado / meta) * 100, 100) : 0;
     const done = meta > 0 && resultado >= meta;
 
     return (
-        <article
-            className="zero-budget__block-card cofrinho-bucket-card"
+        <li
+            className="cofrinho-bucket-table__row"
+            role="row"
             data-bucket-id={bucket.id}
-            style={{ ['--zb-accent' as string]: hex }}
+            data-bucket-kind={kindMeta.value}
+            style={{ ['--cofrinho-accent' as string]: hex }}
         >
-            <header className="zero-budget__block-head">
-                <div className="zero-budget__block-title-row">
-                    <span className="zero-budget__block-dot" style={{ backgroundColor: hex }} aria-hidden="true" />
-                    <h3 className="zero-budget__block-title">{name}</h3>
-                </div>
-                {done ? <span className="cofrinho-bucket-card__done">Concluído</span> : null}
-                <button
-                    type="button"
-                    className="zero-budget__block-delete"
-                    title="Definições da caixinha"
-                    aria-label={`Definições — ${name}`}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onEdit(bucket);
-                    }}
-                >
-                    <MaterialIcon name="settings" variant="app" filled={false} weight={500} opticalSize={20} />
-                </button>
-            </header>
+            <button
+                type="button"
+                className="cofrinho-bucket-table__cell cofrinho-bucket-table__cell--name"
+                role="cell"
+                aria-label={`Ver histórico — ${name}`}
+                onClick={() => onOpenHistory(bucket)}
+            >
+                <span className="cofrinho-bucket-table__icon" aria-hidden>
+                    <MaterialIcon name={kindMeta.icon} variant="app" opticalSize={18} filled />
+                </span>
+                <span className="cofrinho-bucket-table__name-wrap">
+                    <span className="cofrinho-bucket-table__name">{name}</span>
+                    <span className="cofrinho-bucket-table__kind">{kindMeta.shortLabel}</span>
+                </span>
+            </button>
 
-            <div className="zero-budget__block-amount-wrap">
-                <span className="zero-budget__block-amount-value cofrinho-bucket-card__amount">{formatBRL(resultado, currency)}</span>
-            </div>
+            <span className="cofrinho-bucket-table__cell cofrinho-bucket-table__cell--valor" role="cell">
+                <strong className="cofrinho-bucket-table__valor">{formatBRL(resultado, currency)}</strong>
+            </span>
 
-            <p className="zero-budget__block-slider-meta">
+            <span className="cofrinho-bucket-table__cell cofrinho-bucket-table__cell--meta" role="cell">
+                {meta > 0 ? (
+                    <strong className="cofrinho-bucket-table__meta-amount">{formatBRL(meta, currency)}</strong>
+                ) : (
+                    <span className="cofrinho-bucket-table__meta-unset">—</span>
+                )}
+            </span>
+
+            <span className="cofrinho-bucket-table__cell cofrinho-bucket-table__cell--progress" role="cell">
+                {done ? <span className="cofrinho-bucket-table__done">Atingida</span> : null}
                 {meta > 0 ? (
                     <>
-                        <span>de {formatBRL(meta, currency)}</span>
-                        <span aria-hidden="true">·</span>
-                        <span>{Math.round(perc)}% da meta</span>
+                        <span className="cofrinho-bucket-table__progress-pct">{Math.round(perc)}%</span>
+                        <span
+                            className="cofrinho-bucket-table__progress"
+                            role="progressbar"
+                            aria-valuenow={Math.round(perc)}
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                            aria-label={`${Math.round(perc)}% da meta`}
+                        >
+                            <span style={{ width: `${perc.toFixed(1)}%` }} />
+                        </span>
                     </>
                 ) : (
-                    <span className="cofrinho-bucket-card__meta-unset">Meta não definida</span>
+                    <span className="cofrinho-bucket-table__meta-unset">Sem meta em {goalYear}</span>
                 )}
-            </p>
+            </span>
 
-            <div
-                className="cofrinho-bucket-card__progress"
-                role="progressbar"
-                aria-valuenow={Math.round(perc)}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-label="Progresso da meta"
-            >
-                <span style={{ width: `${perc.toFixed(1)}%`, backgroundColor: hex }} />
-            </div>
-
-            <footer className="zero-budget__block-foot cofrinho-bucket-card__foot">
-                <CofrinhoBucketColorPicker
-                    bucketName={name}
-                    selectedKey={bucket.colorKey}
-                    onSelect={async (colorKey) => {
-                        await updateCofrinhoBucket(bucket.id, { colorKey });
-                        await onRefresh();
-                    }}
-                />
-                <div className="cofrinho-bucket-card__actions">
-                    <button type="button" className="zero-budget__block-list-btn" onClick={() => onAllocate(bucket.id)}>
-                        <MaterialIcon name="add" variant="app" filled={false} weight={500} opticalSize={20} />
-                        Aportar
-                    </button>
-                </div>
-            </footer>
-        </article>
+            <span className="cofrinho-bucket-table__cell cofrinho-bucket-table__cell--actions" role="cell">
+                <button
+                    type="button"
+                    className="cofrinho-bucket-table__aportar"
+                    onClick={() => onAllocate(bucket.id)}
+                >
+                    <MaterialIcon name="add" variant="app" opticalSize={17} />
+                    Aportar
+                </button>
+                <button
+                    type="button"
+                    className="cofrinho-bucket-table__edit"
+                    title="Configurar"
+                    aria-label={`Configurar — ${name}`}
+                    onClick={() => onEdit(bucket)}
+                >
+                    <MaterialIcon name="edit" variant="app" opticalSize={16} />
+                </button>
+            </span>
+        </li>
     );
 }

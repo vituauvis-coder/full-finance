@@ -38,7 +38,7 @@
 .portal-tooltip[data-tone='investments'] .portal-tooltip__tone,
 .portal-tooltip[data-tone='savings'] .portal-tooltip__tone,
 .portal-tooltip[data-tone='cofrinhos'] .portal-tooltip__tone {
-    background: var(--primary-color, #737373);
+    background: var(--dash-bucket-cofrinhos, #a855f7);
 }
 
 /* —— Dashboard moderno (grafite / vidro) —— */

@@ -9,6 +9,7 @@ import type {
     TripExpense,
     TripLeg,
     TripFlightSegment,
+    TripFinanceMovementLine,
     TripPayload,
     TripStay
 } from '../types';
@@ -78,6 +79,8 @@ type Props = {
     onOpenSimulador?: () => void;
     onFlushSave?: () => void | Promise<void>;
     expenseAuthors?: Record<string, { id: string; name: string }>;
+    financeMovements?: TripFinanceMovementLine[];
+    onFinanceRefresh?: () => void | Promise<void>;
 };
 
 function emptyPayload(): TripPayload {
@@ -129,7 +132,9 @@ export function ViagemFicha({
     scenarioCount = 0,
     onOpenSimulador,
     onFlushSave,
-    expenseAuthors
+    expenseAuthors,
+    financeMovements = [],
+    onFinanceRefresh
 }: Props) {
     const [internalDraft, setInternalDraft] = useState(() => tripToDraft(trip));
     const draft = controlledDraft ?? internalDraft;
@@ -261,21 +266,16 @@ export function ViagemFicha({
                     />
                 </div>
                 <div className="viagens-form-field">
-                    <label htmlFor="trip-piggy">Cofrinho (R$)</label>
-                    <input
-                        id="trip-piggy"
-                        type="number"
-                        className="viagens-field"
-                        min={0}
-                        value={piggy || ''}
-                        onChange={(e) => {
-                            const v = Number(e.target.value) || 0;
-                            patch((d) => ({
-                                ...d,
-                                payload: { ...d.payload, piggyBank: v, piggy_bank: v }
-                            }));
-                        }}
-                    />
+                    <span className="viagens-form-field__label">Cofrinho</span>
+                    <p className="viagens-muted" style={{ margin: 0, fontSize: '0.9rem' }}>
+                        Saldo e aportes vêm do Dinheiro — use o módulo <strong>Orçamento</strong> (Aportar).
+                        {piggy > 0 ? (
+                            <>
+                                {' '}
+                                Legado no payload: {formatBRL(piggy)} (não edite aqui).
+                            </>
+                        ) : null}
+                    </p>
                 </div>
             </div>
             <p className="viagens-form-subhead">Tetos por categoria</p>
@@ -548,6 +548,7 @@ export function ViagemFicha({
                         onPatch={patch}
                         scenarioCount={scenarioCount}
                         onOpenSimulador={onOpenSimulador}
+                        financeMovements={financeMovements}
                     />
                     <TripFeedSection trip={trip} draft={draft} />
                 </div>
@@ -604,6 +605,8 @@ export function ViagemFicha({
                     onPatch={patch}
                     onFlushSave={onFlushSave}
                     expenseAuthors={expenseAuthors}
+                    financeMovements={financeMovements}
+                    onFinanceRefresh={onFinanceRefresh}
                 />
             ) : fichaModulo ? (
                 <ViagemModuloPanel modulo={fichaModulo}>

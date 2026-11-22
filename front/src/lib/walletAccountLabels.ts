@@ -8,6 +8,10 @@ const ACCOUNT_TYPE_LABELS: Record<string, string> = {
     outros: 'Outros',
     alimentacao: 'Vale alimentação',
     refeicao: 'Vale refeição',
+    vale_alimentacao: 'Vale alimentação',
+    vale_refeicao: 'Vale refeição',
+    cartao_credito: 'Cartão de crédito',
+    cartao_debito: 'Cartão de débito',
     cofrinho: 'Cofrinho'
 };
 

@@ -1,9 +1,14 @@
 import { forecast } from '@motor/viagens/trip-reserve-pace-engine.js';
 import { paymentBreakdown, sumCofrinhoSpent } from '@motor/viagens/trip-expense-payment.js';
-import { budgets, spent, tripTotal } from '@motor/viagens/trips-engine.js';
+import {
+    financeAportesAsDeposits,
+    hasFinanceCofrinhoLines,
+    tripCofrinhoTotalsFromFinance
+} from '@motor/viagens/trip-cofrinho-finance.js';
+import { budgets, expensesSpent, tripExpensesTotal } from '@motor/viagens/trips-engine.js';
 import { monthAndYear } from '@motor/viagens/calendar-format.js';
 import type { TripDraft } from '../ViagemFicha';
-import type { TripPayload } from '../../types';
+import type { TripFinanceMovementLine, TripPayload } from '../../types';
 
 export type PiggyDeposit = {
     id: string;
@@ -210,33 +215,62 @@ export function sumBudgetCaps(draft: TripDraft): number {
     return total;
 }
 
-export function buildOrcamentoSnapshot(draft: TripDraft, now = new Date()) {
+export type OrcamentoSnapshotOptions = {
+    /** Linhas unificadas do Dinheiro (`listTripFinanceMovements`). */
+    financeMovements?: TripFinanceMovementLine[];
+};
+
+function mergedDepositsForSnapshot(
+    payload: TripPayload,
+    financeMovements: TripFinanceMovementLine[] | undefined
+): PiggyDeposit[] {
+    const local = readDeposits(payload);
+    const fromFinance = financeAportesAsDeposits(financeMovements ?? []);
+    if (fromFinance.length > 0) return [...fromFinance, ...local];
+    return depositsForForecast(payload);
+}
+
+export function buildOrcamentoSnapshot(
+    draft: TripDraft,
+    now = new Date(),
+    opts: OrcamentoSnapshotOptions = {}
+) {
     const goal = tripGoal(draft.payload);
     const totalCaps = sumBudgetCaps(draft);
     const effectiveGoal = goal > 0 ? goal : totalCaps;
     const goalFromCaps = goal <= 0 && totalCaps > 0;
-    const deposits = readDeposits(draft.payload);
-    const saved = cofrinhoSalvo(draft.payload);
+    const financeLines = opts.financeMovements ?? [];
+    const financeCofrinho = hasFinanceCofrinhoLines(financeLines)
+        ? tripCofrinhoTotalsFromFinance(financeLines)
+        : null;
+
+    const deposits = mergedDepositsForSnapshot(draft.payload, financeLines);
+    const saved = financeCofrinho ? financeCofrinho.aportes : cofrinhoSalvo(draft.payload);
     const tripRef = { payload: draft.payload, budgetCaps: draft.budgetCaps };
-    const spentTotal = tripTotal(tripRef);
+    const spentTotal = tripExpensesTotal(tripRef);
     const expensePay = paymentBreakdown(tripRef);
-    const cofrinhoUsed = sumCofrinhoSpent(draft.payload.expenses ?? []);
-    const cofrinhoRemaining = Math.max(0, saved - cofrinhoUsed);
-    const stillToSave = Math.max(0, effectiveGoal - saved);
+    const cofrinhoUsed = financeCofrinho
+        ? financeCofrinho.gastosCofrinho
+        : sumCofrinhoSpent(draft.payload.expenses ?? []);
+    const cofrinhoRemaining = financeCofrinho
+        ? financeCofrinho.remaining
+        : Math.max(0, saved - cofrinhoUsed);
+    const stillToSave = Math.max(0, effectiveGoal - cofrinhoRemaining);
     const spentVsGoalPct =
         effectiveGoal > 0 ? Math.min(100, Math.round((spentTotal / effectiveGoal) * 100)) : 0;
-    const savedPct = effectiveGoal > 0 ? Math.min(100, Math.round((saved / effectiveGoal) * 100)) : 0;
+    const savedPct =
+        effectiveGoal > 0 ? Math.min(100, Math.round((cofrinhoRemaining / effectiveGoal) * 100)) : 0;
 
     const pace = forecast({
         goal: effectiveGoal,
-        deposits: depositsForForecast(draft.payload),
+        deposits: deposits.length ? deposits : depositsForForecast(draft.payload),
         startsOn: draft.startsOn,
         now
     });
 
     const categoryRows = ORCAMENTO_CATEGORIES.map((def) => {
         const cap = capAmount(draft, def.id);
-        const used = spent(tripRef, { category: def.id });
+        const used = expensesSpent(tripRef, { category: def.id });
         const pay = paymentBreakdown(tripRef, { category: def.id });
         const pct = cap > 0 ? Math.min(100, Math.round((used / cap) * 100)) : 0;
         const label = orcamentoCategoryLabel(draft.payload, def.id, def.label);
@@ -246,7 +280,7 @@ export function buildOrcamentoSnapshot(draft: TripDraft, now = new Date()) {
     const custom = draft.payload.budgetCustomCategories ?? draft.payload.budget_custom_categories ?? [];
     for (const c of custom) {
         const cap = capAmount(draft, c.id);
-        const used = spent(tripRef, { customCategoryId: c.id });
+        const used = expensesSpent(tripRef, { customCategoryId: c.id });
         const pay = paymentBreakdown(tripRef, { customCategoryId: c.id });
         const pct = cap > 0 ? Math.min(100, Math.round((used / cap) * 100)) : 0;
         categoryRows.push({

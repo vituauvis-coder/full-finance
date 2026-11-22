@@ -27,6 +27,7 @@ export function getPeriodDateBounds(period, now = new Date(), options = {}) {
             startDate = new Date(now.getFullYear(), now.getMonth() - 11, 1);
             endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
             break;
+        case 'civil-year':
         case 'current-year':
             startDate = new Date(civilYear, 0, 1);
             endDate = new Date(civilYear, 11, 31, 23, 59, 59, 999);

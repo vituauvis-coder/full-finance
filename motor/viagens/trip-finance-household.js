@@ -14,6 +14,30 @@
  *   }>
  * }} input
  */
+function financeLedgerKind(ex) {
+    const cat = String(ex?.category ?? '').trim();
+    const isCofrinho = ex?.isCofrinho === true || ex?.isCofrinho === 'true';
+    const paidFromCofrinho =
+        ex?.paidFromCofrinho === true ||
+        ex?.paidFromCofrinho === 'true' ||
+        ex?.paid_from_cofrinho === true;
+    if (cat === 'Cofrinhos' && isCofrinho) return 'aporte';
+    if (paidFromCofrinho) return 'gasto_cofrinho';
+    if (cat === 'Viagens') return 'gasto';
+    if (cat === 'Cofrinhos') return 'aporte';
+    return 'gasto';
+}
+
+/**
+ * @param {string | Date | null | undefined} raw
+ */
+function financeLineDateIso(raw) {
+    if (raw == null || raw === '') return null;
+    const d = raw instanceof Date ? raw : new Date(raw);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toISOString().slice(0, 10);
+}
+
 export function mergeTripFinanceView({ payloadExpenses = [], householdExpenses = [] } = {}) {
     const covered = new Set();
     const lines = [];
@@ -21,12 +45,16 @@ export function mergeTripFinanceView({ payloadExpenses = [], householdExpenses =
     for (const ex of householdExpenses) {
         const tripExpenseId = ex.tripExpenseId ?? null;
         if (tripExpenseId) covered.add(tripExpenseId);
+        const ledgerKind = financeLedgerKind(ex);
         lines.push({
             id: ex.id,
             tripExpenseId,
             amount: Number(ex.amount) || 0,
             description: ex.description ?? '',
             source: 'finance',
+            ledgerKind,
+            category: ex.category ?? null,
+            date: financeLineDateIso(ex.date),
             author: { id: ex.userId, name: ex.authorName || 'Membro' }
         });
     }
@@ -39,12 +67,21 @@ export function mergeTripFinanceView({ payloadExpenses = [], householdExpenses =
             amount: Number(pe.amount) || 0,
             description: pe.description ?? '',
             source: 'payload',
+            ledgerKind: 'gasto',
+            category: null,
+            date: null,
             author: null
         });
     }
 
     const totals = {
-        amount: lines.reduce((n, l) => n + (Number(l.amount) || 0), 0)
+        amount: lines.reduce((n, l) => n + (Number(l.amount) || 0), 0),
+        aportes: lines
+            .filter((l) => l.ledgerKind === 'aporte')
+            .reduce((n, l) => n + (Number(l.amount) || 0), 0),
+        gastosCofrinho: lines
+            .filter((l) => l.ledgerKind === 'gasto_cofrinho')
+            .reduce((n, l) => n + (Number(l.amount) || 0), 0)
     };
     return { lines, totals };
 }

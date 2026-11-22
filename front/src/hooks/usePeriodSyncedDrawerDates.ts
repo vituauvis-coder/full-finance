@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { getPeriodDateBounds } from '../lib/period';
+import { getPeriodDateBounds, isAllYearsPeriod } from '../lib/period';
 
 function toLocalDateInputValue(d: Date) {
     const y = d.getFullYear();
@@ -30,6 +30,12 @@ export function usePeriodSyncedDrawerDates(
         const periodChanged = prevPeriod.current.period !== period || prevPeriod.current.civilYear !== civilYear;
         prevPeriod.current = { period, civilYear };
         if (dateManual && !periodChanged) return;
+        if (isAllYearsPeriod(period)) {
+            setDateFromRef.current('');
+            setDateToRef.current('');
+            if (periodChanged) clearManualRef.current();
+            return;
+        }
         const { startDate, endDate } = getPeriodDateBounds(period, civilYear);
         setDateFromRef.current(toLocalDateInputValue(startDate));
         setDateToRef.current(toLocalDateInputValue(endDate));

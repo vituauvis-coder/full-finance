@@ -3,6 +3,7 @@ export {
     FormAlert,
     FormCheckbox,
     FormDatePicker,
+    FormMonthPicker,
     FormField,
     FormGrid,
     FormInput,

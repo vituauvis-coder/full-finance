@@ -106,11 +106,13 @@ function ExpenseAmountField({
 }
 
 export type TripCreditAccountOption = { id: string; name: string };
+export type TripBankAccountOption = { id: string; name: string };
 
 type Props = {
     ex: TripExpense;
     destinations: TripDestination[];
     creditAccounts: TripCreditAccountOption[];
+    bankAccounts?: TripBankAccountOption[];
     isEditing: boolean;
     onStartEdit: () => void;
     onEndEdit: () => void;
@@ -124,6 +126,7 @@ export function ExpenseRow({
     ex,
     destinations,
     creditAccounts,
+    bankAccounts = [],
     isEditing,
     onStartEdit,
     onEndEdit,
@@ -148,6 +151,8 @@ export function ExpenseRow({
             paymentMethod: method,
             payment_method: method,
             installments: method === 'credit_card' ? Math.max(1, installments) : 1,
+            accountId: null,
+            account_id: null,
             ...(method === 'credit_card'
                 ? { paidFromCofrinho: false, paid_from_cofrinho: false }
                 : {})
@@ -173,31 +178,39 @@ export function ExpenseRow({
         return (
             <li className="orc-exp-view">
                 <button type="button" className="orc-exp-view__hit" onClick={onStartEdit} aria-label={`Editar ${title || 'lançamento'}`}>
-                    <div className="orc-exp-view__copy">
-                        <span className={`orc-exp-view__title${title ? '' : ' is-empty'}`}>
-                            {title || 'Sem nome'}
-                        </span>
-                        <span className="orc-exp-view__meta">
-                            <span className="orc-exp-view__chip orc-exp-view__chip--cat">{catLabel}</span>
-                            <span className="orc-exp-view__date">{expenseDateShort(ex.spentOn)}</span>
-                            <span
-                                className={`orc-exp-view__chip orc-exp-view__chip--pay orc-exp-view__chip--pay-${payMethod}`}
-                            >
-                                {payLabel}
+                    <div className="orc-exp-view__main">
+                        <div className="orc-exp-view__copy">
+                            <span className={`orc-exp-view__title${title ? '' : ' is-empty'}`}>
+                                {title || 'Sem nome'}
                             </span>
-                            {fromCofrinho ? (
-                                <span className="orc-exp-view__chip orc-exp-view__chip--cofrinho">Cofrinho</span>
-                            ) : null}
-                            {destName ? <span className="orc-exp-view__dest">{destName}</span> : null}
+                            <span className="orc-exp-view__meta">
+                                <span className="orc-exp-view__chips" aria-label="Categoria e pagamento">
+                                    <span className="orc-exp-view__chip orc-exp-view__chip--cat">{catLabel}</span>
+                                    <span
+                                        className={`orc-exp-view__chip orc-exp-view__chip--pay orc-exp-view__chip--pay-${payMethod}`}
+                                    >
+                                        {payLabel}
+                                    </span>
+                                    {fromCofrinho ? (
+                                        <span className="orc-exp-view__chip orc-exp-view__chip--cofrinho">Cofrinho</span>
+                                    ) : null}
+                                </span>
+                                <span className="orc-exp-view__date">{expenseDateShort(ex.spentOn)}</span>
+                                {destName ? <span className="orc-exp-view__dest">{destName}</span> : null}
+                            </span>
+                        </div>
+                        <span className="orc-exp-view__aside">
+                            <strong className="orc-exp-view__amount">{formatBRL(amount)}</strong>
+                            <span className="orc-exp-view__aside-foot">
+                                {author?.name ? (
+                                    <span className="orcamento-author" title={`Lançado por ${author.name}`}>
+                                        {author.name}
+                                    </span>
+                                ) : null}
+                                <MaterialIcon className="orc-exp-view__chev" name="edit" variant="app" opticalSize={16} aria-hidden />
+                            </span>
                         </span>
                     </div>
-                    <strong className="orc-exp-view__amount">{formatBRL(amount)}</strong>
-                    {author?.name ? (
-                        <span className="orcamento-author" title={`Lançado por ${author.name}`}>
-                            {author.name}
-                        </span>
-                    ) : null}
-                    <MaterialIcon className="orc-exp-view__chev" name="edit" variant="app" opticalSize={16} aria-hidden />
                 </button>
                 <button
                     type="button"
@@ -347,6 +360,45 @@ export function ExpenseRow({
                                     Cartão
                                 </button>
                             </div>
+                            {payMethod === 'pix' ? (
+                                <div className="orc-exp-edit__inst">
+                                    <label className="orc-exp-edit__inst-label orc-exp-edit__inst-label--card">
+                                        <span>Conta</span>
+                                        <select
+                                            className="orc-exp-edit__input orc-exp-edit__input--card"
+                                            value={accountId}
+                                            onChange={(e) =>
+                                                onChange({
+                                                    ...ex,
+                                                    accountId: e.target.value || null,
+                                                    account_id: e.target.value || null
+                                                })
+                                            }
+                                            aria-label="Conta para Pix"
+                                            aria-invalid={!accountId && amount > 0 ? true : undefined}
+                                        >
+                                            <option value="">Selecione…</option>
+                                            {bankAccounts.map((a) => (
+                                                <option key={a.id} value={a.id}>
+                                                    {a.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                    {bankAccounts.length === 0 ? (
+                                        <p className="orc-exp-edit__pay-hint">
+                                            Nenhuma conta corrente/poupança na Carteira.{' '}
+                                            <Link className="orc-exp-edit__wallet-link" to="/dinheiro/carteira">
+                                                Abrir Carteira
+                                            </Link>
+                                        </p>
+                                    ) : !accountId && amount > 0 ? (
+                                        <p className="orc-exp-edit__pay-hint is-warn">
+                                            Escolha a conta para espelhar nas Saídas.
+                                        </p>
+                                    ) : null}
+                                </div>
+                            ) : null}
                             {payMethod === 'credit_card' ? (
                                 <div className="orc-exp-edit__inst">
                                     <label className="orc-exp-edit__inst-label orc-exp-edit__inst-label--card">

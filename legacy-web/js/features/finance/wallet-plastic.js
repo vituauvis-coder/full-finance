@@ -32,21 +32,27 @@ export function buildWalletPlasticHtml(plastic) {
         foot = `<span class="wallet-plastic__amount">${escapeHtml(plastic.amountText || 'R$ 0,00')}</span>`;
     } else if (slot === 'credit') {
         foot = `<span class="wallet-plastic__amount">${escapeHtml(plastic.amountText || '')}</span>`;
+    } else if (plastic.amountText) {
+        foot = `<span class="wallet-plastic__amount">${escapeHtml(plastic.amountText)}</span>`;
     } else {
         foot = `<span class="wallet-plastic__quiet">Sem fatura</span>`;
     }
     const label = plastic.kindLabel || defaultSlotLabel(slot, walletMode);
+    const idTag =
+        plastic.idTag != null && String(plastic.idTag).trim() !== ''
+            ? `<span class="wallet-plastic__id" title="${escapeHtml(plastic.idFull || plastic.id || '')}">${escapeHtml(plastic.idTag)}</span>`
+            : '';
     const customCls = plastic.useCustom ? ' wallet-plastic--custom' : '';
     const theme = !plastic.useCustom && plastic.themeClass ? ` ${plastic.themeClass}` : '';
     const styleAttr = plastic.inlineStyle ? ` style="${escapeHtml(plastic.inlineStyle)}"` : '';
     return `<button type="button" class="wallet-plastic wallet-plastic--${slot}${theme}${customCls} wallet-card-open" data-card-id="${escapeHtml(plastic.id)}"${styleAttr} aria-label="Ver lançamentos: ${escapeHtml(plastic.name)}">
-        <span class="wallet-plastic__top"><span class="wallet-plastic__kind">${label}</span>${due}</span>
+        <span class="wallet-plastic__top"><span class="wallet-plastic__kind">${label}</span>${idTag}${due}</span>
         <span class="wallet-plastic__name">${escapeHtml(plastic.name)}</span>
         ${foot}
     </button>`;
 }
 
-function buildWalletPlasticPlaceholderHtml(slot, bankId, opts = {}) {
+export function buildWalletPlasticPlaceholderHtml(slot, bankId, opts = {}) {
     const walletMode = opts.walletMode === 'benefit' ? 'benefit' : 'bank';
     const label = defaultSlotLabel(slot, walletMode);
     const hasBank = bankId != null && String(bankId).trim() !== '';

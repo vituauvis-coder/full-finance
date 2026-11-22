@@ -7,8 +7,9 @@ import { loadDashboardFacetsFromStorage, persistDashboardFacets } from '../domai
 type Ctx = {
     facets: DashboardFacets;
     toggleFacet: (flow: 'gains' | 'expenses', facet: string) => void;
-    expenseCategory: string;
-    setExpenseCategory: (value: string) => void;
+    expenseCategories: Set<string>;
+    toggleExpenseCategory: (name: string) => void;
+    clearExpenseCategories: () => void;
     drawerOpen: boolean;
     setDrawerOpen: (v: boolean) => void;
 };
@@ -17,7 +18,7 @@ const DashboardFacetsContext = createContext<Ctx | null>(null);
 
 export function DashboardFacetsProvider({ children }: { children: ReactNode }) {
     const [facets, setFacets] = useState<DashboardFacets>(() => loadDashboardFacetsFromStorage());
-    const [expenseCategory, setExpenseCategory] = useState('');
+    const [expenseCategories, setExpenseCategories] = useState<Set<string>>(() => new Set());
     const [drawerOpen, setDrawerOpen] = useState(false);
 
     useEffect(() => {
@@ -38,9 +39,30 @@ export function DashboardFacetsProvider({ children }: { children: ReactNode }) {
         });
     }, []);
 
+    const toggleExpenseCategory = useCallback((name: string) => {
+        setExpenseCategories((prev) => {
+            const next = new Set(prev);
+            if (next.has(name)) next.delete(name);
+            else next.add(name);
+            return next;
+        });
+    }, []);
+
+    const clearExpenseCategories = useCallback(() => {
+        setExpenseCategories(new Set());
+    }, []);
+
     const value = useMemo(
-        () => ({ facets, toggleFacet, expenseCategory, setExpenseCategory, drawerOpen, setDrawerOpen }),
-        [facets, toggleFacet, expenseCategory, drawerOpen]
+        () => ({
+            facets,
+            toggleFacet,
+            expenseCategories,
+            toggleExpenseCategory,
+            clearExpenseCategories,
+            drawerOpen,
+            setDrawerOpen
+        }),
+        [facets, toggleFacet, expenseCategories, toggleExpenseCategory, clearExpenseCategories, drawerOpen]
     );
 
     return <DashboardFacetsContext.Provider value={value}>{children}</DashboardFacetsContext.Provider>;

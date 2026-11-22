@@ -10,6 +10,10 @@ export type AccountFormPayload = {
     closeDay?: number | null;
     linkedAccountId?: string | null;
     institution?: string | null;
+    walletFunctions?: string[];
+    isPrimaryCash?: boolean;
+    plasticTone?: string | null;
+    plasticColor?: string | null;
 };
 
 export async function createAccount(payload: AccountFormPayload) {

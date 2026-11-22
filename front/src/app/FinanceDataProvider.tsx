@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { apiFetch } from '../lib/http';
+import { normalizeFinanceAccounts } from '../lib/normalizeAccounts';
 import type { FinanceData } from '../lib/types/finance';
 
 type Ctx = {
@@ -19,6 +20,7 @@ const EMPTY: FinanceData = {
     cofrinhoBuckets: [],
     cofrinhoApplications: [],
     cofrinhoBucketGoals: [],
+    cofrinhoTripPayloadOutflows: [],
     userDebts: [],
     userDebtUpdates: [],
     expenseSplitRequests: { incoming: [], outgoing: [] },
@@ -39,10 +41,11 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
             setData({
                 ...EMPTY,
                 ...raw,
-                userAccounts: raw.userAccounts ?? [],
+                userAccounts: normalizeFinanceAccounts(raw.userAccounts),
                 userExpenses: raw.userExpenses ?? [],
                 userGains: raw.userGains ?? [],
-                expenseSplitRequests: raw.expenseSplitRequests ?? { incoming: [], outgoing: [] }
+                expenseSplitRequests: raw.expenseSplitRequests ?? { incoming: [], outgoing: [] },
+                cofrinhoTripPayloadOutflows: raw.cofrinhoTripPayloadOutflows ?? []
             });
         } catch (e) {
             setError(e instanceof Error ? e.message : 'Erro ao carregar dados');

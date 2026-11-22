@@ -211,6 +211,13 @@ export function buildStripInlineStyle(colors) {
     return `background:${pair.credit}`;
 }
 
+/** Gradiente do cartão unificado no catálogo (cor custom ou tema). */
+export function buildWalletCardShellGradient(creditHex) {
+    const credit = normalizeHexColor(creditHex) || GENERIC_PLASTIC_DEFAULTS.color;
+    const mid = debitTintFromCredit(credit);
+    return `linear-gradient(155deg, ${credit} 0%, ${mid} 50%, #0f172a 100%)`;
+}
+
 export function defaultColorsForThemeClass(themeClass) {
     const base =
         (themeClass && BANK_PLASTIC_DEFAULTS[themeClass]) || GENERIC_PLASTIC_DEFAULTS;

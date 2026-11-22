@@ -1,4 +1,4 @@
-/* Menu lateral — hierarquia clara; neutraliza gradientes do legado */
+/* Menu lateral — título + subtítulo; neutraliza gradientes do legado */
 
 .sidebar.sidebar--modern {
     background: var(--shell-canvas);
@@ -140,31 +140,41 @@
     display: none;
 }
 
-/* Navegação */
+/* Navegação — título + subtítulo */
 .sidebar.sidebar--modern .app-sidebar__menu {
-    gap: 0.12rem;
+    gap: 0.2rem;
     padding: 0;
 }
 
 .sidebar.sidebar--modern .sidebar-menu li a,
 .sidebar.sidebar--modern .sidebar-group__trigger {
     position: relative;
-    min-height: 40px;
-    padding: 0.45rem 0.6rem;
-    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    min-height: 48px;
+    padding: 0.5rem 0.6rem;
+    border-radius: 10px;
     border: none !important;
     background: transparent !important;
     box-shadow: none !important;
     color: var(--shell-text-secondary);
     font-weight: 500;
     font-size: 0.875rem;
-    gap: 0.65rem;
+    gap: 0.7rem;
+    text-decoration: none;
+    transition:
+        background 0.18s ease,
+        color 0.18s ease;
+}
+
+.sidebar.sidebar--modern .sidebar-group {
+    gap: 0.08rem;
 }
 
 .sidebar.sidebar--modern .sidebar-group__row {
     display: flex;
     align-items: center;
-    gap: 0.1rem;
+    gap: 0.12rem;
 }
 
 .sidebar.sidebar--modern .sidebar-menu li a.sidebar-group__link {
@@ -187,6 +197,10 @@
     background: transparent;
     color: var(--shell-text-tertiary);
     cursor: pointer;
+    transition:
+        background 0.18s ease,
+        color 0.18s ease,
+        transform 0.22s ease;
 }
 
 .sidebar.sidebar--modern button.sidebar-group__chev:hover {
@@ -199,12 +213,15 @@
     background: var(--shell-nav-hover) !important;
     color: var(--shell-text-primary);
     transform: none !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
 }
 
 .sidebar.sidebar--modern .sidebar-menu li a.active {
     background: var(--shell-nav-active-bg) !important;
     color: var(--shell-text-primary);
-    font-weight: 600;
+    border: none !important;
+    box-shadow: none !important;
 }
 
 .sidebar.sidebar--modern .sidebar-menu li a.active::before {
@@ -214,7 +231,7 @@
     top: 50%;
     transform: translateY(-50%);
     width: 3px;
-    height: 55%;
+    height: 52%;
     border-radius: 0 3px 3px 0;
     background: var(--shell-nav-indicator);
 }
@@ -224,8 +241,12 @@
 }
 
 .sidebar.sidebar--modern .sidebar-nav-icon {
-    width: 1.25rem;
-    height: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 1.35rem;
+    width: 1.35rem;
+    height: 1.35rem;
     color: var(--shell-nav-icon);
 }
 
@@ -233,10 +254,43 @@
     color: var(--shell-nav-icon-active);
 }
 
-.sidebar.sidebar--modern .sidebar-group__chev {
-    margin-left: auto;
-    opacity: 0.45;
+.sidebar.sidebar--modern .sidebar-nav-text {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.05rem;
+    min-width: 0;
+    line-height: 1.2;
+}
+
+.sidebar.sidebar--modern .sidebar-nav-label {
+    display: block;
+    width: 100%;
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: inherit;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sidebar.sidebar--modern .sidebar-nav-sublabel {
+    display: block;
+    width: 100%;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    line-height: 1.3;
     color: var(--shell-text-tertiary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sidebar.sidebar--modern .sidebar-menu li a:hover .sidebar-nav-sublabel,
+.sidebar.sidebar--modern .sidebar-menu li a.active .sidebar-nav-sublabel {
+    color: color-mix(in srgb, var(--shell-text-secondary) 82%, var(--shell-text-tertiary));
 }
 
 .sidebar.sidebar--modern .sidebar-group.is-open .sidebar-group__chev {
@@ -244,17 +298,24 @@
 }
 
 .sidebar.sidebar--modern .sidebar-submenu {
-    margin: 0.15rem 0 0.35rem 0.35rem;
-    padding: 0.2rem 0 0.2rem 0.5rem;
-    border-left: none;
-    gap: 0.05rem;
+    margin: 0.1rem 0 0.35rem;
+    padding: 0.15rem 0 0.15rem 0.65rem;
+    border-left: 2px solid var(--shell-border);
+    margin-left: 0.85rem;
+    gap: 0.08rem;
 }
 
 .sidebar.sidebar--modern .nav-link--sub {
-    min-height: 36px;
-    padding: 0.38rem 0.55rem 0.38rem 0.75rem;
+    min-height: 44px;
+    padding: 0.4rem 0.55rem;
+}
+
+.sidebar.sidebar--modern .nav-link--sub .sidebar-nav-label {
     font-size: 0.8125rem;
-    font-weight: 500;
+    font-weight: 600;
+}
+
+.sidebar.sidebar--modern .nav-link--sub {
     color: var(--shell-nav-sub) !important;
 }
 
@@ -268,10 +329,16 @@
 }
 
 .sidebar.sidebar--modern .nav-link--sub.active::before {
-    height: 45%;
+    height: 42%;
 }
 
-/* Rodapé discreto */
+.sidebar.sidebar--modern .sidebar-root-item {
+    margin-top: 0.25rem;
+    padding-top: 0.4rem;
+    border-top: 1px solid var(--shell-border);
+}
+
+/* Rodapé */
 .sidebar.sidebar--modern .app-sidebar__footer {
     margin-top: auto;
     padding-top: 0.65rem;
@@ -281,10 +348,14 @@
 
 .sidebar.sidebar--modern .app-sidebar__footer-btn,
 .sidebar.sidebar--modern #logout-btn {
-    min-height: 36px;
-    padding: 0.4rem 0.55rem;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    width: 100%;
+    min-height: 40px;
+    padding: 0.45rem 0.55rem;
     border: none !important;
-    border-radius: 8px;
+    border-radius: 10px;
     background: transparent !important;
     box-shadow: none !important;
     color: var(--shell-text-tertiary) !important;
@@ -368,4 +439,27 @@
 .main-content.sidebar-collapsed .sidebar.sidebar--modern .app-sidebar__profile-card {
     justify-content: center;
     padding: 0.45rem;
+}
+
+/* Colapsado: só ícones (comportamento legado) */
+.main-content.sidebar-collapsed .sidebar.sidebar--modern .sidebar-nav-sublabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Bloqueia animações/bordas do layout.css legado */
+.sidebar.sidebar--modern .sidebar-menu li a,
+.sidebar.sidebar--modern .sidebar-menu li a:hover,
+.sidebar.sidebar--modern .sidebar-menu li a.active,
+.sidebar.sidebar--modern .sidebar-menu li a:focus-visible {
+    border: none !important;
+    background-image: none !important;
+    transform: none !important;
 }

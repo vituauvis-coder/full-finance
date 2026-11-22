@@ -15,7 +15,7 @@ export function useMovementSort<T extends string>(
     const [sortKey, setSortKey] = useState<T>(defaultKey);
     const [sortDir, setSortDir] = useState<SortDir>('desc');
 
-    const toggleSort = useCallback(
+    const applySort = useCallback(
         (key: T) => {
             if (key === sortKey) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
             else {
@@ -25,6 +25,8 @@ export function useMovementSort<T extends string>(
         },
         [sortKey]
     );
+
+    const toggleSort = applySort;
 
     const sortRows = useCallback(
         (accountLabel: (id?: string) => string) =>

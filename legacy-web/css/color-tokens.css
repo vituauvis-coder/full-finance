@@ -25,8 +25,8 @@
     --tone-85: 85%;
 
     /* --- Saídas (cor canônica: --expenses-accent em main.css) --- */
-    --expenses-accent-strong: #be123c;
-    --expenses-accent-soft: #fda4af;
+    --expenses-accent-strong: #e04a28;
+    --expenses-accent-soft: #ffb8a6;
     --expenses-bg-subtle: color-mix(in srgb, var(--expenses-accent) var(--tone-8), var(--bg-light));
     --expenses-bg-muted: color-mix(in srgb, var(--expenses-accent) var(--tone-14), var(--bg-light));
     --expenses-bg-chip: color-mix(in srgb, var(--expenses-accent) var(--tone-16), transparent);
@@ -40,8 +40,8 @@
     --movement-expense-color: var(--expenses-accent);
 
     /* --- Entradas --- */
-    --gains-accent-strong: #059669;
-    --gains-accent-soft: #6ee7b7;
+    --gains-accent-strong: #1a8f85;
+    --gains-accent-soft: #7ee8dc;
     --gains-bg-subtle: color-mix(in srgb, var(--gains-accent) var(--tone-8), var(--bg-light));
     --gains-bg-muted: color-mix(in srgb, var(--gains-accent) var(--tone-12), var(--bg-light));
     --gains-bg-chip: color-mix(in srgb, var(--gains-accent) var(--tone-16), transparent);
@@ -56,8 +56,8 @@
     --wallet-accent-muted: #60a5fa;
     --wallet-bg-chip: color-mix(in srgb, var(--wallet-accent) var(--tone-16), transparent);
 
-    --zb-accent: #d97706;
-    --zb-accent-muted: #f59e0b;
+    --zb-accent: #c9a227;
+    --zb-accent-muted: #f2c94c;
     --zb-bg-chip: color-mix(in srgb, var(--zb-accent) var(--tone-16), transparent);
 
     --dashboard-accent: var(--info-color);
@@ -68,7 +68,7 @@
      * Sempre partir de --warning-color (main.css / theme-dark.css).
      * Usar estes tokens em badges (status Pendente, parcelas abertas, etc.).
      */
-    --warning-text: #b45309;
+    --warning-text: #9a7b0a;
     --warning-text-soft: color-mix(in srgb, var(--warning-color) var(--tone-85), var(--text-color));
     --warning-chip-bg: color-mix(in srgb, var(--warning-color) var(--tone-16), transparent);
     --warning-chip-bg-strong: color-mix(in srgb, var(--warning-color) var(--tone-18), transparent);

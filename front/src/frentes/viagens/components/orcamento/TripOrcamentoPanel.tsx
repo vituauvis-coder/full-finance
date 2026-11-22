@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type FocusEvent } from 'react';
 import { fetchFinanceData } from '../../../dinheiro/api/finance';
-import { isCreditCardType } from '../../../../lib/accounts';
+import { createExpense } from '../../../dinheiro/api/movements';
+import { EXPENSE_COFRINHO_CATEGORY } from '../../../dinheiro/domain/cofrinhoConstants';
+import { isCreditCardType, isPixBankAccountType } from '../../../../lib/accounts';
 import { MaterialIcon } from '../../../../components/icons/MaterialIcon';
-import type { Trip, TripDestination, TripExpense } from '../../types';
+import type { Trip, TripDestination, TripExpense, TripFinanceMovementLine } from '../../types';
 import { formatBRL } from '../../utils/map-utils';
 import type { TripDraft } from '../ViagemFicha';
 import {
@@ -22,6 +24,7 @@ import { PiggyAportePop } from './PiggyAportePop';
 import { OrcamentoOverview } from './OrcamentoOverview';
 import { PayMethodChips } from './PayMethodChips';
 import { PiggyHistoryPop } from './PiggyHistoryPop';
+import { TripFinanceLedgerStrip } from './TripFinanceLedgerStrip';
 import '../../styles/orcamento-workspace.css';
 
 function sortExpenses(list: TripExpense[]): TripExpense[] {
@@ -42,10 +45,23 @@ type Props = {
     /** Dispara save imediato após concluir edição de gasto (sync cartão → Dinheiro). */
     onFlushSave?: () => void | Promise<void>;
     expenseAuthors?: Record<string, { id: string; name: string }>;
+    financeMovements?: TripFinanceMovementLine[];
+    onFinanceRefresh?: () => void | Promise<void>;
 };
 
-export function TripOrcamentoPanel({ trip, draft, onPatch, onFlushSave, expenseAuthors }: Props) {
-    const snap = useMemo(() => buildOrcamentoSnapshot(draft), [draft]);
+export function TripOrcamentoPanel({
+    trip,
+    draft,
+    onPatch,
+    onFlushSave,
+    expenseAuthors,
+    financeMovements = [],
+    onFinanceRefresh
+}: Props) {
+    const snap = useMemo(
+        () => buildOrcamentoSnapshot(draft, new Date(), { financeMovements }),
+        [draft, financeMovements]
+    );
     const [aporteOpen, setAporteOpen] = useState(false);
     const [historyOpen, setHistoryOpen] = useState(false);
     const [ledgerCategoryId, setLedgerCategoryId] = useState<string | null>(null);
@@ -54,19 +70,30 @@ export function TripOrcamentoPanel({ trip, draft, onPatch, onFlushSave, expenseA
     const [metaEdit, setMetaEdit] = useState(false);
     const destinations = draft.payload.destinations ?? [];
     const [creditAccounts, setCreditAccounts] = useState<{ id: string; name: string }[]>([]);
+    const [bankAccounts, setBankAccounts] = useState<{ id: string; name: string }[]>([]);
 
     useEffect(() => {
         let cancelled = false;
         void fetchFinanceData()
             .then((data) => {
                 if (cancelled) return;
-                const list = (data.userAccounts ?? [])
-                    .filter((a) => isCreditCardType(a.type))
-                    .map((a) => ({ id: a.id, name: a.name || 'Cartão' }));
-                setCreditAccounts(list);
+                const accounts = data.userAccounts ?? [];
+                setCreditAccounts(
+                    accounts
+                        .filter((a) => isCreditCardType(a.type))
+                        .map((a) => ({ id: a.id, name: a.name || 'Cartão' }))
+                );
+                setBankAccounts(
+                    accounts
+                        .filter((a) => isPixBankAccountType(a.type))
+                        .map((a) => ({ id: a.id, name: a.name || 'Conta' }))
+                );
             })
             .catch(() => {
-                if (!cancelled) setCreditAccounts([]);
+                if (!cancelled) {
+                    setCreditAccounts([]);
+                    setBankAccounts([]);
+                }
             });
         return () => {
             cancelled = true;
@@ -206,17 +233,47 @@ export function TripOrcamentoPanel({ trip, draft, onPatch, onFlushSave, expenseA
         });
     }
 
-    function addDeposit(amount: number, recordedOn: string) {
-        onPatch((d) => {
-            const list = readDeposits(d.payload);
-            const deposit: PiggyDeposit = {
-                id: crypto.randomUUID(),
+    const financeAportes = useMemo(
+        () => financeMovements.filter((l) => l.ledgerKind === 'aporte'),
+        [financeMovements]
+    );
+
+    const depositHistory = useMemo(() => {
+        const local = readDeposits(draft.payload);
+        const fromFinance: PiggyDeposit[] = financeAportes.map((l) => ({
+            id: `finance::${l.id}`,
+            amount: l.amount,
+            recordedOn: l.date ?? undefined,
+            monthKey: l.date?.slice(0, 7),
+            note: l.description
+        }));
+        return [...fromFinance, ...local];
+    }, [draft.payload, financeAportes]);
+
+    async function addDeposit(amount: number, recordedOn: string) {
+        const accountId = bankAccounts[0]?.id;
+        if (!accountId) {
+            window.alert('Cadastre uma conta corrente na Carteira para registrar o aporte no extrato.');
+            return;
+        }
+        const title = String(trip.title ?? '').trim() || 'Viagem';
+        try {
+            await createExpense({
+                description: `Aporte — ${title}`,
                 amount,
-                recordedOn,
-                monthKey: recordedOn.slice(0, 7)
-            };
-            return patchDeposits(d, [...list, deposit]);
-        });
+                accountId,
+                category: EXPENSE_COFRINHO_CATEGORY,
+                subcategory: title,
+                date: recordedOn,
+                isPaid: true,
+                isCofrinho: true,
+                tripId: trip.id
+            });
+            window.dispatchEvent(new Event('finance:data-changed'));
+            await onFinanceRefresh?.();
+        } catch (e) {
+            window.alert(e instanceof Error ? e.message : 'Não foi possível registrar o aporte.');
+        }
     }
 
     function removeDeposit(id: string) {
@@ -265,8 +322,6 @@ export function TripOrcamentoPanel({ trip, draft, onPatch, onFlushSave, expenseA
         setEditingExpenseId(created.id);
     }
 
-    const ledgerExtras = Math.max(0, snap.spentTotal - snap.expensePay.committed);
-
     const expenses = useMemo(() => {
         const list = draft.payload.expenses ?? [];
         const frozen = expenseOrderFrozen.current;
@@ -281,7 +336,6 @@ export function TripOrcamentoPanel({ trip, draft, onPatch, onFlushSave, expenseA
         <section className="orc-workspace" aria-label="Orçamento da viagem">
             <OrcamentoOverview
                 snap={snap}
-                ledgerExtras={ledgerExtras}
                 metaEdit={metaEdit}
                 displayGoal={snap.goal > 0 ? snap.goal : snap.totalCaps}
                 goalFromCaps={snap.goalFromCaps}
@@ -295,6 +349,8 @@ export function TripOrcamentoPanel({ trip, draft, onPatch, onFlushSave, expenseA
                 onOpenHistory={() => setHistoryOpen(true)}
                 onOpenAporte={() => setAporteOpen(true)}
             />
+
+            <TripFinanceLedgerStrip lines={financeMovements} />
 
             <div className="orc-columns">
                 <section className="orc-panel orc-panel--categories" aria-labelledby="orc-cat-title">
@@ -365,6 +421,7 @@ export function TripOrcamentoPanel({ trip, draft, onPatch, onFlushSave, expenseA
                                         ex={ex}
                                         destinations={destinations}
                                         creditAccounts={creditAccounts}
+                                        bankAccounts={bankAccounts}
                                         isEditing={editingExpenseId === ex.id}
                                         onStartEdit={() => openExpenseEdit(ex.id)}
                                         onEndEdit={closeExpenseEdit}
@@ -392,7 +449,14 @@ export function TripOrcamentoPanel({ trip, draft, onPatch, onFlushSave, expenseA
 
             {aporteOpen ? <PiggyAportePop onClose={() => setAporteOpen(false)} onSave={addDeposit} /> : null}
             {historyOpen ? (
-                <PiggyHistoryPop deposits={snap.deposits} onClose={() => setHistoryOpen(false)} onDelete={removeDeposit} />
+                <PiggyHistoryPop
+                    deposits={depositHistory}
+                    onClose={() => setHistoryOpen(false)}
+                    onDelete={(id) => {
+                        if (id.startsWith('finance::')) return;
+                        removeDeposit(id);
+                    }}
+                />
             ) : null}
             {ledgerCategoryId ? (
                 <CategoryLedgerPop

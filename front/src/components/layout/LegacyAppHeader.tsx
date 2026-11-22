@@ -15,12 +15,14 @@ export function LegacyAppHeader() {
     const pageId = legacyPageIdFromPath(pathname) ?? 'dashboard';
     const meta = LEGACY_PAGE_HEADERS[pageId];
     const viagensAtlas = pathname === '/viagens' || pathname === '/viagens/';
+    const hideTitleBar = pageId === 'dashboard';
 
     return (
         <>
             <button id="menu-toggle-btn" className="menu-toggle-btn" type="button">
                 <i className="fas fa-bars"></i>
             </button>
+            {hideTitleBar ? null : (
             <header className={`app-header ${meta.headerClass ?? ''}`}>
                 <div className="header-left">
                     <div className="header-page-heading header-page-heading--emoji-swap" id="header-page-heading" aria-live="polite">
@@ -37,22 +39,24 @@ export function LegacyAppHeader() {
                     </div>
                 </div>
                 <div className="header-right">
-                    <DashboardHeaderActions hidden={pageId !== 'dashboard'} />
+                    <DashboardHeaderActions hidden />
                     <MovementFacetHeaderActions
                         hidden={pageId !== 'gains'}
                         id="gains-header-actions"
-                        ariaLabel="Filtros de entradas"
+                        ariaLabel="Ações de entradas"
                         paidLabel="Recebido"
                         unpaidLabel="Pendente"
                         tone="gains"
+                        showQuickStatus={false}
                     />
                     <MovementFacetHeaderActions
                         hidden={pageId !== 'expenses'}
                         id="expenses-header-actions"
-                        ariaLabel="Filtros de saídas"
+                        ariaLabel="Ações de saídas"
                         paidLabel="Pago"
                         unpaidLabel="Pendente"
                         tone="expenses"
+                        showQuickStatus={false}
                     />
                     <ViagensHeaderActions hidden={pageId !== 'viagens' || !viagensAtlas} />
                     <ZeroBudgetHeaderActions hidden={pageId !== 'zero-budget'} />
@@ -62,6 +66,7 @@ export function LegacyAppHeader() {
                     <HeaderNotifications />
                 </div>
             </header>
+            )}
         </>
     );
 }

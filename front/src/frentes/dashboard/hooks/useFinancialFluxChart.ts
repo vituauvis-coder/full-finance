@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { buildSelectedMonthDailySeries, buildYearFluxSeries } from '../domain/fluxSeries';
+import { acceptedOutgoingSplits } from '../domain/splitRequestsForBalance';
 import { FLUX_CHART_SYNTHETIC_PERIOD, gainsWithSyntheticExpectedSplits } from '../domain/syntheticSplitGains';
 import { fetchYearBalanceSeries } from '../domain/yearBalanceSeries';
 import { MONTH_NAMES, monthIndexFromPeriod } from '../../../lib/period';
@@ -10,6 +11,10 @@ export const REPORTS_CHART_SHOW_SALDO_TOTAL_KEY = 'reports.financialChart.showSa
 export type FluxChartSeries = {
     labels: string[];
     gainData: number[];
+    expenseFixedData: number[];
+    expenseInvoiceData: number[];
+    expenseExtraData: number[];
+    expenseCofrinhoData: number[];
     expenseData: number[];
     netData: number[];
     balanceData: (number | null)[];
@@ -41,7 +46,7 @@ export function useFinancialFluxChart(params: {
     expenses: Movement[];
     accounts: Account[];
     facets: DashboardFacets;
-    expenseCategory?: string;
+    expenseCategories?: ReadonlySet<string>;
     chartType: FluxChartScope;
     userProfile?: UserProfile | null;
     splitRequests?: unknown[] | null;
@@ -72,6 +77,11 @@ export function useFinancialFluxChart(params: {
         params.splitBundle
     ]);
 
+    const expenseSplits = useMemo(
+        () => acceptedOutgoingSplits(params.splitBundle),
+        [params.splitBundle]
+    );
+
     const baseSeries = useMemo(() => {
         if (params.chartType === 'month') {
             return buildSelectedMonthDailySeries(
@@ -81,7 +91,8 @@ export function useFinancialFluxChart(params: {
                 params.civilYear,
                 params.facets,
                 params.accounts,
-                params.expenseCategory
+                expenseSplits,
+                params.expenseCategories
             );
         }
         return buildYearFluxSeries(
@@ -90,9 +101,10 @@ export function useFinancialFluxChart(params: {
             params.civilYear,
             params.facets,
             params.accounts,
-            params.expenseCategory
+            expenseSplits,
+            params.expenseCategories
         );
-    }, [gainsForFlux, params]);
+    }, [gainsForFlux, expenseSplits, params]);
 
     useEffect(() => {
         if (!showSaldoTotal || params.chartType !== 'year') {

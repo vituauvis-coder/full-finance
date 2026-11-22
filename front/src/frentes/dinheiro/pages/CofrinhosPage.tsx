@@ -1,6 +1,6 @@
 import { CofrinhosPageSkeleton } from '../../../components/skeleton/CofrinhosPageSkeleton';
 import { useFinanceData } from '../../../app/FinanceDataProvider';
-import { useCivilPeriodState } from '../../../hooks/useCivilPeriodState';
+import { useCofrinhosPeriodState } from '../hooks/useCofrinhosPeriodState';
 import { useSkeletonMinDuration } from '../../../hooks/useSkeletonMinDuration';
 import { useCofrinhosHeaderRegistration } from '../context/CofrinhosHeaderSlotContext';
 import { useCofrinhosPageModel } from '../hooks/useCofrinhosPageModel';
@@ -11,9 +11,9 @@ import { CofrinhosPageModals, CofrinhosPageShell, CofrinhosPageWorkspace } from 
 export function CofrinhosPage() {
     const { data, loading, error, refresh } = useFinanceData();
     const showSkeleton = useSkeletonMinDuration(loading || !data);
-    const { period, year, onPeriodChange, onYearChange } = useCivilPeriodState();
+    useCofrinhosPeriodState();
     const modals = useCofrinhosModals();
-    const model = useCofrinhosPageModel(data, period, year);
+    const model = useCofrinhosPageModel(data);
     const { deleteApplication } = useCofrinhosApplicationActions(refresh);
 
     useCofrinhosHeaderRegistration(modals.openCreateBucket);
@@ -38,26 +38,26 @@ export function CofrinhosPage() {
         <CofrinhosPageShell>
             <CofrinhosPageWorkspace
                 model={model}
-                goalYear={year}
                 accounts={data.userAccounts}
-                period={period}
-                year={year}
-                onPeriodChange={onPeriodChange}
-                onYearChange={onYearChange}
                 onEditBucket={modals.openEditBucket}
                 onAllocate={modals.openAllocate}
-                onRefresh={refresh}
+                onOpenHistory={modals.openHistory}
                 onDeleteApplication={(id) => void deleteApplication(id)}
+                onRefresh={refresh}
             />
             <CofrinhosPageModals
                 model={model}
-                goalYear={year}
+                goalYear={model.goalYear}
+                accounts={data.userAccounts}
                 bucketModalOpen={modals.bucketModalOpen}
                 editingBucket={modals.editingBucket}
                 applicationModalOpen={modals.applicationModalOpen}
                 allocateBucketId={modals.allocateBucketId}
+                allocatePoolYearMonth={modals.allocatePoolYearMonth}
+                historyBucket={modals.historyBucket}
                 onCloseBucket={modals.closeBucketModal}
                 onCloseApplication={modals.closeApplicationModal}
+                onCloseHistory={modals.closeHistory}
                 onSaved={refresh}
             />
         </CofrinhosPageShell>

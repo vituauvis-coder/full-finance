@@ -37,6 +37,9 @@ type Props<T> = {
     sort?: DataTableSortState;
     selection?: DataTableSelection;
     getRowKey: (row: T) => string;
+    colGroup?: ReactNode;
+    onRowClick?: (row: T) => void;
+    rowClassName?: string | ((row: T) => string | undefined);
 };
 
 export function DataTable<T>({
@@ -48,7 +51,10 @@ export function DataTable<T>({
     tableClassName = '',
     sort,
     selection,
-    getRowKey
+    getRowKey,
+    colGroup,
+    onRowClick,
+    rowClassName
 }: Props<T>) {
     const batchPrefix = selection?.batchTone ?? 'gain';
     const batchCheckClass = `${batchPrefix}-batch-check`;
@@ -64,6 +70,7 @@ export function DataTable<T>({
     return (
         <div className={`table-container data-table-host${className ? ` ${className}` : ''}`}>
             <table id={tableId} className={`data-table${tableClassName ? ` ${tableClassName}` : ''}`}>
+                {colGroup}
                 <thead>
                     <tr>
                         {selection ? (
@@ -124,8 +131,28 @@ export function DataTable<T>({
                         rows.map((row, rowIndex) => {
                             const rowId = getRowKey(row);
                             const selected = selection?.selectedIds.has(rowId) ?? false;
+                            const extraRowClass =
+                                typeof rowClassName === 'function' ? rowClassName(row) : rowClassName;
                             return (
-                                <tr key={rowId} className={selected ? 'data-table__row--selected' : undefined}>
+                                <tr
+                                    key={rowId}
+                                    className={[
+                                        selected ? 'data-table__row--selected' : '',
+                                        onRowClick ? 'data-table__row--clickable' : '',
+                                        extraRowClass
+                                    ]
+                                        .filter(Boolean)
+                                        .join(' ')}
+                                    onClick={
+                                        onRowClick
+                                            ? (e) => {
+                                                  const target = e.target as HTMLElement;
+                                                  if (target.closest('button, a, input, label')) return;
+                                                  onRowClick(row);
+                                              }
+                                            : undefined
+                                    }
+                                >
                                     {selection ? (
                                         <td className={batchTdClass}>
                                             <input

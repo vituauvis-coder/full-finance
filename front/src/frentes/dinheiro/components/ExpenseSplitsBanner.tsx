@@ -28,8 +28,8 @@ export function ExpenseSplitsBanner({ onAcceptSplit }: Props) {
     const n = incoming.length;
     const hint =
         n === 1
-            ? 'Aceite cria a sua parte; recusar notifica o solicitante.'
-            : `${n} solicitações aguardando. Aceite cria a sua parte; recusar notifica o solicitante.`;
+            ? 'Pedido de rateio — não é estorno. Aceitar lança sua parte; recusar avisa quem dividiu.'
+            : `${n} pedidos de rateio. Não são estornos — aceitar lança sua parte na Saída.`;
 
     function buildSeed(s: ExpenseSplitRequest): ExpenseSplitSeed {
         const src = s.sourceExpense;
@@ -69,7 +69,7 @@ export function ExpenseSplitsBanner({ onAcceptSplit }: Props) {
                     <span className="expense-splits-incoming__icon-wrap" aria-hidden="true">
                         <MaterialIcon name="handshake" variant="app" />
                     </span>
-                    <h3 className="expense-splits-incoming__title">Rateios pendentes</h3>
+                    <h3 className="expense-splits-incoming__title">Compartilhamento recebido</h3>
                     <span
                         className="expense-splits-incoming__count"
                         aria-label={`${n} pendente(s)`}

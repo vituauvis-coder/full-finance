@@ -3,6 +3,7 @@ export type SidebarLeaf = {
     page: string;
     icon: string;
     label: string;
+    subtitle?: string;
     /** Só ativo na rota exata. */
     end?: boolean;
     /** Ativo só com `?modulo=` na ficha da viagem (orçamento, roteiros, hospedagens). */
@@ -12,6 +13,7 @@ export type SidebarLeaf = {
 export type SidebarGroupConfig = {
     id: 'financas' | 'viagens';
     label: string;
+    subtitle: string;
     icon: string;
     /** Página que abre ao clicar no nome do grupo. */
     to: string;
@@ -23,24 +25,53 @@ export const SIDEBAR_FERRAMENTAS: SidebarLeaf = {
     to: '/ferramentas',
     page: 'ferramentas',
     icon: 'handyman',
-    label: 'Ferramentas'
+    label: 'Ferramentas',
+    subtitle: 'Calculadoras e utilitários'
 };
 
 const FINANCAS_ITEMS: readonly SidebarLeaf[] = [
-    { to: '/dashboard', page: 'dashboard', icon: 'pie_chart', label: 'Dashboard', end: true },
-    { to: '/dinheiro/entradas', page: 'gains', icon: 'trending_up', label: 'Entradas' },
-    { to: '/dinheiro/saidas', page: 'expenses', icon: 'trending_down', label: 'Saídas' },
-    { to: '/dinheiro/planejamento', page: 'zero-budget', icon: 'track_changes', label: 'Planejamento' },
-    { to: '/dinheiro/carteira', page: 'wallet', icon: 'account_balance_wallet', label: 'Carteira' },
-    { to: '/dinheiro/cofrinhos', page: 'cofrinhos', icon: 'savings', label: 'Cofrinhos' },
-    { to: '/dinheiro/dividas', page: 'debts', icon: 'warning', label: 'Dívidas' }
+    {
+        to: '/dinheiro/carteira',
+        page: 'wallet',
+        icon: 'account_balance_wallet',
+        label: 'Carteira',
+        subtitle: 'Contas e saldos'
+    },
+    {
+        to: '/dinheiro/entradas',
+        page: 'gains',
+        icon: 'trending_up',
+        label: 'Entradas',
+        subtitle: 'Receitas e ganhos'
+    },
+    {
+        to: '/dinheiro/saidas',
+        page: 'expenses',
+        icon: 'trending_down',
+        label: 'Saídas',
+        subtitle: 'Despesas do mês'
+    },
+    {
+        to: '/dinheiro/cofrinhos',
+        page: 'cofrinhos',
+        icon: 'savings',
+        label: 'Cofrinhos',
+        subtitle: 'Metas e reservas'
+    },
+    {
+        to: '/dinheiro/planejamento',
+        page: 'zero-budget',
+        icon: 'track_changes',
+        label: 'Planejamento',
+        subtitle: 'Orçamento zero'
+    }
 ];
 
 const VIAGENS_MODULOS = [
-    { modulo: 'orcamento', label: 'Orçamento', icon: 'account_balance_wallet' },
-    { modulo: 'transporte', label: 'Transportes', icon: 'flight' },
-    { modulo: 'hospedagens', label: 'Hospedagens', icon: 'apartment' },
-    { modulo: 'roteiros', label: 'Roteiros', icon: 'map' }
+    { modulo: 'orcamento', label: 'Orçamento', subtitle: 'Custos da viagem', icon: 'account_balance_wallet' },
+    { modulo: 'transporte', label: 'Transportes', subtitle: 'Voos e deslocamentos', icon: 'flight' },
+    { modulo: 'hospedagens', label: 'Hospedagens', subtitle: 'Onde ficar', icon: 'apartment' },
+    { modulo: 'roteiros', label: 'Roteiros', subtitle: 'Dias e atividades', icon: 'map' }
 ] as const;
 
 const LAST_TRIP_KEY = 'meu-mundo:last-trip-id';
@@ -58,6 +89,7 @@ export const SIDEBAR_GROUPS: readonly SidebarGroupConfig[] = [
     {
         id: 'financas',
         label: 'Finanças',
+        subtitle: 'Dashboard e movimentos',
         icon: 'payments',
         to: '/dashboard',
         pages: ['dashboard', ...FINANCAS_ITEMS.map((item) => item.page)],
@@ -66,6 +98,7 @@ export const SIDEBAR_GROUPS: readonly SidebarGroupConfig[] = [
     {
         id: 'viagens',
         label: 'Viagens',
+        subtitle: 'Atlas e planejamento',
         icon: 'flight',
         to: '/viagens',
         pages: ['viagens', 'viagens-milhas'],
@@ -115,6 +148,7 @@ export function viagensModuleItems(tripId: string | null): SidebarLeaf[] {
                 page: 'viagens',
                 icon: modulo.icon,
                 label: modulo.label,
+                subtitle: modulo.subtitle,
                 modulo: 'transporte' as const
             };
         }
@@ -124,6 +158,7 @@ export function viagensModuleItems(tripId: string | null): SidebarLeaf[] {
                 page: 'viagens',
                 icon: modulo.icon,
                 label: modulo.label,
+                subtitle: modulo.subtitle,
                 modulo: 'hospedagens' as const
             };
         }
@@ -133,6 +168,7 @@ export function viagensModuleItems(tripId: string | null): SidebarLeaf[] {
                 page: 'viagens',
                 icon: modulo.icon,
                 label: modulo.label,
+                subtitle: modulo.subtitle,
                 modulo: 'roteiros' as const
             };
         }
@@ -142,6 +178,7 @@ export function viagensModuleItems(tripId: string | null): SidebarLeaf[] {
                 page: 'viagens',
                 icon: modulo.icon,
                 label: modulo.label,
+                subtitle: modulo.subtitle,
                 end: true,
                 modulo: modulo.modulo
             };
@@ -151,6 +188,7 @@ export function viagensModuleItems(tripId: string | null): SidebarLeaf[] {
             page: 'viagens',
             icon: modulo.icon,
             label: modulo.label,
+            subtitle: modulo.subtitle,
             modulo: modulo.modulo
         };
     });

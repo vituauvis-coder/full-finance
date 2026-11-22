@@ -1,5 +1,10 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import type { Account, ExpenseSplitSeed, Movement } from '../../lib/types/finance';
+import { fetchTripsList } from '../../frentes/viagens/api/trips';
+import { EXPENSE_COFRINHO_CATEGORY } from '../../frentes/dinheiro/domain/cofrinhoConstants';
+import { VIAGENS_EXPENSE_CATEGORY } from '../../frentes/dinheiro/domain/cofrinhoMovementLedger';
+import { MaterialIcon } from '../icons/MaterialIcon';
+import { ExpenseFormPaymentPicker } from './ExpenseFormPaymentPicker';
 import {
     buildPaymentMethodOptions,
     isCreditCardType,
@@ -12,7 +17,6 @@ import { DialogForm, DialogFrame } from '../ui/dialog';
 import {
     FormActions,
     FormAlert,
-    FormCheckbox,
     FormDatePicker,
     FormField,
     FormGrid,
@@ -59,13 +63,21 @@ export function ExpenseFormModal({
 }: Props) {
     const { categories } = useCategories('expense');
     const [loanAccountId, setLoanAccountId] = useState('');
+    const [trips, setTrips] = useState<{ id: string; title: string }[]>([]);
+    const [tripId, setTripId] = useState('');
+    const [paidFromCofrinho, setPaidFromCofrinho] = useState(false);
 
     const [description, setDescription] = useState('');
     const [amount, setAmount] = useState('');
     const [paymentMethodId, setPaymentMethodId] = useState('');
     const [category, setCategory] = useState('');
     const [subcategory, setSubcategory] = useState('');
+    const fromRateio = Boolean(splitSeed?.splitRequestId) && !editing;
     const loanCategory = isLoanExpense({ category, subcategory });
+    const linksTrip =
+        !fromRateio &&
+        (category === VIAGENS_EXPENSE_CATEGORY || category === EXPENSE_COFRINHO_CATEGORY);
+    const tripTitleById = useMemo(() => new Map(trips.map((t) => [t.id, t.title])), [trips]);
     const paymentOptions = useMemo(
         () => buildPaymentMethodOptions(accounts, { includeLoan: loanCategory }),
         [accounts, loanCategory]
@@ -80,7 +92,6 @@ export function ExpenseFormModal({
     const [error, setError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
 
-    const fromRateio = Boolean(splitSeed?.splitRequestId) && !editing;
     const selectedAcc = accounts.find((a) => a.id === paymentMethodId);
     const loanDebitAcc = accounts.find((a) => a.id === loanAccountId);
     const installmentAccount: Account | undefined =
@@ -118,6 +129,12 @@ export function ExpenseFormModal({
                     editing.isFixed === '1'
             );
             setIsCofrinho(!!editing.isCofrinho);
+            setTripId(String(editing.tripId ?? '').trim());
+            setPaidFromCofrinho(
+                editing.paidFromCofrinho === true ||
+                    editing.paid_from_cofrinho === true ||
+                    editing.paidFromCofrinho === 'true'
+            );
             setRecurringMonthly(false);
             setLoanAccountId(editing.accountId ?? '');
             return;
@@ -159,9 +176,39 @@ export function ExpenseFormModal({
         setPaidPeriodKeys([]);
         setIsFixed(false);
         setIsCofrinho(false);
+        setTripId('');
+        setPaidFromCofrinho(false);
         setRecurringMonthly(false);
         setLoanAccountId('');
     }, [open, editing, splitSeed, accounts, paymentOptions]);
+
+    useEffect(() => {
+        if (!open || fromRateio) return;
+        let cancelled = false;
+        void fetchTripsList()
+            .then((res) => {
+                if (cancelled) return;
+                setTrips(
+                    (res.trips ?? []).map((t) => ({
+                        id: t.id,
+                        title: String(t.title ?? '').trim() || 'Viagem'
+                    }))
+                );
+            })
+            .catch(() => {
+                if (!cancelled) setTrips([]);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [open, fromRateio]);
+
+    useEffect(() => {
+        if (!open || !tripId) return;
+        const title = tripTitleById.get(tripId);
+        if (title && linksTrip) setSubcategory(title);
+        if (category === EXPENSE_COFRINHO_CATEGORY) setIsCofrinho(true);
+    }, [tripId, tripTitleById, linksTrip, category, open]);
 
     useEffect(() => {
         if (!open || editing || fromRateio) return;
@@ -239,6 +286,12 @@ export function ExpenseFormModal({
                 : showInstallmentsField && Number.isFinite(n) && n >= 1
                   ? n
                   : 1;
+        const cofrinhoFlag =
+            category === EXPENSE_COFRINHO_CATEGORY
+                ? true
+                : fromRateio
+                  ? !!splitSeed?.sourceExpense?.isCofrinho || isCofrinho
+                  : isCofrinho;
         const payload: ExpenseFormPayload = {
             description: description.trim(),
             amount: parseFloat(amount),
@@ -249,8 +302,10 @@ export function ExpenseFormModal({
             isPaid: editing || fromRateio ? isPaid : (resolved?.isPaid ?? isPaid),
             installmentCount: useInstallments,
             isFixed,
-            isCofrinho: fromRateio ? !!splitSeed?.sourceExpense?.isCofrinho || isCofrinho : isCofrinho,
+            isCofrinho: cofrinhoFlag,
             recurringMonthly: !editing && !fromRateio && recurringMonthly ? true : undefined,
+            ...(tripId ? { tripId } : {}),
+            ...(category === VIAGENS_EXPENSE_CATEGORY && paidFromCofrinho ? { paidFromCofrinho: true } : {}),
             ...(fromRateio && splitSeed?.splitRequestId
                 ? { splitRequestId: splitSeed.splitRequestId }
                 : {})
@@ -282,15 +337,23 @@ export function ExpenseFormModal({
     }
 
     return (
-        <DialogFrame id="expense-modal" open={open} title={title} onClose={onClose} size="lg">
-            <DialogForm onSubmit={(e) => void onSubmit(e)}>
+        <DialogFrame
+            id="expense-modal"
+            open={open}
+            title={title}
+            onClose={onClose}
+            size="md"
+            panelClassName="expense-form-modal__panel"
+        >
+            <DialogForm className="ui-form expense-form-modal" onSubmit={(e) => void onSubmit(e)}>
                 <FormAlert message={error} />
                 {fromRateio ? (
-                    <p className="ui-form-hint-block">
+                    <p className="expense-form-modal__rateio-hint">
                         Preencha e salve sua saída para concluir o aceite. O estorno ao solicitante
                         só é gerado quando você marcar sua parte como paga.
                     </p>
                 ) : null}
+
                 <FormGrid columns={2}>
                     <FormField id="expense-category-select" label="Categoria">
                         <FormSelect
@@ -322,17 +385,61 @@ export function ExpenseFormModal({
                         </FormSelect>
                     </FormField>
                 </FormGrid>
-                <FormField id="expense-description" label="Descrição">
-                    <FormInput
-                        id="expense-description"
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        required
-                        autoComplete="off"
-                    />
-                </FormField>
+
+                {linksTrip ? (
+                    <FormField id="expense-trip-select" label="Viagem">
+                        <FormSelect
+                            id="expense-trip-select"
+                            value={tripId}
+                            onChange={(e) => {
+                                const id = e.target.value;
+                                setTripId(id);
+                                if (!id) return;
+                                const title = tripTitleById.get(id);
+                                if (title) setSubcategory(title);
+                            }}
+                        >
+                            <option value="">Sem vínculo com viagem</option>
+                            {trips.map((t) => (
+                                <option key={t.id} value={t.id}>
+                                    {t.title}
+                                </option>
+                            ))}
+                            {tripId && !trips.some((t) => t.id === tripId) ? (
+                                <option value={tripId}>Viagem (legado)</option>
+                            ) : null}
+                        </FormSelect>
+                        <p className="expense-form-modal__hint viagens-muted">
+                            A subcategoria vira o nome da viagem no extrato.
+                        </p>
+                    </FormField>
+                ) : null}
+
+                <FormGrid columns={2} className="expense-form-modal__desc-date">
+                    <FormField id="expense-description" label="Descrição">
+                        <FormInput
+                            id="expense-description"
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            required
+                            autoComplete="off"
+                            placeholder="Ex.: Mercado, aluguel…"
+                        />
+                    </FormField>
+                    <FormField id="expense-date" label="Data">
+                        <FormDatePicker
+                            id="expense-date"
+                            value={date}
+                            onChange={setDate}
+                            required
+                            placeholder="Data"
+                            disabled={fromRateio}
+                        />
+                    </FormField>
+                </FormGrid>
+
                 <FormGrid columns={2}>
-                    <FormField id="expense-amount" label="Valor">
+                    <FormField id="expense-amount" label="Valor (R$)">
                         <FormInput
                             id="expense-amount"
                             type="number"
@@ -344,51 +451,19 @@ export function ExpenseFormModal({
                             required
                             readOnly={fromRateio}
                             className={fromRateio ? 'input-readonly-locked' : undefined}
+                            placeholder="0,00"
                         />
                     </FormField>
-                    <FormField id="expense-date" label="Data">
-                        <FormDatePicker
-                            id="expense-date"
-                            value={date}
-                            onChange={setDate}
-                            required
-                            placeholder="Data da saída"
-                            disabled={fromRateio}
+                    <FormField id="expense-payment-wrap" label="Forma de pagamento">
+                        <ExpenseFormPaymentPicker
+                            paymentMethodId={paymentMethodId}
+                            onChange={setPaymentMethodId}
+                            paymentOptions={paymentOptions}
+                            loanMode={loanCategory && paymentMethodId === EXPENSE_LOAN_PAYMENT_VALUE}
                         />
                     </FormField>
                 </FormGrid>
-                <FormField id="expense-payment-method" label="Forma de pagamento">
-                    <FormSelect
-                        id="expense-payment-method"
-                        value={paymentMethodId}
-                        onChange={(e) => setPaymentMethodId(e.target.value)}
-                        required
-                    >
-                        <option value="">Selecione…</option>
-                        {paymentOptions.filter((o) => o.group === 'pix').length > 0 ? (
-                            <optgroup label="PIX">
-                                {paymentOptions
-                                    .filter((o) => o.group === 'pix')
-                                    .map((o) => (
-                                        <option key={o.value} value={o.value}>
-                                            {o.label}
-                                        </option>
-                                    ))}
-                            </optgroup>
-                        ) : null}
-                        {paymentOptions.filter((o) => o.group === 'card').length > 0 ? (
-                            <optgroup label="Cartões">
-                                {paymentOptions
-                                    .filter((o) => o.group === 'card')
-                                    .map((o) => (
-                                        <option key={o.value} value={o.value}>
-                                            {o.label}
-                                        </option>
-                                    ))}
-                            </optgroup>
-                        ) : null}
-                    </FormSelect>
-                </FormField>
+
                 {loanCategory && paymentMethodId === EXPENSE_LOAN_PAYMENT_VALUE ? (
                     <FormField id="expense-loan-account" label="Conta de débito (empréstimo)">
                         <FormSelect
@@ -406,43 +481,13 @@ export function ExpenseFormModal({
                         </FormSelect>
                     </FormField>
                 ) : null}
-                <div className="ui-form-checkboxes ui-form-checkboxes--row">
-                    <FormCheckbox
-                        id="expense-is-fixed"
-                        label="Essencial (fixo)"
-                        checked={isFixed}
-                        onChange={setIsFixed}
-                    />
-                    {!fromRateio ? (
-                        <FormCheckbox
-                            id="expense-is-cofrinho"
-                            label="Aplicar em cofrinho"
-                            checked={isCofrinho}
-                            onChange={setIsCofrinho}
-                        />
-                    ) : null}
-                    {editing || fromRateio ? (
-                        <FormCheckbox
-                            id="expense-is-paid"
-                            label="Pago"
-                            checked={isPaid}
-                            onChange={setIsPaid}
-                        />
-                    ) : (
-                        <FormCheckbox
-                            id="expense-recurring"
-                            label="Repetir até dezembro"
-                            checked={recurringMonthly}
-                            onChange={setRecurringMonthly}
-                        />
-                    )}
-                </div>
+
                 {showInstallmentsField ? (
                     <FormField
                         id="expense-installments"
                         label={
                             paymentIsCredit
-                                ? 'Parcelas no cartão de crédito'
+                                ? 'Parcelas no cartão'
                                 : loanCategory
                                   ? 'Parcelas do empréstimo'
                                   : 'Parcelas'
@@ -471,12 +516,64 @@ export function ExpenseFormModal({
                         onTogglePeriod={togglePaidPeriod}
                     />
                 ) : null}
-                {!editing && !fromRateio ? (
-                    <p className="ui-form-hint-block">
-                        Cartão de crédito entra como pendente; PIX/conta como pago (editável após
-                        salvar).
-                    </p>
-                ) : null}
+
+                <FormField id="expense-options" label="Opções">
+                    <div className="expense-form-modal__chips">
+                        <button
+                            type="button"
+                            className={`expense-form-modal__chip${isFixed ? ' is-on' : ''}`}
+                            aria-pressed={isFixed}
+                            onClick={() => setIsFixed((v) => !v)}
+                        >
+                            <MaterialIcon name="push_pin" variant="app" opticalSize={17} aria-hidden />
+                            Essencial
+                        </button>
+                        {!fromRateio && category !== EXPENSE_COFRINHO_CATEGORY ? (
+                            <button
+                                type="button"
+                                className={`expense-form-modal__chip${isCofrinho ? ' is-on' : ''}`}
+                                aria-pressed={isCofrinho}
+                                onClick={() => setIsCofrinho((v) => !v)}
+                            >
+                                <MaterialIcon name="savings" variant="app" opticalSize={17} aria-hidden />
+                                Cofrinho
+                            </button>
+                        ) : null}
+                        {category === VIAGENS_EXPENSE_CATEGORY && tripId ? (
+                            <button
+                                type="button"
+                                className={`expense-form-modal__chip${paidFromCofrinho ? ' is-on' : ''}`}
+                                aria-pressed={paidFromCofrinho}
+                                onClick={() => setPaidFromCofrinho((v) => !v)}
+                            >
+                                <MaterialIcon name="account_balance_wallet" variant="app" opticalSize={17} aria-hidden />
+                                Pago do cofrinho
+                            </button>
+                        ) : null}
+                        {editing || fromRateio ? (
+                            <button
+                                type="button"
+                                className={`expense-form-modal__chip${isPaid ? ' is-on' : ''}`}
+                                aria-pressed={isPaid}
+                                onClick={() => setIsPaid((v) => !v)}
+                            >
+                                <MaterialIcon name="check_circle" variant="app" opticalSize={17} aria-hidden />
+                                Pago
+                            </button>
+                        ) : (
+                            <button
+                                type="button"
+                                className={`expense-form-modal__chip${recurringMonthly ? ' is-on' : ''}`}
+                                aria-pressed={recurringMonthly}
+                                onClick={() => setRecurringMonthly((v) => !v)}
+                            >
+                                <MaterialIcon name="event_repeat" variant="app" opticalSize={17} aria-hidden />
+                                Repetir ano
+                            </button>
+                        )}
+                    </div>
+                </FormField>
+
                 <FormActions
                     onCancel={onClose}
                     busy={saving}

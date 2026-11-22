@@ -1,7 +1,11 @@
 import type { Movement } from '../../../lib/types/finance';
 import { movementDate } from '../../../lib/period';
 import { EXPENSE_COFRINHO_CATEGORY, isCofrinhoPoolSubcategoryName } from './cofrinhoConstants';
+import { collectCofrinhoInflowEvents, sumInflowEventsForBucket } from './cofrinhoInflowEvents';
+import { cofrinhoBucketDeltaForMovement } from './cofrinhoMovementLedger';
 import { referenceMonthToYearMonth, toYearMonthKey } from './cofrinhoPeriod';
+
+export type CofrinhoBucketKind = 'reserve' | 'viagem' | 'pool';
 
 export type CofrinhoBucket = {
     id: string;
@@ -10,6 +14,8 @@ export type CofrinhoBucket = {
     icon?: string;
     yieldMultiplier?: number;
     sortOrder?: number;
+    kind?: CofrinhoBucketKind | string;
+    tripId?: string | null;
 };
 
 export type CofrinhoApplication = {
@@ -30,7 +36,8 @@ export type CofrinhoBucketGoal = {
 };
 
 function applicationBucketId(app: CofrinhoApplication): string {
-    return String(app.bucketId ?? '');
+    const raw = app as CofrinhoApplication & { bucket_id?: string };
+    return String(app.bucketId ?? raw.bucket_id ?? '');
 }
 
 export function sumApplicationsByBucket(applications: CofrinhoApplication[], bucketId: string): number {
@@ -42,19 +49,12 @@ export function sumApplicationsByBucket(applications: CofrinhoApplication[], buc
 export function sumAllocatedByBucket(
     expenses: Movement[],
     bucket: CofrinhoBucket,
-    applications: CofrinhoApplication[] = []
+    applications: CofrinhoApplication[] = [],
+    buckets: CofrinhoBucket[] = []
 ): number {
-    const fromApps = sumApplicationsByBucket(applications, bucket.id);
-    if (fromApps > 0) return fromApps;
-    const name = bucket.name ?? '';
-    return (expenses ?? [])
-        .filter(
-            (e) =>
-                String(e.category ?? '').trim() === EXPENSE_COFRINHO_CATEGORY &&
-                String(e.subcategory ?? '').trim() === name &&
-                e.isPaid !== false
-        )
-        .reduce((s, e) => s + (Number(e.amount) || 0), 0);
+    const pool = buckets.length ? buckets : [bucket];
+    const events = collectCofrinhoInflowEvents(pool, applications, expenses);
+    return Math.round(sumInflowEventsForBucket(events, bucket.id) * 100) / 100;
 }
 
 export function getTotalInBuckets(
@@ -63,25 +63,21 @@ export function getTotalInBuckets(
     applications: CofrinhoApplication[]
 ): number {
     if (!buckets.length) return 0;
-    return buckets.reduce((s, b) => s + sumAllocatedByBucket(expenses, b, applications), 0);
+    return buckets.reduce((s, b) => s + sumAllocatedByBucket(expenses, b, applications, buckets), 0);
 }
 
 export function sumAllocatedInMonth(
     applications: CofrinhoApplication[],
     buckets: CofrinhoBucket[],
-    yearMonth: string
+    yearMonth: string,
+    expenses: Movement[] = []
 ): number {
     if (!yearMonth || !buckets.length) return 0;
-    return buckets.reduce((sum, b) => {
-        const v = (applications ?? [])
-            .filter(
-                (a) =>
-                    applicationBucketId(a) === b.id &&
-                    referenceMonthToYearMonth(a.referenceMonth) === yearMonth
-            )
-            .reduce((s, a) => s + (Number(a.amount) || 0), 0);
-        return sum + v;
-    }, 0);
+    const events = collectCofrinhoInflowEvents(buckets, applications, expenses);
+    const total = events
+        .filter((ev) => ev.yearMonth === yearMonth)
+        .reduce((s, ev) => s + ev.amount, 0);
+    return Math.round(total * 100) / 100;
 }
 
 export function isCofrinhoPoolExpense(expense: Movement): boolean {
@@ -107,6 +103,23 @@ export function computePendingBalance(expenses: Movement[], yearMonth: string): 
     return Math.max(0, Math.round(raw * 100) / 100);
 }
 
+export function sumCofrinhoPoolForCivilYear(expenses: Movement[], year: number): number {
+    const prefix = `${year}-`;
+    return (expenses ?? []).reduce((sum, e) => {
+        if (!isCofrinhoPoolExpense(e) || e.isPaid === false) return sum;
+        const ym = toYearMonthKey(typeof e.date === 'string' ? e.date : movementDate(e).toISOString());
+        if (!ym.startsWith(prefix)) return sum;
+        return sum + (Number(e.amount) || 0);
+    }, 0);
+}
+
+export function sumCofrinhoPoolAllYears(expenses: Movement[]): number {
+    return (expenses ?? []).reduce((sum, e) => {
+        if (!isCofrinhoPoolExpense(e) || e.isPaid === false) return sum;
+        return sum + (Number(e.amount) || 0);
+    }, 0);
+}
+
 export function getBucketGoalForYear(
     bucketGoals: CofrinhoBucketGoal[],
     bucketId: string,
@@ -117,18 +130,30 @@ export function getBucketGoalForYear(
 
 export function filterApplications(
     applications: CofrinhoApplication[],
-    filters: { bucketId?: string; yearMonth?: string } = {}
+    filters: { bucketId?: string; yearMonth?: string; civilYear?: number; allYears?: boolean } = {}
 ): CofrinhoApplication[] {
     let list = [...(applications ?? [])];
     if (filters.bucketId) {
         list = list.filter((a) => applicationBucketId(a) === filters.bucketId);
     }
-    if (filters.yearMonth) {
-        list = list.filter((a) => referenceMonthToYearMonth(a.referenceMonth) === filters.yearMonth);
+    if (filters.allYears) {
+        // sem recorte temporal
+    } else if (filters.civilYear != null) {
+        const prefix = `${filters.civilYear}-`;
+        list = list.filter((a) => referenceMonthToYearMonth(a.referenceMonth).startsWith(prefix));
+    } else     if (filters.yearMonth) {
+        list = list.filter((a) => {
+            const raw = a as CofrinhoApplication & { reference_month?: string };
+            return referenceMonthToYearMonth(a.referenceMonth ?? raw.reference_month) === filters.yearMonth;
+        });
     }
     return list.sort((a, b) => {
-        const da = referenceMonthToYearMonth(a.referenceMonth);
-        const db = referenceMonthToYearMonth(b.referenceMonth);
+        const ref = (x: CofrinhoApplication) => {
+            const raw = x as CofrinhoApplication & { reference_month?: string };
+            return referenceMonthToYearMonth(x.referenceMonth ?? raw.reference_month);
+        };
+        const da = ref(a);
+        const db = ref(b);
         if (db !== da) return db.localeCompare(da);
         return String(b.createdAt ?? '').localeCompare(String(a.createdAt ?? ''));
     });

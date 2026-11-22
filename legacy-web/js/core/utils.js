@@ -128,12 +128,13 @@ export function movementAccountPaymentKindLabel(acc) {
 }
 
 /**
- * Contas que entram no «Saldo total» do dashboard e gráficos: caixa (corrente, poupança, dinheiro, outros).
- * Exclui cartões e conta tipo investimento — posições em ativos usam o módulo Cofrinhos.
+ * Contas que entram no «Saldo em conta» (dashboard / gráfico): caixa (corrente, poupança, dinheiro, outros).
+ * Exclui cartões, vales (instituição ex.: Caju/Alelo — tipos alimentacao/refeicao), investimento e cofrinhos.
  */
 export function isCashBalanceAccountType(type) {
     if (isCardAccountType(type)) return false;
-    if (type === 'investimento') return false;
+    if (type === 'investimento' || type === 'cofrinho') return false;
+    if (isBenefitWalletInstitution(type)) return false;
     return true;
 }
 

@@ -392,12 +392,17 @@ export interface TripsListResponse {
     visits: MapVisit[];
 }
 
+export type TripFinanceLedgerKind = 'aporte' | 'gasto' | 'gasto_cofrinho';
+
 export interface TripFinanceMovementLine {
     id: string;
     tripExpenseId?: string | null;
     amount: number;
     description: string;
     source: 'finance' | 'payload';
+    ledgerKind?: TripFinanceLedgerKind;
+    category?: string | null;
+    date?: string | null;
     author: { id: string; name: string } | null;
 }
 
@@ -407,7 +412,7 @@ export interface TripDetailResponse {
     scenarioWinnerId?: string | null;
     financeMovements?: {
         lines: TripFinanceMovementLine[];
-        totals: { amount: number };
+        totals: { amount: number; aportes?: number; gastosCofrinho?: number };
     };
 }
 

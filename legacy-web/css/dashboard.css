@@ -1613,18 +1613,18 @@ button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='
 }
 
 .treemap-block--alimentacao {
-    background: linear-gradient(155deg, #34d399 0%, #10b981 45%, #059669 100%);
-    border-color: rgba(5, 150, 105, 0.42);
+    background: linear-gradient(155deg, #7ee8dc 0%, #2ec4b6 45%, #1a8f85 100%);
+    border-color: rgba(26, 143, 133, 0.42);
 }
 
 .treemap-block--cofrinhos {
-    background: linear-gradient(155deg, #fb7185 0%, #f43f5e 40%, #e11d48 100%);
-    border-color: rgba(225, 29, 72, 0.42);
+    background: linear-gradient(155deg, #ff8a6b 0%, #ff5a36 40%, #e04a28 100%);
+    border-color: rgba(255, 90, 54, 0.42);
 }
 
 .treemap-block--cuidados {
-    background: linear-gradient(155deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
-    border-color: rgba(217, 119, 6, 0.42);
+    background: linear-gradient(155deg, #f2c94c 0%, #c9a227 50%, #9a7b0a 100%);
+    border-color: rgba(201, 162, 39, 0.42);
 }
 
 .treemap-block--transporte {
@@ -1949,9 +1949,9 @@ button.expense-status-badge:not(.expense-status-badge--pay):disabled[aria-busy='
     --heatmap-muted-bg: #f5f5f5;
     --heatmap-muted-border: transparent;
     --heatmap-muted-text: #d4d4d4;
-    /* Mesmos tons das telas Saídas (#e11d48) e Entradas (#10b981) */
-    --heatmap-expense-accent: var(--expenses-accent, #e11d48);
-    --heatmap-gain-accent: #10b981;
+    /* Mesmos tons das telas Saídas (coral) e Entradas (turquesa) */
+    --heatmap-expense-accent: var(--expenses-accent, #ff5a36);
+    --heatmap-gain-accent: var(--gains-accent, #2ec4b6);
     /* Altura visível da lista de detalhes do dia (~8 linhas) */
     --heatmap-day-visible-rows: 8;
     /* Item compacto: padding + título + meta (~2 linhas) */

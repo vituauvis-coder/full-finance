@@ -25,20 +25,31 @@ test('crédito inclui valor, vencimento e data-card-id', () => {
     assert.doesNotMatch(html, /Sem fatura/);
 });
 
-test('débito mostra Sem fatura e não mostra valor', () => {
+test('débito sem valor mostra Sem fatura', () => {
     const html = buildWalletPlasticHtml({
         id: 'deb-1',
         name: 'Bradesco Débito',
         slot: 'debit',
         walletMode: 'bank',
         dueText: '',
-        amountText: 'R$ 999,00',
         themeClass: ''
     });
     assert.match(html, /data-card-id="deb-1"/);
     assert.match(html, /wallet-plastic--debit/);
     assert.match(html, /Sem fatura/);
-    assert.doesNotMatch(html, /R\$ 999,00/);
+});
+
+test('débito com amountText mostra saldo', () => {
+    const html = buildWalletPlasticHtml({
+        id: 'deb-1',
+        name: 'Bradesco Débito',
+        slot: 'debit',
+        walletMode: 'bank',
+        amountText: 'R$ 999,00',
+        themeClass: ''
+    });
+    assert.match(html, /R\$ 999,00/);
+    assert.doesNotMatch(html, /Sem fatura/);
 });
 
 test('benefício usa slots Alimentação e Refeição com atalhos food/meal', () => {

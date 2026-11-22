@@ -15,7 +15,7 @@ type Props = {
     expenses: Movement[];
     accounts: Account[];
     facets: DashboardFacets;
-    expenseCategory?: string;
+    expenseCategories?: ReadonlySet<string>;
     currency: string;
     userProfile?: UserProfile | null;
     splitRequests?: unknown[] | null;
@@ -29,7 +29,6 @@ export function FinancialFluxChart(props: Props) {
 
     const {
         series,
-        title,
         showSaldoTotal,
         balanceLoading,
         toggleSaldoTotal,
@@ -41,7 +40,7 @@ export function FinancialFluxChart(props: Props) {
         expenses: props.expenses,
         accounts: props.accounts,
         facets: props.facets,
-        expenseCategory: props.expenseCategory,
+        expenseCategories: props.expenseCategories,
         chartType,
         userProfile: props.userProfile,
         splitRequests: props.splitRequests,
@@ -54,7 +53,6 @@ export function FinancialFluxChart(props: Props) {
 
     return (
         <FinancialFluxChartCard
-            title={title}
             chartType={chartType}
             viz={viz}
             showSaldoTotal={showSaldoTotal}

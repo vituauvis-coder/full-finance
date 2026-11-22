@@ -56,6 +56,7 @@ export function AppSidebar() {
                                 to={SIDEBAR_FERRAMENTAS.to}
                                 icon={SIDEBAR_FERRAMENTAS.icon}
                                 label={SIDEBAR_FERRAMENTAS.label}
+                                subtitle={SIDEBAR_FERRAMENTAS.subtitle}
                             />
                         </li>
                     </ul>

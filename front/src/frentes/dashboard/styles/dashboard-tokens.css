@@ -13,6 +13,8 @@
 #viagens-page:not(.viagens-page--ficha),
 #viagens-page.viagens-page--ficha:has(.voos-page),
 #dashboard-page.dashboard-page--modern,
+#gains-page.movements-page--modern,
+#expenses-page.movements-page--modern,
 #zero-budget-page.zero-budget-page,
 #profile-page.profile-page--modern {
     --dash-text-primary: #1d1d1f;
@@ -46,13 +48,24 @@
     --dash-surface-pad-x: 1.25rem;
     --dash-toolbar-gap: 0.65rem;
 
+    /* Paridade Viagens — turquesa (ganhos) / coral (saídas) */
+    --dash-v-turquesa: #2ec4b6;
+    --dash-v-coral: #ff5a36;
+
     /* Séries do gráfico de fluxo (legível no claro) */
-    --dash-chart-gain: #34c759;
-    --dash-chart-expense: #ff3b30;
-    --dash-chart-net: #ff9f0a;
-    --dash-chart-net-neg: #ff453a;
+    --dash-chart-gain: var(--dash-v-turquesa);
+    --dash-chart-expense: var(--dash-v-coral);
+    --dash-chart-net: #eceae4;
+    --dash-chart-net-neg: #ff5a36;
     --dash-chart-saldo: #0a84ff;
     --dash-chart-tooltip-cursor: rgba(0, 0, 0, 0.04);
+
+    /* Chips da carteira ≡ séries de saída no gráfico */
+    --dash-bucket-orange: var(--dash-v-coral);
+    --dash-bucket-fixa: var(--dash-bucket-orange);
+    --dash-bucket-fatura: var(--dash-v-coral);
+    --dash-bucket-extra: #f2c94c;
+    --dash-bucket-cofrinhos: #a855f7;
 
     /* Amarelo canônico do portal (mesmo --warning-color) */
     --dash-warning: var(--warning-color);
@@ -64,6 +77,8 @@
 [data-theme='dark'] #viagens-page:not(.viagens-page--ficha),
 [data-theme='dark'] #viagens-page.viagens-page--ficha:has(.voos-page),
 [data-theme='dark'] #dashboard-page.dashboard-page--modern,
+[data-theme='dark'] #gains-page.movements-page--modern,
+[data-theme='dark'] #expenses-page.movements-page--modern,
 [data-theme='dark'] #zero-budget-page.zero-budget-page,
 [data-theme='dark'] #profile-page.profile-page--modern {
     --dash-text-primary: #f5f5f7;
@@ -95,12 +110,21 @@
     --dash-surface-radius: var(--dash-panel-radius);
     --dash-surface-shadow: var(--dash-raised-ring);
 
-    --dash-chart-gain: #30d158;
-    --dash-chart-expense: #ff453a;
-    --dash-chart-net: #ffd60a;
-    --dash-chart-net-neg: #ff375f;
+    --dash-v-turquesa: #2ec4b6;
+    --dash-v-coral: #ff5a36;
+
+    --dash-chart-gain: var(--dash-v-turquesa);
+    --dash-chart-expense: var(--dash-v-coral);
+    --dash-chart-net: #dddcd8;
+    --dash-chart-net-neg: #ff5a36;
     --dash-chart-saldo: #64d2ff;
     --dash-chart-tooltip-cursor: rgba(255, 255, 255, 0.05);
+
+    --dash-bucket-orange: var(--dash-v-coral);
+    --dash-bucket-fixa: var(--dash-bucket-orange);
+    --dash-bucket-fatura: var(--dash-v-coral);
+    --dash-bucket-extra: #ffd60a;
+    --dash-bucket-cofrinhos: #a855f7;
 
     --dash-warning: var(--warning-color);
 }

@@ -1,0 +1,279 @@
+/* Faixa única — mesmas classes de entradas/saídas (movement-filter-ribbon) */
+
+#dashboard-page.dashboard-page--modern .dashboard-page-filter-ribbon {
+    margin: 0;
+    padding: 0.6rem var(--dash-surface-pad-x);
+    border: 1px solid var(--dash-surface-border);
+    border-radius: var(--dash-surface-radius);
+    background: color-mix(in srgb, var(--dash-layer-inset) 88%, var(--dash-surface-bg));
+    box-shadow: var(--dash-surface-shadow);
+    overflow: visible;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-page-filter-ribbon .movement-filter-ribbon__track {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 2.25rem;
+    width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: visible;
+    padding-bottom: 0.12rem;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-page-filter-ribbon .movement-filter-ribbon__status {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-page-filter-ribbon .movement-status-pills {
+    display: inline-flex;
+    align-items: stretch;
+    height: 2.125rem;
+    padding: 3px;
+    gap: 3px;
+    border-radius: 10px;
+    border: 1px solid var(--dash-border);
+    background: var(--dash-layer-inset);
+    box-sizing: border-box;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-page-filter-ribbon .movement-status-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.32rem;
+    height: 100%;
+    padding: 0 0.58rem;
+    border: 0;
+    border-radius: 8px;
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--dash-text-secondary);
+    background: transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-page-filter-ribbon .movement-status-pill:hover {
+    color: var(--dash-text-primary);
+    background: var(--dash-layer-control);
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-page-filter-ribbon .movement-status-pill.is-on {
+    color: var(--dash-text-primary);
+    background: var(--dash-layer-control);
+    box-shadow: inset 0 0 0 1px var(--dash-border-strong);
+}
+
+#dashboard-page.dashboard-page--modern
+    .dashboard-page-filter-ribbon
+    .movement-filter-ribbon__status[data-treemap-toolbar-accent='gains']
+    .movement-status-pill.is-on {
+    color: var(--gains-accent, #10b981);
+}
+
+#dashboard-page.dashboard-page--modern
+    .dashboard-page-filter-ribbon
+    .movement-filter-ribbon__status[data-treemap-toolbar-accent='expenses']
+    .movement-status-pill.is-on {
+    color: var(--expenses-accent, #f43f5e);
+}
+
+[data-theme='dark']
+    #dashboard-page.dashboard-page--modern
+    .dashboard-page-filter-ribbon
+    .movement-filter-ribbon__status[data-treemap-toolbar-accent='gains']
+    .movement-status-pill.is-on {
+    background: rgba(52, 211, 153, 0.14);
+    box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.32);
+    color: #34d399;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-page-filter-ribbon .movement-filter-ribbon__divider {
+    flex-shrink: 0;
+    width: 1px;
+    height: 1.5rem;
+    margin: 0 0.1rem;
+    background: var(--dash-border-strong);
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-page-filter-ribbon .movement-filter-ribbon__group {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 0.35rem;
+    height: 2.125rem;
+    padding: 0 0.5rem 0 0.4rem;
+    border-radius: 10px;
+    border: 1px solid var(--dash-border);
+    background: var(--dash-layer-inset);
+    box-sizing: border-box;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-page-filter-ribbon .movement-filter-ribbon__group--grow {
+    flex: 1 1 12rem;
+    min-width: 10rem;
+    max-width: 20rem;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-page-filter-ribbon .movement-filter-ribbon__group:focus-within {
+    border-color: var(--dash-border-strong);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 12%, transparent);
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-page-filter-ribbon .movement-filter-ribbon__glyph {
+    flex-shrink: 0;
+    font-size: 1.05rem !important;
+    color: var(--dash-text-tertiary);
+    opacity: 0.92;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-category-multi--ribbon {
+    flex: 1;
+    min-width: 0;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-category-multi__trigger--ribbon {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    width: 100%;
+    min-width: 0;
+    cursor: pointer;
+    text-align: left;
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--dash-text-primary);
+    background: transparent;
+    border: 0;
+    padding: 0;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-category-multi__trigger--ribbon.is-active {
+    color: var(--primary-color);
+    font-weight: 650;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-category-multi__trigger--ribbon .dashboard-category-multi__summary {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Dropdown categorias (portal) */
+.dashboard-category-multi__panel {
+    padding: 0.55rem;
+    border-radius: 14px;
+    background: var(--dash-surface-bg);
+    border: 1px solid var(--dash-surface-border);
+    box-shadow:
+        0 12px 40px color-mix(in srgb, #000 28%, transparent),
+        0 0 0 1px color-mix(in srgb, var(--primary-color) 8%, transparent);
+    max-height: min(50vh, 22rem);
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.dashboard-category-multi__panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.2rem 0.35rem 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--dash-text-tertiary);
+}
+
+.dashboard-category-multi__clear {
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.15rem 0.35rem;
+    border-radius: 6px;
+}
+
+.dashboard-category-multi__clear:hover {
+    background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+}
+
+.dashboard-category-multi__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.dashboard-category-multi__option {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    width: 100%;
+    padding: 0.45rem 0.5rem;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background: transparent;
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--dash-text-primary);
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s;
+}
+
+.dashboard-category-multi__option:hover {
+    background: var(--dash-layer-inset);
+}
+
+.dashboard-category-multi__option.is-on {
+    background: color-mix(in srgb, var(--primary-color) 10%, var(--dash-layer-inset));
+    border-color: color-mix(in srgb, var(--primary-color) 22%, transparent);
+}
+
+.dashboard-category-multi__check {
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 6px;
+    border: 1px solid var(--dash-border);
+    background: var(--dash-layer-raised);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--primary-color);
+}
+
+.dashboard-category-multi__check.is-on {
+    background: color-mix(in srgb, var(--primary-color) 18%, var(--dash-layer-raised));
+    border-color: color-mix(in srgb, var(--primary-color) 50%, var(--dash-border));
+}
+
+.dashboard-category-multi__option-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

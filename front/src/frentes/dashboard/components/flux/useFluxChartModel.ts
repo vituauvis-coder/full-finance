@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { FluxChartSeries } from '../../hooks/useFinancialFluxChart';
+import type { FluxChartSeries, FluxChartViz } from '../../hooks/useFinancialFluxChart';
 import { buildFluxChartData, computeLeftYDomain, type FluxPoint } from './fluxChartData';
 import { computeSaldoAxisDomain, readFinancialChartColors } from './fluxChartTheme';
 
@@ -9,12 +9,13 @@ export function useFluxChartModel(params: {
     showSaldoTotal: boolean;
     balanceLoading: boolean;
     yearScope: boolean;
+    viz: FluxChartViz;
 }) {
     const colors = useMemo(() => readFinancialChartColors(), []);
     const data = useMemo(() => buildFluxChartData(params.series), [params.series]);
     const emphasis = params.yearScope ? params.activeMonthIndex : -1;
     const highlightLabel = emphasis >= 0 ? data[emphasis]?.label : null;
-    const yDomain = useMemo(() => computeLeftYDomain(data), [data]);
+    const yDomain = useMemo(() => computeLeftYDomain(data, params.viz), [data, params.viz]);
 
     const saldoValues = useMemo(
         () => data.map((d) => d.saldo).filter((v): v is number => v != null && Number.isFinite(v)),

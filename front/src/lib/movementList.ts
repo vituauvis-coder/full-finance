@@ -1,4 +1,5 @@
-import { getPeriodDateBounds, movementDate } from './period';
+import { getPeriodDateBounds, isAllYearsPeriod, movementDate } from './period';
+import { expandAccountFilterIds } from './movementListAccountFilter';
 import type { Account, Movement } from './types/finance';
 
 export type ListFilter = {
@@ -44,8 +45,11 @@ export function filterMovementsInPeriod(
     rows: Movement[],
     period: string,
     civilYear: number,
-    filter: ListFilter = {}
+    filter: ListFilter = {},
+    accounts: Account[] = []
 ) {
+    const allYears = isAllYearsPeriod(period);
+    const accountFilterIds = filter.accountId ? expandAccountFilterIds(filter.accountId, accounts) : null;
     const { startDate, endDate } = getPeriodDateBounds(period, civilYear);
     const useDrawerDates = Boolean(filter.dateFrom || filter.dateTo);
     return rows
@@ -55,8 +59,8 @@ export function filterMovementsInPeriod(
             if (Number.isNaN(d.getTime())) return false;
             if (useDrawerDates) {
                 if (!movementMatchesDateRange(m, filter.dateFrom, filter.dateTo)) return false;
-            } else if (d < startDate || d > endDate) return false;
-            if (filter.accountId && String(m.accountId) !== filter.accountId) return false;
+            } else if (!allYears && (d < startDate || d > endDate)) return false;
+            if (accountFilterIds && !accountFilterIds.has(String(m.accountId ?? ''))) return false;
             if (filter.category && (m.category || '') !== filter.category) return false;
             const amt = Number(m.amount) || 0;
             if (filter.amountMin != null && Number.isFinite(filter.amountMin) && amt < filter.amountMin) return false;

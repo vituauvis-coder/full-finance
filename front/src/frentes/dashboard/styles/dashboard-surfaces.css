@@ -32,6 +32,7 @@
 
 #dashboard-page.dashboard-page--modern > .summary-cards.movements-summary .card-content h3,
 #gains-page.movements-page--modern > .summary-cards.movements-summary .card-content h3,
+#gains-page.movements-page--modern .movements-treemap-hero__summary .card-content h3,
 #expenses-page.movements-page--modern > .summary-cards.movements-summary .card-content h3,
 #cofrinhos-page.cofrinhos-page--modern > .summary-cards.movements-summary .card-content h3,
 #debts-page.debts-page--modern > .summary-cards.movements-summary .card-content h3 {
@@ -41,6 +42,7 @@
 
 #dashboard-page.dashboard-page--modern > .summary-cards.movements-summary .card-content p,
 #gains-page.movements-page--modern > .summary-cards.movements-summary .card-content p,
+#gains-page.movements-page--modern .movements-treemap-hero__summary .card-content p,
 #expenses-page.movements-page--modern > .summary-cards.movements-summary .card-content p,
 #cofrinhos-page.cofrinhos-page--modern > .summary-cards.movements-summary .card-content p,
 #debts-page.debts-page--modern > .summary-cards.movements-summary .card-content p {
@@ -49,6 +51,7 @@
 
 #dashboard-page.dashboard-page--modern > .summary-cards.movements-summary .card-metric-hint,
 #gains-page.movements-page--modern > .summary-cards.movements-summary .card-metric-hint,
+#gains-page.movements-page--modern .movements-treemap-hero__summary .card-metric-hint,
 #expenses-page.movements-page--modern > .summary-cards.movements-summary .card-metric-hint,
 #cofrinhos-page.cofrinhos-page--modern > .summary-cards.movements-summary .card-metric-hint,
 #debts-page.debts-page--modern > .summary-cards.movements-summary .card-metric-hint {

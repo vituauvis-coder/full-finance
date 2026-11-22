@@ -1,12 +1,12 @@
 /**
  * Shell — menu lateral.
  */
-/* Alinhado a --dash-layer-raised / --dash-layer-control (dashboard-tokens.css) */
 .sidebar.sidebar--modern {
     --shell-text-primary: #1d1d1f;
     --shell-text-secondary: #3a3a3c;
     --shell-text-tertiary: #6e6e73;
     --shell-border: rgba(0, 0, 0, 0.08);
+    --shell-border-strong: rgba(0, 0, 0, 0.12);
     --shell-canvas: #ffffff;
     --shell-inset: #e8e8ed;
     --shell-control: #f2f2f7;
@@ -23,6 +23,7 @@
     --shell-text-secondary: #d1d1d6;
     --shell-text-tertiary: #98989d;
     --shell-border: rgba(255, 255, 255, 0.1);
+    --shell-border-strong: rgba(255, 255, 255, 0.14);
     --shell-canvas: #1d1d1f;
     --shell-inset: #141416;
     --shell-control: #2c2c2e;

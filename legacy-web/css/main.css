@@ -4,13 +4,13 @@
     --primary-color: #404040;
     --primary-color-dark: #262626;
     --secondary-color: #737373;
-    --gains-accent: #10b981;
-    /* Saídas — vermelho canônico (tokens derivados em color-tokens.css) */
-    --expenses-accent: #e11d48;
+    --gains-accent: #2ec4b6;
+    /* Saídas — coral (paleta Viagens; tokens derivados em color-tokens.css) */
+    --expenses-accent: #ff5a36;
     /* Destrutivo / erro (excluir, validação) — não usar em valores de saída na UI */
     --danger-color: #ef4444;
-    /* Amarelo canônico do portal (pendente, parcelas abertas, avisos) — tokens em color-tokens.css */
-    --warning-color: #f59e0b;
+    /* Amarelo ouro Viagens — pendente, parcelas abertas, avisos */
+    --warning-color: #f2c94c;
     --info-color: #3b82f6;
     /* Azul só para informação pontual */
     /* Cofrinhos — acento roxo (header, cards, modal de alocação) */

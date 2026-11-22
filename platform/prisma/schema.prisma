@@ -82,6 +82,8 @@ model Account {
   linkedAccountId String?
   linkedAccount   Account?    @relation("DebitCardLinkedAccount", fields: [linkedAccountId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   linkedDebitCards Account[]  @relation("DebitCardLinkedAccount")
+  walletFunctions Json?      @default("[]") @map("wallet_functions")
+  isPrimaryCash   Boolean    @default(false) @map("is_primary_cash")
 
   household      Household?   @relation(fields: [householdId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   holderUser     User?        @relation("AccountHolder", fields: [holderUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -121,6 +123,8 @@ model Expense {
   tripId           String? @db.NVarChar(36) @map("trip_id")
   /** ID do TripExpense na payload da viagem (espelho). */
   tripExpenseId    String? @db.NVarChar(36) @map("trip_expense_id")
+  /** Gasto pago com saldo do cofrinho da viagem (tipo C). */
+  paidFromCofrinho Boolean @default(false) @map("paid_from_cofrinho")
 
   user             User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   account          Account  @relation(fields: [accountId], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -283,6 +287,9 @@ model CofrinhoBucket {
   sortOrder       Int      @default(0) @map("sort_order")
   yieldMultiplier Float    @default(1) @map("yield_multiplier")
   subcategoryId   String?  @map("subcategory_id")
+  /** reserve | viagem (cofrinho ligado a trip_id) */
+  kind            String   @default("reserve") @db.NVarChar(20)
+  tripId          String?  @map("trip_id") @db.NVarChar(36)
   createdAt       DateTime @default(now()) @map("created_at")
 
   subcategory   Subcategory? @relation(fields: [subcategoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)

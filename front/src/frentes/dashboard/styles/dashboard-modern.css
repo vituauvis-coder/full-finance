@@ -11,11 +11,66 @@
     --heatmap-muted-bg: var(--dash-layer-inset);
     --heatmap-muted-border: transparent;
     --heatmap-muted-text: #525252;
-    --heatmap-expense-accent: var(--dash-chart-expense, #ff453a);
+    --heatmap-expense-accent: var(--dash-chart-expense, #ff5a36);
     --heatmap-gain-accent: var(--dash-chart-gain, #30d158);
 }
 
-#dashboard-page.dashboard-page--modern .dashboard-cash-heatmap {
-    --heatmap-expense-accent: var(--dash-chart-expense, #ff3b30);
+#dashboard-page.dashboard-page--modern .dashboard-cash-heatmap,
+#dashboard-page.dashboard-page--modern .dashboard-tri-col--heatmap {
+    --heatmap-cell-bg: var(--dash-layer-inset);
+    --heatmap-cell-border: color-mix(in srgb, var(--dash-text-tertiary) 28%, transparent);
+    --heatmap-cell-text: var(--dash-text-secondary);
+    --heatmap-muted-bg: var(--dash-layer-inset);
+    --heatmap-muted-border: transparent;
+    --heatmap-muted-text: var(--dash-text-tertiary);
+    --heatmap-expense-accent: var(--dash-chart-expense, #ff5a36);
     --heatmap-gain-accent: var(--dash-chart-gain, #34c759);
+}
+
+[data-theme='dark'] #dashboard-page.dashboard-page--modern .dashboard-tri-col--heatmap {
+    --heatmap-cell-border: rgba(255, 255, 255, 0.14);
+    --heatmap-expense-accent: var(--dash-chart-expense, #ff5a36);
+    --heatmap-gain-accent: var(--dash-chart-gain, #30d158);
+}
+
+/* Mapa compacto — cores mais saturadas */
+#dashboard-page.dashboard-page--modern .cash-heatmap-calendar--compact .cash-heatmap-day-btn--empty {
+    background: var(--heatmap-cell-bg);
+    border-color: var(--heatmap-cell-border);
+    color: var(--heatmap-cell-text);
+}
+
+#dashboard-page.dashboard-page--modern .cash-heatmap-calendar--compact .cash-heatmap-day-btn--out-light {
+    background: color-mix(in srgb, var(--heatmap-expense-accent) 28%, var(--heatmap-cell-bg));
+    border-color: color-mix(in srgb, var(--heatmap-expense-accent) 48%, var(--heatmap-cell-border));
+    color: color-mix(in srgb, var(--heatmap-expense-accent) 92%, var(--dash-text-primary));
+}
+
+#dashboard-page.dashboard-page--modern .cash-heatmap-calendar--compact .cash-heatmap-day-btn--out-mid {
+    background: color-mix(in srgb, var(--heatmap-expense-accent) 48%, var(--heatmap-cell-bg));
+    border-color: color-mix(in srgb, var(--heatmap-expense-accent) 65%, var(--heatmap-cell-border));
+    color: var(--dash-text-primary);
+}
+
+#dashboard-page.dashboard-page--modern .cash-heatmap-calendar--compact .cash-heatmap-day-btn--out-heavy {
+    background: color-mix(in srgb, var(--heatmap-expense-accent) 68%, var(--heatmap-cell-bg));
+    border-color: color-mix(in srgb, var(--heatmap-expense-accent) 82%, var(--heatmap-cell-border));
+    color: #fff;
+}
+
+#dashboard-page.dashboard-page--modern .cash-heatmap-calendar--compact .cash-heatmap-day-btn--in {
+    background: color-mix(in srgb, var(--heatmap-gain-accent) 55%, var(--heatmap-cell-bg));
+    border-color: color-mix(in srgb, var(--heatmap-gain-accent) 70%, var(--heatmap-cell-border));
+    color: color-mix(in srgb, var(--heatmap-gain-accent) 95%, #fff);
+}
+
+#dashboard-page.dashboard-page--modern .cash-heatmap-calendar--compact .cash-heatmap-day-btn--selected {
+    outline: 2px solid color-mix(in srgb, var(--primary-color) 75%, transparent);
+    outline-offset: 1px;
+    z-index: 1;
+}
+
+#dashboard-page.dashboard-page--modern .cash-heatmap-calendar--compact .cash-heatmap-day-btn__dot {
+    background: var(--heatmap-expense-accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--dash-surface-bg) 85%, transparent);
 }

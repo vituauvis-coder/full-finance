@@ -23,7 +23,8 @@ import {
     markNotificationsReadForUser,
     notifySplitRequesterOnRecipientCashOutConfirm
 } from './user-notifications.js';
-import { fetchCofrinhoBundle } from './cofrinho-allocation.js';
+import { COFRINHO_CATEGORY, fetchCofrinhoBundle } from './cofrinho-allocation.js';
+import { fetchCofrinhoTripPayloadOutflows } from './cofrinho-trip-outflows.js';
 import {
     assertAccountAccessible,
     ensureHouseholdForUser,
@@ -35,6 +36,9 @@ import {
     validateHolderUserId,
     accountsVisibleToUserSql,
     fetchAccountByIdForUser,
+    clearOtherPrimaryCashAccounts,
+    assertAccountUniquenessInHousehold,
+    attachComputedCashBalances,
     ACCOUNT_SELECT_FIELDS,
     ACCOUNT_FROM_JOIN
 } from './household.js';
@@ -42,6 +46,8 @@ import { registerHealthRoutes } from './routes/health.routes.js';
 import { registerAuthRoutes } from './routes/auth.routes.js';
 import { registerDomainRoutes } from './routes/register-domain-routes.js';
 import { ensureExpenseTripLinkColumns } from './migrations/expense-trip-link.js';
+import { ensureCofrinhoViagemLedgerColumns } from './migrations/cofrinho-viagem-ledger.js';
+import { ensureAccountWalletColumns } from './migrations/account-wallet-columns.js';
 import { requireAuth, requireAdmin } from './middleware/auth.js';
 import { publicAuthUser, ROLE_USER, ROLE_ADMIN, userIsAdmin } from './lib/roles.js';
 import {
@@ -58,6 +64,7 @@ import { getInstallmentDueDates } from '../legacy-web/js/core/credit-installment
 import { isLoanExpense } from '../motor/dinheiro/loan-expense.js';
 import { mergeFinancePreferences } from '../motor/dinheiro/finance-preferences.js';
 import { buildPendingCashOutItems } from '../legacy-web/js/features/finance/pending-cash-outs.js';
+import { isCashBalanceAccountType } from '../legacy-web/js/core/utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
@@ -209,6 +216,10 @@ void ensureExpenseTripLinkColumns().catch((e) => {
     console.error('[migration] expense trip link (boot):', e?.message || e);
 });
 
+void ensureCofrinhoViagemLedgerColumns().catch((e) => {
+    console.error('[migration] cofrinho viagem ledger (boot):', e?.message || e);
+});
+
 /** Data URLs em Base64 excedem VARCHAR curtos; sem TEXT a foto não persiste após F5. */
 query(
     `ALTER TABLE users ALTER COLUMN profile_photo_url TYPE text USING profile_photo_url::text`
@@ -276,8 +287,19 @@ registerAuthRoutes(app);
 app.get('/api/data', requireAuth, async (req, res) => {
     const uid = req.session.userId;
     await ensureHouseholdForUser(uid);
-    const [userDocRes, accRes, expRes, gainRes, debtRes, debtUpdRes, userNotifications, cofrinhoBundle, household, householdMembers] =
-        await Promise.all([
+    const [
+        userDocRes,
+        accRes,
+        expRes,
+        gainRes,
+        debtRes,
+        debtUpdRes,
+        userNotifications,
+        cofrinhoBundle,
+        cofrinhoTripPayloadOutflows,
+        household,
+        householdMembers
+    ] = await Promise.all([
             query(
                 `SELECT
                     id,
@@ -318,7 +340,8 @@ app.get('/api/data', requireAuth, async (req, res) => {
                     e.reference_only AS "referenceOnly",
                     e.is_fixed AS "isFixed",
                     e.trip_id AS "tripId",
-                    e.trip_expense_id AS "tripExpenseId"
+                    e.trip_expense_id AS "tripExpenseId",
+                    e.paid_from_cofrinho AS "paidFromCofrinho"
                  FROM expenses e
                  WHERE ${expensesOnHouseholdAccountsSql(1)}`,
                 [uid]
@@ -383,6 +406,10 @@ app.get('/api/data', requireAuth, async (req, res) => {
                     cofrinhoBucketGoals: []
                 };
             }),
+            fetchCofrinhoTripPayloadOutflows(uid).catch((e) => {
+                console.error('fetchCofrinhoTripPayloadOutflows', e);
+                return [];
+            }),
             fetchHouseholdSummary(uid),
             fetchHouseholdMembers(uid)
         ]);
@@ -398,15 +425,27 @@ app.get('/api/data', requireAuth, async (req, res) => {
     const userDebtUpdates = userDebtUpdatesRaw.map(normalizeMovement);
 
     const expenseSplitRequests = await fetchExpenseSplitBundleForUser(uid);
+    const userProfileForPayload = userDoc ? normalizeUserDoc(userSafe(userDoc)) : null;
+    const splitForBalance = (expenseSplitRequests?.outgoing ?? []).filter((s) => s.status === 'accepted');
+    const userAccountsWithBalance = attachComputedCashBalances(
+        userAccounts,
+        userExpenses,
+        userGains,
+        userProfileForPayload,
+        splitForBalance
+    );
 
     res.json({
-        userProfile: userDoc ? normalizeUserDoc(userSafe(userDoc)) : null,
-        userAccounts,
+        userProfile: userProfileForPayload,
+        userAccounts: userAccountsWithBalance,
         userExpenses,
         userGains,
         cofrinhoBuckets: cofrinhoBundle.cofrinhoBuckets || [],
         cofrinhoApplications: cofrinhoBundle.cofrinhoApplications || [],
         cofrinhoBucketGoals: cofrinhoBundle.cofrinhoBucketGoals || [],
+        cofrinhoTripPayloadOutflows: Array.isArray(cofrinhoTripPayloadOutflows)
+            ? cofrinhoTripPayloadOutflows
+            : [],
         userDebts,
         userDebtUpdates,
         expenseSplitRequests,
@@ -612,6 +651,20 @@ function expensePayloadFromBody(body, uid) {
     if (body && 'tripExpenseId' in body) {
         const raw = body.tripExpenseId;
         out.tripExpenseId = raw == null || raw === '' ? null : String(raw).trim();
+    }
+    if (body && 'paidFromCofrinho' in body) {
+        const raw = body.paidFromCofrinho ?? body.paid_from_cofrinho;
+        out.paidFromCofrinho =
+            raw === true || raw === 'true' || raw === 1 || raw === '1';
+    } else {
+        out.paidFromCofrinho = false;
+    }
+
+    if (category === COFRINHO_CATEGORY) {
+        out.isCofrinho = true;
+    }
+    if (category === 'Viagens' && out.paidFromCofrinho) {
+        out.isCofrinho = false;
     }
     return out;
 }
@@ -1474,12 +1527,12 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                 id, user_id, account_id, category, subcategory, amount, description,
                 date, created_at, is_paid, is_cofrinho, installment_count,
                 cash_out_confirmed_periods, recurring_monthly, recurrence_group_id,
-                is_fixed, reference_only, trip_id, trip_expense_id
+                is_fixed, reference_only, trip_id, trip_expense_id, paid_from_cofrinho
              ) VALUES (
                 $1,$2,$3,$4,$5,$6,$7,
                 $8, now(), $9,$10,$11,
                 $12,$13,$14,
-                $15,$16,$17,$18
+                $15,$16,$17,$18,$19
              )
              RETURNING
                 id,
@@ -1501,7 +1554,8 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                 reference_only AS "referenceOnly",
                 is_fixed AS "isFixed",
                 trip_id AS "tripId",
-                trip_expense_id AS "tripExpenseId"`,
+                trip_expense_id AS "tripExpenseId",
+                paid_from_cofrinho AS "paidFromCofrinho"`,
             [
                 expenseId,
                 createData.userId,
@@ -1520,11 +1574,14 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                 createData.isFixed ?? false,
                 refOnlyMain,
                 createData.tripId ?? null,
-                createData.tripExpenseId ?? null
+                createData.tripExpenseId ?? null,
+                createData.paidFromCofrinho === true
             ]
         );
         const row = expRows[0];
-        await addLedgerEntryForMovement(uid, row, 'expense');
+        if (!createData.paidFromCofrinho) {
+            await addLedgerEntryForMovement(uid, row, 'expense');
+        }
         await safeUpsertBalanceSnapshot(uid);
         res.json(normalizeMovement(row));
     } catch (e) {
@@ -1585,6 +1642,9 @@ app.put('/api/expenses/:id', requireAuth, async (req, res) => {
             addSet('cash_out_confirmed_periods', data.cashOutConfirmedPeriods);
         if ('tripId' in req.body) addSet('trip_id', data.tripId ?? null);
         if ('tripExpenseId' in req.body) addSet('trip_expense_id', data.tripExpenseId ?? null);
+        if ('paidFromCofrinho' in req.body || 'paid_from_cofrinho' in req.body) {
+            addSet('paid_from_cofrinho', data.paidFromCofrinho === true);
+        }
 
         params.push(req.params.id, uid);
         const { rows: updatedRows } = await query(
@@ -1611,11 +1671,14 @@ app.put('/api/expenses/:id', requireAuth, async (req, res) => {
                 reference_only AS "referenceOnly",
                 is_fixed AS "isFixed",
                 trip_id AS "tripId",
-                trip_expense_id AS "tripExpenseId"`,
+                trip_expense_id AS "tripExpenseId",
+                paid_from_cofrinho AS "paidFromCofrinho"`,
             params
         );
         const updated = updatedRows[0] || null;
-        if (updated) await addLedgerEntryForMovement(uid, updated, 'expense');
+        if (updated && !updated.paidFromCofrinho) {
+            await addLedgerEntryForMovement(uid, updated, 'expense');
+        }
 
         const becamePaid = existing.isPaid !== true && data.isPaid === true;
         let splitReqId = updated?.splitRequestId ? String(updated.splitRequestId) : '';
@@ -2721,7 +2784,9 @@ const ACCOUNT_FIELDS = new Set([
     'limit',
     'closeDay',
     'dueDay',
-    'linkedAccountId'
+    'linkedAccountId',
+    'walletFunctions',
+    'isPrimaryCash'
 ]);
 
 function accountPayloadFromBody(body, uid) {
@@ -2777,6 +2842,18 @@ function accountPayloadFromBody(body, uid) {
                 const s = String(v).trim();
                 data[key] = s === '' ? null : s;
             }
+            continue;
+        }
+        if (key === 'walletFunctions') {
+            if (!Array.isArray(v)) {
+                data.walletFunctions = [];
+            } else {
+                data.walletFunctions = v.map((x) => String(x).trim()).filter(Boolean);
+            }
+            continue;
+        }
+        if (key === 'isPrimaryCash') {
+            data.isPrimaryCash = v === true || v === 'true' || v === 1 || v === '1';
             continue;
         }
         if (v === null || v === '') continue;
@@ -2867,14 +2944,32 @@ app.post('/api/accounts', requireAuth, async (req, res) => {
             data.holderName = holderUser.rows[0].name;
         }
         await assertCardLinkedAccountValid(uid, null, data.type, data.linkedAccountId);
+        if (data.isPrimaryCash === true && !isCashBalanceAccountType(data.type)) {
+            const err = new Error(
+                'Conta principal precisa ser corrente, poupança, dinheiro ou carteira digital compatível.'
+            );
+            err.statusCode = 400;
+            throw err;
+        }
+        await assertAccountUniquenessInHousehold(uid, {
+            name: data.name,
+            type: data.type,
+            holderUserId: data.holderUserId,
+            userId: uid,
+            linkedAccountId: data.linkedAccountId ?? null
+        });
         const id = crypto.randomUUID();
+        const walletFns = JSON.stringify(data.walletFunctions ?? []);
+        const primaryCash = data.isPrimaryCash === true;
         await query(
             `INSERT INTO accounts (
                 id, user_id, household_id, holder_user_id, name, type, initial_balance, holder_name,
-                plastic_tone, plastic_color, "limit", close_day, due_day, linked_account_id
+                plastic_tone, plastic_color, "limit", close_day, due_day, linked_account_id,
+                wallet_functions, is_primary_cash
              ) VALUES (
                 $1,$2,$3,$4,$5,$6,$7,$8,
-                $9,$10,$11,$12,$13,$14
+                $9,$10,$11,$12,$13,$14,
+                $15::jsonb,$16
              )`,
             [
                 id,
@@ -2890,9 +2985,14 @@ app.post('/api/accounts', requireAuth, async (req, res) => {
                 data.limit ?? null,
                 data.closeDay ?? null,
                 data.dueDay ?? null,
-                data.linkedAccountId ?? null
+                data.linkedAccountId ?? null,
+                walletFns,
+                primaryCash
             ]
         );
+        if (primaryCash) {
+            await clearOtherPrimaryCashAccounts(uid, id);
+        }
         const account = await fetchAccountByIdForUser(id, uid);
         await safeUpsertBalanceSnapshot(uid);
         res.json(account);
@@ -2909,7 +3009,9 @@ app.put('/api/accounts/:id', requireAuth, async (req, res) => {
         const { rows: existingRows } = await query(
             `SELECT
                 id,
+                name,
                 type,
+                holder_user_id AS "holderUserId",
                 linked_account_id AS "linkedAccountId"
              FROM accounts a
              WHERE a.id = $1 AND ${accountsVisibleToUserSql(2)}`,
@@ -2926,7 +3028,28 @@ app.put('/api/accounts/:id', requireAuth, async (req, res) => {
         const mergedType = data.type !== undefined ? data.type : existing.type;
         const mergedLinked =
             data.linkedAccountId !== undefined ? data.linkedAccountId : existing.linkedAccountId;
+        if (data.isPrimaryCash === true && !isCashBalanceAccountType(mergedType)) {
+            const err = new Error(
+                'Conta principal precisa ser corrente, poupança, dinheiro ou carteira digital compatível.'
+            );
+            err.statusCode = 400;
+            throw err;
+        }
         await assertCardLinkedAccountValid(uid, req.params.id, mergedType, mergedLinked);
+        await assertAccountUniquenessInHousehold(
+            uid,
+            {
+                name: data.name !== undefined ? data.name : existing.name,
+                type: mergedType,
+                holderUserId:
+                    data.holderUserId !== undefined
+                        ? data.holderUserId
+                        : (existing.holderUserId ?? uid),
+                userId: uid,
+                linkedAccountId: mergedLinked ?? null
+            },
+            req.params.id
+        );
         if (!isLinkedPlasticAccountType(mergedType)) {
             data.linkedAccountId = null;
         }
@@ -2948,6 +3071,11 @@ app.put('/api/accounts/:id', requireAuth, async (req, res) => {
         if (data.closeDay !== undefined) addSet('close_day', data.closeDay);
         if (data.dueDay !== undefined) addSet('due_day', data.dueDay);
         if (data.linkedAccountId !== undefined) addSet('linked_account_id', data.linkedAccountId);
+        if (data.walletFunctions !== undefined) {
+            sets.push(`wallet_functions = $${i++}::jsonb`);
+            params.push(JSON.stringify(data.walletFunctions ?? []));
+        }
+        if (data.isPrimaryCash !== undefined) addSet('is_primary_cash', Boolean(data.isPrimaryCash));
 
         const idIdx = i++;
         const uidIdx = i++;
@@ -2960,8 +3088,13 @@ app.put('/api/accounts/:id', requireAuth, async (req, res) => {
         );
         const updated = await fetchAccountByIdForUser(req.params.id, uid);
         if (!updated) return res.status(404).json({ error: 'Não encontrado' });
+        if (data.isPrimaryCash === true) {
+            await clearOtherPrimaryCashAccounts(uid, updated.id);
+            await query(`UPDATE users SET balance_offset = 0 WHERE id = $1`, [uid]);
+        }
+        const fresh = await fetchAccountByIdForUser(req.params.id, uid);
         await safeUpsertBalanceSnapshot(uid);
-        res.json(updated);
+        res.json(fresh ?? updated);
     } catch (e) {
         console.error('PUT /api/accounts', e);
         const code = e.statusCode || 500;
@@ -4217,6 +4350,12 @@ function mountProductionFrontend() {
 }
 
 async function startServer() {
+    try {
+        await ensureAccountWalletColumns();
+    } catch (e) {
+        console.error('[migration] account wallet columns (startup):', e?.message || e);
+        process.exit(1);
+    }
     try {
         await ensureExpenseTripLinkColumns();
     } catch (e) {

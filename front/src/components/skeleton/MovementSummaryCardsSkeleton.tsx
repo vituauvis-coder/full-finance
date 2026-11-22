@@ -4,6 +4,7 @@ type Props = {
     count: number;
     group: string;
     ariaLabel: string;
+    className?: string;
 };
 
 function MovementSummaryCardSkeleton() {
@@ -19,9 +20,9 @@ function MovementSummaryCardSkeleton() {
     );
 }
 
-export function MovementSummaryCardsSkeleton({ count, group, ariaLabel }: Props) {
+export function MovementSummaryCardsSkeleton({ count, group, ariaLabel, className }: Props) {
     return (
-        <MovementSummaryCardsGrid group={group} ariaLabel={ariaLabel}>
+        <MovementSummaryCardsGrid group={group} ariaLabel={ariaLabel} className={className}>
             {Array.from({ length: count }, (_, i) => (
                 <MovementSummaryCardSkeleton key={i} />
             ))}

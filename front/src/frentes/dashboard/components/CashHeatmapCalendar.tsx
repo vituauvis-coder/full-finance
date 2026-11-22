@@ -30,12 +30,21 @@ type Props = {
     year: number;
     monthIndex: number;
     dayMap: Map<number, DayAgg>;
-    selectedDay: number;
+    selectedDay: number | null;
     currency: string;
     onSelectDay: (day: number) => void;
+    compact?: boolean;
 };
 
-export function CashHeatmapCalendar({ year, monthIndex, dayMap, selectedDay, currency, onSelectDay }: Props) {
+export function CashHeatmapCalendar({
+    year,
+    monthIndex,
+    dayMap,
+    selectedDay,
+    currency,
+    onSelectDay,
+    compact = false
+}: Props) {
     const legendTitleId = useId();
     const firstDow = new Date(year, monthIndex, 1).getDay();
     const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
@@ -63,7 +72,7 @@ export function CashHeatmapCalendar({ year, monthIndex, dayMap, selectedDay, cur
         };
         const tone = heatmapToneClass(agg);
         const tip = dayTooltip(agg, currency);
-        const pressed = day === selectedDay;
+        const pressed = selectedDay != null && day === selectedDay;
         cells.push(
             <button
                 key={day}
@@ -92,17 +101,22 @@ export function CashHeatmapCalendar({ year, monthIndex, dayMap, selectedDay, cur
     }
 
     return (
-        <div className="cash-heatmap-calendar" aria-live="polite">
+        <div
+            className={`cash-heatmap-calendar${compact ? ' cash-heatmap-calendar--compact' : ''}`}
+            aria-live="polite"
+        >
             <header className="cash-heatmap-calendar__header">
                 <div>
                     <h3 className="cash-heatmap-calendar__title dashboard-section-title">
-                        <MaterialIcon name="calendar_month" variant="app" />
-                        Heatmap de Caixa
+                        <MaterialIcon name="calendar_month" variant="app" opticalSize={18} aria-hidden />
+                        {compact ? 'Mapa de calor' : 'Heatmap de Caixa'}
                     </h3>
-                    <p className="cash-heatmap-calendar__subtitle">
-                        Verde quando entradas superam saídas; vermelho quando saídas superam entradas (intensidade pelo
-                        volume).
-                    </p>
+                    {compact ? null : (
+                        <p className="cash-heatmap-calendar__subtitle">
+                            Verde quando entradas superam saídas; vermelho quando saídas superam entradas (intensidade
+                            pelo volume).
+                        </p>
+                    )}
                 </div>
                 <div className="cash-heatmap-calendar__month-badge">
                     <MaterialIcon name="calendar_today" variant="app" /> {label}
@@ -118,22 +132,24 @@ export function CashHeatmapCalendar({ year, monthIndex, dayMap, selectedDay, cur
             <div className="cash-heatmap-calendar__grid" role="grid" aria-label={`Calendário ${label}`}>
                 {cells}
             </div>
-            <footer className="cash-heatmap-calendar__legend cash-heatmap-legend">
-                <p className="cash-heatmap-legend__title" id={legendTitleId}>
-                    Saldo do dia
-                </p>
-                <ul className="cash-heatmap-legend__list" aria-labelledby={legendTitleId}>
-                    {HEATMAP_LEGEND.map((item) => (
-                        <li key={item.swatch} className="cash-heatmap-legend__item">
-                            <span
-                                className={`cash-heatmap-legend-swatch cash-heatmap-legend-swatch--${item.swatch}`}
-                                aria-hidden="true"
-                            />
-                            <span className="cash-heatmap-legend__label">{item.label}</span>
-                        </li>
-                    ))}
-                </ul>
-            </footer>
+            {compact ? null : (
+                <footer className="cash-heatmap-calendar__legend cash-heatmap-legend">
+                    <p className="cash-heatmap-legend__title" id={legendTitleId}>
+                        Saldo do dia
+                    </p>
+                    <ul className="cash-heatmap-legend__list" aria-labelledby={legendTitleId}>
+                        {HEATMAP_LEGEND.map((item) => (
+                            <li key={item.swatch} className="cash-heatmap-legend__item">
+                                <span
+                                    className={`cash-heatmap-legend-swatch cash-heatmap-legend-swatch--${item.swatch}`}
+                                    aria-hidden="true"
+                                />
+                                <span className="cash-heatmap-legend__label">{item.label}</span>
+                            </li>
+                        ))}
+                    </ul>
+                </footer>
+            )}
         </div>
     );
 }

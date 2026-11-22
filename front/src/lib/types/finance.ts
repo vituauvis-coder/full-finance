@@ -14,13 +14,22 @@ export type Movement = {
     cashOutConfirmedPeriods?: string | string[] | null;
     isCofrinho?: boolean;
     splitRequestId?: string | null;
+    tripId?: string | null;
+    tripExpenseId?: string | null;
+    paidFromCofrinho?: boolean;
+    paid_from_cofrinho?: boolean;
 };
 
 export type Account = {
     id: string;
     name: string;
+    userId?: string;
+    holderUserId?: string | null;
+    holderUserName?: string | null;
+    holderName?: string | null;
     type?: string;
     balance?: number;
+    initialBalance?: number;
     limit?: number;
     dueDay?: number;
     dueDate?: number;
@@ -29,6 +38,10 @@ export type Account = {
     linkedAccountId?: string;
     plasticColor?: string;
     plasticTone?: string;
+    /** Papéis na carteira (corrente, crédito, VA…). Vazio = inferir do `type`. */
+    walletFunctions?: string[];
+    /** Saldo exibido no dashboard/carteira vem desta conta quando true. */
+    isPrimaryCash?: boolean;
 };
 
 export type SplitUserRef = {
@@ -104,6 +117,17 @@ export type UserProfile = {
     financePreferences?: Record<string, unknown>;
 };
 
+export type CofrinhoTripPayloadOutflow = {
+    tripId: string;
+    tripTitle?: string;
+    tripExpenseId: string;
+    financeExpenseId?: string;
+    amount: number;
+    description: string;
+    spentOn?: string;
+    accountId?: string;
+};
+
 export type FinanceData = {
     userProfile: UserProfile | null;
     userAccounts: Account[];
@@ -112,6 +136,8 @@ export type FinanceData = {
     cofrinhoBuckets: unknown[];
     cofrinhoApplications: unknown[];
     cofrinhoBucketGoals: unknown[];
+    /** Gastos “Debitar da meta” ainda só no payload da viagem. */
+    cofrinhoTripPayloadOutflows?: CofrinhoTripPayloadOutflow[];
     userDebts: unknown[];
     userDebtUpdates: unknown[];
     expenseSplitRequests: SplitBundle;

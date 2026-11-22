@@ -1,11 +1,10 @@
 /** Paridade com `legacy-web/js/core/movement-summary-copy.js`. */
 
 export const GAINS_SUMMARY_COPY = {
-    total: 'Tudo que entrou no período — salário, extras e outras receitas somadas.',
-    projection:
-        'Dinheiro que ainda deve entrar: receitas do período que você ainda não marcou como recebidas.',
-    topCategoryEmpty: 'Ainda não há entradas neste período.',
-    filterRequiredHint: 'Marque Recebido ou Pendente acima para ver os valores.'
+    total: 'Tudo que entrou no período — recebido e pendente, todas as categorias.',
+    fixed: 'Receitas fixas: categoria Salário e VR (vale refeição).',
+    extra: 'Demais entradas do período — tudo que não é Salário nem VR.',
+    filterRequiredHint: 'Marque Recebido ou Pendente na faixa do extrato para ver os valores.'
 } as const;
 
 export const EXPENSES_SUMMARY_COPY = {
@@ -16,14 +15,14 @@ export const EXPENSES_SUMMARY_COPY = {
         'Parcelas do cartão de crédito com vencimento neste período (mês da fatura), incluindo compras parceladas.',
     otherDefault:
         'Gastos fora do cartão que não estão marcados como essenciais — por exemplo PIX, débito, transferência ou dinheiro.',
-    filterRequiredHint: 'Marque Pago ou Pendente acima para ver os valores.'
+    filterRequiredHint: 'Marque Pago ou Pendente na faixa do extrato para ver os valores.'
 } as const;
 
 export function gainsSummaryTitles() {
     return {
         total: 'Entradas',
-        projection: 'A receber',
-        topCategory: 'Principal categoria'
+        fixed: 'Fixo',
+        extra: 'Extra'
     };
 }
 

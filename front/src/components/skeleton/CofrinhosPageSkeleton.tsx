@@ -1,5 +1,4 @@
 import { PageLoadingShell, Skeleton } from '../ui/Skeleton';
-import { CivilPeriodToolbarSkeleton } from './CivilPeriodToolbarSkeleton';
 import { MovementSummaryCardsSkeleton } from './MovementSummaryCardsSkeleton';
 
 function CofrinhosBlockCardSkeleton() {
@@ -17,20 +16,14 @@ function CofrinhosBlockCardSkeleton() {
 export function CofrinhosSkeletonLayout() {
     return (
         <>
-            <CivilPeriodToolbarSkeleton accent="cofrinhos" />
-            <MovementSummaryCardsSkeleton count={3} group="cofrinhos" ariaLabel="Resumo dos cofrinhos" />
-            <div className="dashboard-reports-section cofrinhos-page__charts-section" aria-hidden="true">
-                <div className="dashboard-reports-charts-grid dashboard-reports-charts-grid--single">
-                    <div className="reports-chart-container dashboard-flux-chart-card cofrinhos-page__chart-card skeleton-panel">
-                        <div className="skeleton-panel__head">
-                            <Skeleton className="skeleton-panel__title" style={{ width: '11rem' }} />
-                            <Skeleton className="skeleton-panel__subtitle" />
-                        </div>
-                        <Skeleton
-                            className="skeleton-panel__body skeleton-panel__body--chart cofrinhos-page__chart-skeleton"
-                        />
-                    </div>
-                </div>
+            <div className="movements-treemap-hero movements-treemap-hero--cofrinhos" aria-hidden="true">
+                <MovementSummaryCardsSkeleton
+                    count={3}
+                    group="cofrinhos"
+                    ariaLabel="Resumo dos cofrinhos"
+                    className="movements-treemap-hero__summary"
+                />
+                <Skeleton className="skeleton-panel skeleton-panel--treemap movements-treemap-hero__map" />
             </div>
             <section className="zero-budget__blocks-section cofrinhos-page__section" aria-hidden="true">
                 <div className="zero-budget__blocks-grid">

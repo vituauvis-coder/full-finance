@@ -1,4 +1,258 @@
 /* Gráfico de fluxo — Recharts (herda .dashboard-flux-chart-card + reports.css) */
+
+/* Painel único: título + faixa de filtros + gráfico (como extrato entradas/saídas) */
+#dashboard-page.dashboard-page--modern .dashboard-flux-panel {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-flux-panel__head.reports-chart-header {
+    margin: 0;
+    padding: var(--dash-surface-pad-y) var(--dash-surface-pad-x) 0.55rem;
+    border-bottom: none;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-flux-panel__canvas {
+    padding: 0 var(--dash-surface-pad-x) var(--dash-surface-pad-y);
+    box-sizing: border-box;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-flux-filter-ribbon--controls-only .dashboard-flux-filter-ribbon__track {
+    justify-content: flex-end;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-flux-filter-ribbon--controls-only .dashboard-flux-filter-ribbon__chart-tools {
+    border-left: 0;
+    padding-left: 0;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-flux-filter-ribbon.movement-filter-ribbon {
+    margin: 0;
+    padding: 0.5rem var(--dash-surface-pad-x);
+    border-top: 0;
+    border-bottom: 1px solid var(--dash-border);
+    background: color-mix(in srgb, var(--dash-layer-inset) 88%, var(--dash-surface-bg));
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-flux-filter-ribbon--page {
+    padding: 0.62rem 0.85rem;
+    border: 1px solid var(--dash-surface-border);
+    border-radius: var(--dash-surface-radius);
+    background: var(--dash-surface-bg);
+    box-shadow: var(--dash-surface-shadow);
+    border-bottom: 1px solid var(--dash-surface-border);
+}
+
+/* Faixa em uma única linha: filtros com scroll | controles do gráfico fixos à direita */
+#dashboard-page.dashboard-page--modern .dashboard-flux-filter-ribbon__track {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.55rem;
+    width: 100%;
+    min-width: 0;
+    min-height: 2.125rem;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-flux-filter-ribbon__scroll {
+    display: flex;
+    flex: 1 1 auto;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.45rem;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-block: 1px;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+    mask-image: linear-gradient(to right, #000 96%, transparent 100%);
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-flux-filter-ribbon__lane-label {
+    flex-shrink: 0;
+    font-size: 0.65rem;
+    font-weight: 650;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--dash-text-tertiary);
+    padding-inline: 0.1rem;
+    user-select: none;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-flux-filter-ribbon__segment.movement-status-pills {
+    display: inline-flex;
+    align-items: stretch;
+    flex-shrink: 0;
+    height: 2.125rem;
+    padding: 3px;
+    gap: 3px;
+    border-radius: 10px;
+    border: 1px solid var(--dash-border);
+    background: var(--dash-layer-inset);
+    box-sizing: border-box;
+    box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 4%, transparent);
+}
+
+[data-theme='dark']
+    #dashboard-page.dashboard-page--modern
+    .dashboard-flux-filter-ribbon__segment.movement-status-pills {
+    box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 6%, transparent);
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-flux-filter-ribbon .movement-status-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 0 0.62rem;
+    border: 0;
+    border-radius: 8px;
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--dash-text-secondary);
+    background: transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    transition:
+        background 0.15s ease,
+        color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-flux-filter-ribbon .movement-status-pill:hover {
+    color: var(--dash-text-primary);
+    background: var(--dash-layer-control);
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-flux-filter-ribbon .movement-status-pill.is-on {
+    color: var(--dash-text-primary);
+    background: var(--dash-layer-control);
+    box-shadow: inset 0 0 0 1px var(--dash-border-strong);
+}
+
+#dashboard-page.dashboard-page--modern
+    .dashboard-flux-filter-ribbon__segment[data-treemap-toolbar-accent='gains']
+    .movement-status-pill.is-on {
+    color: color-mix(in srgb, var(--gains-accent, #10b981) 88%, var(--dash-text-primary));
+    background: color-mix(in srgb, var(--gains-accent, #10b981) 14%, var(--dash-layer-control));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gains-accent, #10b981) 38%, var(--dash-border));
+}
+
+#dashboard-page.dashboard-page--modern
+    .dashboard-flux-filter-ribbon__segment[data-treemap-toolbar-accent='expenses']
+    .movement-status-pill.is-on {
+    color: color-mix(in srgb, var(--expenses-accent, #f43f5e) 88%, var(--dash-text-primary));
+    background: color-mix(in srgb, var(--expenses-accent, #f43f5e) 12%, var(--dash-layer-control));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--expenses-accent, #f43f5e) 36%, var(--dash-border));
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-flux-filter-ribbon__segment--expenses .movement-status-pill {
+    padding-inline: 0.52rem;
+    font-size: 0.78rem;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-flux-filter-ribbon__category-btn {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    height: 2.125rem;
+    max-width: 11rem;
+    padding: 0 0.65rem 0 0.55rem;
+    border-radius: 10px;
+    border: 1px solid var(--dash-border);
+    background: var(--dash-layer-inset);
+    color: var(--dash-text-secondary);
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-flux-filter-ribbon__category-btn .app-icon {
+    flex-shrink: 0;
+    font-size: 1.05rem !important;
+    opacity: 0.9;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-flux-filter-ribbon__category-btn-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-flux-filter-ribbon__category-btn:hover {
+    color: var(--dash-text-primary);
+    background: var(--dash-layer-control);
+    border-color: var(--dash-border-strong);
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-flux-filter-ribbon__category-btn.is-active {
+    color: var(--dash-text-primary);
+    background: color-mix(in srgb, var(--expenses-accent, #f43f5e) 10%, var(--dash-layer-control));
+    border-color: color-mix(in srgb, var(--expenses-accent, #f43f5e) 32%, var(--dash-border));
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-flux-filter-ribbon__chart-tools {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    padding-left: 0.55rem;
+    border-left: 1px solid var(--dash-border-strong);
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-flux-chart-controls__inner.reports-chart-header-actions {
+    display: inline-flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.35rem;
+    max-width: none;
+    margin: 0;
+}
+
+#dashboard-page.dashboard-page--modern
+    .dashboard-flux-filter-ribbon__chart-tools
+    .reports-chart-header-actions
+    .chart-type-toggle {
+    height: 2.125rem;
+    padding: 3px;
+    gap: 3px;
+    border-radius: 10px;
+}
+
+#dashboard-page.dashboard-page--modern
+    .dashboard-flux-filter-ribbon__chart-tools
+    .reports-chart-header-actions
+    .chart-type-btn {
+    height: 1.65rem;
+    min-height: 1.65rem;
+    font-size: 0.78rem;
+    padding-inline: 0.5rem;
+    border-radius: 8px;
+}
+
+#dashboard-page.dashboard-page--modern
+    .dashboard-flux-filter-ribbon__chart-tools
+    .reports-chart-header-actions
+    .chart-type-btn:has(.chart-type-icon) {
+    width: 1.65rem;
+    min-width: 1.65rem;
+}
+
 .dashboard-reports-section .reports-chart-header {
     flex-wrap: wrap;
     align-items: center;
@@ -15,6 +269,111 @@
 
 .flux-chart-canvas {
     min-height: 380px;
+}
+
+/* Escala compacta — alinhada a entradas/saídas */
+#dashboard-page.dashboard-page--compact {
+    gap: calc(var(--dash-stack-gap) * 0.92);
+}
+
+#dashboard-page.dashboard-page--compact .dashboard-section-title {
+    font-size: 0.96rem;
+}
+
+#dashboard-page.dashboard-page--compact .dashboard-flux-filter-ribbon.movement-filter-ribbon {
+    padding-block: 0.48rem;
+}
+
+#dashboard-page.dashboard-page--compact .dashboard-reports-charts-grid--single .chart-wrapper--flux-full {
+    height: min(520px, 58vh);
+    min-height: 440px;
+    max-height: 560px;
+}
+
+#dashboard-page.dashboard-page--compact .flux-chart-canvas {
+    min-height: 440px;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-flux-panel--chart-only {
+    padding: 0;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-flux-panel__canvas--float {
+    position: relative;
+    padding-top: 2.75rem;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-flux-chart-float-bar {
+    position: absolute;
+    top: 0.55rem;
+    right: 0.75rem;
+    z-index: 2;
+    display: flex;
+    justify-content: flex-end;
+    pointer-events: none;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-flux-chart-float-bar--split {
+    left: 0.75rem;
+    right: 0.75rem;
+    width: auto;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.65rem 0.85rem;
+    flex-wrap: wrap;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-flux-chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.3rem 0.55rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    pointer-events: none;
+    max-width: min(100%, 26rem);
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-flux-chart-legend__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    min-height: 1.25rem;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-flux-chart-legend__swatch {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-flux-chart-legend__label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--dash-text-secondary);
+    white-space: nowrap;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-flux-chart-float-bar .dashboard-flux-chart-controls__inner,
+#dashboard-page.dashboard-page--modern .dashboard-flux-chart-float-bar .chart-type-toggle,
+#dashboard-page.dashboard-page--modern .dashboard-flux-chart-float-bar .chart-type-btn {
+    pointer-events: auto;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-flux-chart-float-bar .dashboard-flux-chart-controls__inner {
+    padding: 0.25rem 0.35rem;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--dash-surface-bg) 88%, transparent);
+    border: 1px solid var(--dash-border);
+    box-shadow: 0 6px 20px color-mix(in srgb, #000 12%, transparent);
+    backdrop-filter: blur(8px);
+}
+
+#dashboard-page.dashboard-page--modern .flux-chart-canvas .recharts-legend-wrapper {
+    display: none !important;
 }
 
 .flux-chart-canvas .recharts-wrapper {
@@ -208,5 +567,27 @@
 @media (max-width: 720px) {
     .flux-chart-canvas {
         min-height: 260px;
+    }
+
+    #dashboard-page.dashboard-page--compact .flux-chart-canvas {
+        min-height: 240px;
+    }
+
+    #dashboard-page.dashboard-page--compact .dashboard-reports-charts-grid--single .chart-wrapper--flux-full {
+        height: min(260px, 38vh);
+        min-height: 220px;
+        max-height: 300px;
+    }
+
+    #dashboard-page.dashboard-page--modern .dashboard-flux-filter-ribbon__scroll {
+        mask-image: none;
+    }
+
+    #dashboard-page.dashboard-page--modern .dashboard-flux-filter-ribbon__lane-label {
+        display: none;
+    }
+
+    #dashboard-page.dashboard-page--modern .dashboard-flux-filter-ribbon__category-btn-text {
+        max-width: 5.5rem;
     }
 }

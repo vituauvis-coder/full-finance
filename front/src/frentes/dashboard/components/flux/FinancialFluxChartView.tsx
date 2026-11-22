@@ -1,9 +1,9 @@
+import { useMemo } from 'react';
 import {
     Bar,
     CartesianGrid,
     Cell,
     ComposedChart,
-    Legend,
     Line,
     ReferenceArea,
     ReferenceLine,
@@ -14,10 +14,15 @@ import {
 } from 'recharts';
 import { formatBRL } from '../../../../lib/format';
 import type { FluxChartSeries, FluxChartViz } from '../../hooks/useFinancialFluxChart';
-import { FLUX_LEGEND_LABELS } from './fluxChartData';
 import { FluxChartXTick } from './FluxChartXTick';
 import { FluxChartTooltip } from './FluxChartTooltip';
-import { barFill, chartAxisColors, colorWithAlpha } from './fluxChartTheme';
+import { barFill, barFillOutflow, chartAxisColors, colorWithAlpha, readDashboardExpenseBuckets } from './fluxChartTheme';
+import {
+    FluxBalancoNegPattern,
+    balancoNegPatternUrl,
+    useBalancoNegPatternId
+} from './FluxBalancoNegPattern';
+import { FluxFixasBarShape } from './FluxFixasBarShape';
 import { useFluxChartModel } from './useFluxChartModel';
 
 type Props = {
@@ -64,17 +69,11 @@ export function FinancialFluxChartView({
         activeMonthIndex,
         showSaldoTotal,
         balanceLoading,
-        yearScope
+        yearScope,
+        viz
     });
-
-    const legend = (
-        <Legend
-            verticalAlign="top"
-            align="right"
-            wrapperStyle={{ fontSize: 11, fontWeight: 600, color: axis.tick, paddingBottom: 12 }}
-            formatter={(value) => FLUX_LEGEND_LABELS[String(value)] ?? String(value)}
-        />
-    );
+    const balancoNegPatternId = useBalancoNegPatternId();
+    const buckets = useMemo(() => readDashboardExpenseBuckets(), []);
 
     const xAxis = (
         <XAxis
@@ -146,10 +145,18 @@ export function FinancialFluxChartView({
         ) : null;
 
     const margin = { top: 8, right: model.showSaldoSeries ? 28 : 4, left: 4, bottom: 0 };
+    const fixasBarShape = (shapeProps: { x?: number; y?: number; width?: number; height?: number; payload?: import('./fluxChartData').FluxPoint }) => (
+        <FluxFixasBarShape
+            {...shapeProps}
+            fixaColor={buckets.fixa}
+            faturaColor={buckets.fatura}
+            emphasis={model.emphasis}
+        />
+    );
 
     if (viz === 'line') {
         return (
-            <ResponsiveContainer width="100%" height="100%" minHeight={380}>
+            <ResponsiveContainer width="100%" height="100%" minHeight={300}>
                 <ComposedChart data={model.data} margin={margin} barCategoryGap="22%">
                     <FluxChartGrid axis={axis} />
                     {xAxis}
@@ -159,7 +166,6 @@ export function FinancialFluxChartView({
                         content={<FluxChartTooltip currency={currency} />}
                         cursor={{ fill: 'var(--dash-chart-tooltip-cursor, rgba(255,255,255,0.05))' }}
                     />
-                    {legend}
                     {highlight}
                     <Line
                         yAxisId="left"
@@ -174,11 +180,42 @@ export function FinancialFluxChartView({
                     <Line
                         yAxisId="left"
                         type="monotone"
-                        dataKey="saida"
-                        name="saida"
-                        stroke={model.colors.gastos}
+                        dataKey="saidaFixa"
+                        name="saidaFixa"
+                        stroke={buckets.fixa}
                         strokeWidth={2}
-                        dot={{ r: 3 }}
+                        dot={{ r: 2 }}
+                        animationDuration={400}
+                    />
+                    <Line
+                        yAxisId="left"
+                        type="monotone"
+                        dataKey="saidaFatura"
+                        name="saidaFatura"
+                        stroke={buckets.fatura}
+                        strokeWidth={2}
+                        dot={{ r: 2 }}
+                        animationDuration={400}
+                    />
+                    <Line
+                        yAxisId="left"
+                        type="monotone"
+                        dataKey="saidaExtra"
+                        name="saidaExtra"
+                        stroke={buckets.extra}
+                        strokeWidth={2}
+                        strokeDasharray="5 4"
+                        dot={{ r: 2 }}
+                        animationDuration={400}
+                    />
+                    <Line
+                        yAxisId="left"
+                        type="monotone"
+                        dataKey="saidaCofrinho"
+                        name="saidaCofrinho"
+                        stroke={buckets.cofrinhos}
+                        strokeWidth={2}
+                        dot={{ r: 2 }}
                         animationDuration={400}
                     />
                     <Line
@@ -210,8 +247,9 @@ export function FinancialFluxChartView({
     }
 
     return (
-        <ResponsiveContainer width="100%" height="100%" minHeight={380}>
-            <ComposedChart data={model.data} margin={margin} barCategoryGap="22%" barGap={4}>
+        <ResponsiveContainer width="100%" height="100%" minHeight={300}>
+            <ComposedChart data={model.data} margin={margin} barCategoryGap="16%" barGap={3}>
+                <FluxBalancoNegPattern patternId={balancoNegPatternId} saldoPos={model.colors.saldoPos} />
                 <FluxChartGrid axis={axis} />
                 {xAxis}
                 {leftAxis}
@@ -221,52 +259,7 @@ export function FinancialFluxChartView({
                     cursor={{ fill: 'var(--dash-chart-tooltip-cursor, rgba(255,255,255,0.06))' }}
                     shared
                 />
-                {legend}
                 {highlight}
-                <Bar
-                    yAxisId="left"
-                    dataKey="entrada"
-                    name="entrada"
-                    fill={model.colors.ganhos}
-                    radius={[6, 6, 0, 0]}
-                    maxBarSize={28}
-                    animationDuration={450}
-                    onClick={(bar) => model.onBarClick(onSelectMonth, bar)}
-                    style={yearScope && onSelectMonth ? { cursor: 'pointer' } : undefined}
-                >
-                    {model.data.map((entry) => (
-                        <Cell key={`in-${entry.label}`} fill={barFill(model.colors.ganhos, entry.index, model.emphasis)} />
-                    ))}
-                </Bar>
-                <Bar
-                    yAxisId="left"
-                    dataKey="saida"
-                    name="saida"
-                    fill={model.colors.gastos}
-                    radius={[6, 6, 0, 0]}
-                    maxBarSize={28}
-                    animationDuration={450}
-                    onClick={(bar) => model.onBarClick(onSelectMonth, bar)}
-                >
-                    {model.data.map((entry) => (
-                        <Cell key={`out-${entry.label}`} fill={barFill(model.colors.gastos, entry.index, model.emphasis)} />
-                    ))}
-                </Bar>
-                <Bar
-                    yAxisId="left"
-                    dataKey="balanco"
-                    name="balanco"
-                    fill={model.colors.saldoPos}
-                    radius={[6, 6, 0, 0]}
-                    maxBarSize={28}
-                    animationDuration={450}
-                    onClick={(bar) => model.onBarClick(onSelectMonth, bar)}
-                >
-                    {model.data.map((entry) => {
-                        const hex = entry.balanco < 0 ? model.colors.saldoNeg : model.colors.saldoPos;
-                        return <Cell key={`net-${entry.label}`} fill={barFill(hex, entry.index, model.emphasis)} />;
-                    })}
-                </Bar>
                 {model.showSaldoSeries && !balanceLoading ? (
                     <Bar
                         yAxisId="right"
@@ -289,6 +282,96 @@ export function FinancialFluxChartView({
                         ))}
                     </Bar>
                 ) : null}
+                <Bar
+                    yAxisId="left"
+                    dataKey="entrada"
+                    name="entrada"
+                    fill={model.colors.ganhos}
+                    radius={[6, 6, 0, 0]}
+                    maxBarSize={24}
+                    animationDuration={450}
+                    onClick={(bar) => model.onBarClick(onSelectMonth, bar)}
+                    style={yearScope && onSelectMonth ? { cursor: 'pointer' } : undefined}
+                >
+                    {model.data.map((entry) => (
+                        <Cell key={`in-${entry.label}`} fill={barFill(model.colors.ganhos, entry.index, model.emphasis)} />
+                    ))}
+                </Bar>
+                <Bar
+                    yAxisId="left"
+                    dataKey="saidaFixas"
+                    name="saidaFixas"
+                    fill="transparent"
+                    radius={0}
+                    maxBarSize={24}
+                    animationDuration={450}
+                    shape={fixasBarShape}
+                    onClick={(bar) => model.onBarClick(onSelectMonth, bar)}
+                />
+                <Bar
+                    yAxisId="left"
+                    dataKey="balancoMag"
+                    name="balanco"
+                    fill={model.colors.saldoPos}
+                    radius={[6, 6, 0, 0]}
+                    maxBarSize={24}
+                    minPointSize={3}
+                    animationDuration={450}
+                    onClick={(bar) => model.onBarClick(onSelectMonth, bar)}
+                >
+                    {model.data.map((entry) => {
+                        const dim = model.emphasis >= 0 && entry.index !== model.emphasis;
+                        if (entry.balanco < 0) {
+                            return (
+                                <Cell
+                                    key={`net-${entry.label}`}
+                                    fill={balancoNegPatternUrl(balancoNegPatternId)}
+                                    opacity={dim ? 0.42 : 1}
+                                />
+                            );
+                        }
+                        return (
+                            <Cell
+                                key={`net-${entry.label}`}
+                                fill={barFill(model.colors.saldoPos, entry.index, model.emphasis, 0.98)}
+                            />
+                        );
+                    })}
+                </Bar>
+                <Bar
+                    yAxisId="left"
+                    dataKey="saidaCofrinho"
+                    name="saidaCofrinho"
+                    fill={buckets.cofrinhos}
+                    radius={[5, 5, 0, 0]}
+                    maxBarSize={24}
+                    animationDuration={450}
+                    onClick={(bar) => model.onBarClick(onSelectMonth, bar)}
+                >
+                    {model.data.map((entry) => (
+                        <Cell
+                            key={`cofrinho-${entry.label}`}
+                            fill={barFillOutflow(buckets.cofrinhos, entry.index, model.emphasis, 0.9)}
+                        />
+                    ))}
+                </Bar>
+                <Bar
+                    yAxisId="left"
+                    dataKey="saidaExtra"
+                    name="saidaExtra"
+                    fill={buckets.extra}
+                    radius={[5, 5, 0, 0]}
+                    maxBarSize={24}
+                    animationDuration={450}
+                    onClick={(bar) => model.onBarClick(onSelectMonth, bar)}
+                >
+                    {model.data.map((entry) => (
+                        <Cell
+                            key={`extra-${entry.label}`}
+                            fill={barFillOutflow(buckets.extra, entry.index, model.emphasis, 0.88)}
+                        />
+                    ))}
+                </Bar>
             </ComposedChart>
         </ResponsiveContainer>
     );

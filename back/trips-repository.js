@@ -1,5 +1,5 @@
-import { query } from './db.js';
-import { ensureHouseholdForUser } from './household.js';
+import { query, withTransaction } from './db.js';
+import { ensureHouseholdForUser, householdIdsForUserSql } from './household.js';
 import { canAccessTrip } from '../motor/viagens/trip-household-gate.js';
 
 const TRIP_COLUMNS = `t.id, t.user_id, t.household_id, t.title, t.starts_on, t.ends_on, t.status_override, t.budget_caps, t.payload, t.created_at, t.updated_at`;
@@ -12,6 +12,14 @@ function mapAccessFields(row) {
         householdId: row.household_id ?? null,
         userId: row.user_id
     };
+}
+
+async function householdIdsForUser(userId) {
+    const { rows } = await query(
+        `SELECT household_id AS "householdId" FROM household_members WHERE user_id = $1`,
+        [userId]
+    );
+    return rows.map((r) => r.householdId).filter(Boolean);
 }
 
 async function backfillOrphanTrips(userId) {
@@ -36,7 +44,16 @@ export async function listTrips() {
 
 export async function listTripsForUser(userId) {
     await backfillOrphanTrips(userId);
-    return listTrips();
+    const { rows } = await query(
+        `SELECT ${SELECT_FIELDS}
+         FROM trips t
+         ${CREATOR_JOIN}
+         WHERE t.household_id IN ${householdIdsForUserSql(1)}
+            OR (t.household_id IS NULL AND t.user_id = $1)
+         ORDER BY t.updated_at DESC`,
+        [userId]
+    );
+    return rows;
 }
 
 export async function getTrip(tripId) {
@@ -54,7 +71,8 @@ export async function getTripForUser(userId, tripId) {
     await backfillOrphanTrips(userId);
     const row = await getTrip(tripId);
     if (!row) return null;
-    if (!canAccessTrip(mapAccessFields(row), { userId })) return null;
+    const householdIds = await householdIdsForUser(userId);
+    if (!canAccessTrip(mapAccessFields(row), { userId, householdIds })) return null;
     return row;
 }
 
@@ -70,13 +88,19 @@ export async function assertTripAccess(userId, tripId) {
 
 export async function createTrip(userId, { title = 'Nova viagem' } = {}) {
     const householdId = await ensureHouseholdForUser(userId);
-    const { rows } = await query(
-        `INSERT INTO trips (user_id, household_id, title, budget_caps, payload)
-         VALUES ($1, $2, $3, '{}'::jsonb, '{}'::jsonb)
-         RETURNING id`,
-        [userId, householdId, title]
-    );
-    return await getTrip(rows[0].id);
+    const row = await withTransaction(async (client) => {
+        const { rows } = await client.query(
+            `INSERT INTO trips (user_id, household_id, title, budget_caps, payload)
+             VALUES ($1, $2, $3, '{}'::jsonb, '{}'::jsonb)
+             RETURNING id`,
+            [userId, householdId, title]
+        );
+        const tripId = rows[0].id;
+        const { ensureTripCofrinhoBucket } = await import('./cofrinho-trip-bucket.js');
+        await ensureTripCofrinhoBucket(userId, tripId, title, client);
+        return tripId;
+    });
+    return await getTrip(row);
 }
 
 export async function updateTrip(tripId, patch) {
@@ -101,7 +125,12 @@ export async function updateTrip(tripId, patch) {
         ]
     );
     if (!rowCount) return null;
-    return await getTrip(tripId);
+    const trip = await getTrip(tripId);
+    if (trip && patch.title) {
+        const { syncTripCofrinhoBucketName } = await import('./cofrinho-trip-bucket.js');
+        await syncTripCofrinhoBucketName(trip.user_id, tripId, patch.title);
+    }
+    return trip;
 }
 
 export async function deleteTrip(tripId) {

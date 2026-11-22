@@ -1,39 +1,43 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { MaterialIcon } from '../../../components/icons/MaterialIcon';
 import { formatHeatmapMonthLabel } from '../../../lib/cashHeatmap';
 import type { DayDetailItem } from '../../../lib/cashHeatmap';
-import { formatBRL } from '../../../lib/format';
-
-function itemIcon(it: DayDetailItem) {
-    if (it.kind === 'gain') return 'trending_up';
-    if (it.kind === 'invoice') return 'receipt_long';
-    if (it.pending) return 'pending_actions';
-    return 'trending_down';
-}
-
-function itemTone(it: DayDetailItem) {
-    if (it.kind === 'gain') return 'gain';
-    if (it.kind === 'invoice') return 'invoice';
-    if (it.pending) return 'pending';
-    return 'expense';
-}
+import type { Account, Movement } from '../../../lib/types/finance';
+import { enrichLedgerItems } from '../domain/ledgerItemVisual';
+import { LedgerExtratoRow } from './LedgerExtratoRow';
 
 type Props = {
     year: number;
     monthIndex: number;
     selectedDay: number;
     items: DayDetailItem[];
+    expenses: Movement[];
+    gains: Movement[];
+    accounts: Account[];
     currency: string;
 };
 
-export function CashHeatmapDayPanel({ year, monthIndex, selectedDay, items, currency }: Props) {
+export function CashHeatmapDayPanel({
+    year,
+    monthIndex,
+    selectedDay,
+    items,
+    expenses,
+    gains,
+    accounts,
+    currency
+}: Props) {
     const listRef = useRef<HTMLUListElement>(null);
     const monthLabel = formatHeatmapMonthLabel(year, monthIndex);
     const monthName = monthLabel.split(' ')[0];
+    const enriched = useMemo(
+        () => enrichLedgerItems(items, expenses, gains, accounts),
+        [items, expenses, gains, accounts]
+    );
 
     useEffect(() => {
         const list = listRef.current;
-        if (!list || items.length === 0) return;
+        if (!list || enriched.length === 0) return;
 
         const syncFade = () => {
             const overflow = list.scrollHeight > list.clientHeight + 4;
@@ -49,7 +53,7 @@ export function CashHeatmapDayPanel({ year, monthIndex, selectedDay, items, curr
             list.removeEventListener('scroll', syncFade);
             ro?.disconnect();
         };
-    }, [items]);
+    }, [enriched]);
 
     return (
         <div className="cash-heatmap-day-panel" aria-live="polite">
@@ -61,7 +65,7 @@ export function CashHeatmapDayPanel({ year, monthIndex, selectedDay, items, curr
                 </h3>
             </header>
             <div className="cash-heatmap-day-panel__list-wrap cash-heatmap-day-panel__list-wrap--scroll-capped">
-                {items.length === 0 ? (
+                {enriched.length === 0 ? (
                     <div className="cash-heatmap-day-panel__empty">
                         <MaterialIcon name="event_busy" variant="app" />
                         <p>
@@ -72,31 +76,9 @@ export function CashHeatmapDayPanel({ year, monthIndex, selectedDay, items, curr
                     </div>
                 ) : (
                     <ul ref={listRef} className="cash-heatmap-day-panel__list">
-                        {items.map((it) => {
-                            const tone = itemTone(it);
-                            const sign = it.kind === 'gain' ? '+' : it.kind === 'invoice' ? '' : '−';
-                            const prefix = sign ? `${sign} ` : '';
-                            return (
-                                <li key={it.id} className="cash-heatmap-day-item cash-heatmap-day-item--compact">
-                                    <span
-                                        className={`cash-heatmap-day-item__icon cash-heatmap-day-item__icon--${tone}`}
-                                        aria-hidden="true"
-                                    >
-                                        <MaterialIcon name={itemIcon(it)} variant="app" />
-                                    </span>
-                                    <div className="cash-heatmap-day-item__body">
-                                        <span className="cash-heatmap-day-item__title">{it.title}</span>
-                                        <span className="cash-heatmap-day-item__meta">
-                                            {[it.bank, it.tag].filter(Boolean).join(' · ')}
-                                        </span>
-                                    </div>
-                                    <span className={`cash-heatmap-day-item__amount cash-heatmap-day-item__amount--${tone}`}>
-                                        {prefix}
-                                        {formatBRL(it.amount, currency)}
-                                    </span>
-                                </li>
-                            );
-                        })}
+                        {enriched.map((it) => (
+                            <LedgerExtratoRow key={it.id} item={it} currency={currency} variant="panel" />
+                        ))}
                     </ul>
                 )}
             </div>

@@ -3,6 +3,7 @@ import { useFinanceData } from '../../app/FinanceDataProvider';
 import { useCategories } from '../../hooks/useCategories';
 import { useDashboardFacets } from '../../frentes/dinheiro/dashboard/DashboardFacetsContext';
 import { FilterDrawer } from './FilterDrawer';
+import { MaterialIcon } from '../icons/MaterialIcon';
 
 export function DashboardCategoryDrawer() {
     const ctx = useDashboardFacets();
@@ -20,42 +21,42 @@ export function DashboardCategoryDrawer() {
 
     if (!ctx) return null;
 
+    const selected = ctx.expenseCategories;
+
     return (
         <FilterDrawer
             id="dashboard-filter-drawer"
-            title="Filtros do painel"
+            title="Categorias do painel"
             open={ctx.drawerOpen}
             onClose={() => ctx.setDrawerOpen(false)}
             footer={
-                <button
-                    type="button"
-                    id="dashboard-filter-clear"
-                    className="btn-secondary"
-                    onClick={() => ctx.setExpenseCategory('')}
-                >
-                    Todas as categorias
+                <button type="button" id="dashboard-filter-clear" className="btn-secondary" onClick={ctx.clearExpenseCategories}>
+                    Limpar seleção
                 </button>
             }
         >
             <p className="card-metric-hint" style={{ margin: '0 0 1rem' }}>
-                Afeta totais de saídas no período selecionado no topo.
+                Escolha uma ou mais categorias. Afeta totais e gráficos do mês selecionado.
             </p>
-            <div className="filter-drawer-field">
-                <label htmlFor="category-filter">Categoria das saídas</label>
-                <select
-                    id="category-filter"
-                    className="table-filters__select"
-                    value={ctx.expenseCategory}
-                    onChange={(e) => ctx.setExpenseCategory(e.target.value)}
-                >
-                    <option value="">Todas as categorias</option>
-                    {options.map((name) => (
-                        <option key={name} value={name}>
-                            {name}
-                        </option>
-                    ))}
-                </select>
-            </div>
+            <ul className="dashboard-category-multi__list dashboard-category-multi__list--drawer">
+                {options.map((name) => {
+                    const on = selected.has(name);
+                    return (
+                        <li key={name}>
+                            <button
+                                type="button"
+                                className={`dashboard-category-multi__option${on ? ' is-on' : ''}`}
+                                onClick={() => ctx.toggleExpenseCategory(name)}
+                            >
+                                <span className={`dashboard-category-multi__check${on ? ' is-on' : ''}`} aria-hidden>
+                                    {on ? <MaterialIcon name="check" variant="app" opticalSize={16} /> : null}
+                                </span>
+                                <span className="dashboard-category-multi__option-label">{name}</span>
+                            </button>
+                        </li>
+                    );
+                })}
+            </ul>
         </FilterDrawer>
     );
 }

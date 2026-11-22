@@ -28,7 +28,7 @@ function moneyCompact(value: number): string {
 
 export function TripResumoOrcamentoViz({ snap }: Props) {
     const goal = snap.effectiveGoal;
-    const cofrinho = snap.saved;
+    const cofrinho = snap.cofrinhoRemaining;
     const falta = snap.stillToSave;
     const gastos = snap.spentTotal;
     const overBudget = goal > 0 && gastos > goal;

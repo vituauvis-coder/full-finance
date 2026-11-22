@@ -5,15 +5,18 @@ type Props = {
     inToolbar?: boolean;
     /** Modificador de acento (`civil-period-timeline--*`). */
     accentClass?: string;
+    /** Rótulo fixo do ano (ex.: Cofrinhos 2026). */
+    civilYearLabel?: number;
 };
 
 /** Paridade de DOM com `CivilPeriodTimeline`; tons neutros no CSS. */
 export function CivilPeriodTimelineSkeleton({
     inToolbar = false,
-    accentClass = 'civil-period-timeline--dashboard'
+    accentClass = 'civil-period-timeline--dashboard',
+    civilYearLabel
 }: Props) {
     const activeMonth = monthIndexFromPeriod(defaultPeriod());
-    const year = defaultCivilYear();
+    const year = civilYearLabel ?? defaultCivilYear();
 
     const timeline = (
         <div

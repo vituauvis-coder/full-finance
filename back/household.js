@@ -1,5 +1,13 @@
 import crypto from 'node:crypto';
 import { travelDocumentFromFinancePreferences } from '../motor/viagens/travel-document.js';
+import { pickPrimaryCashAccounts } from '../motor/dinheiro/primary-cash-balance.js';
+import {
+    accountConflictsWithExisting,
+    duplicateAccountErrorMessage
+} from '../motor/dinheiro/account-uniqueness.js';
+import { isCashBalanceAccountType } from '../legacy-web/js/core/utils.js';
+import { enrichInstitutionWalletFunctions } from '../motor/dinheiro/wallet-institution-functions.js';
+import { computeCashBalanceForAccountIdAsOf } from '../legacy-web/js/core/cash-balance.js';
 import { query, withTransaction } from './db.js';
 
 function httpError(message, statusCode = 400) {
@@ -24,6 +32,8 @@ export const ACCOUNT_SELECT_FIELDS = `
     a.close_day AS "closeDay",
     a.due_day AS "dueDay",
     a.linked_account_id AS "linkedAccountId",
+    COALESCE(a.wallet_functions, '[]'::jsonb) AS "walletFunctions",
+    COALESCE(a.is_primary_cash, false) AS "isPrimaryCash",
     hu.name AS "holderUserName",
     hu.email AS "holderUserEmail"`;
 
@@ -116,6 +126,15 @@ export async function fetchHouseholdSummary(uid) {
         householdId
     ]);
     return rows[0] || { id: householdId, name: 'Minha casa' };
+}
+
+/** Impede outra linha com a mesma instituição/função para o mesmo titular na casa. */
+export async function assertAccountUniquenessInHousehold(uid, candidate, excludeAccountId = null) {
+    const accounts = await queryAccountsForUser(uid);
+    const conflict = accountConflictsWithExisting(accounts, candidate, excludeAccountId);
+    if (conflict) {
+        throw httpError(duplicateAccountErrorMessage(conflict, candidate), 400);
+    }
 }
 
 export async function assertAccountAccessible(accountId, uid) {
@@ -233,6 +252,58 @@ export async function fetchAccountByIdForUser(accountId, uid) {
     return rows[0] || null;
 }
 
+export async function clearOtherPrimaryCashAccounts(uid, keepAccountId) {
+    if (!keepAccountId) return;
+    await query(
+        `UPDATE accounts a
+         SET is_primary_cash = false
+         WHERE a.id <> $1
+           AND a.is_primary_cash = true
+           AND ${accountsVisibleToUserSql(2)}`,
+        [keepAccountId, uid]
+    );
+}
+
+/** Se várias contas estiverem marcadas como principal, mantém uma (prioridade corrente) e corrige o banco. */
+export async function reconcilePrimaryCashAccounts(uid, accounts) {
+    const list = Array.isArray(accounts) ? accounts : [];
+    const flagged = list.filter((a) => a?.isPrimaryCash === true);
+    const eligible = flagged.filter((a) => isCashBalanceAccountType(a.type));
+
+    if (flagged.length > 0 && eligible.length === 0) {
+        await query(
+            `UPDATE accounts a
+             SET is_primary_cash = false
+             WHERE a.is_primary_cash = true
+               AND ${accountsVisibleToUserSql(1)}`,
+            [uid]
+        );
+        return list.map((a) => ({ ...a, isPrimaryCash: false }));
+    }
+
+    if (eligible.length === 1) {
+        const winner = eligible[0];
+        if (flagged.length > 1) {
+            await clearOtherPrimaryCashAccounts(uid, winner.id);
+            return list.map((a) => ({ ...a, isPrimaryCash: a.id === winner.id }));
+        }
+        return list;
+    }
+
+    const pick = pickPrimaryCashAccounts(list, isCashBalanceAccountType);
+    const winner = pick?.[0];
+    if (!winner?.id) return list;
+
+    await clearOtherPrimaryCashAccounts(uid, winner.id);
+    await query(
+        `UPDATE accounts a
+         SET is_primary_cash = true
+         WHERE a.id = $1 AND ${accountsVisibleToUserSql(2)}`,
+        [winner.id, uid]
+    );
+    return list.map((a) => ({ ...a, isPrimaryCash: a.id === winner.id }));
+}
+
 export async function queryAccountsForUser(uid) {
     await ensureHouseholdForUser(uid);
     const { rows } = await query(
@@ -242,5 +313,86 @@ export async function queryAccountsForUser(uid) {
          ORDER BY LOWER(a.name), a.type`,
         [uid]
     );
-    return rows;
+    const reconciled = await reconcilePrimaryCashAccounts(uid, rows);
+    return enrichInstitutionWalletFunctions(reconciled);
+}
+
+/** Contas, movimentos e perfil no escopo da casa — mesmo critério que `/api/data` e conta principal. */
+export async function fetchCashBalanceInputs(uid) {
+    await ensureHouseholdForUser(uid);
+    const [userRes, userAccounts, expRes, gainRes] = await Promise.all([
+        query(
+            `SELECT finance_preferences AS "financePreferences", balance_offset AS "balanceOffset"
+             FROM users WHERE id = $1`,
+            [uid]
+        ),
+        queryAccountsForUser(uid),
+        query(
+            `SELECT
+                e.id,
+                e.account_id AS "accountId",
+                e.amount,
+                e.date,
+                e.is_paid AS "isPaid",
+                e.reference_only AS "referenceOnly",
+                e.installment_count AS "installmentCount",
+                e.cash_out_confirmed_periods AS "cashOutConfirmedPeriods",
+                e.recurring_monthly AS "recurringMonthly"
+             FROM expenses e
+             WHERE ${expensesOnHouseholdAccountsSql(1)}`,
+            [uid]
+        ),
+        query(
+            `SELECT
+                g.account_id AS "accountId",
+                g.amount,
+                g.date,
+                g.is_paid AS "isPaid",
+                g.reference_only AS "referenceOnly"
+             FROM gains g
+             WHERE ${gainsOnHouseholdAccountsSql(1)}`,
+            [uid]
+        )
+    ]);
+    const user = userRes.rows[0] || null;
+    const userProfile = user
+        ? {
+              financePreferences: user.financePreferences,
+              balanceOffset: Number(user.balanceOffset) || 0
+          }
+        : null;
+    return {
+        userProfile,
+        userAccounts,
+        userExpenses: expRes.rows.filter((e) => !e.referenceOnly),
+        userGains: gainRes.rows.filter((g) => !g.referenceOnly)
+    };
+}
+
+/** Saldo de caixa calculado no servidor (mesmo motor do dashboard) — evita divergência no browser. */
+export function attachComputedCashBalances(
+    accounts,
+    expenses,
+    gains,
+    userProfile,
+    splitRequests = []
+) {
+    const asOf = new Date();
+    asOf.setHours(23, 59, 59, 999);
+    const list = Array.isArray(accounts) ? accounts : [];
+    return list.map((acc) => {
+        if (!isCashBalanceAccountType(acc.type)) {
+            return { ...acc, balance: Number(acc.initialBalance) || 0 };
+        }
+        const balance = computeCashBalanceForAccountIdAsOf(
+            acc.id,
+            list,
+            expenses,
+            gains,
+            asOf,
+            userProfile,
+            splitRequests
+        );
+        return { ...acc, balance };
+    });
 }

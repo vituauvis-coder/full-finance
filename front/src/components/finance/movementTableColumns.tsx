@@ -70,18 +70,23 @@ export function buildMovementTableColumns(opts: GainsOpts | ExpensesOpts): DataT
             }
         },
         {
+            id: 'category',
+            header: 'Categoria',
+            sortKey: 'category',
+            align: 'center',
+            headerClassName: 'data-table__th--center movement-th-category',
+            cellClassName:
+                prefix === 'gains'
+                    ? 'gains-td-category movement-td-category'
+                    : 'expenses-td-category movement-td-category',
+            render: (m) => <MovementCategoryTag label={m.category} tone={prefix} />
+        },
+        {
             id: 'description',
             header: 'Descrição',
             sortKey: 'description',
             cellClassName: descClass,
             render: (m) => <span title={m.description ?? ''}>{m.description?.trim() || '—'}</span>
-        },
-        {
-            id: 'category',
-            header: 'Categoria',
-            sortKey: 'category',
-            cellClassName: prefix === 'gains' ? 'gains-td-category movement-td-compact' : 'movement-td-compact',
-            render: (m) => m.category || '—'
         }
     ];
 
@@ -248,4 +253,18 @@ export function buildMovementTableColumns(opts: GainsOpts | ExpensesOpts): DataT
     );
 
     return cols;
+}
+
+function MovementCategoryTag({ label, tone }: { label?: string; tone: 'gains' | 'expenses' }) {
+    const text = label?.trim();
+    if (!text) return <span className="movement-category-tag movement-category-tag--empty">—</span>;
+    return (
+        <span
+            className={`movement-category-tag movement-category-tag--${tone}`}
+            title={text}
+            data-category-tag={text}
+        >
+            {text}
+        </span>
+    );
 }

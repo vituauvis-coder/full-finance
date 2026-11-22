@@ -6,6 +6,8 @@ export function useCofrinhosModals() {
     const [editingBucket, setEditingBucket] = useState<CofrinhoBucket | null>(null);
     const [applicationModalOpen, setApplicationModalOpen] = useState(false);
     const [allocateBucketId, setAllocateBucketId] = useState<string | null>(null);
+    const [allocatePoolYearMonth, setAllocatePoolYearMonth] = useState<string | null>(null);
+    const [historyBucket, setHistoryBucket] = useState<CofrinhoBucket | null>(null);
 
     const openCreateBucket = useCallback(() => {
         setEditingBucket(null);
@@ -19,22 +21,33 @@ export function useCofrinhosModals() {
 
     const closeBucketModal = useCallback(() => setBucketModalOpen(false), []);
 
-    const openAllocate = useCallback((bucketId?: string) => {
+    const openAllocate = useCallback((bucketId?: string, poolYearMonth?: string) => {
         setAllocateBucketId(bucketId ?? null);
+        setAllocatePoolYearMonth(poolYearMonth?.trim() || null);
         setApplicationModalOpen(true);
     }, []);
 
-    const closeApplicationModal = useCallback(() => setApplicationModalOpen(false), []);
+    const closeApplicationModal = useCallback(() => {
+        setApplicationModalOpen(false);
+        setAllocatePoolYearMonth(null);
+    }, []);
+
+    const openHistory = useCallback((bucket: CofrinhoBucket) => setHistoryBucket(bucket), []);
+    const closeHistory = useCallback(() => setHistoryBucket(null), []);
 
     return {
         bucketModalOpen,
         editingBucket,
         applicationModalOpen,
         allocateBucketId,
+        allocatePoolYearMonth,
         openCreateBucket,
         openEditBucket,
         closeBucketModal,
         openAllocate,
-        closeApplicationModal
+        closeApplicationModal,
+        historyBucket,
+        openHistory,
+        closeHistory
     };
 }

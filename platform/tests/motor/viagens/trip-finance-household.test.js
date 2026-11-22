@@ -19,12 +19,18 @@ test('não duplica tripExpenseId e preserva autor do Dinheiro', () => {
                 tripExpenseId: null,
                 amount: 50,
                 description: 'Aporte',
+                category: 'Cofrinhos',
+                isCofrinho: true,
                 userId: 'u2',
-                authorName: 'Victor'
+                authorName: 'Victor',
+                date: '2026-05-01'
             }
         ]
     });
     assert.equal(view.lines.length, 2);
     assert.equal(view.lines.find((l) => l.tripExpenseId === 'te1').author.name, 'Millena');
-    assert.ok(view.lines.some((l) => l.author?.name === 'Victor' && l.amount === 50));
+    const aporte = view.lines.find((l) => l.author?.name === 'Victor');
+    assert.ok(aporte && aporte.amount === 50);
+    assert.equal(aporte.ledgerKind, 'aporte');
+    assert.equal(view.totals.aportes, 50);
 });

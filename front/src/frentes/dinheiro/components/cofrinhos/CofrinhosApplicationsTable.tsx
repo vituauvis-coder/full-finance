@@ -9,12 +9,13 @@ import {
     type CofrinhoBucket
 } from '../../domain/cofrinhoAggregations';
 import { referenceMonthToYearMonth } from '../../domain/cofrinhoPeriod';
+import type { CofrinhoPeriodScope } from '../../domain/cofrinhoPeriodScope';
 
 type Props = {
     applications: CofrinhoApplication[];
     buckets: CofrinhoBucket[];
     accounts: Account[];
-    yearMonth: string;
+    scope: CofrinhoPeriodScope;
     currency: string;
     onDelete: (id: string) => void;
 };
@@ -23,16 +24,21 @@ export function CofrinhosApplicationsTable({
     applications,
     buckets,
     accounts,
-    yearMonth,
+    scope,
     currency,
     onDelete
 }: Props) {
     const bucketById = useMemo(() => new Map(buckets.map((b) => [b.id, b])), [buckets]);
 
-    const rows = useMemo(
-        () => filterApplications(applications, { yearMonth }),
-        [applications, yearMonth]
-    );
+    const rows = useMemo(() => {
+        if (scope.kind === 'all-years') {
+            return filterApplications(applications, { allYears: true });
+        }
+        if (scope.kind === 'civil-year') {
+            return filterApplications(applications, { civilYear: scope.year });
+        }
+        return filterApplications(applications, { yearMonth: scope.yearMonth });
+    }, [applications, scope]);
 
     const columns = useMemo<DataTableColumn<CofrinhoApplication>[]>(
         () => [

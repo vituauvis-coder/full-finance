@@ -3,8 +3,10 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import {
     effectiveStatus,
+    expensesSpent,
     spent,
     tripTotal,
+    tripExpensesTotal,
     citySpent,
     capUsedFraction,
     sortedTrips,
@@ -64,6 +66,8 @@ test('city and trip totals do not duplicate stay', () => {
     });
     assert.equal(citySpent(trip, lisboa), 4200);
     assert.equal(tripTotal(trip), 4200);
+    assert.equal(tripExpensesTotal(trip), 200);
+    assert.equal(expensesSpent(trip, { category: 'hospedagem' }), 0);
     assert.equal(spent(trip, { category: 'hospedagem' }), 1000);
 });
 

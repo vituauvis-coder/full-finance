@@ -2,10 +2,12 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMovementListFilters } from '../context/MovementListFiltersContext';
 
+import type { WalletAccountKind } from '../wallet/walletAccountKind';
+
 type OpenCardModal = (opts: {
     editing: null;
     linkedBankId?: string;
-    kind?: 'bank' | 'credit' | 'debit' | 'food' | 'meal';
+    kind?: WalletAccountKind;
 }) => void;
 
 /** Delegação de cliques na lista (plásticos, placeholders, atalhos). */

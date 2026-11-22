@@ -1,5 +1,8 @@
 import { useMemo } from 'react';
+import { buildSyntheticExpectedSplitGainsRows } from '@motor/dinheiro/expected-split-gain-rows.js';
 import { isCreditCardType } from '../lib/accounts';
+import { monthIndexFromPeriod } from '../lib/period';
+import { listPendingCashOutForProfile } from '../frentes/dashboard/domain/ledgerExtratoEnrichment';
 import type { Account, FinanceData } from '../lib/types/finance';
 
 export type ComputedNotice = {
@@ -40,6 +43,69 @@ export function useHeaderComputedNotifications(data: FinanceData | null | undefi
                 id: 'cofrinho-empty',
                 title: 'Cofrinhos',
                 body: 'Você ainda não criou caixinhas de alocação.',
+                kind: 'computed'
+            });
+        }
+
+        const pendingPay = listPendingCashOutForProfile(
+            data.userAccounts,
+            data.userExpenses,
+            data.userProfile
+        );
+        if (pendingPay.length > 0) {
+            const n = pendingPay.length;
+            out.push({
+                id: 'cash-out-pending',
+                title: n === 1 ? 'Pagamento a confirmar' : `${n} pagamentos a confirmar`,
+                body: 'Confirme no extrato do painel — ícone de check na linha do lançamento.',
+                kind: 'computed'
+            });
+        }
+
+        const mi = monthIndexFromPeriod('month-current');
+        const year = now.getFullYear();
+        const estornoPending = buildSyntheticExpectedSplitGainsRows(
+            `month-${mi}`,
+            now,
+            data.userExpenses,
+            data.userAccounts,
+            data.expenseSplitRequests?.outgoing ?? [],
+            data.userGains,
+            year
+        );
+        const incomingRateio = (data.expenseSplitRequests?.incoming ?? []).filter(
+            (s) => String(s.status ?? '').toUpperCase() === 'PENDING'
+        );
+        const outgoingRateio = (data.expenseSplitRequests?.outgoing ?? []).filter(
+            (s) => String(s.status ?? '').toUpperCase() === 'PENDING'
+        );
+        if (incomingRateio.length > 0) {
+            const n = incomingRateio.length;
+            out.push({
+                id: 'rateio-incoming',
+                title: n === 1 ? 'Compartilhamento recebido' : `${n} compartilhamentos recebidos`,
+                body: 'Pedido de rateio — não é estorno. Veja no extrato (ícone de aperto de mão) ou em Saídas.',
+                kind: 'computed'
+            });
+        }
+        if (outgoingRateio.length > 0) {
+            const n = outgoingRateio.length;
+            out.push({
+                id: 'rateio-outgoing',
+                title: n === 1 ? 'Compartilhamento enviado' : `${n} compartilhamentos enviados`,
+                body: 'Aguardando resposta do outro usuário.',
+                kind: 'computed'
+            });
+        }
+
+        if (estornoPending.length > 0) {
+            out.push({
+                id: 'estorno-expectativa',
+                title:
+                    estornoPending.length === 1
+                        ? 'Estorno previsto'
+                        : `${estornoPending.length} estornos previstos`,
+                body: 'Depois do rateio aceito — filtro «Estorno» no extrato (ícone de estorno).',
                 kind: 'computed'
             });
         }

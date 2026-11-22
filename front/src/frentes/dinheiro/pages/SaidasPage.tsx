@@ -5,10 +5,18 @@ import { MovementsTable } from '../../../components/finance/MovementsTable';
 import { ExpenseFormModal } from '../../../components/finance/ExpenseFormModal';
 import { TablePaginationBar } from '../../../components/finance/TablePaginationBar';
 import { CategoryTreemap } from '../../../components/finance/CategoryTreemap';
-import { MovementListFilterDrawer } from '../../../components/finance/MovementListFilterDrawer';
+import { MovementListFilterRibbon } from '../../../components/finance/MovementListFilterRibbon';
 import { useFinanceData } from '../../../app/FinanceDataProvider';
 import { formatBRL } from '../../../lib/format';
-import { getPeriodDateBounds, MONTH_NAMES, monthIndexFromPeriod } from '../../../lib/period';
+import {
+    ALL_YEARS_PERIOD,
+    CIVIL_YEAR_PERIOD,
+    getPeriodDateBounds,
+    isAllYearsPeriod,
+    isCivilYearPeriod,
+    MONTH_NAMES,
+    monthIndexFromPeriod
+} from '../../../lib/period';
 import { useCivilPeriodState } from '../../../hooks/useCivilPeriodState';
 import { accountName, type ListFilter } from '../../../lib/movementList';
 import { expenseRowDisplayDate, filterExpensesInPeriod } from '../../../lib/filterExpensesInPeriod';
@@ -16,6 +24,12 @@ import { EXPENSE_TREEMAP_PALETTE } from '../../../lib/treemapData';
 import { buildExpenseTreemapBlocks } from '../../../lib/expenseTreemap';
 import { useTablePagination } from '../../../hooks/useTablePagination';
 import { compareExpenseRows, useMovementSort, type ExpenseSortKey } from '../../../hooks/useMovementSort';
+import { useExpensesLedgerViewMode } from '../../../hooks/useExpensesLedgerViewMode';
+import {
+    buildExpenseInvoiceBundles,
+    splitExpenseLedgerRows
+} from '../domain/expenseLedgerBuckets';
+import { ExpensesTabbedLedger } from '../components/ExpensesTabbedLedger';
 import { usePeriodSyncedDrawerDates } from '../../../hooks/usePeriodSyncedDrawerDates';
 import { ExpenseBatchModal } from '../../../components/finance/ExpenseBatchModal';
 import {
@@ -36,6 +50,11 @@ import { ExpenseSplitsOutgoingPanel } from '../components/ExpenseSplitsOutgoingP
 import { ExpenseSplitModal } from '../components/ExpenseSplitModal';
 import { CivilPeriodToolbar } from '../../../components/finance/CivilPeriodToolbar';
 import { useMovementHeaderAdd } from '../hooks/useMovementHeaderAdd';
+import { useOpenCreateFromNavigation } from '../hooks/useOpenCreateFromNavigation';
+import {
+    aggregateExpenseTotalsCivilYear,
+    buildExpenseTreemapBlocksCivilYear
+} from '../domain/expenseCivilYearTotals';
 import {
     civilMonthKey,
     expenseSummaryFromRows,
@@ -124,6 +143,29 @@ export function SaidasPage() {
         compareExpenseRows
     );
     const sorted = useMemo(() => sortRows(accountLabelFn), [sortRows, accountLabelFn]);
+    const { viewMode, setViewMode } = useExpensesLedgerViewMode();
+
+    const ledgerSplit = useMemo(() => {
+        const { essential, faturaLines, other, cofrinhos } = splitExpenseLedgerRows(sorted, accountById);
+        const bundles = buildExpenseInvoiceBundles(
+            faturaLines,
+            accountById,
+            accountLabelFn,
+            (m) => expenseDisplayDate(m).toISOString()
+        );
+        const invoices = [...bundles.map((b) => b.summary)].sort((a, b) =>
+            compareExpenseRows(a, b, sortKey, sortDir, accountLabelFn)
+        );
+        return { essential, other, faturaLines, bundles, invoices, cofrinhos };
+    }, [sorted, accountById, accountLabelFn, expenseDisplayDate, sortKey, sortDir]);
+
+    const expensesLedgerControls = {
+        sortKey,
+        sortDir,
+        onSelectSort: toggleSort,
+        viewMode,
+        onViewModeChange: setViewMode
+    };
 
     const pagination = useTablePagination(sorted.length, 'expenses');
     const rows = sorted.slice(pagination.start, pagination.end);
@@ -131,14 +173,18 @@ export function SaidasPage() {
     const listPeriod = useMemo(() => getPeriodDateBounds(period, year), [period, year]);
 
     const periodLabel = useMemo(() => {
+        if (isAllYearsPeriod(period)) return 'Todos os anos';
+        if (isCivilYearPeriod(period)) {
+            return `${year} (ano inteiro)`;
+        }
         const mi = monthIndexFromPeriod(period);
         return `${MONTH_NAMES[mi]} ${year} (${listPeriod.startDate.toLocaleDateString('pt-BR')} – ${listPeriod.endDate.toLocaleDateString('pt-BR')})`;
     }, [period, year, listPeriod]);
 
-    const treemapBlocks = useMemo(
-        () => buildExpenseTreemapBlocks(filtered, data?.userAccounts ?? []),
-        [filtered, data?.userAccounts]
-    );
+    const onYearScopeSelect = useCallback(() => {
+        onPeriodChange(CIVIL_YEAR_PERIOD);
+    }, [onPeriodChange]);
+    const onAllYearsSelect = useCallback(() => onPeriodChange(ALL_YEARS_PERIOD), [onPeriodChange]);
 
     const statusFilterActive = Boolean(listFilters?.expensesStatus.paid || listFilters?.expensesStatus.unpaid);
     const listFilter = useMemo<ListFilter>(
@@ -172,16 +218,47 @@ export function SaidasPage() {
         };
     }, [data?.expenseSplitRequests, data?.userExpenses, period, year]);
 
-    const expenseSummary = useMemo(
-        () =>
-            expenseSummaryFromRows(
-                filtered,
-                data?.userAccounts ?? [],
-                statusFilterActive,
-                summarySplitOpts
-            ),
-        [filtered, data?.userAccounts, statusFilterActive, summarySplitOpts]
-    );
+    const expenseSummary = useMemo(() => {
+        if (!data || !statusFilterActive) return { showHint: true as const };
+        if (isCivilYearPeriod(period)) {
+            return {
+                showHint: false as const,
+                ...aggregateExpenseTotalsCivilYear(
+                    data.userExpenses,
+                    data.userAccounts,
+                    year,
+                    listFilter,
+                    summarySplitOpts,
+                    data.userProfile
+                )
+            };
+        }
+        return expenseSummaryFromRows(filtered, data.userAccounts, statusFilterActive, summarySplitOpts);
+    }, [
+        data,
+        filtered,
+        listFilter,
+        period,
+        statusFilterActive,
+        summarySplitOpts,
+        year
+    ]);
+
+    const treemapBlocks = useMemo(() => {
+        if (!data) return [];
+        if (isCivilYearPeriod(period)) {
+            return buildExpenseTreemapBlocksCivilYear(
+                data.userExpenses,
+                data.userAccounts,
+                year,
+                listFilter,
+                summarySplitOpts,
+                data.userProfile
+            );
+        }
+        return buildExpenseTreemapBlocks(filtered, data.userAccounts);
+    }, [data, period, year, filtered, listFilter, summarySplitOpts]);
+
     const expenseMom = useMemo(() => {
         if (!data || expenseSummary.showHint) {
             return {
@@ -284,6 +361,7 @@ export function SaidasPage() {
         setModalOpen(true);
     }, []);
     useMovementHeaderAdd('add-expense-btn', openAddModal);
+    useOpenCreateFromNavigation(openAddModal);
 
     if (showSkeleton) {
         return (
@@ -306,7 +384,7 @@ export function SaidasPage() {
     }
 
     return (
-        <section id="expenses-page" className="page active movements-page--modern">
+        <section id="expenses-page" className="page active movements-page--modern movements-page--compact">
             <CivilPeriodToolbar
                 period={period}
                 year={year}
@@ -314,6 +392,8 @@ export function SaidasPage() {
                 onYearChange={onYearChange}
                 accent="expenses"
                 inMovementsToolbar
+                onYearScopeSelect={onYearScopeSelect}
+                onAllYearsSelect={onAllYearsSelect}
             />
             <ExpenseSplitsBanner
                 onAcceptSplit={(seed) => {
@@ -327,11 +407,17 @@ export function SaidasPage() {
                 currency={currency}
                 onChanged={refresh}
             />
-            <MovementSummaryCardsGrid group="expenses" ariaLabel="Resumo de saídas">
+            <div className="movements-treemap-hero movements-treemap-hero--expenses">
+            <MovementSummaryCardsGrid
+                group="expenses"
+                ariaLabel="Resumo de saídas"
+                className="movements-treemap-hero__summary"
+            >
                 <MovementSummaryCard
                     cardId="expenses-summary-month"
                     tone="expense"
-                    icon="fa-calendar-day"
+                    icon="calendar_month"
+                    iconTooltip={false}
                     title={expenseTitles.month}
                     value={
                         expenseSummary.showHint ? (
@@ -354,7 +440,8 @@ export function SaidasPage() {
                 <MovementSummaryCard
                     cardId="expenses-summary-projection"
                     tone="expense"
-                    icon="fa-anchor"
+                    icon="anchor"
+                    iconTooltip={false}
                     title={expenseTitles.projection}
                     value={
                         expenseSummary.showHint ? (
@@ -377,7 +464,8 @@ export function SaidasPage() {
                 <MovementSummaryCard
                     cardId="expenses-summary-top-cat"
                     tone="expense"
-                    icon="fa-credit-card"
+                    icon="credit_card"
+                    iconTooltip={false}
                     title={expenseTitles.creditCard}
                     value={
                         expenseSummary.showHint ? (
@@ -400,7 +488,8 @@ export function SaidasPage() {
                 <MovementSummaryCard
                     cardId="expenses-summary-other"
                     tone="expense"
-                    icon="fa-wallet"
+                    icon="account_balance_wallet"
+                    iconTooltip={false}
                     title={expenseTitles.other}
                     value={
                         expenseSummary.showHint ? (
@@ -421,6 +510,20 @@ export function SaidasPage() {
                     }
                 />
             </MovementSummaryCardsGrid>
+                <div className="movements-treemap-hero__map" aria-label="Mapa de saídas por categoria">
+                    <CategoryTreemap
+                        containerId="expenses-treemap-container"
+                        canvasId="expenses-spending-treemap-canvas"
+                        blocks={treemapBlocks}
+                        currency={currency}
+                        palette={EXPENSE_TREEMAP_PALETTE}
+                        periodLabel={periodLabel}
+                        title="Mapa de Saídas"
+                        emptyMessage="Nenhuma saída no período selecionado."
+                        compact
+                    />
+                </div>
+            </div>
             <MovementBatchBar
                 count={selected.size}
                 entityLabel="saída"
@@ -429,16 +532,66 @@ export function SaidasPage() {
                 onMarkUnpaid={() => void batchPatch({ isPaid: false })}
                 onEditBatch={() => setBatchModalOpen(true)}
             />
-            <CategoryTreemap
-                containerId="expenses-treemap-container"
-                canvasId="expenses-spending-treemap-canvas"
-                blocks={treemapBlocks}
-                currency={currency}
-                palette={EXPENSE_TREEMAP_PALETTE}
-                periodLabel={periodLabel}
-                title="Mapa de Saídas"
-                emptyMessage="Nenhuma saída no período selecionado."
-            />
+            <div className="movements-extrato-panel movements-extrato-panel--expenses" aria-label="Extrato de saídas">
+                <MovementListFilterRibbon
+                    kind="expense"
+                    tone="expenses"
+                    mapStatus={{ paidLabel: 'Pago', unpaidLabel: 'Pendente' }}
+                    expensesLedgerControls={expensesLedgerControls}
+                />
+            {viewMode === 'split' ? (
+                <ExpensesTabbedLedger
+                    essentialRows={ledgerSplit.essential}
+                    otherRows={ledgerSplit.other}
+                    cofrinhoRows={ledgerSplit.cofrinhos}
+                    invoiceRows={ledgerSplit.invoices}
+                    invoiceBundles={ledgerSplit.bundles}
+                    currency={currency}
+                    expenseAccounts={data.userAccounts}
+                    allExpenses={data.userExpenses}
+                    acceptedSplits={acceptedOutgoingSplits(data.expenseSplitRequests)}
+                    userProfile={userProfile}
+                    listPeriod={listPeriod}
+                    expenseDisplayDate={expenseDisplayDate}
+                    accountById={accountById}
+                    accountLabel={(id) => accountName(data.userAccounts, id)}
+                    statusLabel={(m) =>
+                        expenseRowAppearsPaid(
+                            m,
+                            accountById.get(String(m.accountId)),
+                            userProfile,
+                            listPeriod
+                        )
+                            ? 'Pago'
+                            : 'Pendente'
+                    }
+                    onToggleStatus={(m) => void onToggleStatus(m)}
+                    statusToggleBusy={statusToggleBusy}
+                    selectedIds={selected}
+                    onToggleRow={(id) =>
+                        setSelected((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(id)) next.delete(id);
+                            else next.add(id);
+                            return next;
+                        })
+                    }
+                    onSplit={(m) => {
+                        setSplitExpense(m);
+                        setSplitModalOpen(true);
+                    }}
+                    onEdit={(m) => {
+                        setSplitSeed(null);
+                        setEditing(m);
+                        setModalOpen(true);
+                    }}
+                    onDelete={(m) => void onDelete(m)}
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onSort={toggleSort}
+                />
+            ) : (
+                <>
             <MovementsTable
                 idPrefix="expenses"
                 rows={rows}
@@ -504,6 +657,9 @@ export function SaidasPage() {
                 onPrev={pagination.prev}
                 onNext={pagination.next}
             />
+                </>
+            )}
+            </div>
             <ExpenseFormModal
                 open={modalOpen}
                 editing={editing}
@@ -539,7 +695,6 @@ export function SaidasPage() {
                     await refresh();
                 }}
             />
-            <MovementListFilterDrawer id="expenses-filter-drawer" title="Filtrar saídas" kind="expense" />
         </section>
     );
 }

@@ -53,7 +53,7 @@ export function ExpenseSplitsOutgoingPanel({ outgoing, currency, onChanged }: Pr
                 </div>
                 <div className="expense-splits-panel__hero-text">
                     <h4 className="expense-splits-panel__title">
-                        {n === 1 ? 'Divisão enviada' : 'Divisões enviadas'}
+                        {n === 1 ? 'Compartilhamento enviado' : 'Compartilhamentos enviados'}
                     </h4>
                     <p className="expense-splits-panel__lead">{headIntro}</p>
                 </div>

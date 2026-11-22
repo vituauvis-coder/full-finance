@@ -552,11 +552,11 @@
 }
 
 .app-header--gains .header-page-emoji i {
-    color: #10b981;
+    color: var(--gains-accent);
 }
 
 .app-header--zero-budget .header-page-emoji i {
-    color: #f59e0b;
+    color: var(--warning-color);
 }
 
 .app-header--wallet .header-page-emoji i {

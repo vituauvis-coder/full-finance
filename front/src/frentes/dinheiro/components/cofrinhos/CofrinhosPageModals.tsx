@@ -1,7 +1,11 @@
+import type { Account } from '../../../../lib/types/finance';
 import type { CofrinhoBucket, CofrinhoBucketGoal } from '../../domain/cofrinhoAggregations';
 import { CofrinhoBucketModal } from './CofrinhoBucketModal';
 import { CofrinhoApplicationModal } from './CofrinhoApplicationModal';
+import { CofrinhoBucketHistoryModal } from './CofrinhoBucketHistoryModal';
 import type { CofrinhosPageModel } from '../../hooks/useCofrinhosPageModel';
+import { pickPoolYearMonthForAllocation } from '../../domain/cofrinhoPending';
+import { cofrinhoPaymentAccounts } from '../../domain/cofrinhoPaymentAccounts';
 
 type Props = {
     model: CofrinhosPageModel;
@@ -10,8 +14,12 @@ type Props = {
     editingBucket: CofrinhoBucket | null;
     applicationModalOpen: boolean;
     allocateBucketId: string | null;
+    allocatePoolYearMonth: string | null;
+    historyBucket: CofrinhoBucket | null;
+    accounts: Account[];
     onCloseBucket: () => void;
     onCloseApplication: () => void;
+    onCloseHistory: () => void;
     onSaved: () => Promise<void>;
 };
 
@@ -22,11 +30,21 @@ export function CofrinhosPageModals({
     editingBucket,
     applicationModalOpen,
     allocateBucketId,
+    allocatePoolYearMonth,
+    historyBucket,
+    accounts,
     onCloseBucket,
     onCloseApplication,
+    onCloseHistory,
     onSaved
 }: Props) {
     const goals = model.goals as CofrinhoBucketGoal[];
+    const poolYearMonth = pickPoolYearMonthForAllocation(
+        allocatePoolYearMonth,
+        model.pendingByMonth,
+        model.yearMonth
+    );
+    const paymentAccounts = cofrinhoPaymentAccounts(accounts);
 
     return (
         <>
@@ -42,10 +60,22 @@ export function CofrinhosPageModals({
                 open={applicationModalOpen}
                 onClose={onCloseApplication}
                 buckets={model.buckets}
-                yearMonth={model.yearMonth}
+                yearMonth={poolYearMonth}
+                poolMonths={model.pendingByMonth}
                 currency={model.currency}
+                paymentAccounts={paymentAccounts}
                 preselectedBucketId={allocateBucketId}
                 onSaved={onSaved}
+            />
+            <CofrinhoBucketHistoryModal
+                open={historyBucket != null}
+                onClose={onCloseHistory}
+                bucket={historyBucket}
+                buckets={model.buckets}
+                applications={model.applications}
+                expenses={model.expenses}
+                accounts={accounts}
+                currency={model.currency}
             />
         </>
     );

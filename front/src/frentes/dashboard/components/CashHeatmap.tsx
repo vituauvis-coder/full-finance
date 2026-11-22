@@ -47,6 +47,9 @@ export function CashHeatmap({ period, civilYear, gains, expenses, accounts, curr
                     monthIndex={monthIndex}
                     selectedDay={selectedDay}
                     items={detailItems}
+                    expenses={expenses}
+                    gains={gains}
+                    accounts={accounts}
                     currency={currency}
                 />
             </div>

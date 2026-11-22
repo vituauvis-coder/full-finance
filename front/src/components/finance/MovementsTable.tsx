@@ -31,7 +31,15 @@ type Props = {
     onSort?: (key: MovementSortKey) => void;
     renderRowActions?: (m: Movement) => ReactNode;
     emptyMessage?: string;
+    /** Lista mais enxuta para o extrato em duas colunas. */
+    layout?: 'default' | 'split';
+    /** Id único da `<table>` (evita duplicata no modo split). */
+    tableId?: string;
+    onRowClick?: (m: Movement) => void;
+    rowClassName?: string | ((m: Movement) => string | undefined);
 };
+
+const SPLIT_GAIN_COLUMNS = new Set(['date', 'description', 'amount', 'status', 'actions']);
 
 export function MovementsTable({
     rows,
@@ -57,7 +65,11 @@ export function MovementsTable({
     acceptedSplits,
     userProfile,
     listPeriod,
-    expenseDisplayDate
+    expenseDisplayDate,
+    layout = 'default',
+    tableId,
+    onRowClick,
+    rowClassName
 }: Props) {
     const columns = buildMovementTableColumns(
         idPrefix === 'gains'
@@ -93,6 +105,43 @@ export function MovementsTable({
               }
     );
 
+    const visibleColumns =
+        layout === 'split' && idPrefix === 'gains'
+            ? columns
+                  .filter((c) => SPLIT_GAIN_COLUMNS.has(c.id))
+                  .map((c) => {
+                      if (c.id === 'date') {
+                          return { ...c, headerClassName: 'gains-split-th gains-split-th--date' };
+                      }
+                      if (c.id === 'description') {
+                          return {
+                              ...c,
+                              headerClassName: 'gains-split-th gains-split-th--desc'
+                          };
+                      }
+                      if (c.id === 'actions') {
+                          return {
+                              ...c,
+                              header: <span className="sr-only">Ações</span>,
+                              headerClassName: 'data-table__th--actions gains-split-th gains-split-th--actions'
+                          };
+                      }
+                      return c;
+                  })
+            : columns;
+
+    const splitColGroup =
+        layout === 'split' && idPrefix === 'gains' ? (
+            <colgroup>
+                <col className="gains-split-col gains-split-col--batch" style={{ width: '1.65rem' }} />
+                <col className="gains-split-col gains-split-col--date" style={{ width: '4.35rem' }} />
+                <col className="gains-split-col gains-split-col--desc" />
+                <col className="gains-split-col gains-split-col--amount" style={{ width: '5.35rem' }} />
+                <col className="gains-split-col gains-split-col--status" style={{ width: '4.65rem' }} />
+                <col className="gains-split-col gains-split-col--actions" style={{ width: '4.15rem' }} />
+            </colgroup>
+        ) : undefined;
+
     const selection =
         selectedIds && onToggleRow && onTogglePage
             ? {
@@ -115,13 +164,18 @@ export function MovementsTable({
 
     return (
         <DataTable
-            tableId={`${idPrefix}-table`}
+            tableId={tableId ?? `${idPrefix}-table`}
             rows={rows}
-            columns={columns}
+            columns={visibleColumns}
             getRowKey={(m) => m.id}
             emptyMessage={emptyMessage ?? 'Nenhum movimento neste período.'}
             selection={selection}
             sort={sort}
+            className={layout === 'split' ? 'data-table-host--split-pane' : undefined}
+            tableClassName={layout === 'split' ? 'data-table--split-pane' : undefined}
+            colGroup={splitColGroup}
+            onRowClick={onRowClick}
+            rowClassName={rowClassName}
         />
     );
 }

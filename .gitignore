@@ -10,6 +10,7 @@ lerna-debug.log*
 # Exports de migração (JSON por tabela)
 /platform/data/exports/
 /platform/data/backups/
+.git-backups/
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
@@ -144,3 +145,4 @@ dist
 .firebase/
 
 /generated/prisma
+.worktrees/

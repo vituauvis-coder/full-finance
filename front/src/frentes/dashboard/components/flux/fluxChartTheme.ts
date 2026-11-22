@@ -1,18 +1,45 @@
 export const REPORTS_CHART_COLORS_KEY = 'reports.financialChart.colors';
 
+/** Cores dos chips da carteira (fixas / fatura / extras / cofrinhos) — espelhadas nos gráficos. */
+/** Paridade com `--v-coral` (Viagens). */
+const ORANGE_LIGHT = '#ff5a36';
+const ORANGE_DARK = '#ff5a36';
+const EXTRA_YELLOW_LIGHT = '#f2c94c';
+const EXTRA_YELLOW_DARK = '#ffd60a';
+const BALANCE_OFFWHITE_LIGHT = '#eceae4';
+const BALANCE_OFFWHITE_DARK = '#dddcd8';
+
+export const DASH_EXPENSE_BUCKETS = {
+    /** Despesas fixas — laranja cheio (faturas = mesmo tom, menor opacidade no gráfico). */
+    fixa: ORANGE_LIGHT,
+    fatura: ORANGE_LIGHT,
+    extra: EXTRA_YELLOW_LIGHT,
+    cofrinhos: '#a855f7'
+} as const;
+
+export type DashboardExpenseBucketColors = typeof DASH_EXPENSE_BUCKETS;
+
+export function readDashboardExpenseBuckets(): DashboardExpenseBucketColors {
+    if (typeof document === 'undefined') return { ...DASH_EXPENSE_BUCKETS };
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const orange = dark ? ORANGE_DARK : ORANGE_LIGHT;
+    const extra = dark ? EXTRA_YELLOW_DARK : EXTRA_YELLOW_LIGHT;
+    return { fixa: orange, fatura: orange, extra, cofrinhos: DASH_EXPENSE_BUCKETS.cofrinhos };
+}
+
 const DEFAULT = {
-    ganhos: '#34c759',
-    gastos: '#ff3b30',
-    saldoPos: '#ff9f0a',
-    saldoNeg: '#ff453a',
+    ganhos: '#2ec4b6',
+    gastos: '#ff5a36',
+    saldoPos: BALANCE_OFFWHITE_LIGHT,
+    saldoNeg: '#ff5a36',
     saldoTotal: '#0a84ff'
 } as const;
 
 const DEFAULT_DARK = {
-    ganhos: '#30d158',
-    gastos: '#ff453a',
-    saldoPos: '#ffd60a',
-    saldoNeg: '#ff375f',
+    ganhos: '#2ec4b6',
+    gastos: '#ff5a36',
+    saldoPos: BALANCE_OFFWHITE_DARK,
+    saldoNeg: '#ff5a36',
     saldoTotal: '#64d2ff'
 } as const;
 
@@ -57,10 +84,28 @@ export function colorWithAlpha(hex: string, alpha: number) {
 }
 
 /** Opacidade das colunas: mês em destaque = 1; demais ≈ legado (0.38). */
-export function barFill(hex: string, monthIndex: number, emphasisIndex: number) {
+export function barFill(hex: string, monthIndex: number, emphasisIndex: number, strength = 0.92) {
     const emphasis = emphasisIndex >= 0 && monthIndex === emphasisIndex;
-    const alpha = emphasis ? 0.92 : 0.92 * 0.38;
+    const alpha = emphasis ? strength : strength * 0.38;
     return colorWithAlpha(hex, alpha);
+}
+
+/** Saídas — mantêm coral visível mesmo fora do mês em destaque. */
+export function barFillOutflow(hex: string, monthIndex: number, emphasisIndex: number, strength = 0.9) {
+    const emphasis = emphasisIndex >= 0 && monthIndex === emphasisIndex;
+    const alpha = emphasis ? strength : Math.max(0.48, strength * 0.58);
+    return colorWithAlpha(hex, alpha);
+}
+
+/** Tom mais fechado para faturas (sempre hex — não passar rgba ao `barFill`). */
+export function expenseFaturaHex(base: string): string {
+    const h = base.replace('#', '');
+    if (h.length !== 6) return base;
+    const mix = (channel: number) => Math.max(0, Math.round(channel * 0.72));
+    const r = mix(parseInt(h.slice(0, 2), 16));
+    const g = mix(parseInt(h.slice(2, 4), 16));
+    const b = mix(parseInt(h.slice(4, 6), 16));
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }
 
 /** Eixo direito «Saldo em conta» — alinhado ao zero do eixo de fluxo (como `computeY1BoundsAlignedToYZero`). */

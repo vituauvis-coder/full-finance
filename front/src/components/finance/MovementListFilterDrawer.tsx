@@ -1,6 +1,8 @@
 import { useFinanceData } from '../../app/FinanceDataProvider';
 import { useCategories } from '../../hooks/useCategories';
 import { useMovementListFilters } from '../../frentes/dinheiro/context/MovementListFiltersContext';
+import { useMemo } from 'react';
+import { buildMovementListAccountFilterOptions } from '../../lib/movementListAccountFilter';
 import { FilterDrawer } from './FilterDrawer';
 
 type Props = {
@@ -13,6 +15,10 @@ export function MovementListFilterDrawer({ id, title, kind }: Props) {
     const ctx = useMovementListFilters();
     const { data } = useFinanceData();
     const { categories } = useCategories(kind);
+    const accountOptions = useMemo(
+        () => buildMovementListAccountFilterOptions(data?.userAccounts ?? []),
+        [data?.userAccounts]
+    );
 
     if (!ctx) return null;
 
@@ -68,9 +74,9 @@ export function MovementListFilterDrawer({ id, title, kind }: Props) {
                     onChange={(e) => ctx.setFilter('accountId', e.target.value)}
                 >
                     <option value="">Todas</option>
-                    {(data?.userAccounts ?? []).map((a) => (
-                        <option key={a.id} value={a.id}>
-                            {a.name}
+                    {accountOptions.map((a) => (
+                        <option key={a.value} value={a.value}>
+                            {a.label}
                         </option>
                     ))}
                 </select>

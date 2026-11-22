@@ -15,6 +15,9 @@ export type CivilPeriodToolbarProps = {
     ariaLabel?: string;
     /** Entradas e saídas — mesma envoltória que o layout de movimentações. */
     inMovementsToolbar?: boolean;
+    onYearScopeSelect?: () => void;
+    onAllYearsSelect?: () => void;
+    lockCivilYear?: number;
 };
 
 export function CivilPeriodToolbar({
@@ -24,8 +27,24 @@ export function CivilPeriodToolbar({
     onYearChange,
     accent,
     ariaLabel,
-    inMovementsToolbar = false
+    inMovementsToolbar = false,
+    onYearScopeSelect,
+    onAllYearsSelect,
+    lockCivilYear
 }: CivilPeriodToolbarProps) {
+    const yearScopeUi =
+        (accent === 'gains' ||
+            accent === 'expenses' ||
+            accent === 'cofrinhos' ||
+            accent === 'wallet') &&
+        onYearScopeSelect
+            ? { onYearScopeSelect }
+            : {};
+    const allYearsUi =
+        (accent === 'cofrinhos' || accent === 'gains' || accent === 'expenses') && onAllYearsSelect
+            ? { onAllYearsSelect }
+            : {};
+
     const timeline = (
         <CivilPeriodTimeline
             period={period}
@@ -34,6 +53,9 @@ export function CivilPeriodToolbar({
             onYearChange={onYearChange}
             className={civilPeriodTimelineToolbarClasses(accent)}
             ariaLabel={civilPeriodToolbarAriaLabel(accent, ariaLabel)}
+            lockCivilYear={lockCivilYear}
+            {...yearScopeUi}
+            {...allYearsUi}
         />
     );
 

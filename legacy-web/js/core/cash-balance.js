@@ -10,6 +10,7 @@ import {
     isPeriodConfirmedForDebit,
     parseCashOutConfirmedPeriods
 } from './finance-preferences.js';
+import { pickPrimaryCashAccounts } from '../../../motor/dinheiro/primary-cash-balance.js';
 import {
     isCashBalanceAccountType,
     isCreditCardType,
@@ -179,7 +180,10 @@ export function computeCashBalanceTotalAsOf(
     userProfile = null,
     splitRequests = null
 ) {
-    const accs = (userAccounts || []).map((a) => ({ ...a }));
+    const all = userAccounts || [];
+    const primaryScope = pickPrimaryCashAccounts(all, isCashBalanceAccountType);
+    const scope = primaryScope ?? all;
+    const accs = scope.map((a) => ({ ...a }));
     const rawById = new Map();
 
     accs.forEach((account) => {
@@ -227,10 +231,37 @@ export function computeCashBalanceTotalAsOf(
             sum += Number(rawById.get(a.id)) || 0;
         }
     }
-    if (userProfile && userProfile.balanceOffset) {
+    if (userProfile && userProfile.balanceOffset && !primaryScope) {
         sum += Number(userProfile.balanceOffset);
     }
     return sum;
+}
+
+/**
+ * Saldo líquido de uma conta de caixa (cartões vinculados debitam desta conta).
+ * Não soma outras contas nem aplica `balanceOffset` do perfil (ajuste manual é do total da casa).
+ */
+export function computeCashBalanceForAccountIdAsOf(
+    accountId,
+    userAccounts,
+    userExpenses,
+    userGains,
+    asOfEndInclusive,
+    userProfile = null,
+    splitRequests = null
+) {
+    const all = userAccounts || [];
+    const focus = all.find((a) => String(a?.id) === String(accountId));
+    if (!focus || !isCashBalanceAccountType(focus.type)) return 0;
+    return computeCashAccountRawBalance(
+        focus,
+        all,
+        userExpenses,
+        userGains,
+        asOfEndInclusive,
+        userProfile,
+        splitRequests
+    );
 }
 
 /**

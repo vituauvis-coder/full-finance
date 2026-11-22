@@ -43,12 +43,16 @@ export type RoteirosRouteMode = 'flight_out' | 'flight_back' | 'ground' | 'walk'
 /** Classificação de trecho antes de separar ida/volta. */
 type RoteirosHopKind = 'flight' | 'ground' | 'walk';
 
+/** `road` = geometria OSRM (linha contínua no mapa escuro); `schematic` = placeholder. */
+export type RoteirosPathKind = 'road' | 'schematic';
+
 export type RoteirosRouteSegment = {
     id: string;
     mode: RoteirosRouteMode;
     fromLabel: string;
     toLabel: string;
     coordinates: [number, number][];
+    pathKind?: RoteirosPathKind;
     mid: { longitude: number; latitude: number };
     /** Minutos estimados (haversine × velocidade do modo). */
     durationMin: number;
@@ -293,28 +297,7 @@ function offsetArcCoordinates(
     });
 }
 
-/** Ondulação suave (quase S) para trecho terrestre parecer caminho, não corda. */
-function undulatePathCoordinates(
-    coords: [number, number][],
-    ampDeg: number
-): [number, number][] {
-    if (coords.length < 5 || ampDeg === 0) return coords;
-    const first = coords[0]!;
-    const last = coords[coords.length - 1]!;
-    const dx = last[0] - first[0];
-    const dy = last[1] - first[1];
-    const len = Math.hypot(dx, dy) || 1;
-    const px = -dy / len;
-    const py = dx / len;
-    return coords.map((c, i) => {
-        const t = i / (coords.length - 1);
-        // 2 lombadas leves no meio do trajeto
-        const wave = Math.sin(2 * Math.PI * t) * Math.sin(Math.PI * t);
-        return [c[0] + px * ampDeg * wave, c[1] + py * ampDeg * wave];
-    });
-}
-
-/** Curva trabalhada p/ terrestre / a pé (mais pontos + bulge + ondulação). */
+/** Placeholder até o OSRM devolver estrada/caminho real (sem “serpentina” artificial). */
 function groundPathCoordinates(
     from: { lng: number; lat: number },
     to: { lng: number; lat: number },
@@ -323,20 +306,9 @@ function groundPathCoordinates(
 ): [number, number][] {
     const steps =
         kind === 'walk'
-            ? Math.max(20, Math.min(40, Math.round(distKm * 2.2) + 16))
-            : Math.max(28, Math.min(56, Math.round(distKm * 1.4) + 22));
-    let coords = greatCircleArc(from, to, steps) as [number, number][];
-    const sign =
-        Math.abs((from.lng * 12.3 + to.lat * 7.1 + from.lat * 3.7) * 100) % 2 >= 1 ? 1 : -1;
-    // Bulge principal: curto ≈ 0.1°, médio ≈ 0.35°, teto 0.7°
-    const primary = Math.min(0.7, Math.max(0.1, distKm / 140)) * sign;
-    coords = offsetArcCoordinates(coords, primary);
-    if (kind === 'ground') {
-        coords = undulatePathCoordinates(coords, primary * 0.28);
-    } else {
-        coords = undulatePathCoordinates(coords, primary * 0.14);
-    }
-    return coords;
+            ? Math.max(12, Math.min(32, Math.round(distKm * 1.6) + 10))
+            : Math.max(16, Math.min(48, Math.round(distKm * 0.9) + 14));
+    return greatCircleArc(from, to, steps) as [number, number][];
 }
 
 function toMapMode(kind: RoteirosHopKind, legIndex: number, farthestIdx: number): RoteirosRouteMode {
@@ -658,6 +630,7 @@ function pushRouteSegment(
         fromLabel: from.name,
         toLabel: to.name,
         coordinates,
+        pathKind: kind === 'ground' || kind === 'walk' ? 'schematic' : undefined,
         mid: { longitude: midPt[0]!, latitude: midPt[1]! },
         durationMin,
         durationLabel: scheduleLabel || durationLabel,
@@ -842,7 +815,8 @@ export function featureCollectionFromSegments(
             mode: s.mode,
             id: s.id,
             durationMin: s.durationMin,
-            durationLabel: s.durationLabel
+            durationLabel: s.durationLabel,
+            pathKind: s.pathKind ?? 'schematic'
         },
         geometry: { type: 'LineString', coordinates: s.coordinates }
     }));
@@ -856,7 +830,7 @@ export const ROTEIROS_ROUTE_PAINT: Record<
     /** Voo: linha contínua. */
     flight_out: { color: '#2ec4b6', width: 2.5, opacity: 0.94 },
     flight_back: { color: '#c45c8a', width: 2.5, opacity: 0.9 },
-    /** Terrestre: pontilhado que era dos voos. */
+    /** Terrestre: tracejado laranja (geometria OSRM quando disponível). */
     ground: { color: '#e07830', width: 3, dash: [0.75, 1.55], opacity: 0.96 },
     walk: { color: '#9a7b0a', width: 2.4, dash: [1.1, 0.85, 0.35, 0.85], opacity: 0.92 }
 };

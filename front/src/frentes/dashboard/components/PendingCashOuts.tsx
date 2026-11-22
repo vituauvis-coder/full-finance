@@ -64,7 +64,8 @@ export function PendingCashOuts({ currency }: Props) {
                     </span>
                 </div>
                 <p className="dashboard-pending-cash-outs__hint">
-                    Saídas já lançadas; o saldo atualiza ao confirmar o pagamento.
+                    Fixas e faturas: confirme no extrato (ícone ao lado do valor) ou aqui. O saldo só muda
+                    depois da confirmação.
                 </p>
             </header>
             <ul className="dashboard-pending-cash-outs__list" id="dashboard-pending-cash-outs-list">

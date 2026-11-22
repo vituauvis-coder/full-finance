@@ -39,7 +39,7 @@ function veilForPath(pathname: string): VeilRoute | null {
     if (path === '/dinheiro/entradas') {
         return {
             sectionId: 'gains-page',
-            sectionClass: 'page active movements-page--modern',
+            sectionClass: 'page active movements-page--modern movements-page--compact',
             layout: <MovementsSkeletonLayout {...GAINS_VEIL} />
         };
     }
@@ -47,7 +47,7 @@ function veilForPath(pathname: string): VeilRoute | null {
     if (path === '/dinheiro/saidas') {
         return {
             sectionId: 'expenses-page',
-            sectionClass: 'page active movements-page--modern',
+            sectionClass: 'page active movements-page--modern movements-page--compact',
             layout: <MovementsSkeletonLayout {...EXPENSES_VEIL} />
         };
     }
@@ -71,7 +71,8 @@ function veilForPath(pathname: string): VeilRoute | null {
     if (path === '/dinheiro/cofrinhos') {
         return {
             sectionId: 'cofrinhos-page',
-            sectionClass: 'page active cofrinhos-page cofrinhos-page--modern',
+            sectionClass:
+                'page active cofrinhos-page cofrinhos-page--modern movements-page--modern movements-page--compact',
             layout: <CofrinhosSkeletonLayout />
         };
     }

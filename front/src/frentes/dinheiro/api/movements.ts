@@ -66,6 +66,9 @@ export type ExpenseFormPayload = {
     isFixed?: boolean;
     isCofrinho?: boolean;
     splitRequestId?: string;
+    tripId?: string | null;
+    tripExpenseId?: string | null;
+    paidFromCofrinho?: boolean;
 };
 
 export async function createExpense(payload: ExpenseFormPayload) {

@@ -105,7 +105,11 @@ export function useChart(
 /**
  * Treemap — Chart.js mede mal o pai em flex; tamanho explícito (legado: wrap 400px).
  */
-export function useTreemapChart(configFactory: () => object | null, deps: unknown[]) {
+export function useTreemapChart(
+    configFactory: () => object | null,
+    deps: unknown[],
+    hostHeight = TREEMAP_HOST_HEIGHT
+) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const wrapRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<ChartInstance | null>(null);
@@ -137,14 +141,14 @@ export function useTreemapChart(configFactory: () => object | null, deps: unknow
         const measure = () => {
             const rect = wrap.getBoundingClientRect();
             const width = Math.max(Math.floor(rect.width), 1);
-            const height = TREEMAP_HOST_HEIGHT;
-            return { width, height };
+            const height = Math.max(Math.floor(rect.height), 120);
+            return { width, height: height > 0 ? height : hostHeight };
         };
 
         const applyHostSize = () => {
             wrap.style.width = '100%';
-            wrap.style.minHeight = `${TREEMAP_HOST_HEIGHT}px`;
-            wrap.style.height = `${TREEMAP_HOST_HEIGHT}px`;
+            wrap.style.minHeight = `${hostHeight}px`;
+            wrap.style.height = `${hostHeight}px`;
         };
         applyHostSize();
 
@@ -196,7 +200,7 @@ export function useTreemapChart(configFactory: () => object | null, deps: unknow
             chartRef.current = null;
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, deps);
+    }, [...deps, hostHeight]);
 
     return { canvasRef, wrapRef, chartError };
 }

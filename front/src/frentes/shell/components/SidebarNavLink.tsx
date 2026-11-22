@@ -6,6 +6,7 @@ type Props = {
     to: string;
     icon: string;
     label: string;
+    subtitle?: string;
     sub?: boolean;
     /** Só marca ativo na rota exata (ex.: /viagens sem abrir com /viagens/:id). */
     end?: boolean;
@@ -15,7 +16,7 @@ type Props = {
     onNavigate?: () => void;
 };
 
-export function SidebarNavLink({ to, icon, label, sub, end, active, className, onNavigate }: Props) {
+export function SidebarNavLink({ to, icon, label, subtitle, sub, end, active, className, onNavigate }: Props) {
     const classes = (isActive: boolean) =>
         ['nav-link', 'app-sidebar__link', sub ? 'nav-link--sub' : '', className ?? '', isActive ? 'active' : '']
             .filter(Boolean)
@@ -24,9 +25,12 @@ export function SidebarNavLink({ to, icon, label, sub, end, active, className, o
     const body = (
         <>
             <span className="sidebar-nav-icon" aria-hidden="true">
-                <MaterialIcon name={icon} variant="app" />
+                <MaterialIcon name={icon} variant="app" opticalSize={22} />
             </span>
-            <span className="sidebar-nav-label">{label}</span>
+            <span className="sidebar-nav-text">
+                <span className="sidebar-nav-label">{label}</span>
+                {subtitle ? <span className="sidebar-nav-sublabel">{subtitle}</span> : null}
+            </span>
         </>
     );
 

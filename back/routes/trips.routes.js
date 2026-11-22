@@ -10,6 +10,7 @@ import { airportLabel, searchAirportsCatalog } from '../../motor/viagens/airport
 import { fetchTaxFxQuotes } from '../../motor/viagens/fx-quotes.js';
 import { syncTripExpensesToFinance } from '../trip-finance-sync.js';
 import { listTripFinanceMovements } from '../trip-finance-household.js';
+import { ensureViagensCatalogForHousehold } from '../trip-finance-categories.js';
 import {
     coerceLatinGeocodeLabel,
     expandGeocodeQuery,
@@ -594,6 +595,28 @@ export function registerTripsRoutes(app, { requireAuth }) {
         try {
             const row = await repo.getTripForUser(req.session.userId, req.params.id);
             if (!row) return res.status(404).json({ error: 'Não encontrada' });
+            try {
+                await ensureViagensCatalogForHousehold(req.session.userId, row.title);
+            } catch (catalogErr) {
+                console.warn('ensure viagens catalog', catalogErr?.message ?? catalogErr);
+            }
+            const uid = req.session.userId;
+            const tripId = req.params.id;
+            let payload =
+                typeof row.payload === 'object' && row.payload != null ? { ...row.payload } : {};
+            try {
+                const sync = await syncTripExpensesToFinance(uid, tripId, payload);
+                if (sync.changed) {
+                    payload = { ...payload, expenses: sync.expenses };
+                    row =
+                        (await repo.updateTrip(tripId, { payload })) ?? {
+                            ...row,
+                            payload
+                        };
+                }
+            } catch (syncErr) {
+                console.warn('GET trip finance sync', syncErr?.message ?? syncErr);
+            }
             const trip = normalizeTrip(row);
             const timeScenarios = trip.payload?.timeScenarios ?? trip.payload?.time_scenarios ?? [];
             const scenarioSnaps = snapshots(timeScenarios);

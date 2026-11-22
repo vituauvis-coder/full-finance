@@ -121,6 +121,20 @@
     gap: 0.35rem;
 }
 
+.page-content--dashboard-modern
+    .data-table.data-table--split-pane
+    td.transaction-actions
+    .transaction-actions__inner {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.15rem;
+    width: max-content;
+    max-width: 100%;
+    margin-inline-start: auto;
+}
+
 .page-content--dashboard-modern .data-table .table-action-btn {
     display: inline-flex;
     align-items: center;
@@ -130,6 +144,18 @@
     min-width: 2rem;
     padding: 0;
     line-height: 1;
+}
+
+.page-content--dashboard-modern .data-table.data-table--split-pane .table-action-btn {
+    width: 1.45rem;
+    height: 1.45rem;
+    min-width: 1.45rem;
+    min-height: 1.45rem;
+}
+
+.page-content--dashboard-modern .data-table.data-table--split-pane .btn-small.table-action-btn {
+    min-height: 1.45rem;
+    padding: 0;
 }
 
 .page-content--dashboard-modern .data-table .table-action-btn .app-icon {

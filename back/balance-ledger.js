@@ -4,65 +4,66 @@
  * O saldo é calculado dinamicamente (soma das contas + ganhos - despesas)
  * e o ajuste manual salva uma diferença (balance_offset) no perfil do usuário.
  */
+import { computeCashBalanceForAccountIdAsOf } from '../legacy-web/js/core/cash-balance.js';
+import { isCashBalanceAccountType } from '../legacy-web/js/core/utils.js';
+import { computeDisplayedCashBalance } from '../motor/dinheiro/displayed-cash-balance.js';
+import { pickPrimaryCashAccounts } from '../motor/dinheiro/primary-cash-balance.js';
 import { query } from './db.js';
+import { fetchCashBalanceInputs } from './household.js';
 
-/** 
+/**
  * Compatibilidade: não faz nada, pois o saldo é calculado em tempo real.
  */
 export async function addLedgerEntryForMovement() {}
 
-/** 
- * Define um novo saldo base manualmente, ajustando o balance_offset do usuário.
+/**
+ * Define um novo saldo base manualmente.
+ * Com conta principal: ajusta o saldo inicial dessa conta.
+ * Sem principal: usa balance_offset no perfil (soma de todas as contas).
  */
 export async function setManualBalance(userId, newTotal) {
     const amount = Number(newTotal) || 0;
-    
-    // 1. Calcula qual seria o saldo total atual SEM o offset
-    const [accRes, expRes, gainRes] = await Promise.all([
-        query(`SELECT id, type, initial_balance AS "initialBalance", linked_account_id AS "linkedAccountId" FROM accounts WHERE user_id = $1`, [userId]),
-        query(`SELECT account_id AS "accountId", amount, date, is_paid AS "isPaid", reference_only AS "referenceOnly", installment_count AS "installmentCount", cash_out_confirmed_periods AS "cashOutConfirmedPeriods", recurring_monthly AS "recurringMonthly" FROM expenses WHERE user_id = $1`, [userId]),
-        query(`SELECT account_id AS "accountId", amount, date, is_paid AS "isPaid", reference_only AS "referenceOnly" FROM gains WHERE user_id = $1`, [userId])
-    ]);
+    const { userProfile, userAccounts, userExpenses, userGains } = await fetchCashBalanceInputs(userId);
+    const asOf = new Date();
+    asOf.setHours(23, 59, 59, 999);
 
-    // Importação dinâmica para evitar dependência circular
-    const { computeTotalBalance } = await import('./balance-snapshot.js');
-    
-    // Passamos um userProfile mockado com balanceOffset = 0 para ver o saldo "puro"
-    const rawNetBalance = computeTotalBalance(
-        accRes.rows, 
-        expRes.rows.filter(e => !e.referenceOnly), 
-        gainRes.rows.filter(g => !g.referenceOnly), 
-        [], 
-        { balanceOffset: 0 }
+    const primaryPick = pickPrimaryCashAccounts(userAccounts, isCashBalanceAccountType);
+    if (primaryPick?.length === 1) {
+        const accountId = primaryPick[0].id;
+        const raw = computeCashBalanceForAccountIdAsOf(
+            accountId,
+            userAccounts,
+            userExpenses,
+            userGains,
+            asOf,
+            { ...userProfile, balanceOffset: 0 }
+        );
+        const delta = amount - raw;
+        await query(
+            `UPDATE accounts SET initial_balance = COALESCE(initial_balance, 0) + $1 WHERE id = $2`,
+            [delta, accountId]
+        );
+        await query(`UPDATE users SET balance_offset = 0 WHERE id = $1`, [userId]);
+        return;
+    }
+
+    const rawNetBalance = computeDisplayedCashBalance(
+        userAccounts,
+        userExpenses,
+        userGains,
+        asOf,
+        { ...userProfile, balanceOffset: 0 }
     );
-
-    // 2. A diferença entre o que o usuário quer e o que o sistema calculou é o novo offset
     const offset = amount - rawNetBalance;
-    
-    // 3. Salva no banco
     await query(`UPDATE users SET balance_offset = $1 WHERE id = $2`, [offset, userId]);
 }
 
 /** Saldo total atual (calculado em tempo real). */
 export async function getCurrentBalance(userId) {
-    const [userRes, accRes, expRes, gainRes] = await Promise.all([
-        query(`SELECT finance_preferences AS "financePreferences", balance_offset AS "balanceOffset" FROM users WHERE id = $1`, [userId]),
-        query(`SELECT id, type, initial_balance AS "initialBalance", linked_account_id AS "linkedAccountId" FROM accounts WHERE user_id = $1`, [userId]),
-        query(`SELECT account_id AS "accountId", amount, date, is_paid AS "isPaid", reference_only AS "referenceOnly", installment_count AS "installmentCount", cash_out_confirmed_periods AS "cashOutConfirmedPeriods", recurring_monthly AS "recurringMonthly" FROM expenses WHERE user_id = $1`, [userId]),
-        query(`SELECT account_id AS "accountId", amount, date, is_paid AS "isPaid", reference_only AS "referenceOnly" FROM gains WHERE user_id = $1`, [userId])
-    ]);
-
-    const user = userRes.rows[0] || null;
-    const userProfile = user ? { financePreferences: user.financePreferences, balanceOffset: Number(user.balanceOffset) || 0 } : null;
-
-    const { computeTotalBalance } = await import('./balance-snapshot.js');
-    return computeTotalBalance(
-        accRes.rows, 
-        expRes.rows.filter(e => !e.referenceOnly), 
-        gainRes.rows.filter(g => !g.referenceOnly), 
-        [], 
-        userProfile
-    );
+    const { userProfile, userAccounts, userExpenses, userGains } = await fetchCashBalanceInputs(userId);
+    const asOf = new Date();
+    asOf.setHours(23, 59, 59, 999);
+    return computeDisplayedCashBalance(userAccounts, userExpenses, userGains, asOf, userProfile);
 }
 
 // Funções mantidas apenas para compatibilidade de exportação

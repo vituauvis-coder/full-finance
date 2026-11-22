@@ -6,16 +6,33 @@ import crypto from 'node:crypto';
 import { query, withTransaction } from './db.js';
 import { referenceOnlyForUserMovement } from './reference-only.js';
 import { safeUpsertBalanceSnapshot } from './balance-snapshot.js';
+import { ensureCofrinhoViagemLedgerColumns } from './migrations/cofrinho-viagem-ledger.js';
+import { bucketKindForWrite } from '../motor/dinheiro/cofrinho-bucket-kind.js';
+import { ensureTripCofrinhoBucket } from './cofrinho-trip-bucket.js';
 
 export const COFRINHO_CATEGORY = 'Cofrinhos';
 
 /** Subcategoria da reserva antes de distribuir nas caixinhas. */
 export const COFRINHO_POOL_SUBCATEGORY = 'Pool';
 
+/** Reservas padrão (viagens = uma caixinha por `trip_id`, criada ao abrir a ficha). */
 export const DEFAULT_COFRINHO_BUCKETS = [
-    { name: 'Aspiração', colorKey: 'fuchsia', icon: 'fa-bullseye', sortOrder: 0, yieldMultiplier: 1.025 },
-    { name: 'Rendimento', colorKey: 'violet', icon: 'fa-chart-line', sortOrder: 1, yieldMultiplier: 1.07 },
-    { name: 'Fundo Emergência', colorKey: 'emerald', icon: 'fa-shield-halved', sortOrder: 2, yieldMultiplier: 1.015 }
+    {
+        name: 'Rendimento',
+        colorKey: 'violet',
+        icon: 'fa-chart-line',
+        sortOrder: 0,
+        yieldMultiplier: 1.07,
+        kind: 'investimento'
+    },
+    {
+        name: 'Fundo Emergência',
+        colorKey: 'emerald',
+        icon: 'fa-shield-halved',
+        sortOrder: 1,
+        yieldMultiplier: 1.015,
+        kind: 'emergencia'
+    }
 ];
 
 const BUCKET_SELECT = `SELECT
@@ -27,6 +44,8 @@ const BUCKET_SELECT = `SELECT
     sort_order AS "sortOrder",
     yield_multiplier AS "yieldMultiplier",
     subcategory_id AS "subcategoryId",
+    kind,
+    trip_id AS "tripId",
     created_at AS "createdAt"
  FROM cofrinho_buckets`;
 
@@ -70,6 +89,17 @@ function normalizeReferenceMonth(raw) {
     const y = d.getUTCFullYear();
     const m = String(d.getUTCMonth() + 1).padStart(2, '0');
     return `${y}-${m}-01`;
+}
+
+function parseSpentOnDate(spentOn) {
+    const s = String(spentOn ?? '').trim().slice(0, 10);
+    if (s) {
+        const d = new Date(`${s}T12:00:00`);
+        if (!Number.isNaN(d.getTime())) return d;
+    }
+    const d = new Date();
+    d.setHours(12, 0, 0, 0);
+    return d;
 }
 
 function parseAmount(v) {
@@ -161,7 +191,7 @@ async function ensureSubcategoryForBucketName(uid, categoryId, bucketName, clien
  * @param {string} bucketId
  * @param {import('pg').PoolClient} client
  */
-async function syncBucketSubcategory(userId, bucketId, bucketName, client) {
+export async function syncBucketSubcategory(userId, bucketId, bucketName, client) {
     const categoryId = await getOrCreateCofrinhosCategory(userId, client);
     const subcategoryId = await ensureSubcategoryForBucketName(userId, categoryId, bucketName, client);
     if (subcategoryId) {
@@ -357,6 +387,7 @@ async function restorePoolAmount(client, uid, sourceExpenseId, amount, fallbackP
  * @param {string} userId
  */
 export async function ensureDefaultCofrinhoBuckets(userId) {
+    await ensureCofrinhoViagemLedgerColumns();
     const { rows } = await query(`SELECT id FROM cofrinho_buckets WHERE user_id = $1 LIMIT 1`, [userId]);
     if (rows.length > 0) return;
 
@@ -365,9 +396,19 @@ export async function ensureDefaultCofrinhoBuckets(userId) {
         for (const b of DEFAULT_COFRINHO_BUCKETS) {
             const id = crypto.randomUUID();
             await client.query(
-                `INSERT INTO cofrinho_buckets (id, user_id, name, color_key, icon, sort_order, yield_multiplier)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-                [id, userId, b.name, b.colorKey, b.icon, b.sortOrder, b.yieldMultiplier]
+                `INSERT INTO cofrinho_buckets (
+                    id, user_id, name, color_key, icon, sort_order, yield_multiplier, kind
+                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+                [
+                    id,
+                    userId,
+                    b.name,
+                    b.colorKey,
+                    b.icon,
+                    b.sortOrder,
+                    b.yieldMultiplier,
+                    b.kind ?? 'reserve'
+                ]
             );
             await syncBucketSubcategory(userId, id, b.name, client);
         }
@@ -379,6 +420,14 @@ export async function ensureDefaultCofrinhoBuckets(userId) {
  */
 export async function fetchCofrinhoBundle(userId) {
     await ensureDefaultCofrinhoBuckets(userId);
+    const {
+        backfillTripCofrinhoBucketsForUser,
+        mergeDuplicateTripNameBuckets,
+        normalizeLegacyAspirationBucket
+    } = await import('./cofrinho-trip-bucket.js');
+    await backfillTripCofrinhoBucketsForUser(userId);
+    await mergeDuplicateTripNameBuckets(userId);
+    await normalizeLegacyAspirationBucket(userId);
     await withTransaction((client) => ensurePoolSubcategory(userId, client));
     const [bucketsRes, appsRes, goalsRes] = await Promise.all([
         query(`${BUCKET_SELECT} WHERE user_id = $1 ORDER BY sort_order ASC, name ASC`, [userId]),
@@ -403,10 +452,45 @@ export function registerCofrinhoRoutes(app, requireAuth) {
     app.post('/api/cofrinho-buckets', requireAuth, async (req, res) => {
         const uid = req.session.userId;
         const name = String(req.body.name || '').trim();
-        if (!name) return res.status(400).json({ error: 'Nome obrigatório' });
+        const tripId = String(req.body.tripId || req.body.trip_id || '').trim();
+        const kind = bucketKindForWrite(req.body, null);
+        if (!name && !tripId) return res.status(400).json({ error: 'Nome obrigatório' });
+        if (kind === 'viagem' && !tripId) {
+            return res.status(400).json({ error: 'Selecione a viagem para vincular a caixinha.' });
+        }
 
         try {
             const row = await withTransaction(async (client) => {
+                if (tripId) {
+                    const { rows: other } = await client.query(
+                        `SELECT id FROM cofrinho_buckets WHERE user_id = $1 AND trip_id = $2 LIMIT 1`,
+                        [uid, tripId]
+                    );
+                    if (other[0]?.id) {
+                        const err = new Error('duplicate_trip_bucket');
+                        err.code = 'DUPLICATE_TRIP';
+                        throw err;
+                    }
+                    const bucketId = await ensureTripCofrinhoBucket(uid, tripId, name, client);
+                    if (!bucketId) throw new Error('trip_bucket');
+                    const colorKey = String(req.body.colorKey || 'rose').slice(0, 50);
+                    const yieldMultiplier = parseFloat(req.body.yieldMultiplier) || 1.025;
+                    await client.query(
+                        `UPDATE cofrinho_buckets
+                         SET color_key = $3, yield_multiplier = $4, name = COALESCE(NULLIF($5, ''), name)
+                         WHERE id = $1 AND user_id = $2`,
+                        [bucketId, uid, colorKey, yieldMultiplier, name.slice(0, 200)]
+                    );
+                    if (name) {
+                        await syncBucketSubcategory(uid, bucketId, name, client);
+                    }
+                    const { rows } = await client.query(`${BUCKET_SELECT} WHERE id = $1 AND user_id = $2`, [
+                        bucketId,
+                        uid
+                    ]);
+                    return rows[0];
+                }
+
                 const { rows: maxSort } = await client.query(
                     `SELECT COALESCE(MAX(sort_order), -1) + 1 AS n FROM cofrinho_buckets WHERE user_id = $1`,
                     [uid]
@@ -414,12 +498,14 @@ export function registerCofrinhoRoutes(app, requireAuth) {
                 const sortOrder = Number(req.body.sortOrder);
                 const id = crypto.randomUUID();
                 const { rows } = await client.query(
-                    `INSERT INTO cofrinho_buckets (id, user_id, name, color_key, icon, sort_order, yield_multiplier)
-                     VALUES ($1,$2,$3,$4,$5,$6,$7)
+                    `INSERT INTO cofrinho_buckets (
+                        id, user_id, name, color_key, icon, sort_order, yield_multiplier, kind
+                     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
                      RETURNING
                         id, user_id AS "userId", name, color_key AS "colorKey", icon,
                         sort_order AS "sortOrder", yield_multiplier AS "yieldMultiplier",
-                        subcategory_id AS "subcategoryId", created_at AS "createdAt"`,
+                        subcategory_id AS "subcategoryId", kind, trip_id AS "tripId",
+                        created_at AS "createdAt"`,
                     [
                         id,
                         uid,
@@ -427,7 +513,8 @@ export function registerCofrinhoRoutes(app, requireAuth) {
                         String(req.body.colorKey || 'violet').slice(0, 50),
                         String(req.body.icon || 'fa-chart-line').slice(0, 80),
                         Number.isFinite(sortOrder) ? sortOrder : maxSort[0].n,
-                        parseFloat(req.body.yieldMultiplier) || 1
+                        parseFloat(req.body.yieldMultiplier) || 1,
+                        kind
                     ]
                 );
                 await syncBucketSubcategory(uid, id, name, client);
@@ -436,6 +523,9 @@ export function registerCofrinhoRoutes(app, requireAuth) {
             });
             res.json(row);
         } catch (e) {
+            if (e?.code === 'DUPLICATE_TRIP') {
+                return res.status(409).json({ error: 'Já existe uma caixinha para esta viagem.' });
+            }
             console.error(e);
             res.status(500).json({ error: 'Não foi possível criar caixinha.' });
         }
@@ -466,14 +556,39 @@ export function registerCofrinhoRoutes(app, requireAuth) {
             req.body.yieldMultiplier !== undefined
                 ? parseFloat(req.body.yieldMultiplier) || 1
                 : existing.yieldMultiplier;
+        const tripIdBody =
+            req.body.tripId !== undefined || req.body.trip_id !== undefined
+                ? String(req.body.tripId ?? req.body.trip_id ?? '').trim()
+                : undefined;
+        const kind = bucketKindForWrite(req.body, existing);
+        const tripLocked = Boolean(existing.tripId || String(existing.kind) === 'viagem');
+
+        if (kind === 'viagem' && !tripLocked && tripIdBody === '') {
+            return res.status(400).json({ error: 'Selecione a viagem para vincular a caixinha.' });
+        }
 
         try {
             const row = await withTransaction(async (client) => {
+                let tripId = existing.tripId ?? null;
+                if (!tripLocked && tripIdBody && tripIdBody !== tripId) {
+                    const { rows: clash } = await client.query(
+                        `SELECT id FROM cofrinho_buckets WHERE user_id = $1 AND trip_id = $2 AND id <> $3 LIMIT 1`,
+                        [uid, tripIdBody, req.params.id]
+                    );
+                    if (clash[0]) {
+                        const err = new Error('duplicate_trip_bucket');
+                        err.code = 'DUPLICATE_TRIP';
+                        throw err;
+                    }
+                    tripId = tripIdBody;
+                }
+
                 await client.query(
                     `UPDATE cofrinho_buckets
-                     SET name = $3, color_key = $4, icon = $5, sort_order = $6, yield_multiplier = $7
+                     SET name = $3, color_key = $4, icon = $5, sort_order = $6, yield_multiplier = $7, kind = $8,
+                         trip_id = $9
                      WHERE id = $1 AND user_id = $2`,
-                    [req.params.id, uid, name, colorKey, icon, sortOrder, yieldMultiplier]
+                    [req.params.id, uid, name, colorKey, icon, sortOrder, yieldMultiplier, kind, tripId]
                 );
                 if (name !== existing.name) {
                     if (existing.subcategoryId) {
@@ -490,6 +605,9 @@ export function registerCofrinhoRoutes(app, requireAuth) {
             });
             res.json(row);
         } catch (e) {
+            if (e?.code === 'DUPLICATE_TRIP') {
+                return res.status(409).json({ error: 'Já existe uma caixinha para esta viagem.' });
+            }
             console.error(e);
             res.status(500).json({ error: 'Não foi possível guardar caixinha.' });
         }
@@ -644,9 +762,16 @@ export function registerCofrinhoRoutes(app, requireAuth) {
             req.body.amount !== undefined ? parseAmount(req.body.amount) : parseAmount(existing.amount);
         if (newAmount == null) return res.status(400).json({ error: 'Valor inválido' });
 
+        let referenceMonth = existing.referenceMonth;
+        if (req.body.referenceMonth !== undefined) {
+            const norm = normalizeReferenceMonth(req.body.referenceMonth);
+            if (!norm) return res.status(400).json({ error: 'Mês de referência inválido' });
+            referenceMonth = norm;
+        }
+
         const oldAmount = parseFloat(existing.amount) || 0;
         const delta = Math.round((newAmount - oldAmount) * 100) / 100;
-        const ym = String(existing.referenceMonth).slice(0, 7);
+        const ym = String(referenceMonth).slice(0, 7);
 
         let bucketId = existing.bucketId;
         let bucket = null;
@@ -676,6 +801,11 @@ export function registerCofrinhoRoutes(app, requireAuth) {
                 ]);
                 if (!acc[0]) accountId = null;
             }
+        }
+
+        let recordDate = null;
+        if (req.body.recordDate !== undefined) {
+            recordDate = parseSpentOnDate(req.body.recordDate);
         }
 
         try {
@@ -721,19 +851,34 @@ export function registerCofrinhoRoutes(app, requireAuth) {
                             ]
                         );
                     }
-                    if (accountId !== undefined) {
+                    if (req.body.accountId !== undefined) {
                         await client.query(`UPDATE expenses SET account_id = $3 WHERE id = $1 AND user_id = $2`, [
                             existing.allocatedExpenseId,
                             uid,
                             accountId
                         ]);
                     }
+                    if (recordDate) {
+                        await client.query(`UPDATE expenses SET date = $3 WHERE id = $1 AND user_id = $2`, [
+                            existing.allocatedExpenseId,
+                            uid,
+                            recordDate
+                        ]);
+                    }
+                    if (req.body.description !== undefined && existing.allocatedExpenseId) {
+                        const desc = String(req.body.description ?? '').trim() || `Aporte — ${bucket?.name ?? 'Caixinha'}`;
+                        await client.query(`UPDATE expenses SET description = $3 WHERE id = $1 AND user_id = $2`, [
+                            existing.allocatedExpenseId,
+                            uid,
+                            desc
+                        ]);
+                    }
                 }
 
                 const { rows } = await client.query(
                     `UPDATE cofrinho_applications
-                     SET bucket_id = $3, amount = $4, account_id = $5,
-                         status = COALESCE($6, status)
+                     SET bucket_id = $3, amount = $4, account_id = $5, reference_month = $6::date,
+                         status = COALESCE($7, status)
                      WHERE id = $1 AND user_id = $2
                      RETURNING
                         id, user_id AS "userId", bucket_id AS "bucketId", reference_month AS "referenceMonth",
@@ -747,6 +892,7 @@ export function registerCofrinhoRoutes(app, requireAuth) {
                         bucketId,
                         newAmount,
                         accountId,
+                        referenceMonth,
                         req.body.status != null ? String(req.body.status).slice(0, 50) : null
                     ]
                 );

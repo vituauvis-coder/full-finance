@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { MaterialIcon } from '../../../components/icons/MaterialIcon';
-import type { Trip, TripDestination } from '../types';
+import type { Trip, TripDestination, TripFinanceMovementLine } from '../types';
 import type { TripDraft } from './ViagemFicha';
 import { chosenScenarioFromPayload } from '../domain/chosenScenarioResumo';
 import { destinationTags, tripResumoDatesLine, tripResumoDayStats } from '../domain/tripResumoStats';
@@ -22,6 +22,7 @@ type Props = {
     trip: Trip;
     draft: TripDraft;
     destinations: TripDestination[];
+    financeMovements?: TripFinanceMovementLine[];
 };
 
 function planBadge(payload: TripDraft['payload'], destinations: TripDestination[], startsOn: string, endsOn: string): {
@@ -41,9 +42,11 @@ function planBadge(payload: TripDraft['payload'], destinations: TripDestination[
     return null;
 }
 
-export function TripResumoPanel({ trip, draft, destinations }: Props) {
-    const orcSnap = useMemo(() => buildOrcamentoSnapshot(draft), [draft]);
-
+export function TripResumoPanel({ trip, draft, destinations, financeMovements = [] }: Props) {
+    const orcSnap = useMemo(
+        () => buildOrcamentoSnapshot(draft, new Date(), { financeMovements }),
+        [draft, financeMovements]
+    );
     const stats = useMemo(
         () => tripResumoDayStats(draft.startsOn, draft.endsOn, draft.payload, destinations),
         [draft.startsOn, draft.endsOn, draft.payload, destinations]

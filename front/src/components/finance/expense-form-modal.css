@@ -1,0 +1,81 @@
+/* Nova saída — formulário compacto */
+
+.ui-dialog__panel.expense-form-modal__panel {
+    width: min(100%, 32rem);
+}
+
+.expense-form-modal {
+    gap: 0.75rem;
+}
+
+.expense-form-modal__desc-date.ui-form-grid--2 {
+    grid-template-columns: minmax(0, 1fr) 9.5rem;
+    align-items: end;
+}
+
+@media (max-width: 520px) {
+    .expense-form-modal__desc-date.ui-form-grid--2 {
+        grid-template-columns: minmax(0, 1fr);
+        align-items: start;
+    }
+}
+
+.expense-form-modal__pay-empty {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--dash-text-secondary, var(--text-light));
+}
+
+.expense-form-modal__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.expense-form-modal__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    min-height: 2.35rem;
+    padding: 0.35rem 0.65rem;
+    border-radius: 10px;
+    border: 1px solid var(--dash-border, var(--border-color));
+    background: var(--dash-layer-inset, var(--bg-color));
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-family: inherit;
+    color: var(--dash-text-secondary, var(--text-light));
+    cursor: pointer;
+    transition:
+        border-color 0.12s ease,
+        background 0.12s ease,
+        color 0.12s ease;
+}
+
+.expense-form-modal__chip.is-on {
+    border-color: color-mix(in srgb, var(--expenses-accent, #f43f5e) 35%, var(--dash-border));
+    background: color-mix(in srgb, var(--expenses-accent, #f43f5e) 8%, var(--dash-layer-raised));
+    color: var(--dash-text-primary, var(--text-color));
+}
+
+.expense-form-modal__chip .app-icon {
+    font-size: 1rem;
+    opacity: 0.85;
+}
+
+.expense-form-modal__rateio-hint {
+    margin: 0;
+    padding: 0.55rem 0.65rem;
+    border-radius: 10px;
+    border: 1px solid color-mix(in srgb, #0a84ff 28%, var(--dash-border));
+    background: color-mix(in srgb, #0a84ff 8%, transparent);
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    color: var(--dash-text-primary, var(--text-color));
+}
+
+.expense-form-modal .ui-form-actions {
+    margin-top: 0;
+    padding-top: 0.35rem;
+    border-top: none;
+}

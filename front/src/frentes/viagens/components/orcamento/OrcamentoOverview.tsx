@@ -9,7 +9,6 @@ type Snap = ReturnType<typeof buildOrcamentoSnapshot>;
 
 type Props = {
     snap: Snap;
-    ledgerExtras: number;
     metaEdit: boolean;
     displayGoal: number;
     goalFromCaps: boolean;
@@ -23,7 +22,6 @@ type Props = {
 
 export function OrcamentoOverview({
     snap,
-    ledgerExtras,
     metaEdit,
     displayGoal: _displayGoal,
     goalFromCaps,
@@ -84,9 +82,17 @@ export function OrcamentoOverview({
                         </button>
                     </div>
                 </div>
-                <strong className="orc-aportes__balance">{formatBRL(snap.saved)}</strong>
+                <strong className="orc-aportes__balance" title="Saldo líquido (aportes − gastos do cofrinho)">
+                    {formatBRL(snap.cofrinhoRemaining)}
+                </strong>
                 <span className="orc-aportes__count">
                     {snap.depositCount} {snap.depositCount === 1 ? 'aporte' : 'aportes'}
+                    {snap.cofrinhoUsed > 0 ? (
+                        <>
+                            {' '}
+                            · {formatBRL(snap.cofrinhoUsed)} usados
+                        </>
+                    ) : null}
                 </span>
 
                 <ul className="orc-aportes__pace" aria-label="Ritmo de aportes">
@@ -106,12 +112,6 @@ export function OrcamentoOverview({
 
                 <PaceMonthCalendar snap={snap} depositsByMonth={depositsByMonth} />
 
-                {ledgerExtras > 0 ? (
-                    <p className="orc-ledger-note orc-ledger-note--compact">
-                        <MaterialIcon name="info" variant="app" opticalSize={14} />
-                        {formatBRL(ledgerExtras)} na ficha sem Pix/Cartão
-                    </p>
-                ) : null}
             </article>
 
             <article className="orc-overview__block orc-overview__block--categories" aria-label="Gastos por forma de pagamento">

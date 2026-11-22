@@ -1,16 +1,12 @@
 import { useId, useState } from 'react';
 import { MaterialIcon } from '../../../../components/icons/MaterialIcon';
-import {
-    BUCKET_COLOR_KEYS,
-    BUCKET_COLOR_LABELS,
-    bucketColorHex,
-    type BucketColorKey
-} from '../../domain/cofrinhoConstants';
+import { bucketColorHex } from '../../domain/cofrinhoConstants';
+import { CofrinhoBucketColorSwatches } from './CofrinhoBucketColorSwatches';
 
 type Props = {
     bucketName: string;
     selectedKey?: string;
-    onSelect: (colorKey: BucketColorKey) => void | Promise<void>;
+    onSelect: (colorKey: string) => void | Promise<void>;
 };
 
 export function CofrinhoBucketColorPicker({ bucketName, selectedKey, onSelect }: Props) {
@@ -52,27 +48,15 @@ export function CofrinhoBucketColorPicker({ bucketName, selectedKey, onSelect }:
             {expanded ? (
                 <div
                     id={listId}
-                    className="zero-budget__colors-popover"
+                    className="zero-budget__colors-popover cofrinho-bucket-color-popover"
                     role="group"
                     aria-label={`Cor da caixinha ${bucketName}`}
                 >
-                    <div className="zero-budget__colors-list">
-                        {BUCKET_COLOR_KEYS.map((key) => (
-                            <button
-                                key={key}
-                                type="button"
-                                className={`zero-budget__color-swatch${selectedKey === key ? ' is-selected' : ''}`}
-                                style={{ backgroundColor: bucketColorHex(key) }}
-                                title={BUCKET_COLOR_LABELS[key]}
-                                aria-label={`Cor ${BUCKET_COLOR_LABELS[key]}`}
-                                aria-pressed={selectedKey === key}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    void onSelect(key);
-                                }}
-                            />
-                        ))}
-                    </div>
+                    <CofrinhoBucketColorSwatches
+                        layout="popover"
+                        value={selectedKey ?? 'violet'}
+                        onChange={(key) => void onSelect(key)}
+                    />
                 </div>
             ) : null}
         </div>

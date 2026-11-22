@@ -1,11 +1,19 @@
-import { type FormEvent, useEffect, useState } from 'react';
-import { ZeroBudgetLegacyModal } from '../ZeroBudgetLegacyModal';
+import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
-    BUCKET_COLOR_KEYS,
-    BUCKET_COLOR_LABELS,
-    bucketColorHex,
-    type BucketColorKey
-} from '../../domain/cofrinhoConstants';
+    Dialog,
+    DialogBody,
+    DialogCloseButton,
+    DialogFooter,
+    DialogForm,
+    DialogHeader,
+    DialogPanel,
+    DialogTitle
+} from '../../../../components/ui/dialog/Dialog';
+import { FormField, FormInput, FormSelect } from '../../../../components/ui/form';
+import { MaterialIcon } from '../../../../components/icons/MaterialIcon';
+import { isPresetBucketColorKey } from '../../domain/cofrinhoConstants';
+import { CofrinhoBucketColorSwatches, defaultBucketColorKey } from './CofrinhoBucketColorSwatches';
 import {
     createCofrinhoBucket,
     deleteCofrinhoBucket,
@@ -14,7 +22,19 @@ import {
 } from '../../api/cofrinhos';
 import type { CofrinhoBucket, CofrinhoBucketGoal } from '../../domain/cofrinhoAggregations';
 import { getBucketGoalForYear } from '../../domain/cofrinhoAggregations';
+import {
+    COFRINHO_KIND_META,
+    isTripLockedBucket,
+    normalizeUserCofrinhoKind,
+    resolveCofrinhoKind,
+    type BucketFormKind
+} from '../../domain/cofrinhoBucketTypes';
 import { useConfirm } from '../../../../components/ui/confirm';
+import { CofrinhoBucketGoalInput } from './CofrinhoBucketGoalInput';
+import { CofrinhoBucketTypePicker } from './CofrinhoBucketTypePicker';
+import { formatBRL } from '../../../../lib/format';
+import { parseMoneyInput } from '../../domain/parseMoneyInput';
+import { fetchTripsList } from '../../../viagens/api/trips';
 
 type Props = {
     open: boolean;
@@ -28,57 +48,128 @@ type Props = {
 export function CofrinhoBucketModal({ open, onClose, editing, goals, goalYear, onSaved }: Props) {
     const { confirm } = useConfirm();
     const [name, setName] = useState('');
-    const [colorKey, setColorKey] = useState<BucketColorKey>('violet');
-    const [yieldMultiplier, setYieldMultiplier] = useState('1.02');
+    const [kind, setKind] = useState<BucketFormKind>('objetivo');
+    const [tripId, setTripId] = useState('');
+    const [trips, setTrips] = useState<{ id: string; title: string }[]>([]);
+    const [tripsLoading, setTripsLoading] = useState(false);
+    const [colorKey, setColorKey] = useState<string>(defaultBucketColorKey());
     const [goalTarget, setGoalTarget] = useState('');
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const title = editing ? 'Editar caixinha' : 'Nova caixinha';
+    const tripLocked = editing ? isTripLockedBucket(editing) : false;
+    const isViagem = kind === 'viagem' || tripLocked;
+    const title = editing ? 'Configurar caixinha' : 'Nova caixinha';
+
+    const tripTitleById = useMemo(() => new Map(trips.map((t) => [t.id, t.title])), [trips]);
+    const linkedTripId = tripLocked ? String(editing?.tripId ?? '').trim() : tripId;
+    const linkedTripTitle =
+        tripTitleById.get(linkedTripId) ||
+        (tripLocked && editing?.name ? editing.name : '') ||
+        'Viagem';
 
     useEffect(() => {
         if (!open) return;
         setError(null);
         if (editing) {
             setName(editing.name ?? '');
-            setColorKey((editing.colorKey as BucketColorKey) ?? 'violet');
-            setYieldMultiplier(String(editing.yieldMultiplier ?? 1.02));
+            const resolved = resolveCofrinhoKind(editing);
+            setKind(tripLocked ? 'viagem' : resolved === 'viagem' ? 'viagem' : normalizeUserCofrinhoKind(resolved));
+            setTripId(String(editing.tripId ?? '').trim());
+            setColorKey(editing.colorKey ?? COFRINHO_KIND_META[resolved].defaultColor);
             const goal = getBucketGoalForYear(goals, editing.id, goalYear);
-            setGoalTarget(goal?.targetAmount != null ? String(goal.targetAmount) : '');
+            const target = goal?.targetAmount != null ? Number(goal.targetAmount) : 0;
+            setGoalTarget(Number.isFinite(target) && target > 0 ? formatBRL(target, 'BRL') : '');
         } else {
             setName('');
-            setColorKey('violet');
-            setYieldMultiplier('1.02');
+            setKind('objetivo');
+            setTripId('');
+            setColorKey(COFRINHO_KIND_META.objetivo.defaultColor);
             setGoalTarget('');
         }
-    }, [editing, goalYear, goals, open]);
+    }, [editing, goalYear, goals, open, tripLocked]);
 
-    async function onSubmit(e: FormEvent) {
+    useEffect(() => {
+        if (!open) return;
+        let cancelled = false;
+        setTripsLoading(true);
+        void fetchTripsList()
+            .then((res) => {
+                if (cancelled) return;
+                setTrips(
+                    (res.trips ?? []).map((t) => ({
+                        id: t.id,
+                        title: String(t.title ?? '').trim() || 'Viagem'
+                    }))
+                );
+            })
+            .catch(() => {
+                if (!cancelled) setTrips([]);
+            })
+            .finally(() => {
+                if (!cancelled) setTripsLoading(false);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [open]);
+
+    function onKindChange(next: BucketFormKind) {
+        setKind(next);
+        if (!editing && isPresetBucketColorKey(COFRINHO_KIND_META[next].defaultColor)) {
+            setColorKey(COFRINHO_KIND_META[next].defaultColor);
+        }
+        if (next !== 'viagem') setTripId('');
+    }
+
+    useEffect(() => {
+        if (!isViagem || tripLocked || !tripId || editing) return;
+        const tripTitle = tripTitleById.get(tripId);
+        if (tripTitle) setName(tripTitle);
+    }, [isViagem, tripId, tripTitleById, tripLocked, editing]);
+
+    async function onSubmit(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();
-        const trimmed = name.trim();
+        let trimmed = name.trim();
+        if (isViagem && !tripLocked) {
+            if (!tripId) {
+                setError('Selecione a viagem para vincular a caixinha.');
+                return;
+            }
+            const fromTrip = tripTitleById.get(tripId);
+            if (fromTrip) trimmed = fromTrip;
+        }
         if (!trimmed) {
             setError('Informe o nome da caixinha');
             return;
         }
-        const yMult = parseFloat(yieldMultiplier);
-        const target = goalTarget.trim() ? parseFloat(goalTarget) : 0;
+        const yMult = Number(editing?.yieldMultiplier) || 1.02;
+        const parsedTarget = goalTarget.trim() ? parseMoneyInput(goalTarget) : null;
+        const target = parsedTarget != null ? parsedTarget : 0;
 
         setSaving(true);
         setError(null);
         try {
             let bucketId = editing?.id;
+            const tripPayload = isViagem && !tripLocked && tripId ? { tripId } : {};
+
             if (editing) {
                 await updateCofrinhoBucket(editing.id, {
                     name: trimmed,
                     colorKey,
-                    yieldMultiplier: Number.isFinite(yMult) ? yMult : 1.02
+                    yieldMultiplier: yMult,
+                    ...(tripLocked
+                        ? {}
+                        : isViagem
+                          ? { kind: 'viagem', ...tripPayload }
+                          : { kind })
                 });
             } else {
                 const created = await createCofrinhoBucket({
                     name: trimmed,
                     colorKey,
-                    icon: 'fa-chart-line',
-                    yieldMultiplier: Number.isFinite(yMult) ? yMult : 1.02
+                    yieldMultiplier: yMult,
+                    ...(isViagem ? { kind: 'viagem', ...tripPayload } : { kind: kind === 'viagem' ? 'objetivo' : kind })
                 });
                 bucketId = created.id;
             }
@@ -125,137 +216,131 @@ export function CofrinhoBucketModal({ open, onClose, editing, goals, goalYear, o
     }
 
     return (
-        <ZeroBudgetLegacyModal
-            open={open}
-            onClose={onClose}
-            id="cofrinho-buckets-modal"
-            contentClassName="cofrinho-modal cofrinho-modal--bucket modal-content--cofrinho-bucket"
-            labelledBy="cofrinho-buckets-modal-title"
-        >
-            <div className="cofrinho-modal__header">
-                <h3 id="cofrinho-buckets-modal-title">
-                    <i className="fas fa-piggy-bank" aria-hidden="true"></i> {title}
-                </h3>
-                <button type="button" className="modal-close-btn cofrinho-modal__close" aria-label="Fechar" onClick={onClose}>
-                    &times;
-                </button>
-            </div>
-            <form id="cofrinho-bucket-form" className="cofrinho-bucket-form" onSubmit={(e) => void onSubmit(e)}>
-                <div className="cofrinho-modal__body">
-                    {error ? (
-                        <div className="form-message" role="alert">
-                            {error}
-                        </div>
-                    ) : null}
-
-                    <div className="form-group cofrinho-bucket-form__name">
-                        <label htmlFor="cofrinho-bucket-name">Nome</label>
-                        <input
-                            type="text"
-                            id="cofrinho-bucket-name"
-                            maxLength={120}
-                            required
-                            placeholder="Ex.: Reserva de emergência"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                        />
-                    </div>
-
-                    <div className="cofrinho-bucket-form__panel" aria-labelledby="cofrinho-bucket-goal-label">
-                        <p id="cofrinho-bucket-goal-label" className="cofrinho-bucket-form__panel-title">
-                            Meta anual
-                        </p>
-                        <div className="cofrinho-bucket-form__goal-grid">
-                            <div className="form-group cofrinho-bucket-form__field--year">
-                                <label htmlFor="cofrinho-bucket-goal-year">Ano</label>
-                                <select id="cofrinho-bucket-goal-year" aria-label="Ano da meta" value={String(goalYear)} disabled>
-                                    <option value={goalYear}>{goalYear}</option>
-                                </select>
-                            </div>
-                            <div className="form-group cofrinho-bucket-form__field--target">
-                                <label htmlFor="cofrinho-bucket-goal-target">Valor (R$)</label>
-                                <input
-                                    type="number"
-                                    id="cofrinho-bucket-goal-target"
-                                    step="0.01"
-                                    min="0"
-                                    placeholder="5000"
-                                    inputMode="decimal"
-                                    value={goalTarget}
-                                    onChange={(e) => setGoalTarget(e.target.value)}
-                                />
-                            </div>
-                        </div>
-                        <p className="cofrinho-bucket-form__panel-hint">
-                            Aparece nos cartões como «de R$ …» no ano escolhido.
-                        </p>
-                    </div>
-
-                    <div className="form-group cofrinho-bucket-form__colors-wrap">
-                        <span className="cofrinho-bucket-form__panel-title" id="cofrinho-bucket-color-label">
-                            Cor
-                        </span>
-                        <div
-                            className="zero-budget__colors-list cofrinho-bucket-form__colors"
-                            role="radiogroup"
-                            aria-labelledby="cofrinho-bucket-color-label"
-                        >
-                            {BUCKET_COLOR_KEYS.map((key) => (
+        <Dialog open={open} onClose={onClose} id="cofrinho-buckets-modal">
+            <DialogPanel size="lg" className="cofrinho-bucket-dialog">
+                <DialogForm onSubmit={(e) => void onSubmit(e)} className="cofrinho-bucket-form cofrinho-bucket-form--modern">
+                    <DialogHeader>
+                        <DialogTitle>{title}</DialogTitle>
+                        <div className="cofrinho-bucket-dialog__header-actions">
+                            {editing && !tripLocked ? (
                                 <button
-                                    key={key}
                                     type="button"
-                                    className={`zero-budget__color-swatch${colorKey === key ? ' is-selected' : ''}`}
-                                    style={{ backgroundColor: bucketColorHex(key) }}
-                                    aria-label={BUCKET_COLOR_LABELS[key]}
-                                    aria-pressed={colorKey === key}
-                                    onClick={() => setColorKey(key)}
-                                />
-                            ))}
+                                    className="ui-dialog__close cofrinho-bucket-dialog__delete"
+                                    disabled={saving}
+                                    title="Excluir caixinha"
+                                    aria-label="Excluir caixinha"
+                                    onClick={() => void onDelete()}
+                                >
+                                    <MaterialIcon name="delete_outline" variant="app" />
+                                </button>
+                            ) : null}
+                            <DialogCloseButton />
                         </div>
-                    </div>
+                    </DialogHeader>
+                    <DialogBody className="cofrinho-bucket-dialog__body">
+                        {error ? (
+                            <p className="form-message ui-form-alert" role="alert">
+                                {error}
+                            </p>
+                        ) : null}
 
-                    <div className="form-group cofrinho-bucket-form__yield">
-                        <label htmlFor="cofrinho-bucket-yield">Rentabilidade mensal (mult.)</label>
-                        <input
-                            type="number"
-                            id="cofrinho-bucket-yield"
-                            step="0.001"
-                            min="1"
-                            max="2"
-                            value={yieldMultiplier}
-                            onChange={(e) => setYieldMultiplier(e.target.value)}
-                            aria-describedby="cofrinho-bucket-yield-hint"
-                        />
-                        <p id="cofrinho-bucket-yield-hint" className="cofrinho-bucket-form__field-hint">
-                            Ex.: 1,07 ≈ 7% ao mês nos gráficos.
-                        </p>
-                    </div>
-                </div>
+                        <section className="cofrinho-bucket-form__section" aria-label="Identificação">
+                            <div className="cofrinho-bucket-form__row cofrinho-bucket-form__row--name-goal">
+                                <FormField id="cofrinho-bucket-name" label="Nome">
+                                    <FormInput
+                                        id="cofrinho-bucket-name"
+                                        maxLength={120}
+                                        required
+                                        placeholder={isViagem ? 'Usa o título da viagem' : 'Ex.: Reserva Europa 2027'}
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        disabled={tripLocked || (isViagem && !editing && Boolean(tripId))}
+                                    />
+                                </FormField>
+                                <FormField id="cofrinho-bucket-goal-target" label={`Meta ${goalYear}`}>
+                                    <CofrinhoBucketGoalInput
+                                        id="cofrinho-bucket-goal-target"
+                                        value={goalTarget}
+                                        onChange={setGoalTarget}
+                                    />
+                                </FormField>
+                            </div>
 
-                <div className="cofrinho-modal__footer cofrinho-bucket-form__footer">
-                    {editing ? (
-                        <button
-                            type="button"
-                            id="cofrinho-bucket-delete"
-                            className="cofrinho-bucket-form__delete"
-                            disabled={saving}
-                            onClick={() => void onDelete()}
-                        >
-                            Excluir caixinha
-                        </button>
-                    ) : (
-                        <span aria-hidden="true" />
-                    )}
-                    <div className="cofrinho-bucket-form__footer-actions">
-                        <button type="button" className="btn-secondary" disabled={saving} onClick={onClose}>
-                            Cancelar
-                        </button>
-                        <button type="submit" id="cofrinho-bucket-submit" className="btn-primary" disabled={saving}>
-                            {saving ? 'Guardando…' : editing ? 'Guardar' : 'Adicionar caixinha'}
-                        </button>
-                    </div>
-                </div>
-            </form>
-        </ZeroBudgetLegacyModal>
+                            <FormField id="cofrinho-bucket-kind-field" label="Tipo">
+                                <CofrinhoBucketTypePicker
+                                    value={kind}
+                                    onChange={onKindChange}
+                                    disabled={tripLocked}
+                                />
+                            </FormField>
+
+                            {isViagem ? (
+                                <FormField id="cofrinho-bucket-trip" label="Viagem vinculada">
+                                    {tripLocked && linkedTripId ? (
+                                        <div className="cofrinho-bucket-form__trip-chip">
+                                            <MaterialIcon name="flight" variant="app" opticalSize={18} aria-hidden />
+                                            <span className="cofrinho-bucket-form__trip-chip-label">{linkedTripTitle}</span>
+                                            <Link
+                                                to={`/viagens/${linkedTripId}`}
+                                                className="cofrinho-bucket-form__trip-link"
+                                                onClick={onClose}
+                                            >
+                                                Abrir ficha
+                                                <MaterialIcon name="open_in_new" variant="app" opticalSize={14} aria-hidden />
+                                            </Link>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <FormSelect
+                                                id="cofrinho-bucket-trip"
+                                                value={tripId}
+                                                disabled={tripsLoading}
+                                                required
+                                                onChange={(e) => setTripId(e.target.value)}
+                                            >
+                                                <option value="">
+                                                    {tripsLoading ? 'Carregando viagens…' : 'Selecione a viagem'}
+                                                </option>
+                                                {trips.map((t) => (
+                                                    <option key={t.id} value={t.id}>
+                                                        {t.title}
+                                                    </option>
+                                                ))}
+                                                {tripId && !trips.some((t) => t.id === tripId) ? (
+                                                    <option value={tripId}>{linkedTripTitle}</option>
+                                                ) : null}
+                                            </FormSelect>
+                                            <span className="ui-form-field__hint">
+                                                Uma caixinha por viagem — aparece em «Viagens» no painel.
+                                            </span>
+                                        </>
+                                    )}
+                                </FormField>
+                            ) : null}
+                        </section>
+
+                        <section className="cofrinho-bucket-form__section" aria-label="Aparência">
+                            <FormField id="cofrinho-bucket-color" label="Cor no gráfico e extrato">
+                                <CofrinhoBucketColorSwatches
+                                    value={colorKey}
+                                    layout="form"
+                                    onChange={setColorKey}
+                                />
+                            </FormField>
+                        </section>
+                    </DialogBody>
+                    <DialogFooter>
+                        <div className="cofrinho-bucket-dialog__footer-actions">
+                            <button type="button" className="btn-secondary" disabled={saving} onClick={onClose}>
+                                Cancelar
+                            </button>
+                            <button type="submit" className="btn-primary" disabled={saving}>
+                                {saving ? 'Guardando…' : editing ? 'Guardar' : 'Criar caixinha'}
+                            </button>
+                        </div>
+                    </DialogFooter>
+                </DialogForm>
+            </DialogPanel>
+        </Dialog>
     );
 }

@@ -1,6 +1,14 @@
-import { monthIndexFromPeriod } from '../../../lib/period';
+import { isAllYearsPeriod, isCivilYearPeriod, monthIndexFromPeriod } from '../../../lib/period';
 
-export function yearMonthFromCivilPeriod(period: string, year: number): string {
+export function yearMonthFromCivilPeriod(period: string, year: number, now = new Date()): string {
+    if (isAllYearsPeriod(period)) {
+        const y = now.getFullYear();
+        return `${y}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    }
+    if (isCivilYearPeriod(period)) {
+        const anchor = Math.min(11, Math.max(0, now.getMonth()));
+        return `${year}-${String(anchor + 1).padStart(2, '0')}`;
+    }
     const mi = monthIndexFromPeriod(period);
     return `${year}-${String(mi + 1).padStart(2, '0')}`;
 }

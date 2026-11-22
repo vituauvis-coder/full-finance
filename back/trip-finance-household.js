@@ -17,6 +17,8 @@ export async function listTripFinanceMovements(userId, tripId) {
                 e.subcategory,
                 e.trip_id AS "tripId",
                 e.trip_expense_id AS "tripExpenseId",
+                e.is_cofrinho AS "isCofrinho",
+                e.paid_from_cofrinho AS "paidFromCofrinho",
                 e.date,
                 u.name AS "authorName"
          FROM expenses e
@@ -33,6 +35,10 @@ export async function listTripFinanceMovements(userId, tripId) {
             tripExpenseId: r.tripExpenseId,
             amount: Number(r.amount),
             description: r.description,
+            category: r.category,
+            isCofrinho: r.isCofrinho,
+            paidFromCofrinho: r.paidFromCofrinho,
+            date: r.date,
             userId: r.userId,
             authorName: r.authorName
         }))

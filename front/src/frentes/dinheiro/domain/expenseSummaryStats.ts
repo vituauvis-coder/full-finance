@@ -42,7 +42,7 @@ export type ExpenseSummaryMom = {
     other: MomVariationState;
 };
 
-function expenseIsMarkedFixed(t: Movement) {
+export function expenseIsMarkedFixed(t: Movement) {
     return (
         t.isFixed === true ||
         t.isFixed === 'true' ||

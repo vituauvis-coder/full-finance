@@ -28,6 +28,7 @@
 }
 
 /* Header → primeira seção da página */
+.page-content--dashboard-modern > #dashboard-page > .civil-period-timeline--surfaced:first-child,
 .page-content > .app-header + #dashboard-page > .civil-period-timeline--surfaced:first-child,
 .page-content > .app-header + #zero-budget-page > .zero-budget > .civil-period-timeline--surfaced:first-child,
 .page-content > .app-header + #gains-page > .movements-toolbar:first-child,

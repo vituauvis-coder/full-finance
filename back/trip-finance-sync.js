@@ -1,12 +1,13 @@
 import crypto from 'node:crypto';
 import { query } from './db.js';
-import { assertAccountAccessible } from './household.js';
-import { isCreditCardType } from '../motor/dinheiro/account-type.js';
-import { normalizePaymentMethod } from '../motor/viagens/trip-expense-payment.js';
+import { accountsVisibleToUserSql, assertAccountAccessible } from './household.js';
+import { isCreditCardType, isPixBankAccountType } from '../motor/dinheiro/account-type.js';
+import { normalizePaymentMethod, paidFromCofrinho } from '../motor/viagens/trip-expense-payment.js';
 import { buildFinanceExpenseDraft } from '../motor/viagens/trip-finance-fields.js';
 import { referenceOnlyForUserMovement } from './reference-only.js';
 import { safeUpsertBalanceSnapshot } from './balance-snapshot.js';
 import { ensureExpenseTripLinkColumns } from './migrations/expense-trip-link.js';
+import { ensureViagensCatalogForHousehold } from './trip-finance-categories.js';
 
 function parseSpentOnDate(spentOn) {
     const s = String(spentOn ?? '').trim().slice(0, 10);
@@ -30,9 +31,40 @@ async function assertCreditAccountBelongsToUser(userId, accountId) {
     }
 }
 
+async function assertPixBankAccountBelongsToUser(userId, accountId) {
+    await assertAccountAccessible(accountId, userId);
+    const { rows } = await query(`SELECT type FROM accounts WHERE id = $1 LIMIT 1`, [accountId]);
+    const acc = rows[0];
+    if (!acc || !isPixBankAccountType(acc.type)) {
+        const e = new Error('Selecione uma conta corrente ou poupança da Carteira');
+        e.statusCode = 400;
+        throw e;
+    }
+}
+
 async function deleteFinanceExpense(userId, expenseId) {
     if (!expenseId) return;
     await query(`DELETE FROM expenses WHERE id = $1 AND user_id = $2`, [expenseId, userId]);
+}
+
+/** Primeira conta corrente/poupança visível ao usuário (Pix à vista sem conta escolhida). */
+async function defaultPixBankAccountId(userId) {
+    const { rows } = await query(
+        `SELECT a.id FROM accounts a
+         WHERE ${accountsVisibleToUserSql(1)}
+           AND a.type IN ('conta_corrente', 'poupanca')
+         ORDER BY a.name ASC
+         LIMIT 1`,
+        [userId]
+    );
+    return rows[0]?.id ?? null;
+}
+
+function withPixAccountIfMissing(tripExpense, accountId) {
+    if (!accountId) return tripExpense;
+    const cur = String(tripExpense?.accountId ?? tripExpense?.account_id ?? '').trim();
+    if (cur) return tripExpense;
+    return { ...tripExpense, accountId, account_id: accountId };
 }
 
 async function findFinanceExpenseId(userId, tripId, tripExpenseId, hintId) {
@@ -76,8 +108,9 @@ async function upsertFinanceFromDraft(userId, draft) {
                  installment_count = $9,
                  reference_only = $10,
                  trip_id = $11,
-                 trip_expense_id = $12
-             WHERE id = $13 AND user_id = $14
+                 trip_expense_id = $12,
+                 paid_from_cofrinho = $13
+             WHERE id = $14 AND user_id = $15
              RETURNING id`,
             [
                 draft.accountId,
@@ -92,6 +125,7 @@ async function upsertFinanceFromDraft(userId, draft) {
                 refOnly,
                 draft.tripId,
                 draft.tripExpenseId,
+                draft.paidFromCofrinho === true,
                 existingId,
                 userId
             ]
@@ -105,12 +139,12 @@ async function upsertFinanceFromDraft(userId, draft) {
             id, user_id, account_id, category, subcategory, amount, description,
             date, created_at, is_paid, is_cofrinho, installment_count,
             cash_out_confirmed_periods, recurring_monthly, recurrence_group_id,
-            is_fixed, reference_only, trip_id, trip_expense_id
+            is_fixed, reference_only, trip_id, trip_expense_id, paid_from_cofrinho
          ) VALUES (
             $1,$2,$3,$4,$5,$6,$7,
             $8, now(), $9,$10,$11,
             $12,$13,$14,
-            $15,$16,$17,$18
+            $15,$16,$17,$18,$19
          )
          RETURNING id`,
         [
@@ -131,7 +165,8 @@ async function upsertFinanceFromDraft(userId, draft) {
             false,
             refOnly,
             draft.tripId,
-            draft.tripExpenseId
+            draft.tripExpenseId,
+            draft.paidFromCofrinho === true
         ]
     );
     return rows[0]?.id ?? expenseId;
@@ -141,11 +176,11 @@ async function upsertFinanceFromDraft(userId, draft) {
  * Sincroniza um lançamento da viagem com o módulo Dinheiro.
  * @returns {{ expense: object, patched: boolean }}
  */
-export async function syncFinanceExpenseForTripExpense(userId, tripId, tripExpense) {
+export async function syncFinanceExpenseForTripExpense(userId, tripId, tripExpense, opts = {}) {
     const method = normalizePaymentMethod(tripExpense?.paymentMethod ?? tripExpense?.payment_method);
     const financeId = tripExpense?.financeExpenseId ?? tripExpense?.finance_expense_id ?? null;
 
-    if (method !== 'credit_card') {
+    if (method !== 'credit_card' && method !== 'pix') {
         if (financeId) {
             await deleteFinanceExpense(userId, financeId);
             return {
@@ -156,42 +191,65 @@ export async function syncFinanceExpenseForTripExpense(userId, tripId, tripExpen
         return { expense: tripExpense, patched: false };
     }
 
-    const draft = buildFinanceExpenseDraft(tripExpense, tripId);
+    let working = tripExpense;
+    if (method === 'pix' || paidFromCofrinho(tripExpense)) {
+        const fallback = await defaultPixBankAccountId(userId);
+        working = withPixAccountIfMissing(tripExpense, fallback);
+    }
+
+    const draft = buildFinanceExpenseDraft(working, tripId, { tripTitle: opts.tripTitle });
     if (!draft) {
         const e = new Error(
-            'Gasto no cartão incompleto: informe valor, data e selecione o cartão para espelhar no Dinheiro'
+            method === 'pix'
+                ? 'Gasto Pix incompleto: informe valor, data e selecione a conta para espelhar no Dinheiro'
+                : 'Gasto no cartão incompleto: informe valor, data e selecione o cartão para espelhar no Dinheiro'
         );
         e.statusCode = 400;
         throw e;
     }
 
-    await assertCreditAccountBelongsToUser(userId, draft.accountId);
-    const newId = await upsertFinanceFromDraft(userId, draft);
-    if (newId === financeId && financeId) {
-        return { expense: tripExpense, patched: false };
+    if (!draft.paidFromCofrinho) {
+        if (method === 'pix') {
+            await assertPixBankAccountBelongsToUser(userId, draft.accountId);
+        } else {
+            await assertCreditAccountBelongsToUser(userId, draft.accountId);
+        }
+    } else if (!draft.accountId) {
+        const e = new Error('Gasto do cofrinho incompleto: cadastre uma conta corrente na Carteira');
+        e.statusCode = 400;
+        throw e;
     }
-    return {
-        expense: {
-            ...tripExpense,
-            financeExpenseId: newId,
-            finance_expense_id: newId,
-            accountId: draft.accountId,
-            account_id: draft.accountId
-        },
-        patched: true
+    await ensureViagensCatalogForHousehold(userId, opts.tripTitle);
+    const newId = await upsertFinanceFromDraft(userId, draft);
+    const expenseOut = {
+        ...working,
+        financeExpenseId: newId,
+        finance_expense_id: newId,
+        accountId: draft.accountId,
+        account_id: draft.accountId
     };
+    return { expense: expenseOut, patched: true };
+}
+
+async function loadTripTitle(tripId) {
+    const { rows } = await query(`SELECT title FROM trips WHERE id = $1 LIMIT 1`, [tripId]);
+    return rows[0]?.title ?? '';
 }
 
 /**
- * Varre payload.expenses: remove órfãos no Dinheiro e espelha cartões.
+ * Varre payload.expenses: remove órfãos no Dinheiro e espelha cartão + Pix.
+ * Categoria financeira: Viagens / subcategoria: nome da viagem.
  */
 export async function syncTripExpensesToFinance(userId, tripId, payload) {
     await ensureExpenseTripLinkColumns();
     const expenses = Array.isArray(payload?.expenses) ? [...payload.expenses] : [];
     const warnings = [];
     let changed = false;
+    const tripTitle = await loadTripTitle(tripId);
+    await ensureViagensCatalogForHousehold(userId, tripTitle);
 
     const aliveIds = new Set(expenses.map((e) => e.id));
+    const payloadById = new Map(expenses.map((e) => [e.id, e]));
     const { rows: linked } = await query(
         `SELECT id, trip_expense_id AS "tripExpenseId"
          FROM expenses WHERE user_id = $1 AND trip_id = $2`,
@@ -199,6 +257,7 @@ export async function syncTripExpensesToFinance(userId, tripId, payload) {
     );
     for (const link of linked) {
         const teId = link.tripExpenseId;
+        const pe = teId ? payloadById.get(teId) : null;
         if (teId && !aliveIds.has(teId)) {
             await deleteFinanceExpense(userId, link.id);
             changed = true;
@@ -208,7 +267,9 @@ export async function syncTripExpensesToFinance(userId, tripId, payload) {
     const nextExpenses = [];
     for (const ex of expenses) {
         try {
-            const { expense, patched } = await syncFinanceExpenseForTripExpense(userId, tripId, ex);
+            const { expense, patched } = await syncFinanceExpenseForTripExpense(userId, tripId, ex, {
+                tripTitle
+            });
             nextExpenses.push(expense);
             if (patched) changed = true;
         } catch (e) {

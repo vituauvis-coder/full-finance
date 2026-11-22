@@ -23,7 +23,7 @@ export function ProfileBalanceCard({
         <ProfileCard
             slot="half"
             title="Ajuste de saldo"
-            subtitle="Defina o saldo total atual da sua conta"
+            subtitle="Iguala o saldo do dashboard ao valor real (conta principal, se houver)"
             icon="payments"
         >
             <form
@@ -49,7 +49,8 @@ export function ProfileBalanceCard({
                     {saving ? 'Atualizando…' : 'Atualizar'}
                 </button>
                 <p className="profile-modern__field-hint profile-modern__field-hint--balance">
-                    Novo ponto de partida para o cálculo do saldo.
+                    Com conta principal na Carteira, o ajuste vale só para ela. Caso contrário, corrige o total de
+                    todas as contas de caixa.
                 </p>
                 {message ? <p className="profile-modern__feedback">{message}</p> : null}
             </form>

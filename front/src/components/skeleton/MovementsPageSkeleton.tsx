@@ -20,13 +20,23 @@ export function MovementsSkeletonLayout({ summaryGroup, summaryAriaLabel, cardCo
                 accent={summaryGroup === 'gains' ? 'gains' : 'expenses'}
                 inMovementsToolbar
             />
-            <MovementSummaryCardsSkeleton count={cardCount} group={summaryGroup} ariaLabel={summaryAriaLabel} />
-            <div className="treemap-container" aria-hidden="true">
-                <div className="treemap-header skeleton-panel__head">
-                    <Skeleton className="skeleton-panel__title" />
-                    <Skeleton className="skeleton-panel__subtitle" />
+            <div
+                className={`movements-treemap-hero movements-treemap-hero--${summaryGroup}`}
+                aria-hidden="true"
+            >
+                <MovementSummaryCardsSkeleton
+                    count={cardCount}
+                    group={summaryGroup}
+                    ariaLabel={summaryAriaLabel}
+                    className="movements-treemap-hero__summary"
+                />
+                <div className="movements-treemap-hero__map treemap-container">
+                    <div className="treemap-header skeleton-panel__head">
+                        <Skeleton className="skeleton-panel__title" />
+                        <Skeleton className="skeleton-panel__subtitle" />
+                    </div>
+                    <Skeleton className="skeleton-panel__body skeleton-panel__body--treemap" />
                 </div>
-                <Skeleton className="skeleton-panel__body skeleton-panel__body--treemap" />
             </div>
             <div className="table-container data-table-host skeleton-table-host" aria-hidden="true">
                 <div className="skeleton-table-row skeleton-table-head">
@@ -59,8 +69,12 @@ export function MovementsPageSkeleton({
     summaryAriaLabel,
     cardCount
 }: Props) {
+    const compact = pageId === 'gains-page' || pageId === 'expenses-page';
     return (
-        <section id={pageId} className="page active movements-page--modern">
+        <section
+            id={pageId}
+            className={`page active movements-page--modern${compact ? ' movements-page--compact' : ''}`}
+        >
             <PageLoadingShell label={label}>
                 <p className="skeleton-visually-hidden">{label}</p>
                 <MovementsSkeletonLayout

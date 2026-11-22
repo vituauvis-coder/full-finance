@@ -53,7 +53,7 @@ export const DEBT_COLOR_HEX: Record<string, string> = {
     red: '#dc2626',
     rose: '#e11d48',
     orange: '#ea580c',
-    amber: '#f59e0b',
+    amber: '#f2c94c',
     gold: '#ca8a04',
     lime: '#65a30d',
     emerald: '#059669',

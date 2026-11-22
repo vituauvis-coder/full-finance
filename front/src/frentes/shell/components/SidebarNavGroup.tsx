@@ -17,11 +17,19 @@ type Props = {
 export function SidebarNavGroup({ group, expanded, onToggle, onReveal }: Props) {
     const { pathname, search } = useLocation();
     const landingActive = sidebarGroupLandingActive(group, pathname, search);
+    const moduleActive = group.items.some((item) => sidebarLeafActive(pathname, search, item));
     const panelId = `sidebar-group-${group.id}`;
 
     return (
         <li
-            className={`sidebar-group app-sidebar__group${expanded ? ' is-open' : ''}`}
+            className={[
+                'sidebar-group',
+                'app-sidebar__group',
+                expanded ? 'is-open' : '',
+                landingActive || moduleActive ? 'sidebar-group--active' : ''
+            ]
+                .filter(Boolean)
+                .join(' ')}
             data-nav-group={group.id}
         >
             <div className="sidebar-group__row">
@@ -29,6 +37,7 @@ export function SidebarNavGroup({ group, expanded, onToggle, onReveal }: Props) 
                     to={group.to}
                     icon={group.icon}
                     label={group.label}
+                    subtitle={group.subtitle}
                     active={landingActive}
                     className="sidebar-group__link"
                     onNavigate={onReveal}
@@ -51,6 +60,7 @@ export function SidebarNavGroup({ group, expanded, onToggle, onReveal }: Props) 
                             to={item.to}
                             icon={item.icon}
                             label={item.label}
+                            subtitle={item.subtitle}
                             sub
                             active={sidebarLeafActive(pathname, search, item)}
                         />

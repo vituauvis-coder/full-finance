@@ -1,5 +1,5 @@
 import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
-import { DatePicker, type DatePickerProps } from '../date-picker';
+import { DatePicker, type DatePickerProps, MonthPicker, type MonthPickerProps } from '../date-picker';
 
 const controlClass = 'ui-control';
 
@@ -25,8 +25,20 @@ export function FormField({
     );
 }
 
-export function FormGrid({ children, columns = 2 }: { children: ReactNode; columns?: 1 | 2 }) {
-    return <div className={`ui-form-grid ui-form-grid--${columns}`}>{children}</div>;
+export function FormGrid({
+    children,
+    columns = 2,
+    className = ''
+}: {
+    children: ReactNode;
+    columns?: 1 | 2;
+    className?: string;
+}) {
+    return (
+        <div className={[`ui-form-grid`, `ui-form-grid--${columns}`, className].filter(Boolean).join(' ')}>
+            {children}
+        </div>
+    );
 }
 
 export function FormInput({ className = '', ...props }: InputHTMLAttributes<HTMLInputElement>) {
@@ -57,6 +69,30 @@ export function FormDatePicker({
 }: Pick<DatePickerProps, 'id' | 'value' | 'onChange' | 'disabled' | 'required' | 'min' | 'max' | 'placeholder'>) {
     return (
         <DatePicker
+            id={id}
+            value={value}
+            onChange={onChange}
+            disabled={disabled}
+            required={required}
+            min={min}
+            max={max}
+            placeholder={placeholder}
+        />
+    );
+}
+
+export function FormMonthPicker({
+    id,
+    value,
+    onChange,
+    disabled,
+    required,
+    min,
+    max,
+    placeholder
+}: Pick<MonthPickerProps, 'id' | 'value' | 'onChange' | 'disabled' | 'required' | 'min' | 'max' | 'placeholder'>) {
+    return (
+        <MonthPicker
             id={id}
             value={value}
             onChange={onChange}

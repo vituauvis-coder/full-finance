@@ -24,7 +24,8 @@ export function ViagemFichaPage() {
         saveError,
         saving,
         onDraftChange,
-        flushSave
+        flushSave,
+        reload: reloadTrip
     } = useTripAutosave(tripId);
     const expenseAuthors = useMemo(() => {
         const map: Record<string, { id: string; name: string }> = {};
@@ -143,12 +144,14 @@ export function ViagemFichaPage() {
                         draft={draft}
                         onChange={onDraftChange}
                         onFlushSave={flushSave}
+                        onFinanceRefresh={reloadTrip}
                         scenarioWinnerId={scenarioWinnerId}
                         modulo={fichaModulo}
                         onModuloChange={setFichaModulo}
                         scenarioCount={scenarioCount}
                         onOpenSimulador={() => setSimOpen(true)}
                         expenseAuthors={expenseAuthors}
+                        financeMovements={financeMovements}
                     />
                     {simOpen && simDraft ? (
                         <TripSimuladorOverlay

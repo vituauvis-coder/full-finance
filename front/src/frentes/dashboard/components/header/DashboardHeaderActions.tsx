@@ -1,14 +1,6 @@
 import { MaterialIcon } from '../../../../components/icons/MaterialIcon';
 import { useDashboardFacets } from '../../context/DashboardFacetsContext';
-
-const EXPENSE_FACETS = [
-    ['fixed', 'Essencial'],
-    ['recurring', 'Recorrente'],
-    ['credit', 'Cartão'],
-    ['pix', 'PIX'],
-    ['paid', 'Pago'],
-    ['unpaid', 'Pendente']
-] as const;
+import { DASHBOARD_EXPENSE_FACETS } from './dashboardFacetChips';
 
 type Props = {
     hidden: boolean;
@@ -57,7 +49,7 @@ export function DashboardHeaderActions({ hidden }: Props) {
                     </button>
                 </div>
                 <div className="page-toolbar__cluster" role="group" data-tone="expenses" aria-label="Saídas no painel">
-                    {EXPENSE_FACETS.map(([facet, label]) => (
+                    {DASHBOARD_EXPENSE_FACETS.map(([facet, label]) => (
                         <button
                             key={facet}
                             type="button"
@@ -73,7 +65,7 @@ export function DashboardHeaderActions({ hidden }: Props) {
                 <button
                     type="button"
                     id="dashboard-filter-open-btn"
-                    className={`page-toolbar__icon btn-secondary filter-drawer-trigger header-action-btn header-action-btn--icon${ctx?.expenseCategory ? ' filter-drawer-trigger--active' : ''}`}
+                    className={`page-toolbar__icon btn-secondary filter-drawer-trigger header-action-btn header-action-btn--icon${(ctx?.expenseCategories.size ?? 0) > 0 ? ' filter-drawer-trigger--active' : ''}`}
                     aria-expanded={ctx?.drawerOpen ?? false}
                     aria-controls="dashboard-filter-drawer"
                     title="Filtrar saídas no painel por categoria"

@@ -9,7 +9,7 @@ Rota: `/dashboard` · Página: `frentes/dashboard/pages/DashboardPage.tsx`
 | Header (facetas, filtro) | `components/header/DashboardHeaderActions.tsx` | UI |
 | Timeline mês/ano | `components/finance/CivilPeriodToolbar.tsx` → `CivilPeriodTimeline.tsx` | UI |
 | KPIs | `components/finance/DashboardSummaryCards.tsx` | UI |
-| Confirmar no saldo | `components/PendingCashOuts.tsx` | UI + `api/` |
+| Confirmar no saldo | `components/DashboardMonthLedger.tsx` + `LedgerExtratoRow.tsx` | check no extrato |
 | Fluxo financeiro | `components/FinancialFluxChart.tsx` + `components/flux/*` | UI + `hooks/` |
 | Heatmap de caixa | `components/CashHeatmap.tsx` + calendário/painel | UI |
 | Drawer categoria | `components/finance/DashboardCategoryDrawer.tsx` | UI |

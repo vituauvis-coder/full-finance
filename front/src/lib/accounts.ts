@@ -27,6 +27,15 @@ export function isBankAccount(account: Account) {
     return account.type && !isCardAccountType(account.type);
 }
 
+/** Mesma regra do legado `isCashBalanceAccountType` — saldo em conta no dashboard. */
+export function isCashBalanceAccountType(type?: string) {
+    const t = String(type ?? '');
+    if (isCardAccountType(t)) return false;
+    if (t === 'investimento' || t === 'cofrinho') return false;
+    if (t === 'alimentacao' || t === 'refeicao') return false;
+    return Boolean(t);
+}
+
 export function sortedBankAccounts(accounts: Account[]) {
     return accounts.filter(isBankAccount).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
 }

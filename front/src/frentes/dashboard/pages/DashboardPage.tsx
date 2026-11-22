@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
 import { CivilPeriodToolbar } from '../../../components/finance/CivilPeriodToolbar';
-import { DashboardSummaryCards } from '../../../components/finance/MovementSummaryCards';
+import { DashboardTriColumn } from '../components/DashboardTriColumn';
+import { DashboardPageFilterBar } from '../components/DashboardPageFilterBar';
 import { useFinanceData } from '../../../app/FinanceDataProvider';
 import { useCivilPeriodState } from '../../../hooks/useCivilPeriodState';
-import { CashHeatmap } from '../components/CashHeatmap';
 import { FinancialFluxChart } from '../components/FinancialFluxChart';
-import { PendingCashOuts } from '../components/PendingCashOuts';
 import { useDashboardFacets } from '../context/DashboardFacetsContext';
 import { computeDashboardMetrics, type DashboardMetricsDisplay } from '../domain/dashboardMetrics';
 import { acceptedOutgoingSplits } from '../domain/splitRequestsForBalance';
@@ -35,13 +34,14 @@ export function DashboardPage() {
 
     const currency = data?.userProfile?.currency ?? 'BRL';
     const facets = facetsCtx?.facets ?? { gains: new Set<'paid' | 'unpaid'>(), expenses: new Set() };
-    const expenseCategory = facetsCtx?.expenseCategory ?? '';
+    const expenseCategories = facetsCtx?.expenseCategories ?? new Set<string>();
+    const expenseCategoriesKey = [...expenseCategories].sort().join('|');
     const facetKey =
         [...facets.gains].sort().join(',') +
         '|' +
         [...facets.expenses].sort().join(',') +
         '|' +
-        expenseCategory;
+        expenseCategoriesKey;
 
     useEffect(() => {
         if (!data) return;
@@ -54,8 +54,10 @@ export function DashboardPage() {
             expenses: data.userExpenses,
             accounts: data.userAccounts,
             currency,
-            expenseCategory: expenseCategory || undefined,
-            splitBundle: data.expenseSplitRequests
+            expenseCategories: expenseCategories.size > 0 ? expenseCategories : undefined,
+            splitBundle: data.expenseSplitRequests,
+            financeData: data,
+            userProfile: data.userProfile
         }).then((next) => {
             if (!cancelled) setCards(next);
         });
@@ -77,7 +79,7 @@ export function DashboardPage() {
     }
 
     return (
-        <section id="dashboard-page" className="page active dashboard-page--modern">
+        <section id="dashboard-page" className="page active dashboard-page--modern dashboard-page--compact">
             <CivilPeriodToolbar
                 period={period}
                 year={year}
@@ -85,8 +87,8 @@ export function DashboardPage() {
                 onYearChange={onYearChange}
                 accent="dashboard"
             />
-            <DashboardSummaryCards {...cards} />
-            <PendingCashOuts currency={currency} />
+            <DashboardPageFilterBar />
+            <DashboardTriColumn period={period} civilYear={year} data={data} currency={currency} metrics={cards} />
             <FinancialFluxChart
                 period={period}
                 civilYear={year}
@@ -94,24 +96,13 @@ export function DashboardPage() {
                 expenses={data.userExpenses}
                 accounts={data.userAccounts}
                 facets={facets}
-                expenseCategory={expenseCategory || undefined}
+                expenseCategories={expenseCategories.size > 0 ? expenseCategories : undefined}
                 currency={currency}
                 userProfile={data.userProfile}
                 splitRequests={acceptedOutgoingSplits(data.expenseSplitRequests)}
                 splitBundle={data.expenseSplitRequests}
                 onSelectMonth={selectChartMonth}
             />
-            <CashHeatmap
-                period={period}
-                civilYear={year}
-                gains={data.userGains}
-                expenses={data.userExpenses}
-                accounts={data.userAccounts}
-                currency={currency}
-            />
-            <footer className="beta-footer">
-                <span data-app-brand="beta-footer">Meu Mundo — React</span>
-            </footer>
         </section>
     );
 }

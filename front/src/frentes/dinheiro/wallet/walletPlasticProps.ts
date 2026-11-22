@@ -2,6 +2,7 @@ import {
     buildPlasticInlineStyle,
     resolvePlasticColors
 } from '@legacy/js/features/finance/account-plastic-appearance.js';
+import { accountShortId } from '../../../lib/accountIdentity';
 import type { Account } from '../../../lib/types/finance';
 
 export type PlasticSlot = 'credit' | 'debit' | 'food' | 'meal';
@@ -26,6 +27,8 @@ export function buildPlasticMotorPayload(
 
     return {
         id: card.id,
+        idTag: accountShortId(card.id),
+        idFull: card.id,
         name: opts.displayName?.trim() || card.name,
         slot,
         walletMode: opts.walletMode,

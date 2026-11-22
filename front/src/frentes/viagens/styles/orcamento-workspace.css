@@ -2035,7 +2035,7 @@
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
+    gap: 0.4rem;
 }
 
 #viagens-page .orc-cat-row {
@@ -2378,20 +2378,17 @@
 #viagens-page .orc-exp-view {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    align-items: stretch;
-    gap: 0.15rem;
+    align-items: center;
+    gap: 0.2rem;
     list-style: none;
 }
 
 #viagens-page .orc-exp-view__hit {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto;
-    align-items: center;
-    gap: 0.45rem;
+    display: block;
     width: 100%;
     min-width: 0;
     margin: 0;
-    padding: 0.45rem 0.55rem;
+    padding: 0.5rem 0.6rem;
     border: 1px solid color-mix(in srgb, var(--v-borda) 45%, transparent);
     border-radius: 0.6rem;
     background: color-mix(in srgb, var(--v-campo) 96%, var(--v-painel));
@@ -2411,11 +2408,35 @@
     outline: none;
 }
 
+#viagens-page .orc-exp-view__main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(6.5rem, auto);
+    align-items: start;
+    gap: 0.35rem 0.75rem;
+}
+
 #viagens-page .orc-exp-view__copy {
     display: flex;
     flex-direction: column;
-    gap: 0.12rem;
+    gap: 0.2rem;
     min-width: 0;
+}
+
+#viagens-page .orc-exp-view__aside {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: flex-start;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
+#viagens-page .orc-exp-view__aside-foot {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.35rem;
+    min-height: 1rem;
 }
 
 #viagens-page .orc-exp-view__title {
@@ -2436,15 +2457,33 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.25rem;
-    font-size: 0.6rem;
+    gap: 0.35rem 0.5rem;
+    font-size: 0.625rem;
     font-weight: 650;
+    line-height: 1.25;
     color: color-mix(in srgb, var(--v-tinta) 52%, transparent);
 }
 
-#viagens-page .orc-exp-view__meta > * + *:not(.orc-exp-view__chip) {
-    padding-left: 0.35rem;
-    border-left: 1px solid color-mix(in srgb, var(--v-tinta) 12%, transparent);
+#viagens-page .orc-exp-view__chips {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.22rem;
+}
+
+#viagens-page .orc-exp-view__date {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+#viagens-page .orc-exp-view__dest {
+    flex: 1 1 100%;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.6rem;
+    opacity: 0.92;
 }
 
 #viagens-page .orc-exp-view__chip {
@@ -2488,17 +2527,23 @@
     font-variant-numeric: tabular-nums;
     color: var(--v-turquesa);
     white-space: nowrap;
+    line-height: 1.2;
 }
 
 #viagens-page .orcamento-author {
-    font-size: 0.65rem;
+    max-width: 7.5rem;
+    font-size: 0.6rem;
     font-weight: 650;
-    letter-spacing: 0.02em;
-    color: color-mix(in srgb, var(--v-tinta) 55%, transparent);
+    letter-spacing: 0.01em;
+    color: color-mix(in srgb, var(--v-tinta) 50%, transparent);
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: right;
 }
 
 #viagens-page .orc-exp-view__chev {
+    flex-shrink: 0;
     opacity: 0.35;
     color: color-mix(in srgb, var(--v-tinta) 50%, transparent);
 }
@@ -3429,4 +3474,67 @@
     #viagens-page .orc-exp-edit__input--amount {
         text-align: left;
     }
+}
+
+#viagens-page .orc-finance-ledger {
+    border-radius: 12px;
+    border: 1px solid color-mix(in srgb, var(--v-borda, rgba(255, 255, 255, 0.12)) 80%, transparent);
+    background: color-mix(in srgb, var(--v-painel, rgba(20, 20, 28, 0.5)) 92%, transparent);
+    padding: 0.65rem 0.75rem;
+}
+
+#viagens-page .orc-finance-ledger__head {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--v-legenda, rgba(244, 244, 246, 0.58));
+    margin-bottom: 0.5rem;
+}
+
+#viagens-page .orc-finance-ledger__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+#viagens-page .orc-finance-ledger__row {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    gap: 0.35rem 0.55rem;
+    align-items: center;
+    font-size: 0.82rem;
+}
+
+#viagens-page .orc-finance-ledger__kind {
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--v-turquesa, #3dd6c3);
+}
+
+#viagens-page .orc-finance-ledger__row--gasto_cofrinho .orc-finance-ledger__kind {
+    color: var(--v-coral, #ff5a36);
+}
+
+#viagens-page .orc-finance-ledger__desc {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#viagens-page .orc-finance-ledger__amt {
+    font-variant-numeric: tabular-nums;
+}
+
+#viagens-page .orc-finance-ledger__author {
+    grid-column: 2 / -1;
+    font-size: 0.72rem;
+    color: var(--v-legenda, rgba(244, 244, 246, 0.58));
 }

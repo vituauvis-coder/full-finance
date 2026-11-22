@@ -1,5 +1,6 @@
 export {
     buildWalletPlasticHtml,
     buildWalletPlasticsColumnHtml,
-    buildWalletAccountCardsHtml
+    buildWalletAccountCardsHtml,
+    buildWalletPlasticPlaceholderHtml
 } from '../../legacy-web/js/features/finance/wallet-plastic.js';

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { Trip } from '../types';
+import type { Trip, TripFinanceMovementLine } from '../types';
 import type { TripDraft } from './ViagemFicha';
 import { TripCalendarCard } from './TripCalendarCard';
 import { TripChecklistPanel } from './TripChecklistPanel';
@@ -13,9 +13,17 @@ type Props = {
     onPatch: (fn: (d: TripDraft) => TripDraft) => void;
     scenarioCount?: number;
     onOpenSimulador?: () => void;
+    financeMovements?: TripFinanceMovementLine[];
 };
 
-export function TripFichaTopRow({ trip, draft, onPatch, scenarioCount = 0, onOpenSimulador }: Props) {
+export function TripFichaTopRow({
+    trip,
+    draft,
+    onPatch,
+    scenarioCount = 0,
+    onOpenSimulador,
+    financeMovements = []
+}: Props) {
     const checks = draft.payload.checks ?? [];
     const documents = draft.payload.documents ?? [];
     const destinations = draft.payload.destinations ?? [];
@@ -41,7 +49,12 @@ export function TripFichaTopRow({ trip, draft, onPatch, scenarioCount = 0, onOpe
                 scenarioCount={scenarioCount}
                 onOpenSimulador={onOpenSimulador}
             />
-            <TripResumoPanel trip={trip} draft={draft} destinations={destinations} />
+            <TripResumoPanel
+                trip={trip}
+                draft={draft}
+                destinations={destinations}
+                financeMovements={financeMovements}
+            />
             <TripChecklistPanel checks={checks} documents={documents} onPatch={onPatch} />
         </div>
     );
