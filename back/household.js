@@ -56,11 +56,15 @@ export function expensesOnHouseholdAccountsSql(uidParamIndex = 1) {
     )`;
 }
 
-/** Saída/ganho visível pelo dono ou por conta compartilhada da casa. */
+/**
+ * @param {number} uidParamIndex
+ * @param {string | null | undefined} alias Tabela aliasada (`e`); omita ou `''` em UPDATE/DELETE sem alias.
+ */
 export function expenseAccessibleToUserSql(uidParamIndex = 1, alias = 'e') {
+    const prefix = alias ? `${alias}.` : '';
     return `(
-        ${alias}.user_id = $${uidParamIndex}
-        OR ${alias}.account_id IN (
+        ${prefix}user_id = $${uidParamIndex}
+        OR ${prefix}account_id IN (
             SELECT a.id FROM accounts a
             WHERE ${accountsVisibleToUserSql(uidParamIndex)}
         )

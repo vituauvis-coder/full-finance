@@ -1588,7 +1588,7 @@ app.put('/api/expenses/:id', requireAuth, async (req, res) => {
                 split_request_id AS "splitRequestId",
                 recurrence_group_id AS "recurrenceGroupId"
              FROM expenses
-             WHERE id = $1 AND ${expenseAccessibleToUserSql(2)}`,
+             WHERE id = $1 AND ${expenseAccessibleToUserSql(2, '')}`,
             [req.params.id, uid]
         );
         const existing = existingRows[0] || null;
@@ -1639,7 +1639,7 @@ app.put('/api/expenses/:id', requireAuth, async (req, res) => {
         const { rows: updatedRows } = await query(
             `UPDATE expenses
              SET ${sets.join(', ')}
-             WHERE id = $${idParam} AND ${expenseAccessibleToUserSql(uidParam)}
+             WHERE id = $${idParam} AND ${expenseAccessibleToUserSql(uidParam, '')}
              RETURNING
                 id,
                 user_id AS "userId",

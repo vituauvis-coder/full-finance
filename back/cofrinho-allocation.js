@@ -845,7 +845,7 @@ export function registerCofrinhoRoutes(app, requireAuth) {
                     }
                 }
 
-                const expenseAccessWhere = `id = $1 AND ${expenseAccessibleToUserSql(2)}`;
+                const expenseAccessWhere = `id = $1 AND ${expenseAccessibleToUserSql(2, '')}`;
                 if (existing.allocatedExpenseId) {
                     await client.query(`UPDATE expenses SET amount = $3 WHERE ${expenseAccessWhere}`, [
                         existing.allocatedExpenseId,
@@ -935,11 +935,11 @@ export function registerCofrinhoRoutes(app, requireAuth) {
                 if (existing.allocatedExpenseId) {
                     const { rows: allocExp } = await client.query(
                         `SELECT account_id AS "accountId", date, description, amount
-                         FROM expenses WHERE id = $1 AND ${expenseAccessibleToUserSql(2)}`,
+                         FROM expenses WHERE id = $1 AND ${expenseAccessibleToUserSql(2, '')}`,
                         [existing.allocatedExpenseId, uid]
                     );
                     poolTemplate = allocExp[0];
-                    await client.query(`DELETE FROM expenses WHERE id = $1 AND ${expenseAccessibleToUserSql(2)}`, [
+                    await client.query(`DELETE FROM expenses WHERE id = $1 AND ${expenseAccessibleToUserSql(2, '')}`, [
                         existing.allocatedExpenseId,
                         uid
                     ]);
