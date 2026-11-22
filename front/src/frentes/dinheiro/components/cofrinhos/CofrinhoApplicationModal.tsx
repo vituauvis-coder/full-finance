@@ -47,6 +47,10 @@ export function CofrinhoApplicationModal({
             ? poolMonths
             : [{ yearMonth: yearMonth, label: yearMonth, amount: poolMax }];
 
+    const selectedPoolMonth = poolChoices.find((p) => p.yearMonth === poolYearMonth);
+    const effectivePoolMax =
+        poolMax > 0.001 ? poolMax : Math.max(0, Number(selectedPoolMonth?.amount) || 0);
+
     useEffect(() => {
         if (!open) return;
         setError(null);
@@ -73,8 +77,8 @@ export function CofrinhoApplicationModal({
             setError('Informe caixinha e valor válido');
             return;
         }
-        if (value > poolMax + 0.001) {
-            setError(`Valor maior que o saldo disponível (${formatBRL(poolMax, currency)}).`);
+        if (value > effectivePoolMax + 0.001) {
+            setError(`Valor maior que o saldo disponível (${formatBRL(effectivePoolMax, currency)}).`);
             return;
         }
         const ref = yearMonthToReferenceMonth(poolYearMonth);
@@ -135,8 +139,10 @@ export function CofrinhoApplicationModal({
                             Pool de {poolChoices[0]?.label ?? poolYearMonth}
                         </span>
                     )}
-                    <strong className="cofrinho-allocation-form__pool-value">{formatBRL(poolMax, currency)}</strong>
-                    {poolMax <= 0.001 && poolMonths.some((p) => p.amount > 0.001) ? (
+                    <strong className="cofrinho-allocation-form__pool-value">
+                        {formatBRL(effectivePoolMax, currency)}
+                    </strong>
+                    {effectivePoolMax <= 0.001 && poolMonths.some((p) => p.amount > 0.001) ? (
                         <p className="cofrinho-allocation-form__pool-hint">
                             O saldo pendente está em outro mês civil — escolha o mês acima (igual à data da saída «Pool»).
                         </p>

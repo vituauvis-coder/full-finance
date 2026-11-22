@@ -4,6 +4,7 @@
  */
 import crypto from 'node:crypto';
 import { query, withTransaction } from './db.js';
+import { accountsVisibleToUserSql, expensesOnHouseholdAccountsSql } from './household.js';
 import { referenceOnlyForUserMovement } from './reference-only.js';
 import { safeUpsertBalanceSnapshot } from './balance-snapshot.js';
 import { ensureCofrinhoViagemLedgerColumns } from './migrations/cofrinho-viagem-ledger.js';
@@ -227,13 +228,13 @@ async function deleteBucketSubcategory(userId, subcategoryId, client) {
 }
 
 const POOL_EXPENSE_CORE_SQL = `
-    LOWER(TRIM(category)) = LOWER(TRIM($2))
-    AND is_paid IS NOT FALSE
-    AND allocation_parent_id IS NULL
-    AND COALESCE(amount, 0) > 0.001
+    LOWER(TRIM(e.category)) = LOWER(TRIM($2))
+    AND e.is_paid IS NOT FALSE
+    AND e.allocation_parent_id IS NULL
+    AND COALESCE(e.amount, 0) > 0.001
     AND (
-        subcategory IS NULL OR TRIM(subcategory) = ''
-        OR LOWER(TRIM(subcategory)) = LOWER('${COFRINHO_POOL_SUBCATEGORY}')
+        e.subcategory IS NULL OR TRIM(e.subcategory) = ''
+        OR LOWER(TRIM(e.subcategory)) = LOWER('${COFRINHO_POOL_SUBCATEGORY}')
     )
 `;
 
@@ -243,20 +244,22 @@ async function fetchPoolExpensesForMonth(uid, ym, client = null, sourceExpenseId
     if (!start || !end) return [];
     if (sourceExpenseId) {
         const { rows } = await db.query(
-            `SELECT id, account_id AS "accountId", amount, description, date, category, subcategory
-             FROM expenses
-             WHERE id = $3 AND user_id = $1 AND ${POOL_EXPENSE_CORE_SQL}`,
+            `SELECT e.id, e.account_id AS "accountId", e.amount, e.description, e.date, e.category, e.subcategory
+             FROM expenses e
+             WHERE e.id = $3
+               AND (${expensesOnHouseholdAccountsSql(1)} OR e.user_id = $1)
+               AND ${POOL_EXPENSE_CORE_SQL}`,
             [uid, COFRINHO_CATEGORY, sourceExpenseId]
         );
         return rows;
     }
     const { rows } = await db.query(
-        `SELECT id, account_id AS "accountId", amount, description, date, category, subcategory
-         FROM expenses
-         WHERE user_id = $1
+        `SELECT e.id, e.account_id AS "accountId", e.amount, e.description, e.date, e.category, e.subcategory
+         FROM expenses e
+         WHERE ${expensesOnHouseholdAccountsSql(1)}
            AND ${POOL_EXPENSE_CORE_SQL}
-           AND date >= $3::date AND date < $4::date
-         ORDER BY date ASC, created_at ASC`,
+           AND e.date >= $3::date AND e.date < $4::date
+         ORDER BY e.date ASC, e.created_at ASC`,
         [uid, COFRINHO_CATEGORY, start, end]
     );
     return rows;
@@ -288,9 +291,8 @@ async function consumePoolFifo(client, uid, ym, amount, preferredSourceId = null
         const take = Math.min(avail, remaining);
         const newAmt = Math.round((avail - take) * 100) / 100;
         // Zerar em vez de apagar: a saída alocada referencia allocation_parent_id → FK em expenses.
-        await client.query(`UPDATE expenses SET amount = $3 WHERE id = $1 AND user_id = $2`, [
+        await client.query(`UPDATE expenses SET amount = $2 WHERE id = $1`, [
             row.id,
-            uid,
             newAmt <= 0.001 ? 0 : newAmt
         ]);
         if (!primarySourceId) primarySourceId = row.id;
@@ -342,16 +344,15 @@ async function insertAllocatedExpense(client, uid, poolRow, bucketName, amount, 
 async function restorePoolAmount(client, uid, sourceExpenseId, amount, fallbackPoolRow) {
     if (sourceExpenseId) {
         const { rows } = await client.query(
-            `SELECT id, amount FROM expenses WHERE id = $1 AND user_id = $2`,
-            [sourceExpenseId, uid]
+            `SELECT e.id, e.amount
+             FROM expenses e
+             WHERE e.id = $2
+               AND (${expensesOnHouseholdAccountsSql(1)} OR e.user_id = $1)`,
+            [uid, sourceExpenseId]
         );
         if (rows[0]) {
             const newAmt = Math.round(((parseFloat(rows[0].amount) || 0) + amount) * 100) / 100;
-            await client.query(`UPDATE expenses SET amount = $3 WHERE id = $1 AND user_id = $2`, [
-                sourceExpenseId,
-                uid,
-                newAmt
-            ]);
+            await client.query(`UPDATE expenses SET amount = $2 WHERE id = $1`, [sourceExpenseId, newAmt]);
             return sourceExpenseId;
         }
     }
@@ -669,10 +670,10 @@ export function registerCofrinhoRoutes(app, requireAuth) {
 
         let accountId = req.body.accountId ? String(req.body.accountId).trim() : null;
         if (accountId) {
-            const { rows: acc } = await query(`SELECT id FROM accounts WHERE id = $1 AND user_id = $2`, [
-                accountId,
-                uid
-            ]);
+            const { rows: acc } = await query(
+                `SELECT id FROM accounts a WHERE a.id = $1 AND ${accountsVisibleToUserSql(2)}`,
+                [accountId, uid]
+            );
             if (!acc[0]) accountId = null;
         }
 
