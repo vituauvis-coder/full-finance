@@ -9,6 +9,8 @@ type Props = {
     saving: boolean;
     message: string | null;
     onSubmit: (e: FormEvent) => void;
+    /** Dentro de `profile-modern__bento-stack` (sem célula própria no bento). */
+    nested?: boolean;
 };
 
 export function ProfileBalanceCard({
@@ -17,11 +19,12 @@ export function ProfileBalanceCard({
     onBalanceChange,
     saving,
     message,
-    onSubmit
+    onSubmit,
+    nested
 }: Props) {
     return (
         <ProfileCard
-            slot="half"
+            slot={nested ? false : 'half'}
             title="Ajuste de saldo"
             subtitle="Iguala o saldo do dashboard ao valor real (conta principal, se houver)"
             icon="payments"

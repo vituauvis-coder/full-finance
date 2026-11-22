@@ -57,6 +57,74 @@
     margin-bottom: 0.5rem;
 }
 
+.ui-date-picker__nav--period {
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+}
+
+.ui-date-picker__nav--months {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.ui-date-picker__period-picks {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-width: 0;
+}
+
+.ui-date-picker__period-select {
+    min-width: 0;
+    flex: 1 1 auto;
+    max-width: 100%;
+    padding: 0.35rem 1.75rem 0.35rem 0.55rem;
+    border-radius: 8px;
+    border: 1px solid var(--dash-border, var(--border-color));
+    background: var(--dash-layer-inset, var(--bg-color));
+    color: var(--dash-text-primary, var(--text-color));
+    font-size: 0.78rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23999' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.45rem center;
+}
+
+.ui-date-picker__period-select--year {
+    flex: 0 0 4.75rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.ui-date-picker__nav--months .ui-date-picker__period-select--year {
+    flex: 1 1 auto;
+    text-align: center;
+}
+
+.ui-date-picker__month-grid-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.1rem;
+    height: 2.1rem;
+    padding: 0;
+    border: none;
+    border-radius: 10px;
+    background: var(--dash-layer-inset, var(--bg-color));
+    color: var(--dash-text-secondary, var(--text-light));
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.ui-date-picker__month-grid-btn:hover {
+    background: color-mix(in srgb, var(--dash-text-primary, #000) 8%, var(--dash-layer-inset, #e8e8ed));
+    color: var(--dash-text-primary, var(--text-color));
+}
+
+.ui-date-picker__footer--compact {
+    justify-content: flex-start;
+}
+
 .ui-date-picker__month {
     margin: 0;
     font-size: 0.875rem;

@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import type { FluxChartSeries, FluxChartViz } from '../../hooks/useFinancialFluxChart';
 import { buildFluxChartData, computeLeftYDomain, type FluxPoint } from './fluxChartData';
-import { computeSaldoAxisDomain, readFinancialChartColors } from './fluxChartTheme';
+import { computeSaldoAxisDomain } from './fluxChartTheme';
+import { useFluxAccentColors } from './useFluxAccentColors';
 
 export function useFluxChartModel(params: {
     series: FluxChartSeries;
@@ -11,7 +12,7 @@ export function useFluxChartModel(params: {
     yearScope: boolean;
     viz: FluxChartViz;
 }) {
-    const colors = useMemo(() => readFinancialChartColors(), []);
+    const { colors } = useFluxAccentColors();
     const data = useMemo(() => buildFluxChartData(params.series), [params.series]);
     const emphasis = params.yearScope ? params.activeMonthIndex : -1;
     const highlightLabel = emphasis >= 0 ? data[emphasis]?.label : null;

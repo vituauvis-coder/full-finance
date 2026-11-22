@@ -3,8 +3,7 @@ import { ProfileBalanceCard } from '../components/ProfileBalanceCard';
 import { ProfileDangerZoneCard } from '../components/ProfileDangerZoneCard';
 import { ProfileDeleteAccountDialog } from '../components/ProfileDeleteAccountDialog';
 import { ProfileIdentityCard } from '../components/ProfileIdentityCard';
-import { ProfilePersonalCard } from '../components/ProfilePersonalCard';
-import { ProfileSecurityCard } from '../components/ProfileSecurityCard';
+import { ProfileAccountAccessCard } from '../components/ProfileAccountAccessCard';
 import { ProfileTravelDocumentCard } from '../components/ProfileTravelDocumentCard';
 import { ProfileWalletPrefsCard } from '../components/ProfileWalletPrefsCard';
 import { useProfilePage } from '../hooks/useProfilePage';
@@ -47,20 +46,18 @@ export function ProfilePage() {
                         onPhotoPick={(file) => void m.uploadPhoto(file)}
                         onPhotoRemove={() => void m.removePhoto()}
                     />
-                    <ProfilePersonalCard
+                    <ProfileAccountAccessCard
                         email={email}
                         name={m.name}
                         onNameChange={m.setName}
-                        saving={m.savingName}
-                        message={m.message}
-                        onSubmit={(e) => void m.saveName(e)}
+                        savingName={m.savingName}
+                        nameMessage={m.message}
+                        onSaveName={(e) => void m.saveName(e)}
+                        savingPassword={m.savingPassword}
+                        passwordMessage={m.passwordMessage}
+                        onSavePassword={m.savePassword}
                     />
                     <ProfileTravelDocumentCard />
-                    <ProfileSecurityCard
-                        saving={m.savingPassword}
-                        message={m.passwordMessage}
-                        onSubmit={m.savePassword}
-                    />
                     <ProfileAppearanceCard
                         currency={m.currency}
                         savingCurrency={m.savingCurrency}
@@ -68,15 +65,28 @@ export function ProfilePage() {
                         uiSoundsEnabled={m.uiSoundsEnabled}
                         onCurrencyChange={(v) => void m.saveCurrency(v)}
                         onUiSoundsChange={m.setUiSounds}
+                        screenColorDraft={m.screenColorDraft}
+                        screenColorsDirty={m.screenColorsDirty}
+                        savingScreenColors={m.savingScreenColors}
+                        screenColorsMessage={m.screenColorsMessage}
+                        onScreenColorChange={m.setScreenColor}
+                        onScreenColorReset={m.resetScreenColor}
+                        onScreenColorsResetAll={m.resetAllScreenColors}
+                        onApplyScreenColorPreset={m.applyScreenColorPreset}
+                        onSaveScreenColors={() => void m.saveScreenColors()}
                     />
-                    <ProfileBalanceCard
-                        currencySymbol={m.currencySymbol}
-                        balance={m.balanceInput}
-                        onBalanceChange={m.setBalanceInput}
-                        saving={m.savingBalance}
-                        message={m.balanceMessage}
-                        onSubmit={(e) => void m.saveBalance(e)}
-                    />
+                    <div className="profile-modern__bento-stack profile-modern__bento-cell profile-modern__bento-cell--half">
+                        <ProfileBalanceCard
+                            currencySymbol={m.currencySymbol}
+                            balance={m.balanceInput}
+                            onBalanceChange={m.setBalanceInput}
+                            saving={m.savingBalance}
+                            message={m.balanceMessage}
+                            onSubmit={(e) => void m.saveBalance(e)}
+                            nested
+                        />
+                        <ProfileDangerZoneCard onDeleteClick={m.openDeleteDialog} />
+                    </div>
                     <ProfileWalletPrefsCard
                         prefs={m.financePrefs}
                         saving={m.savingFinance}
@@ -84,7 +94,6 @@ export function ProfilePage() {
                         onChange={m.patchFinancePrefs}
                         onSubmit={(e) => void m.saveFinancePrefs(e)}
                     />
-                    <ProfileDangerZoneCard onDeleteClick={m.openDeleteDialog} />
                 </div>
             </div>
             <ProfileDeleteAccountDialog

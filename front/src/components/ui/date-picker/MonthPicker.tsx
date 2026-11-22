@@ -9,12 +9,10 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { MaterialIcon } from '../../icons/MaterialIcon';
-import { monthTitlePt } from '../../../lib/calendarUi';
+import { MONTH_SHORT_PT, monthTitlePt } from '../../../lib/calendarUi';
 
 const POP_WIDTH_PX = 288;
 const POP_ESTIMATE_PX = 280;
-
-const MONTH_SHORT_PT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'] as const;
 
 type PopCoords = { top: number; left: number; width: number };
 

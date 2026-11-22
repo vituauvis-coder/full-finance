@@ -5,6 +5,7 @@ import { useProfileData } from './useProfileData';
 import { useProfileDeleteAccount } from './useProfileDeleteAccount';
 import { useProfilePhoto } from './useProfilePhoto';
 import { useProfilePreferences } from './useProfilePreferences';
+import { useProfileScreenColors } from './useProfileScreenColors';
 import { useProfileThemeLabel } from './useProfileThemeLabel';
 
 export { PROFILE_UPDATED_EVENT, notifyProfileUpdated } from '../../../lib/profileEvents';
@@ -26,6 +27,7 @@ export function useProfilePage() {
         data.balanceInput,
         data.setProfile
     );
+    const screenColors = useProfileScreenColors(data.profile, data.setProfile);
 
     const saveCurrency = async (next: string) => {
         const saved = await preferences.saveCurrency(next);
@@ -69,6 +71,15 @@ export function useProfilePage() {
         financeMessage: preferences.financeMessage,
         savingFinance: preferences.savingFinance,
         saveFinancePrefs: preferences.saveFinancePrefs,
+        screenColorDraft: screenColors.draft,
+        screenColorsDirty: screenColors.dirty,
+        savingScreenColors: screenColors.saving,
+        screenColorsMessage: screenColors.message,
+        setScreenColor: screenColors.setScreenColor,
+        resetScreenColor: screenColors.resetScreenColor,
+        resetAllScreenColors: screenColors.resetAll,
+        applyScreenColorPreset: screenColors.applyThemePreset,
+        saveScreenColors: screenColors.save,
         ...deleteAccount
     };
 }

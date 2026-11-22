@@ -65,12 +65,12 @@ export function DashboardVisualWallet({
                     </h2>
                     {showCta ? (
                         <Link
-                            className="dashboard-wallet__icon-btn dashboard-wallet__icon-btn--wallet"
+                            className="dashboard-wallet__carteira-cta"
                             to="/dinheiro/carteira"
-                            title="Ver carteira"
-                            aria-label="Ver carteira"
+                            title="Abrir página da carteira"
+                            aria-label="Abrir carteira"
                         >
-                            <MaterialIcon name="arrow_forward" variant="app" opticalSize={18} aria-hidden />
+                            <MaterialIcon name="chevron_right" variant="app" opticalSize={16} aria-hidden />
                         </Link>
                     ) : null}
                 </div>

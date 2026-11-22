@@ -16,7 +16,8 @@ import { formatBRL } from '../../../../lib/format';
 import type { FluxChartSeries, FluxChartViz } from '../../hooks/useFinancialFluxChart';
 import { FluxChartXTick } from './FluxChartXTick';
 import { FluxChartTooltip } from './FluxChartTooltip';
-import { barFill, barFillOutflow, chartAxisColors, colorWithAlpha, readDashboardExpenseBuckets } from './fluxChartTheme';
+import { barFill, barFillOutflow, chartAxisColors, colorWithAlpha } from './fluxChartTheme';
+import { useFluxAccentColors } from './useFluxAccentColors';
 import {
     FluxBalancoNegPattern,
     balancoNegPatternUrl,
@@ -73,7 +74,7 @@ export function FinancialFluxChartView({
         viz
     });
     const balancoNegPatternId = useBalancoNegPatternId();
-    const buckets = useMemo(() => readDashboardExpenseBuckets(), []);
+    const { buckets } = useFluxAccentColors();
 
     const xAxis = (
         <XAxis

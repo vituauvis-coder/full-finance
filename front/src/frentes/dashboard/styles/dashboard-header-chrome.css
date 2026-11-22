@@ -6,8 +6,31 @@
     padding: 0.65rem 1rem 0.65rem 0.85rem;
 }
 
+.page-content--dashboard-modern > .app-header {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.page-content--dashboard-modern > .app-header .header-left {
+    flex: 0 0 auto;
+}
+
 .page-content--dashboard-modern .header-right {
     gap: var(--dash-toolbar-gap);
+    flex: 1 1 0;
+    min-width: 0;
+    justify-content: flex-end;
+}
+
+.page-content--dashboard-modern > .app-header .header-right #dashboard-header-actions {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: calc(100% - 3.25rem);
+}
+
+.page-content--dashboard-modern > .app-header .header-right .header-notifications {
+    flex-shrink: 0;
 }
 
 .page-content--dashboard-modern .page-toolbar {

@@ -4,6 +4,25 @@ export const WEEK_SHORT_PT = ['DOM.', 'SEG.', 'TER.', 'QUA.', 'QUI.', 'SEX.', 'S
 
 const LIFEOS_TZ = 'America/Sao_Paulo';
 
+export const MONTH_SHORT_PT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'] as const;
+
+export const MONTH_NAMES_PT = Array.from({ length: 12 }, (_, monthIndex) => {
+    const raw = new Date(2024, monthIndex, 1).toLocaleDateString('pt-BR', { month: 'long', timeZone: LIFEOS_TZ });
+    return raw.charAt(0).toUpperCase() + raw.slice(1);
+});
+
+/** Anos do seletor (desc); respeita min/max em ISO quando informados. */
+export function yearOptionsForPicker(min?: string, max?: string): number[] {
+    const now = new Date().getFullYear();
+    const parsedMin = min && /^\d{4}/.test(min) ? parseInt(min.slice(0, 4), 10) : 1920;
+    const parsedMax = max && /^\d{4}/.test(max) ? parseInt(max.slice(0, 4), 10) : now + 5;
+    const yMin = Math.min(parsedMin, parsedMax);
+    const yMax = Math.max(parsedMin, parsedMax);
+    const out: number[] = [];
+    for (let y = yMax; y >= yMin; y--) out.push(y);
+    return out;
+}
+
 export function dayKeyToYmd(key: string): { year: number; month: number; day: number } | null {
     const k = key.trim().slice(0, 10);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(k)) return null;

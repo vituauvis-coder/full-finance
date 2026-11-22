@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { CivilPeriodToolbar } from '../../../components/finance/CivilPeriodToolbar';
 import { DashboardTriColumn } from '../components/DashboardTriColumn';
-import { DashboardPageFilterBar } from '../components/DashboardPageFilterBar';
 import { useFinanceData } from '../../../app/FinanceDataProvider';
 import { useCivilPeriodState } from '../../../hooks/useCivilPeriodState';
 import { FinancialFluxChart } from '../components/FinancialFluxChart';
@@ -87,7 +86,6 @@ export function DashboardPage() {
                 onYearChange={onYearChange}
                 accent="dashboard"
             />
-            <DashboardPageFilterBar />
             <DashboardTriColumn period={period} civilYear={year} data={data} currency={currency} metrics={cards} />
             <FinancialFluxChart
                 period={period}

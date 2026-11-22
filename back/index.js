@@ -3225,6 +3225,20 @@ app.post('/api/profile/balance', requireAuth, async (req, res) => {
     }
 });
 
+app.post('/api/profile/password/verify', requireAuth, async (req, res) => {
+    const uid = req.session.userId;
+    const { rows } = await query(
+        `SELECT id, password_hash AS "passwordHash" FROM users WHERE id = $1`,
+        [uid]
+    );
+    const u = rows[0] || null;
+    const { currentPassword } = req.body || {};
+    if (!u || !bcrypt.compareSync(String(currentPassword || ''), u.passwordHash)) {
+        return res.status(400).json({ code: 'auth/wrong-password', error: 'Senha atual incorreta' });
+    }
+    res.json({ ok: true });
+});
+
 app.post('/api/profile/password', requireAuth, async (req, res) => {
     const uid = req.session.userId;
     const { rows } = await query(

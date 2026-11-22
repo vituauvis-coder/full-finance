@@ -1,5 +1,34 @@
 /* Faixa única — mesmas classes de entradas/saídas (movement-filter-ribbon) */
 
+/* Dentro do hero do dashboard (app-header) */
+.page-content--dashboard-modern > .app-header .dashboard-page-filter-ribbon--in-header {
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    overflow: visible;
+    min-width: 0;
+    --heatmap-gain-accent: var(--dash-chart-gain, var(--gains-accent, #10b981));
+    --heatmap-expense-accent: var(--dash-chart-expense, var(--expenses-accent, #f43f5e));
+}
+
+.page-content--dashboard-modern > .app-header .dashboard-page-filter-ribbon--in-header .movement-filter-ribbon__track {
+    justify-content: flex-end;
+    min-height: 2.5rem;
+    padding-bottom: 0;
+}
+
+/* Altura dos poços cinza = botão do sininho (2.5rem) */
+.page-content--dashboard-modern > .app-header .dashboard-page-filter-ribbon .movement-status-pills,
+.page-content--dashboard-modern > .app-header .dashboard-page-filter-ribbon .movement-filter-ribbon__group {
+    height: 2.5rem;
+}
+
+.page-content--dashboard-modern > .app-header .dashboard-page-filter-ribbon .movement-filter-ribbon__divider {
+    height: 1.85rem;
+}
+
 #dashboard-page.dashboard-page--modern .dashboard-page-filter-ribbon {
     margin: 0;
     padding: 0.6rem var(--dash-surface-pad-x);
@@ -10,7 +39,9 @@
     overflow: visible;
 }
 
-#dashboard-page.dashboard-page--modern .dashboard-page-filter-ribbon .movement-filter-ribbon__track {
+:is(#dashboard-page.dashboard-page--modern, .page-content--dashboard-modern > .app-header)
+    .dashboard-page-filter-ribbon
+    .movement-filter-ribbon__track {
     display: flex;
     flex-wrap: nowrap;
     align-items: center;
@@ -25,13 +56,17 @@
     -webkit-overflow-scrolling: touch;
 }
 
-#dashboard-page.dashboard-page--modern .dashboard-page-filter-ribbon .movement-filter-ribbon__status {
+:is(#dashboard-page.dashboard-page--modern, .page-content--dashboard-modern > .app-header)
+    .dashboard-page-filter-ribbon
+    .movement-filter-ribbon__status {
     display: inline-flex;
     flex-shrink: 0;
     align-items: center;
 }
 
-#dashboard-page.dashboard-page--modern .dashboard-page-filter-ribbon .movement-status-pills {
+:is(#dashboard-page.dashboard-page--modern, .page-content--dashboard-modern > .app-header)
+    .dashboard-page-filter-ribbon
+    .movement-status-pills {
     display: inline-flex;
     align-items: stretch;
     height: 2.125rem;
@@ -43,7 +78,9 @@
     box-sizing: border-box;
 }
 
-#dashboard-page.dashboard-page--modern .dashboard-page-filter-ribbon .movement-status-pill {
+:is(#dashboard-page.dashboard-page--modern, .page-content--dashboard-modern > .app-header)
+    .dashboard-page-filter-ribbon
+    .movement-status-pill {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -63,42 +100,45 @@
     transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 
-#dashboard-page.dashboard-page--modern .dashboard-page-filter-ribbon .movement-status-pill:hover {
+:is(#dashboard-page.dashboard-page--modern, .page-content--dashboard-modern > .app-header)
+    .dashboard-page-filter-ribbon
+    .movement-status-pill:hover {
     color: var(--dash-text-primary);
     background: var(--dash-layer-control);
 }
 
-#dashboard-page.dashboard-page--modern .dashboard-page-filter-ribbon .movement-status-pill.is-on {
-    color: var(--dash-text-primary);
-    background: var(--dash-layer-control);
-    box-shadow: inset 0 0 0 1px var(--dash-border-strong);
-}
-
-#dashboard-page.dashboard-page--modern
+/* Ativo — mesma saturação do mapa de calor (células in / out-light) */
+:is(#dashboard-page.dashboard-page--modern, .page-content--dashboard-modern > .app-header)
     .dashboard-page-filter-ribbon
     .movement-filter-ribbon__status[data-treemap-toolbar-accent='gains']
     .movement-status-pill.is-on {
-    color: var(--gains-accent, #10b981);
+    color: color-mix(in srgb, var(--heatmap-gain-accent, var(--gains-accent, #10b981)) 95%, #fff);
+    background: color-mix(in srgb, var(--heatmap-gain-accent, var(--gains-accent, #10b981)) 55%, var(--dash-layer-inset));
+    box-shadow: inset 0 0 0 1px
+        color-mix(in srgb, var(--heatmap-gain-accent, var(--gains-accent, #10b981)) 70%, var(--dash-border));
 }
 
-#dashboard-page.dashboard-page--modern
+:is(#dashboard-page.dashboard-page--modern, .page-content--dashboard-modern > .app-header)
     .dashboard-page-filter-ribbon
     .movement-filter-ribbon__status[data-treemap-toolbar-accent='expenses']
     .movement-status-pill.is-on {
-    color: var(--expenses-accent, #f43f5e);
+    color: color-mix(
+        in srgb,
+        var(--heatmap-expense-accent, var(--expenses-accent, #f43f5e)) 92%,
+        var(--dash-text-primary)
+    );
+    background: color-mix(
+        in srgb,
+        var(--heatmap-expense-accent, var(--expenses-accent, #f43f5e)) 28%,
+        var(--dash-layer-inset)
+    );
+    box-shadow: inset 0 0 0 1px
+        color-mix(in srgb, var(--heatmap-expense-accent, var(--expenses-accent, #f43f5e)) 48%, var(--dash-border));
 }
 
-[data-theme='dark']
-    #dashboard-page.dashboard-page--modern
+:is(#dashboard-page.dashboard-page--modern, .page-content--dashboard-modern > .app-header)
     .dashboard-page-filter-ribbon
-    .movement-filter-ribbon__status[data-treemap-toolbar-accent='gains']
-    .movement-status-pill.is-on {
-    background: rgba(52, 211, 153, 0.14);
-    box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.32);
-    color: #34d399;
-}
-
-#dashboard-page.dashboard-page--modern .dashboard-page-filter-ribbon .movement-filter-ribbon__divider {
+    .movement-filter-ribbon__divider {
     flex-shrink: 0;
     width: 1px;
     height: 1.5rem;
@@ -106,7 +146,9 @@
     background: var(--dash-border-strong);
 }
 
-#dashboard-page.dashboard-page--modern .dashboard-page-filter-ribbon .movement-filter-ribbon__group {
+:is(#dashboard-page.dashboard-page--modern, .page-content--dashboard-modern > .app-header)
+    .dashboard-page-filter-ribbon
+    .movement-filter-ribbon__group {
     display: inline-flex;
     flex-shrink: 0;
     align-items: center;
@@ -119,30 +161,37 @@
     box-sizing: border-box;
 }
 
-#dashboard-page.dashboard-page--modern .dashboard-page-filter-ribbon .movement-filter-ribbon__group--grow {
+:is(#dashboard-page.dashboard-page--modern, .page-content--dashboard-modern > .app-header)
+    .dashboard-page-filter-ribbon
+    .movement-filter-ribbon__group--grow {
     flex: 1 1 12rem;
     min-width: 10rem;
     max-width: 20rem;
 }
 
-#dashboard-page.dashboard-page--modern .dashboard-page-filter-ribbon .movement-filter-ribbon__group:focus-within {
+:is(#dashboard-page.dashboard-page--modern, .page-content--dashboard-modern > .app-header)
+    .dashboard-page-filter-ribbon
+    .movement-filter-ribbon__group:focus-within {
     border-color: var(--dash-border-strong);
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 12%, transparent);
 }
 
-#dashboard-page.dashboard-page--modern .dashboard-page-filter-ribbon .movement-filter-ribbon__glyph {
+:is(#dashboard-page.dashboard-page--modern, .page-content--dashboard-modern > .app-header)
+    .dashboard-page-filter-ribbon
+    .movement-filter-ribbon__glyph {
     flex-shrink: 0;
     font-size: 1.05rem !important;
     color: var(--dash-text-tertiary);
     opacity: 0.92;
 }
 
-#dashboard-page.dashboard-page--modern .dashboard-category-multi--ribbon {
+:is(#dashboard-page.dashboard-page--modern, .page-content--dashboard-modern > .app-header) .dashboard-category-multi--ribbon {
     flex: 1;
     min-width: 0;
 }
 
-#dashboard-page.dashboard-page--modern .dashboard-category-multi__trigger--ribbon {
+:is(#dashboard-page.dashboard-page--modern, .page-content--dashboard-modern > .app-header)
+    .dashboard-category-multi__trigger--ribbon {
     display: flex;
     align-items: center;
     gap: 0.35rem;
@@ -159,12 +208,15 @@
     padding: 0;
 }
 
-#dashboard-page.dashboard-page--modern .dashboard-category-multi__trigger--ribbon.is-active {
+:is(#dashboard-page.dashboard-page--modern, .page-content--dashboard-modern > .app-header)
+    .dashboard-category-multi__trigger--ribbon.is-active {
     color: var(--primary-color);
     font-weight: 650;
 }
 
-#dashboard-page.dashboard-page--modern .dashboard-category-multi__trigger--ribbon .dashboard-category-multi__summary {
+:is(#dashboard-page.dashboard-page--modern, .page-content--dashboard-modern > .app-header)
+    .dashboard-category-multi__trigger--ribbon
+    .dashboard-category-multi__summary {
     flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;

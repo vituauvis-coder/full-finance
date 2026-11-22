@@ -19,12 +19,19 @@ export const DASH_EXPENSE_BUCKETS = {
 
 export type DashboardExpenseBucketColors = typeof DASH_EXPENSE_BUCKETS;
 
+function readCssHexVar(name: string, fallback: string): string {
+    if (typeof document === 'undefined') return fallback;
+    const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return /^#[0-9a-f]{6}$/i.test(raw) ? raw.toLowerCase() : fallback;
+}
+
 export function readDashboardExpenseBuckets(): DashboardExpenseBucketColors {
     if (typeof document === 'undefined') return { ...DASH_EXPENSE_BUCKETS };
     const dark = document.documentElement.getAttribute('data-theme') === 'dark';
-    const orange = dark ? ORANGE_DARK : ORANGE_LIGHT;
+    const fallbackExpense = dark ? ORANGE_DARK : ORANGE_LIGHT;
+    const expense = readCssHexVar('--expenses-accent', fallbackExpense);
     const extra = dark ? EXTRA_YELLOW_DARK : EXTRA_YELLOW_LIGHT;
-    return { fixa: orange, fatura: orange, extra, cofrinhos: DASH_EXPENSE_BUCKETS.cofrinhos };
+    return { fixa: expense, fatura: expense, extra, cofrinhos: DASH_EXPENSE_BUCKETS.cofrinhos };
 }
 
 const DEFAULT = {
@@ -45,33 +52,57 @@ const DEFAULT_DARK = {
 
 export type FinancialChartColors = typeof DEFAULT;
 
+function profileFlowColors(dark: boolean): Pick<FinancialChartColors, 'ganhos' | 'gastos' | 'saldoNeg'> {
+    const base = dark ? DEFAULT_DARK : DEFAULT;
+    const ganhos = readCssHexVar('--gains-accent', base.ganhos);
+    const gastos = readCssHexVar('--expenses-accent', base.gastos);
+    return { ganhos, gastos, saldoNeg: gastos };
+}
+
 function dashboardModernDefaults(): FinancialChartColors {
     if (typeof document === 'undefined') return { ...DEFAULT };
-    const onDashboard = document.getElementById('dashboard-page')?.classList.contains('dashboard-page--modern');
     const dark = document.documentElement.getAttribute('data-theme') === 'dark';
-    if (onDashboard) return dark ? { ...DEFAULT_DARK } : { ...DEFAULT };
-    return { ...DEFAULT };
+    const base = dark ? { ...DEFAULT_DARK } : { ...DEFAULT };
+    const flow = profileFlowColors(dark);
+    return { ...base, ...flow };
 }
 
 export function readFinancialChartColors(): FinancialChartColors {
+    const dark =
+        typeof document !== 'undefined' &&
+        document.documentElement.getAttribute('data-theme') === 'dark';
+    const onDashboard =
+        typeof document !== 'undefined' &&
+        document.getElementById('dashboard-page')?.classList.contains('dashboard-page--modern');
+    const profileFlow = profileFlowColors(dark);
+
     try {
         const raw = localStorage.getItem(REPORTS_CHART_COLORS_KEY);
         if (!raw) return dashboardModernDefaults();
         const o = JSON.parse(raw) as Record<string, string>;
-        if (!o || typeof o !== 'object') return { ...DEFAULT };
+        if (!o || typeof o !== 'object') return dashboardModernDefaults();
         const norm = (hex: unknown, fallback: string) => {
             const s = String(hex ?? '').trim();
             return /^#[0-9a-f]{6}$/i.test(s) ? s.toLowerCase() : fallback;
         };
-        return {
+        const base = {
             ganhos: norm(o.ganhos, DEFAULT.ganhos),
             gastos: norm(o.gastos, DEFAULT.gastos),
-            saldoPos: norm(o.saldoPos, DEFAULT.saldoPos),
+            saldoPos: norm(o.saldoPos, dark ? DEFAULT_DARK.saldoPos : DEFAULT.saldoPos),
             saldoNeg: norm(o.saldoNeg, DEFAULT.saldoNeg),
-            saldoTotal: norm(o.saldoTotal, DEFAULT.saldoTotal)
+            saldoTotal: norm(o.saldoTotal, dark ? DEFAULT_DARK.saldoTotal : DEFAULT.saldoTotal)
         };
+        if (onDashboard) {
+            return {
+                ...base,
+                ganhos: profileFlow.ganhos,
+                gastos: profileFlow.gastos,
+                saldoNeg: profileFlow.saldoNeg
+            };
+        }
+        return base;
     } catch {
-        return { ...DEFAULT };
+        return dashboardModernDefaults();
     }
 }
 

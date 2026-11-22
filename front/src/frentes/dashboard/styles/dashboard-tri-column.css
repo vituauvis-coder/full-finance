@@ -74,7 +74,7 @@
 #dashboard-page.dashboard-page--modern .dashboard-wallet__head-lead {
     display: inline-flex;
     align-items: center;
-    gap: 0.28rem;
+    gap: 0.4rem;
     min-width: 0;
 }
 
@@ -126,14 +126,38 @@
     transform: translateY(0);
 }
 
-#dashboard-page.dashboard-page--modern .dashboard-wallet__icon-btn--wallet {
-    color: var(--primary-color);
-    border-color: color-mix(in srgb, var(--primary-color) 38%, var(--dash-border));
-    background: color-mix(in srgb, var(--primary-color) 10%, var(--dash-layer-inset));
+#dashboard-page.dashboard-page--modern .dashboard-wallet__carteira-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-left: -0.05rem;
+    padding: 0.15rem;
+    border: 0;
+    border-radius: 6px;
+    text-decoration: none;
+    background: transparent;
+    color: var(--dash-text-tertiary);
+    cursor: pointer;
+    transition: color 0.15s ease, opacity 0.15s ease;
 }
 
-#dashboard-page.dashboard-page--modern .dashboard-wallet__icon-btn--wallet .app-icon {
-    color: var(--primary-color);
+#dashboard-page.dashboard-page--modern .dashboard-wallet__carteira-cta .app-icon {
+    color: inherit;
+    opacity: 0.5;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-wallet__carteira-cta:hover {
+    color: var(--dash-text-secondary);
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-wallet__carteira-cta:hover .app-icon {
+    opacity: 0.85;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-wallet__carteira-cta:focus-visible {
+    outline: 2px solid var(--dash-focus-ring);
+    outline-offset: 2px;
 }
 
 #dashboard-page.dashboard-page--modern .dashboard-wallet__icon-btn--expense {
@@ -182,15 +206,15 @@
 }
 
 #dashboard-page.dashboard-page--modern .dashboard-wallet__account-tag {
-    font-size: 0.65rem;
+    font-size: 0.55rem;
     font-weight: 700;
     text-transform: capitalize;
     letter-spacing: 0.02em;
-    color: var(--dash-text-secondary);
-    padding: 0.15rem 0.5rem;
+    color: var(--dash-text-tertiary);
+    padding: 0.12rem 0.4rem;
     border-radius: 999px;
-    background: color-mix(in srgb, var(--primary-color) 12%, var(--dash-layer-inset));
-    border: 1px solid color-mix(in srgb, var(--primary-color) 28%, var(--dash-border));
+    background: var(--dash-layer-raised);
+    border: 1px solid var(--dash-border);
     max-width: 52%;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -201,24 +225,19 @@
     display: flex;
     flex-direction: column;
     gap: 0.15rem;
-    padding: 0.65rem 0.75rem;
-    margin-bottom: 0.5rem;
-    border-radius: 12px;
-    background: linear-gradient(
-        135deg,
-        color-mix(in srgb, var(--primary-color) 16%, var(--dash-layer-raised)) 0%,
-        var(--dash-layer-inset) 55%,
-        var(--dash-layer-raised) 100%
-    );
-    border: 1px solid color-mix(in srgb, var(--primary-color) 22%, var(--dash-border));
+    padding: 0.45rem 0.5rem;
+    margin-bottom: 0.35rem;
+    border-radius: 10px;
+    border: 1px solid var(--dash-border);
+    background: var(--dash-layer-inset);
     flex-shrink: 0;
 }
 
 #dashboard-page.dashboard-page--modern .dashboard-wallet__balance-label {
-    font-size: 0.65rem;
+    font-size: 0.58rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.07em;
+    letter-spacing: 0.06em;
     color: var(--dash-text-tertiary);
 }
 

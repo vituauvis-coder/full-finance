@@ -27,12 +27,13 @@
     grid-template-columns: minmax(0, 1fr);
     gap: var(--profile-gap);
     width: 100%;
-    align-items: stretch;
+    align-items: start;
 }
 
 @media (min-width: 880px) {
     .profile-modern__bento {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: stretch;
     }
 
     .profile-modern__bento-cell--full {
@@ -42,6 +43,24 @@
     .profile-modern__bento-cell--half {
         grid-column: span 1;
     }
+
+    .profile-modern__bento-cell--half.profile-modern__card {
+        height: 100%;
+        box-sizing: border-box;
+    }
+
+    .profile-modern__bento-cell--half.profile-modern__bento-stack {
+        align-self: stretch;
+        height: 100%;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto minmax(0, 1fr);
+        align-content: stretch;
+    }
+
+    .profile-modern__bento-cell--half > .profile-modern__card {
+        height: 100%;
+    }
 }
 
 .profile-modern__bento-cell {
@@ -50,12 +69,69 @@
     width: 100%;
 }
 
+/* Coluna: ajuste de saldo + zona de perigo (altura ≈ caixa e pagamentos) */
+.profile-modern__bento-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--profile-gap);
+    min-height: 0;
+    width: 100%;
+    align-self: stretch;
+}
+
+.profile-modern__bento-stack > .profile-modern__card {
+    flex: 0 0 auto;
+    flex-grow: 0;
+    width: 100%;
+    height: auto;
+    align-self: flex-start;
+}
+
+.profile-modern__bento-stack > .profile-modern__card .profile-modern__card-body {
+    flex: 0 0 auto;
+}
+
+.profile-modern__bento-stack > .profile-modern__card .profile-modern__form {
+    flex: 0 0 auto;
+}
+
+.profile-modern__bento-stack__danger-shell {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.profile-modern__bento-stack__danger {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+}
+
+.profile-modern__bento-stack__danger[open] .profile-modern__danger-panel {
+    flex: 1 1 auto;
+    min-height: 0;
+    justify-content: flex-end;
+}
+
+.profile-modern__bento-stack__danger:not([open]) .profile-modern__danger-summary {
+    flex: 1 1 auto;
+    align-items: center;
+    min-height: 100%;
+}
+
 /* —— Cartão —— */
 .profile-modern__card {
     container-type: inline-size;
     display: flex;
     flex-direction: column;
-    height: 100%;
+    min-height: 0;
     background: var(--dash-surface-bg);
     border: 1px solid var(--dash-surface-border);
     border-radius: var(--dash-surface-radius);
@@ -592,6 +668,105 @@
 }
 
 /* —— Aparência: duas colunas em telas largas —— */
+.profile-modern__inset-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.85rem;
+    width: 100%;
+}
+
+@media (min-width: 880px) {
+    .profile-modern__inset-split {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: stretch;
+    }
+}
+
+.profile-modern__inset-split > .profile-modern__inset-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+    min-width: 0;
+}
+
+.profile-modern__inset-panel .ui-inset-card__title {
+    flex-shrink: 0;
+}
+
+.profile-modern__account-form {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    gap: 0.75rem;
+}
+
+.profile-modern__account-fields {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
+    align-items: start;
+}
+
+@media (min-width: 520px) {
+    .profile-modern__inset-split .profile-modern__account-fields {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.profile-modern__account-field-spacer {
+    display: none;
+}
+
+@media (min-width: 520px) {
+    .profile-modern__inset-split .profile-modern__account-field-spacer {
+        display: block;
+        min-height: 0;
+    }
+}
+
+/* Reserva a mesma altura do hint do e-mail na coluna da senha */
+.profile-modern__password-steps--current .ui-form-field:first-child .ui-form-field__hint {
+    display: block;
+    min-height: calc(0.6875rem * 1.35);
+    visibility: hidden;
+}
+
+.profile-modern__form--inset {
+    max-width: none;
+}
+
+.profile-modern__inset-split .profile-modern__form-footer--inset {
+    margin-top: auto;
+    padding-top: 0.5rem;
+}
+
+.profile-modern__password-steps {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    gap: 0.75rem;
+    width: 100%;
+}
+
+.profile-modern__password-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.45rem;
+    width: 100%;
+}
+
+.profile-modern__appearance-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    width: 100%;
+}
+
 .profile-modern__appearance-grid {
     display: grid;
     grid-template-columns: 1fr;
@@ -600,11 +775,54 @@
     max-width: var(--profile-form-max);
 }
 
+.profile-modern__appearance-grid--inset {
+    max-width: none;
+    gap: 0.85rem 1.25rem;
+}
+
 @media (min-width: 640px) {
-    .profile-modern__appearance-grid {
+    .profile-modern__appearance-grid,
+    .profile-modern__appearance-grid--inset {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: start;
         max-width: 100%;
     }
+}
+
+.profile-modern__appearance-grid--inset .profile-modern__field .ui-form-checkbox-wrap {
+    width: 100%;
+}
+
+.profile-modern__appearance-grid--inset .profile-modern__field .ui-form-checkbox {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 2.65rem;
+    margin: 0 !important;
+    padding: 0.5rem 0.7rem;
+    align-items: center;
+}
+
+.profile-modern__appearance-grid--inset .profile-modern__field .ui-form-checkbox-wrap__hint {
+    padding-left: 0;
+}
+
+.profile-modern__travel-form {
+    width: 100%;
+    gap: 0.75rem;
+}
+
+@media (min-width: 720px) {
+    .profile-modern__travel-grid.ui-form-grid--2 {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+.profile-modern__form-footer--travel {
+    margin-top: 0.15rem;
+}
+
+.profile-modern__hint--flush {
+    margin-top: 0.15rem;
 }
 
 .profile-modern__appearance-section {
@@ -721,6 +939,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.65rem;
+    flex: 0 0 auto;
     width: 100%;
     max-width: var(--profile-form-max);
 }
@@ -765,15 +984,39 @@
     margin: 0;
 }
 
+.profile-modern__wallet-prefs-form {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    gap: 0.65rem;
+}
+
+@media (min-width: 880px) {
+    .profile-modern__wallet-prefs-form .profile-modern__form-footer {
+        margin-top: auto;
+    }
+}
+
+.profile-modern__wallet-prefs-form .ui-form-checkbox {
+    width: 100%;
+    box-sizing: border-box;
+}
+
 .profile-modern__fieldset {
     margin: 0;
-    padding: 0.75rem 0.85rem;
+    padding: 0.65rem;
     border: 1px solid var(--dash-border);
     border-radius: 12px;
     background: var(--dash-layer-inset);
     display: flex;
     flex-direction: column;
-    gap: 0.65rem;
+    gap: 0.5rem;
+}
+
+.profile-modern__fieldset.ui-form-checkboxes .ui-form-checkbox {
+    background: var(--dash-surface-bg, var(--dash-layer-raised));
 }
 
 .profile-modern__fieldset:disabled {
@@ -802,7 +1045,6 @@
 
 /* Zona de perigo — colapsável, tom vermelho */
 .profile-modern__danger-disclosure {
-    height: auto;
     border-radius: var(--dash-surface-radius);
     border: 1px solid color-mix(in srgb, #ff453a 38%, var(--dash-border));
     background: color-mix(in srgb, #ff453a 9%, var(--dash-surface-bg));
@@ -813,9 +1055,20 @@
         background 0.2s ease;
 }
 
+.profile-modern__bento-stack__danger[open] {
+    border-color: color-mix(in srgb, #ff453a 52%, var(--dash-border));
+    background: color-mix(in srgb, #ff453a 14%, var(--dash-surface-bg));
+}
+
 .profile-modern__danger-disclosure[open] {
     border-color: color-mix(in srgb, #ff453a 52%, var(--dash-border));
     background: color-mix(in srgb, #ff453a 14%, var(--dash-surface-bg));
+}
+
+.profile-modern__bento-stack__danger[open] .profile-modern__danger-summary,
+.profile-modern__danger-disclosure[open] .profile-modern__danger-summary {
+    flex: 0 0 auto;
+    min-height: 0;
 }
 
 [data-theme='dark'] .profile-modern__danger-disclosure {

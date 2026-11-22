@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { colorWithAlpha, readDashboardExpenseBuckets, readFinancialChartColors } from './fluxChartTheme';
+import { colorWithAlpha } from './fluxChartTheme';
+import { useFluxAccentColors } from './useFluxAccentColors';
 import type { FluxChartViz } from '../../hooks/useFinancialFluxChart';
 
 type Props = {
@@ -8,8 +8,7 @@ type Props = {
 };
 
 export function FluxChartLegend({ viz, showSaldoTotal = false }: Props) {
-    const colors = useMemo(() => readFinancialChartColors(), []);
-    const buckets = useMemo(() => readDashboardExpenseBuckets(), []);
+    const { colors, buckets } = useFluxAccentColors();
 
     const items =
         viz === 'line'

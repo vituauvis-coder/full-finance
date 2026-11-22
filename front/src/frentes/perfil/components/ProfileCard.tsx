@@ -4,7 +4,7 @@ import { MaterialIcon } from '../../../components/icons/MaterialIcon';
 export type ProfileBentoSlot = 'half' | 'full';
 
 type Props = {
-    slot: ProfileBentoSlot;
+    slot: ProfileBentoSlot | false;
     variant?: 'default' | 'identity' | 'danger';
     title?: string;
     subtitle?: string;
@@ -32,11 +32,13 @@ export function ProfileCard({
         .filter(Boolean)
         .join(' ');
 
+    const bentoClass =
+        slot === false
+            ? ''
+            : `profile-modern__bento-cell profile-modern__bento-cell--${slot}`;
+
     return (
-        <article
-            className={`${cardClass} profile-modern__bento-cell profile-modern__bento-cell--${slot}`}
-            aria-label={ariaLabel}
-        >
+        <article className={`${cardClass} ${bentoClass}`.trim()} aria-label={ariaLabel}>
             {title ? (
                 <header className="profile-modern__card-head">
                     {icon ? (

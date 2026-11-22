@@ -11,8 +11,8 @@
     --heatmap-muted-bg: var(--dash-layer-inset);
     --heatmap-muted-border: transparent;
     --heatmap-muted-text: #525252;
-    --heatmap-expense-accent: var(--dash-chart-expense, #ff5a36);
-    --heatmap-gain-accent: var(--dash-chart-gain, #30d158);
+    --heatmap-expense-accent: var(--dash-chart-expense, var(--expenses-accent, #ff5a36));
+    --heatmap-gain-accent: var(--dash-chart-gain, var(--gains-accent, #30d158));
 }
 
 #dashboard-page.dashboard-page--modern .dashboard-cash-heatmap,
@@ -23,14 +23,14 @@
     --heatmap-muted-bg: var(--dash-layer-inset);
     --heatmap-muted-border: transparent;
     --heatmap-muted-text: var(--dash-text-tertiary);
-    --heatmap-expense-accent: var(--dash-chart-expense, #ff5a36);
-    --heatmap-gain-accent: var(--dash-chart-gain, #34c759);
+    --heatmap-expense-accent: var(--dash-chart-expense, var(--expenses-accent, #ff5a36));
+    --heatmap-gain-accent: var(--dash-chart-gain, var(--gains-accent, #34c759));
 }
 
 [data-theme='dark'] #dashboard-page.dashboard-page--modern .dashboard-tri-col--heatmap {
     --heatmap-cell-border: rgba(255, 255, 255, 0.14);
-    --heatmap-expense-accent: var(--dash-chart-expense, #ff5a36);
-    --heatmap-gain-accent: var(--dash-chart-gain, #30d158);
+    --heatmap-expense-accent: var(--dash-chart-expense, var(--expenses-accent, #ff5a36));
+    --heatmap-gain-accent: var(--dash-chart-gain, var(--gains-accent, #30d158));
 }
 
 /* Mapa compacto — cores mais saturadas */

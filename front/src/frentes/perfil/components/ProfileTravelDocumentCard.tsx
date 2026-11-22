@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { travelDocumentFromFinancePreferences } from '@motor/viagens/travel-document.js';
 import { parseFinancePreferencesRaw } from '@motor/dinheiro/ui-chip-preferences.js';
 import { MaterialIcon } from '../../../components/icons/MaterialIcon';
+import { FormDatePicker, FormField, FormGrid, FormInput } from '../../../components/ui/form';
 import { getFinancePreferences } from '../../../lib/financePreferences';
 import { notifyProfileUpdated } from '../../../lib/profileEvents';
 import type { TravelDocumentPayload } from '../../../lib/types/profile';
@@ -56,60 +57,61 @@ export function ProfileTravelDocumentCard() {
         }
     }
 
+    const passportExpiry = (doc.passportExpiresOn ?? '').slice(0, 10);
+    const birthDate = (doc.birthDate ?? '').slice(0, 10);
+
     return (
         <ProfileCard
-            slot="half"
+            slot="full"
             title="Documentos de viagem"
             subtitle="Usados no ID da viagem e emissões"
-            icon="badge"
+            icon="flight"
         >
             {loading ? (
                 <p className="profile-modern__feedback">Carregando…</p>
             ) : (
-                <form className="profile-modern__form profile-modern__form--balanced" onSubmit={(e) => void onSubmit(e)}>
-                    <label className="profile-modern__field">
-                        <span>CPF</span>
-                        <input
-                            className="profile-modern__input"
-                            value={doc.cpf ?? ''}
-                            onChange={(e) => setDoc((d) => ({ ...d, cpf: e.target.value }))}
-                            autoComplete="off"
-                            inputMode="numeric"
-                        />
-                    </label>
-                    <label className="profile-modern__field">
-                        <span>Nº passaporte</span>
-                        <input
-                            className="profile-modern__input"
-                            value={doc.passportNumber ?? ''}
-                            onChange={(e) => setDoc((d) => ({ ...d, passportNumber: e.target.value }))}
-                            autoComplete="off"
-                        />
-                    </label>
-                    <label className="profile-modern__field">
-                        <span>Validade do passaporte</span>
-                        <input
-                            type="date"
-                            className="profile-modern__input"
-                            value={(doc.passportExpiresOn ?? '').slice(0, 10)}
-                            onChange={(e) =>
-                                setDoc((d) => ({ ...d, passportExpiresOn: e.target.value || undefined }))
-                            }
-                        />
-                    </label>
-                    <label className="profile-modern__field">
-                        <span>Data de nascimento</span>
-                        <input
-                            type="date"
-                            className="profile-modern__input"
-                            value={(doc.birthDate ?? '').slice(0, 10)}
-                            onChange={(e) => setDoc((d) => ({ ...d, birthDate: e.target.value || undefined }))}
-                        />
-                    </label>
-                    <div className="profile-modern__form-footer">
-                        <button type="submit" className="profile-modern__btn" disabled={saving}>
+                <form className="ui-form profile-modern__travel-form" onSubmit={(e) => void onSubmit(e)}>
+                    <FormGrid columns={2} className="profile-modern__travel-grid">
+                        <FormField id="travel-doc-cpf" label="CPF">
+                            <FormInput
+                                id="travel-doc-cpf"
+                                value={doc.cpf ?? ''}
+                                onChange={(e) => setDoc((d) => ({ ...d, cpf: e.target.value }))}
+                                autoComplete="off"
+                                inputMode="numeric"
+                            />
+                        </FormField>
+                        <FormField id="travel-doc-passport" label="Nº passaporte">
+                            <FormInput
+                                id="travel-doc-passport"
+                                value={doc.passportNumber ?? ''}
+                                onChange={(e) => setDoc((d) => ({ ...d, passportNumber: e.target.value }))}
+                                autoComplete="off"
+                            />
+                        </FormField>
+                        <FormField id="travel-doc-passport-expiry" label="Validade do passaporte">
+                            <FormDatePicker
+                                id="travel-doc-passport-expiry"
+                                value={passportExpiry}
+                                onChange={(iso) =>
+                                    setDoc((d) => ({ ...d, passportExpiresOn: iso || undefined }))
+                                }
+                                placeholder="Validade"
+                            />
+                        </FormField>
+                        <FormField id="travel-doc-birth" label="Data de nascimento">
+                            <FormDatePicker
+                                id="travel-doc-birth"
+                                value={birthDate}
+                                onChange={(iso) => setDoc((d) => ({ ...d, birthDate: iso || undefined }))}
+                                placeholder="Nascimento"
+                            />
+                        </FormField>
+                    </FormGrid>
+                    <div className="profile-modern__form-footer profile-modern__form-footer--travel">
+                        <button type="submit" className="ui-form-btn ui-form-btn--contained" disabled={saving}>
                             <MaterialIcon name="check" variant="app" />
-                            Salvar documentos
+                            {saving ? 'Salvando…' : 'Salvar documentos'}
                         </button>
                         {message ? <p className="profile-modern__feedback">{message}</p> : null}
                     </div>

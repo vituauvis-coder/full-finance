@@ -1,3 +1,5 @@
+import { FormCheckbox } from '../../../components/ui/form';
+
 type Props = {
     enabled: boolean;
     onChange: (enabled: boolean) => void;
@@ -6,18 +8,16 @@ type Props = {
 export function ProfileUiSoundsBlock({ enabled, onChange }: Props) {
     return (
         <div className="profile-modern__appearance-section">
-            <h4 className="profile-modern__section-title">Sons da interface</h4>
-            <label className="profile-modern__check">
-                <input
-                    type="checkbox"
+            <div className="profile-modern__field profile-modern__field--grow">
+                <span className="profile-modern__section-title">Sons da interface</span>
+                <FormCheckbox
+                    id="profile-ui-sounds"
+                    label="Sons ao guardar, pagar e apagar"
+                    hint="Som «save» ao confirmar alterações; «delete» ao apagar. Respeita «reduzir movimento» do sistema."
                     checked={enabled}
-                    onChange={(e) => onChange(e.target.checked)}
+                    onChange={onChange}
                 />
-                <span>Sons ao guardar, pagar e apagar</span>
-            </label>
-            <p className="profile-modern__section-hint">
-                Som «save» ao confirmar alterações; «delete» ao apagar. Respeita «reduzir movimento» do sistema.
-            </p>
+            </div>
         </div>
     );
 }

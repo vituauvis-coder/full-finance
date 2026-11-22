@@ -25,8 +25,21 @@ export type TravelDocumentPayload = {
     birthDate?: string;
 };
 
+export type ScreenAccentKey =
+    | 'gains'
+    | 'expenses'
+    | 'wallet'
+    | 'cofrinhos'
+    | 'debts'
+    | 'viagens'
+    | 'zeroBudget'
+    | 'dashboard';
+
+export type ScreenAccentOverrides = Partial<Record<ScreenAccentKey, string>>;
+
 export type FinancePreferencesPayload = {
     manualCashOut: ManualCashOutPrefs;
+    screenAccents?: ScreenAccentOverrides;
     viagensMiles?: ViagensMilesPayload;
     travelDocument?: TravelDocumentPayload;
 };

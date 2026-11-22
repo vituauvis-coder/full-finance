@@ -6,7 +6,8 @@ type Props = {
 
 export function ProfileDangerZoneCard({ onDeleteClick }: Props) {
     return (
-        <details className="profile-modern__bento-cell profile-modern__bento-cell--full profile-modern__danger-disclosure">
+        <div className="profile-modern__bento-stack__danger-shell">
+            <details className="profile-modern__danger-disclosure profile-modern__bento-stack__danger" open>
             <summary className="profile-modern__danger-summary">
                 <span className="profile-modern__card-icon profile-modern__card-icon--danger" aria-hidden="true">
                     <MaterialIcon name="warning" variant="app" />
@@ -32,5 +33,6 @@ export function ProfileDangerZoneCard({ onDeleteClick }: Props) {
                 </button>
             </div>
         </details>
+        </div>
     );
 }

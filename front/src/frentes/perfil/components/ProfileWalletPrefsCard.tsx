@@ -1,5 +1,6 @@
 import type { FormEvent } from 'react';
 import { MaterialIcon } from '../../../components/icons/MaterialIcon';
+import { FormCheckbox } from '../../../components/ui/form';
 import type { ManualCashOutPrefs } from '../types/profile';
 import { ProfileCard } from './ProfileCard';
 
@@ -16,52 +17,44 @@ export function ProfileWalletPrefsCard({ prefs, saving, message, onChange, onSub
 
     return (
         <ProfileCard
-            slot="full"
+            slot="half"
             title="Caixa e pagamentos"
             subtitle="O saldo só muda quando você confirma o pagamento."
             icon="account_balance_wallet"
         >
-            <form className="profile-modern__form profile-modern__form--stacked" onSubmit={onSubmit}>
-                <label className="profile-modern__check profile-modern__check--block">
-                    <input
-                        type="checkbox"
-                        checked={prefs.enabled}
-                        onChange={(e) => onChange({ enabled: e.target.checked })}
-                    />
-                    <span>Exigir confirmação para debitar</span>
-                </label>
-                <fieldset className="profile-modern__fieldset" disabled={subDisabled}>
+            <form className="ui-form profile-modern__wallet-prefs-form" onSubmit={onSubmit}>
+                <FormCheckbox
+                    id="finance-manual-cash-out"
+                    label="Exigir confirmação para debitar"
+                    checked={prefs.enabled}
+                    onChange={(on) => onChange({ enabled: on })}
+                />
+                <fieldset className="profile-modern__fieldset ui-form-checkboxes" disabled={subDisabled}>
                     <legend className="profile-modern__sr-only">Aplicar a</legend>
-                    <label className="profile-modern__check profile-modern__check--block">
-                        <input
-                            type="checkbox"
-                            checked={prefs.creditCard}
-                            disabled={subDisabled}
-                            onChange={(e) => onChange({ creditCard: e.target.checked })}
-                        />
-                        <span>Cartão de crédito</span>
-                    </label>
-                    <label className="profile-modern__check profile-modern__check--block">
-                        <input
-                            type="checkbox"
-                            checked={prefs.loan}
-                            disabled={subDisabled}
-                            onChange={(e) => onChange({ loan: e.target.checked })}
-                        />
-                        <span>Empréstimo</span>
-                    </label>
-                    <label className="profile-modern__check profile-modern__check--block">
-                        <input
-                            type="checkbox"
-                            checked={prefs.monthlyFixed}
-                            disabled={subDisabled}
-                            onChange={(e) => onChange({ monthlyFixed: e.target.checked })}
-                        />
-                        <span>Despesas fixas mensais</span>
-                    </label>
+                    <FormCheckbox
+                        id="finance-manual-credit"
+                        label="Cartão de crédito"
+                        checked={prefs.creditCard}
+                        disabled={subDisabled}
+                        onChange={(on) => onChange({ creditCard: on })}
+                    />
+                    <FormCheckbox
+                        id="finance-manual-loan"
+                        label="Empréstimo"
+                        checked={prefs.loan}
+                        disabled={subDisabled}
+                        onChange={(on) => onChange({ loan: on })}
+                    />
+                    <FormCheckbox
+                        id="finance-manual-fixed"
+                        label="Despesas fixas mensais"
+                        checked={prefs.monthlyFixed}
+                        disabled={subDisabled}
+                        onChange={(on) => onChange({ monthlyFixed: on })}
+                    />
                 </fieldset>
                 <div className="profile-modern__form-footer">
-                    <button type="submit" className="profile-modern__btn" disabled={saving}>
+                    <button type="submit" className="ui-form-btn ui-form-btn--contained" disabled={saving}>
                         <MaterialIcon name="save" variant="app" />
                         {saving ? 'Salvando…' : 'Salvar'}
                     </button>

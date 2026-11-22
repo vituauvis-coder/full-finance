@@ -15,14 +15,12 @@ export function LegacyAppHeader() {
     const pageId = legacyPageIdFromPath(pathname) ?? 'dashboard';
     const meta = LEGACY_PAGE_HEADERS[pageId];
     const viagensAtlas = pathname === '/viagens' || pathname === '/viagens/';
-    const hideTitleBar = pageId === 'dashboard';
 
     return (
         <>
             <button id="menu-toggle-btn" className="menu-toggle-btn" type="button">
                 <i className="fas fa-bars"></i>
             </button>
-            {hideTitleBar ? null : (
             <header className={`app-header ${meta.headerClass ?? ''}`}>
                 <div className="header-left">
                     <div className="header-page-heading header-page-heading--emoji-swap" id="header-page-heading" aria-live="polite">
@@ -39,7 +37,7 @@ export function LegacyAppHeader() {
                     </div>
                 </div>
                 <div className="header-right">
-                    <DashboardHeaderActions hidden />
+                    <DashboardHeaderActions hidden={pageId !== 'dashboard'} />
                     <MovementFacetHeaderActions
                         hidden={pageId !== 'gains'}
                         id="gains-header-actions"
@@ -66,7 +64,6 @@ export function LegacyAppHeader() {
                     <HeaderNotifications />
                 </div>
             </header>
-            )}
         </>
     );
 }

@@ -52,18 +52,21 @@
     --dash-v-turquesa: #2ec4b6;
     --dash-v-coral: #ff5a36;
 
-    /* Séries do gráfico de fluxo (legível no claro) */
-    --dash-chart-gain: var(--dash-v-turquesa);
-    --dash-chart-expense: var(--dash-v-coral);
+    /* Séries do gráfico de fluxo — seguem cores de Entradas/Saídas do perfil */
+    --dash-chart-gain: var(--gains-accent, var(--dash-v-turquesa));
+    --dash-chart-expense: var(--expenses-accent, var(--dash-v-coral));
     --dash-chart-net: #eceae4;
-    --dash-chart-net-neg: #ff5a36;
+    --dash-chart-net-neg: var(--expenses-accent, var(--dash-v-coral));
     --dash-chart-saldo: #0a84ff;
     --dash-chart-tooltip-cursor: rgba(0, 0, 0, 0.04);
 
-    /* Chips da carteira ≡ séries de saída no gráfico */
-    --dash-bucket-orange: var(--dash-v-coral);
-    --dash-bucket-fixa: var(--dash-bucket-orange);
-    --dash-bucket-fatura: var(--dash-v-coral);
+    /* Estorno = família Entradas */
+    --dash-estorno: var(--gains-accent, var(--dash-chart-gain));
+
+    /* Chips da carteira (saídas) — cor de Saídas do perfil */
+    --dash-bucket-orange: var(--expenses-accent, var(--dash-v-coral));
+    --dash-bucket-fixa: var(--expenses-accent, var(--dash-v-coral));
+    --dash-bucket-fatura: var(--expenses-accent, var(--dash-v-coral));
     --dash-bucket-extra: #f2c94c;
     --dash-bucket-cofrinhos: #a855f7;
 
@@ -113,16 +116,18 @@
     --dash-v-turquesa: #2ec4b6;
     --dash-v-coral: #ff5a36;
 
-    --dash-chart-gain: var(--dash-v-turquesa);
-    --dash-chart-expense: var(--dash-v-coral);
+    --dash-chart-gain: var(--gains-accent, var(--dash-v-turquesa));
+    --dash-chart-expense: var(--expenses-accent, var(--dash-v-coral));
     --dash-chart-net: #dddcd8;
-    --dash-chart-net-neg: #ff5a36;
+    --dash-chart-net-neg: var(--expenses-accent, var(--dash-v-coral));
     --dash-chart-saldo: #64d2ff;
     --dash-chart-tooltip-cursor: rgba(255, 255, 255, 0.05);
 
-    --dash-bucket-orange: var(--dash-v-coral);
-    --dash-bucket-fixa: var(--dash-bucket-orange);
-    --dash-bucket-fatura: var(--dash-v-coral);
+    --dash-estorno: var(--gains-accent, var(--dash-chart-gain));
+
+    --dash-bucket-orange: var(--expenses-accent, var(--dash-v-coral));
+    --dash-bucket-fixa: var(--expenses-accent, var(--dash-v-coral));
+    --dash-bucket-fatura: var(--expenses-accent, var(--dash-v-coral));
     --dash-bucket-extra: #ffd60a;
     --dash-bucket-cofrinhos: #a855f7;
 

@@ -44,6 +44,17 @@ export function mergeFinancePreferences(existing, patch) {
     if (b.manualCashOut && typeof b.manualCashOut === 'object') {
         out.manualCashOut = { ...(a.manualCashOut && typeof a.manualCashOut === 'object' ? a.manualCashOut : {}), ...b.manualCashOut };
     }
+    if (b.screenAccents && typeof b.screenAccents === 'object' && !Array.isArray(b.screenAccents)) {
+        const base =
+            a.screenAccents && typeof a.screenAccents === 'object' && !Array.isArray(a.screenAccents)
+                ? a.screenAccents
+                : {};
+        out.screenAccents = { ...base, ...b.screenAccents };
+        for (const [k, v] of Object.entries(out.screenAccents)) {
+            if (v == null || v === '') delete out.screenAccents[k];
+        }
+        if (Object.keys(out.screenAccents).length === 0) delete out.screenAccents;
+    }
     return out;
 }
 

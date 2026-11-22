@@ -1,7 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { apiFetch } from '../lib/http';
 import { normalizeFinanceAccounts } from '../lib/normalizeAccounts';
+import { PROFILE_UPDATED_EVENT } from '../lib/profileEvents';
 import type { FinanceData } from '../lib/types/finance';
+import { applyScreenAccentsFromProfile } from './screenAccents';
 
 type Ctx = {
     loading: boolean;
@@ -65,6 +67,30 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
         window.addEventListener('finance:data-changed', onFinanceChanged);
         return () => window.removeEventListener('finance:data-changed', onFinanceChanged);
     }, [refresh]);
+
+    useEffect(() => {
+        applyScreenAccentsFromProfile(data?.userProfile);
+    }, [data?.userProfile]);
+
+    useEffect(() => {
+        const syncFromProfileEvent = (e: Event) => {
+            const detail = (e as CustomEvent).detail;
+            if (detail && typeof detail === 'object') {
+                applyScreenAccentsFromProfile(detail);
+                return;
+            }
+            applyScreenAccentsFromProfile(data?.userProfile);
+        };
+        const syncOnTheme = () => {
+            applyScreenAccentsFromProfile(data?.userProfile);
+        };
+        window.addEventListener(PROFILE_UPDATED_EVENT, syncFromProfileEvent);
+        window.addEventListener('meumundo-themechange', syncOnTheme);
+        return () => {
+            window.removeEventListener(PROFILE_UPDATED_EVENT, syncFromProfileEvent);
+            window.removeEventListener('meumundo-themechange', syncOnTheme);
+        };
+    }, [data?.userProfile]);
 
     const value = useMemo(() => ({ loading, error, data, refresh }), [loading, error, data, refresh]);
 

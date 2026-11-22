@@ -14,16 +14,16 @@
 
 #dashboard-page.dashboard-page--modern .cash-heatmap-day-item__icon--entrada,
 #wallet-page.wallet-page--modern .cash-heatmap-day-item__icon--entrada {
-    background: color-mix(in srgb, var(--dash-chart-gain, var(--dash-v-turquesa, #2ec4b6)) 14%, transparent);
-    border-color: color-mix(in srgb, var(--dash-chart-gain, #2ec4b6) 28%, transparent);
-    color: var(--dash-chart-gain, var(--dash-v-turquesa, #2ec4b6));
+    background: color-mix(in srgb, var(--gains-accent, var(--dash-chart-gain, var(--dash-v-turquesa))) 14%, transparent);
+    border-color: color-mix(in srgb, var(--gains-accent, var(--dash-chart-gain)) 28%, transparent);
+    color: var(--gains-accent, var(--dash-chart-gain, var(--dash-v-turquesa)));
 }
 
 #dashboard-page.dashboard-page--modern .cash-heatmap-day-item__icon--estorno,
 #wallet-page.wallet-page--modern .cash-heatmap-day-item__icon--estorno {
-    background: color-mix(in srgb, var(--dash-estorno, #5eead4) 12%, transparent);
-    border-color: color-mix(in srgb, var(--dash-estorno, #5eead4) 28%, transparent);
-    color: var(--dash-estorno, #5eead4);
+    background: color-mix(in srgb, var(--dash-estorno, var(--gains-accent, var(--dash-chart-gain))) 12%, transparent);
+    border-color: color-mix(in srgb, var(--dash-estorno, var(--gains-accent, var(--dash-chart-gain))) 28%, transparent);
+    color: var(--dash-estorno, var(--gains-accent, var(--dash-chart-gain)));
 }
 
 #dashboard-page.dashboard-page--modern .cash-heatmap-day-item__icon--rateio,
@@ -40,16 +40,16 @@
 
 #dashboard-page.dashboard-page--modern .cash-heatmap-day-item__icon--fixa,
 #wallet-page.wallet-page--modern .cash-heatmap-day-item__icon--fixa {
-    background: color-mix(in srgb, var(--dash-bucket-fixa, var(--dash-v-coral, #ff5a36)) 16%, transparent);
-    border-color: color-mix(in srgb, var(--dash-v-coral, #ff5a36) 30%, transparent);
-    color: var(--dash-bucket-fixa, var(--dash-v-coral, #ff5a36));
+    background: color-mix(in srgb, var(--expenses-accent, var(--dash-chart-expense, var(--dash-v-coral))) 16%, transparent);
+    border-color: color-mix(in srgb, var(--expenses-accent, var(--dash-chart-expense)) 30%, transparent);
+    color: var(--expenses-accent, var(--dash-chart-expense, var(--dash-v-coral)));
 }
 
 #dashboard-page.dashboard-page--modern .cash-heatmap-day-item__icon--fatura,
 #wallet-page.wallet-page--modern .cash-heatmap-day-item__icon--fatura {
-    background: color-mix(in srgb, var(--dash-v-coral, #ff5a36) 10%, transparent);
-    border-color: color-mix(in srgb, var(--dash-v-coral, #ff5a36) 22%, transparent);
-    color: var(--dash-v-coral, #ff5a36);
+    background: color-mix(in srgb, var(--expenses-accent, var(--dash-chart-expense, var(--dash-v-coral))) 10%, transparent);
+    border-color: color-mix(in srgb, var(--expenses-accent, var(--dash-chart-expense)) 22%, transparent);
+    color: var(--expenses-accent, var(--dash-chart-expense, var(--dash-v-coral)));
 }
 
 #dashboard-page.dashboard-page--modern .cash-heatmap-day-item__icon--fatura > *,
@@ -78,12 +78,16 @@
 
 #dashboard-page.dashboard-page--modern .cash-heatmap-day-item__amount--entrada,
 #wallet-page.wallet-page--modern .cash-heatmap-day-item__amount--entrada {
-    color: var(--dash-chart-gain, var(--dash-v-turquesa, #2ec4b6));
+    color: var(--gains-accent, var(--dash-chart-gain, var(--dash-v-turquesa)));
 }
 
 #dashboard-page.dashboard-page--modern .cash-heatmap-day-item__amount--estorno,
 #wallet-page.wallet-page--modern .cash-heatmap-day-item__amount--estorno {
-    color: color-mix(in srgb, var(--dash-estorno, #5eead4) 88%, var(--dash-text-secondary));
+    color: color-mix(
+        in srgb,
+        var(--dash-estorno, var(--gains-accent, var(--dash-chart-gain))) 88%,
+        var(--dash-text-secondary)
+    );
 }
 
 #dashboard-page.dashboard-page--modern .cash-heatmap-day-item__amount--rateio,
@@ -95,7 +99,7 @@
 #dashboard-page.dashboard-page--modern .cash-heatmap-day-item__amount--fatura,
 #wallet-page.wallet-page--modern .cash-heatmap-day-item__amount--fixa,
 #wallet-page.wallet-page--modern .cash-heatmap-day-item__amount--fatura {
-    color: var(--dash-v-coral, #ff5a36);
+    color: var(--expenses-accent, var(--dash-chart-expense, var(--dash-v-coral)));
 }
 
 #dashboard-page.dashboard-page--modern .cash-heatmap-day-item__amount--extra,
@@ -164,26 +168,63 @@
 
 #dashboard-page.dashboard-page--modern .dashboard-ledger-filter__chip.is-active,
 #wallet-page.wallet-page--modern .dashboard-ledger-filter__chip.is-active {
-    border-color: var(--dash-border-strong);
-    background: var(--dash-layer-raised);
+    opacity: 1;
     box-shadow: 0 1px 3px color-mix(in srgb, #000 6%, transparent);
 }
 
-#dashboard-page.dashboard-page--modern .dashboard-ledger-filter__chip:not(.is-active):not(:disabled),
-#wallet-page.wallet-page--modern .dashboard-ledger-filter__chip:not(.is-active):not(:disabled) {
-    opacity: 0.45;
+#dashboard-page.dashboard-page--modern
+    .dashboard-ledger-filter__chip--all:not(.is-active):not(:disabled),
+#wallet-page.wallet-page--modern .dashboard-ledger-filter__chip--all:not(.is-active):not(:disabled),
+#dashboard-page.dashboard-page--modern
+    .dashboard-ledger-filter__chip--rateio:not(.is-active):not(:disabled),
+#dashboard-page.dashboard-page--modern
+    .dashboard-ledger-filter__chip--extra:not(.is-active):not(:disabled),
+#dashboard-page.dashboard-page--modern
+    .dashboard-ledger-filter__chip--cofrinhos:not(.is-active):not(:disabled),
+#wallet-page.wallet-page--modern
+    .dashboard-ledger-filter__chip--rateio:not(.is-active):not(:disabled),
+#wallet-page.wallet-page--modern
+    .dashboard-ledger-filter__chip--extra:not(.is-active):not(:disabled),
+#wallet-page.wallet-page--modern
+    .dashboard-ledger-filter__chip--cofrinhos:not(.is-active):not(:disabled) {
+    opacity: 0.5;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-ledger-filter__chip--entrada:not(:disabled),
+#wallet-page.wallet-page--modern .dashboard-ledger-filter__chip--entrada:not(:disabled) {
+    color: color-mix(in srgb, var(--gains-accent, var(--dash-chart-gain)) 78%, var(--dash-text-secondary));
+    border-color: color-mix(in srgb, var(--gains-accent, var(--dash-chart-gain)) 34%, var(--dash-border));
+    background: color-mix(in srgb, var(--gains-accent, var(--dash-chart-gain)) 12%, var(--dash-layer-inset));
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-ledger-filter__chip--estorno:not(:disabled),
+#wallet-page.wallet-page--modern .dashboard-ledger-filter__chip--estorno:not(:disabled) {
+    color: color-mix(in srgb, var(--dash-estorno, var(--gains-accent, var(--dash-chart-gain))) 78%, var(--dash-text-secondary));
+    border-color: color-mix(in srgb, var(--dash-estorno, var(--gains-accent, var(--dash-chart-gain))) 34%, var(--dash-border));
+    background: color-mix(in srgb, var(--dash-estorno, var(--gains-accent, var(--dash-chart-gain))) 12%, var(--dash-layer-inset));
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-ledger-filter__chip--fixa:not(:disabled),
+#dashboard-page.dashboard-page--modern .dashboard-ledger-filter__chip--fatura:not(:disabled),
+#wallet-page.wallet-page--modern .dashboard-ledger-filter__chip--fixa:not(:disabled),
+#wallet-page.wallet-page--modern .dashboard-ledger-filter__chip--fatura:not(:disabled) {
+    color: color-mix(in srgb, var(--expenses-accent, var(--dash-chart-expense)) 78%, var(--dash-text-secondary));
+    border-color: color-mix(in srgb, var(--expenses-accent, var(--dash-chart-expense)) 34%, var(--dash-border));
+    background: color-mix(in srgb, var(--expenses-accent, var(--dash-chart-expense)) 12%, var(--dash-layer-inset));
 }
 
 #dashboard-page.dashboard-page--modern .dashboard-ledger-filter__chip--entrada.is-active,
 #wallet-page.wallet-page--modern .dashboard-ledger-filter__chip--entrada.is-active {
-    color: var(--dash-chart-gain, #2ec4b6);
-    background: color-mix(in srgb, var(--dash-chart-gain, #2ec4b6) 12%, var(--dash-layer-raised));
+    color: var(--gains-accent, var(--dash-chart-gain));
+    background: color-mix(in srgb, var(--gains-accent, var(--dash-chart-gain)) 14%, var(--dash-layer-raised));
+    border-color: color-mix(in srgb, var(--gains-accent, var(--dash-chart-gain)) 42%, var(--dash-border));
 }
 
 #dashboard-page.dashboard-page--modern .dashboard-ledger-filter__chip--estorno.is-active,
 #wallet-page.wallet-page--modern .dashboard-ledger-filter__chip--estorno.is-active {
-    color: var(--dash-estorno, #5eead4);
-    background: color-mix(in srgb, var(--dash-estorno, #5eead4) 12%, var(--dash-layer-raised));
+    color: var(--dash-estorno, var(--gains-accent, var(--dash-chart-gain)));
+    background: color-mix(in srgb, var(--dash-estorno, var(--gains-accent, var(--dash-chart-gain))) 14%, var(--dash-layer-raised));
+    border-color: color-mix(in srgb, var(--dash-estorno, var(--gains-accent, var(--dash-chart-gain))) 42%, var(--dash-border));
 }
 
 #dashboard-page.dashboard-page--modern .dashboard-ledger-filter__chip--rateio.is-active,
@@ -196,8 +237,9 @@
 #dashboard-page.dashboard-page--modern .dashboard-ledger-filter__chip--fatura.is-active,
 #wallet-page.wallet-page--modern .dashboard-ledger-filter__chip--fixa.is-active,
 #wallet-page.wallet-page--modern .dashboard-ledger-filter__chip--fatura.is-active {
-    color: var(--dash-v-coral, #ff5a36);
-    background: color-mix(in srgb, var(--dash-v-coral, #ff5a36) 11%, var(--dash-layer-raised));
+    color: var(--expenses-accent, var(--dash-chart-expense, var(--dash-v-coral)));
+    background: color-mix(in srgb, var(--expenses-accent, var(--dash-chart-expense)) 14%, var(--dash-layer-raised));
+    border-color: color-mix(in srgb, var(--expenses-accent, var(--dash-chart-expense)) 42%, var(--dash-border));
 }
 
 #dashboard-page.dashboard-page--modern .dashboard-ledger-filter__chip--extra.is-active,
@@ -325,8 +367,12 @@
 
 #dashboard-page.dashboard-page--modern .dashboard-ledger-row__pay-todo:hover:not(:disabled) .dashboard-ledger-row__pay-todo-ring,
 #wallet-page.wallet-page--modern .dashboard-ledger-row__pay-todo:hover:not(:disabled) .dashboard-ledger-row__pay-todo-ring {
-    border-color: var(--v-cocal, #ff5a36);
-    background: color-mix(in srgb, var(--v-cocal, #ff5a36) 12%, transparent);
+    border-color: var(--expenses-accent, var(--dash-chart-expense, var(--dash-v-coral)));
+    background: color-mix(
+        in srgb,
+        var(--expenses-accent, var(--dash-chart-expense, var(--dash-v-coral))) 12%,
+        transparent
+    );
 }
 
 #dashboard-page.dashboard-page--modern .dashboard-ledger-row__pay-todo:active:not(:disabled) .dashboard-ledger-row__pay-todo-ring,

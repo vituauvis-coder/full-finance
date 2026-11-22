@@ -108,18 +108,22 @@ export function FormMonthPicker({
 export function FormCheckbox({
     id,
     label,
+    hint,
     checked,
     onChange,
-    disabled
+    disabled,
+    className = ''
 }: {
     id: string;
     label: string;
+    hint?: string;
     checked: boolean;
     onChange: (checked: boolean) => void;
     disabled?: boolean;
+    className?: string;
 }) {
-    return (
-        <label className="ui-form-checkbox" htmlFor={id}>
+    const control = (
+        <label className={['ui-form-checkbox', className].filter(Boolean).join(' ')} htmlFor={id}>
             <input
                 id={id}
                 className="ui-form-checkbox__input"
@@ -131,6 +135,15 @@ export function FormCheckbox({
             <span className="ui-form-checkbox__box" aria-hidden="true" />
             <span className="ui-form-checkbox__text">{label}</span>
         </label>
+    );
+
+    if (!hint) return control;
+
+    return (
+        <div className="ui-form-checkbox-wrap">
+            {control}
+            <p className="ui-form-checkbox-wrap__hint">{hint}</p>
+        </div>
     );
 }
 

@@ -4,11 +4,6 @@ export function DashboardSkeletonLayout() {
     return (
         <>
             <CivilPeriodToolbarSkeleton accent="dashboard" />
-            <Skeleton
-                className="skeleton-panel"
-                style={{ height: '2.75rem', width: '100%', borderRadius: 'var(--dash-surface-radius)' }}
-                aria-hidden
-            />
             <div className="skeleton-dashboard-tri-column" aria-hidden="true">
                 {[0, 1, 2].map((i) => (
                     <div key={i} className="skeleton-dashboard-tri-col skeleton-panel">

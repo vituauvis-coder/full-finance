@@ -17,10 +17,11 @@ import {
     isDayKeyInRange,
     monthCellsLifeOS,
     monthTitlePt,
-    shiftMonth,
     todayKey,
     WEEK_SHORT_PT
 } from '../../../lib/calendarUi';
+import { DatePickerMonthGrid } from './DatePickerMonthGrid';
+import { DatePickerPeriodNav } from './DatePickerPeriodNav';
 
 const POP_WIDTH_PX = 296;
 const POP_ESTIMATE_PX = 340;
@@ -74,6 +75,7 @@ export function DatePicker({
     const popRef = useRef<HTMLDivElement>(null);
     const [open, setOpen] = useState(false);
     const [coords, setCoords] = useState<PopCoords | null>(null);
+    const [panel, setPanel] = useState<'days' | 'months'>('days');
 
     const dateKey = coerceDayKey(value) ?? '';
     const [cursor, setCursor] = useState(() => cursorFromDayKey(dateKey || todayKey()));
@@ -91,6 +93,7 @@ export function DatePicker({
 
     useEffect(() => {
         if (!open) return;
+        setPanel('days');
         setCursor(cursorFromDayKey(dateKey || todayKey()));
     }, [open, dateKey]);
 
@@ -159,75 +162,84 @@ export function DatePicker({
                 aria-label="Calendário"
                 style={popStyle}
             >
-                <header className="ui-date-picker__nav">
-                    <button
-                        type="button"
-                        className="ui-date-picker__nav-btn"
-                        aria-label="Mês anterior"
-                        onClick={() => setCursor((c) => shiftMonth(c.year, c.month, -1))}
-                    >
-                        <MaterialIcon name="chevron_left" variant="app" opticalSize={18} />
-                    </button>
-                    <p className="ui-date-picker__month">{monthTitlePt(cursor.year, cursor.month)}</p>
-                    <button
-                        type="button"
-                        className="ui-date-picker__nav-btn"
-                        aria-label="Próximo mês"
-                        onClick={() => setCursor((c) => shiftMonth(c.year, c.month, 1))}
-                    >
-                        <MaterialIcon name="chevron_right" variant="app" opticalSize={18} />
-                    </button>
-                </header>
-                <div className="ui-date-picker__week" aria-hidden="true">
-                    {WEEK_SHORT_PT.map((d) => (
-                        <span key={d}>{d.replace('.', '').slice(0, 3)}</span>
-                    ))}
-                </div>
-                <div className="ui-date-picker__grid" role="grid" aria-label={monthTitlePt(cursor.year, cursor.month)}>
-                    {cells.map((cell, i) => {
-                        if (!cell.key || cell.day == null) {
-                            return <span key={`empty-${i}`} className="ui-date-picker__day is-empty" />;
-                        }
-                        const isSel = dateKey === cell.key;
-                        const isToday = cell.key === today;
-                        const outOfRange = !isDayKeyInRange(cell.key, min, max);
-                        return (
-                            <button
-                                key={cell.key}
-                                type="button"
-                                role="gridcell"
-                                disabled={outOfRange}
-                                className={[
-                                    'ui-date-picker__day',
-                                    isSel ? 'is-on' : '',
-                                    isToday ? 'is-today' : '',
-                                    outOfRange ? 'is-disabled' : ''
-                                ]
-                                    .filter(Boolean)
-                                    .join(' ')}
-                                onClick={() => selectDay(cell.key!)}
-                            >
-                                {cell.day}
-                            </button>
-                        );
-                    })}
-                </div>
-                <footer className="ui-date-picker__footer">
-                    <button
-                        type="button"
-                        className="ui-date-picker__today"
-                        onClick={() => {
-                            if (isDayKeyInRange(today, min, max)) selectDay(today);
+                {panel === 'months' ? (
+                    <DatePickerMonthGrid
+                        year={cursor.year}
+                        selectedMonth={cursor.month}
+                        min={min}
+                        max={max}
+                        onYearChange={(year) => setCursor((c) => ({ ...c, year }))}
+                        onMonthPick={(monthIndex) => {
+                            setCursor((c) => ({ ...c, month: monthIndex }));
+                            setPanel('days');
                         }}
-                    >
-                        Hoje
-                    </button>
-                    {dateKey && !required ? (
-                        <button type="button" className="ui-date-picker__clear" onClick={() => onChange('')}>
-                            Limpar
-                        </button>
-                    ) : null}
-                </footer>
+                        onBackToDays={() => setPanel('days')}
+                    />
+                ) : (
+                    <>
+                        <DatePickerPeriodNav
+                            cursor={cursor}
+                            min={min}
+                            max={max}
+                            onCursorChange={setCursor}
+                            onOpenMonthGrid={() => setPanel('months')}
+                        />
+                        <div className="ui-date-picker__week" aria-hidden="true">
+                            {WEEK_SHORT_PT.map((d) => (
+                                <span key={d}>{d.replace('.', '').slice(0, 3)}</span>
+                            ))}
+                        </div>
+                        <div
+                            className="ui-date-picker__grid"
+                            role="grid"
+                            aria-label={monthTitlePt(cursor.year, cursor.month)}
+                        >
+                            {cells.map((cell, i) => {
+                                if (!cell.key || cell.day == null) {
+                                    return <span key={`empty-${i}`} className="ui-date-picker__day is-empty" />;
+                                }
+                                const isSel = dateKey === cell.key;
+                                const isToday = cell.key === today;
+                                const outOfRange = !isDayKeyInRange(cell.key, min, max);
+                                return (
+                                    <button
+                                        key={cell.key}
+                                        type="button"
+                                        role="gridcell"
+                                        disabled={outOfRange}
+                                        className={[
+                                            'ui-date-picker__day',
+                                            isSel ? 'is-on' : '',
+                                            isToday ? 'is-today' : '',
+                                            outOfRange ? 'is-disabled' : ''
+                                        ]
+                                            .filter(Boolean)
+                                            .join(' ')}
+                                        onClick={() => selectDay(cell.key!)}
+                                    >
+                                        {cell.day}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        <footer className="ui-date-picker__footer">
+                            <button
+                                type="button"
+                                className="ui-date-picker__today"
+                                onClick={() => {
+                                    if (isDayKeyInRange(today, min, max)) selectDay(today);
+                                }}
+                            >
+                                Hoje
+                            </button>
+                            {dateKey && !required ? (
+                                <button type="button" className="ui-date-picker__clear" onClick={() => onChange('')}>
+                                    Limpar
+                                </button>
+                            ) : null}
+                        </footer>
+                    </>
+                )}
             </div>
         ) : null;
 

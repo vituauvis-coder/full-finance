@@ -17,10 +17,11 @@ import {
     isDayKeyInRange,
     monthCellsLifeOS,
     monthTitlePt,
-    shiftMonth,
     todayKey,
     WEEK_SHORT_PT
 } from '../../../lib/calendarUi';
+import { DatePickerMonthGrid } from './DatePickerMonthGrid';
+import { DatePickerPeriodNav } from './DatePickerPeriodNav';
 
 const POP_WIDTH_PX = 304;
 const POP_ESTIMATE_PX = 360;
@@ -102,6 +103,7 @@ export function DateRangePicker({
     const popRef = useRef<HTMLDivElement>(null);
     const [open, setOpen] = useState(false);
     const [coords, setCoords] = useState<PopCoords | null>(null);
+    const [panel, setPanel] = useState<'days' | 'months'>('days');
     const [draftFrom, setDraftFrom] = useState('');
     const [draftTo, setDraftTo] = useState('');
 
@@ -118,6 +120,7 @@ export function DateRangePicker({
 
     useEffect(() => {
         if (!open) return;
+        setPanel('days');
         setDraftFrom(fromKey);
         setDraftTo(toKey);
         setCursor(cursorFromDayKey(fromKey || toKey || todayKey()));
@@ -205,25 +208,24 @@ export function DateRangePicker({
                 style={popStyle}
             >
                 <p className="ui-date-range-picker__hint">{hint || 'Toque início e fim do período'}</p>
-                <header className="ui-date-picker__nav">
-                    <button
-                        type="button"
-                        className="ui-date-picker__nav-btn"
-                        aria-label="Mês anterior"
-                        onClick={() => setCursor((c) => shiftMonth(c.year, c.month, -1))}
-                    >
-                        <MaterialIcon name="chevron_left" variant="app" opticalSize={18} />
-                    </button>
-                    <p className="ui-date-picker__month">{monthTitlePt(cursor.year, cursor.month)}</p>
-                    <button
-                        type="button"
-                        className="ui-date-picker__nav-btn"
-                        aria-label="Próximo mês"
-                        onClick={() => setCursor((c) => shiftMonth(c.year, c.month, 1))}
-                    >
-                        <MaterialIcon name="chevron_right" variant="app" opticalSize={18} />
-                    </button>
-                </header>
+                {panel === 'months' ? (
+                    <DatePickerMonthGrid
+                        year={cursor.year}
+                        selectedMonth={cursor.month}
+                        onYearChange={(year) => setCursor((c) => ({ ...c, year }))}
+                        onMonthPick={(monthIndex) => {
+                            setCursor((c) => ({ ...c, month: monthIndex }));
+                            setPanel('days');
+                        }}
+                        onBackToDays={() => setPanel('days')}
+                    />
+                ) : (
+                    <>
+                <DatePickerPeriodNav
+                    cursor={cursor}
+                    onCursorChange={setCursor}
+                    onOpenMonthGrid={() => setPanel('months')}
+                />
                 <div className="ui-date-picker__week" aria-hidden="true">
                     {WEEK_SHORT_PT.map((d) => (
                         <span key={d}>{d.replace('.', '').slice(0, 3)}</span>
@@ -289,6 +291,8 @@ export function DateRangePicker({
                         </button>
                     ) : null}
                 </footer>
+                    </>
+                )}
             </div>
         ) : null;
 
