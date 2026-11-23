@@ -270,11 +270,12 @@ export function buildOrcamentoSnapshot(
         financeCofrinho && (meta?.aportes != null || financeCofrinho.aportes > 0)
             ? Math.round(((meta?.aportes ?? financeCofrinho.aportes) + cofrinhoRendimento) * 100) / 100
             : saved;
-    const stillToSave = Math.max(0, effectiveGoal - cofrinhoRemaining);
+    const cofrinhoTowardGoal = Math.max(0, cofrinhoRemaining + cofrinhoUsed);
+    const stillToSave = Math.max(0, effectiveGoal - cofrinhoTowardGoal);
     const spentVsGoalPct =
         effectiveGoal > 0 ? Math.min(100, Math.round((spentTotal / effectiveGoal) * 100)) : 0;
     const savedPct =
-        effectiveGoal > 0 ? Math.min(100, Math.round((cofrinhoRemaining / effectiveGoal) * 100)) : 0;
+        effectiveGoal > 0 ? Math.min(100, Math.round((cofrinhoTowardGoal / effectiveGoal) * 100)) : 0;
 
     const pace = forecast({
         goal: effectiveGoal,
