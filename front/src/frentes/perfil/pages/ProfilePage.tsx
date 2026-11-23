@@ -6,6 +6,7 @@ import { ProfileIdentityCard } from '../components/ProfileIdentityCard';
 import { ProfileAccountAccessCard } from '../components/ProfileAccountAccessCard';
 import { ProfileTravelDocumentCard } from '../components/ProfileTravelDocumentCard';
 import { ProfileWalletPrefsCard } from '../components/ProfileWalletPrefsCard';
+import { ProfileAgentTokensCard } from '../components/ProfileAgentTokensCard';
 import { useProfilePage } from '../hooks/useProfilePage';
 import { ScreenLoader } from '../../../components/ui/ScreenLoader';
 
@@ -57,6 +58,7 @@ export function ProfilePage() {
                         passwordMessage={m.passwordMessage}
                         onSavePassword={m.savePassword}
                     />
+                    <ProfileAgentTokensCard />
                     <ProfileTravelDocumentCard />
                     <ProfileAppearanceCard
                         currency={m.currency}

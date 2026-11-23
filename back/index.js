@@ -49,8 +49,14 @@ import { ensureExpenseTripLinkColumns } from './migrations/expense-trip-link.js'
 import { ensureCofrinhoViagemLedgerColumns } from './migrations/cofrinho-viagem-ledger.js';
 import { ensureCofrinhoMonthlyBalancesTable } from './migrations/cofrinho-monthly-balances.js';
 import { ensureAccountWalletColumns } from './migrations/account-wallet-columns.js';
+import { ensureAgentIntegration } from './migrations/agent-integration.js';
 import { requireAuth, requireAdmin } from './middleware/auth.js';
+import { agentBearerMiddleware, agentScopeGuard } from './middleware/agent-auth.js';
 import { createSessionMiddleware } from './session-middleware.js';
+import { parseClientDate } from './parse-movement-date.js';
+import { movementTraceFromRequest, isExternalRefUniqueViolation } from './movement-trace.js';
+import { registerAgentTokenRoutes } from './routes/agent-tokens.routes.js';
+import { registerFinanceAgentRoutes } from './routes/finance-agent.routes.js';
 import { publicAuthUser, ROLE_USER, ROLE_ADMIN, userIsAdmin } from './lib/roles.js';
 import {
     backupContentType,
@@ -226,6 +232,10 @@ void ensureCofrinhoMonthlyBalancesTable().catch((e) => {
     console.error('[migration] cofrinho monthly balances (boot):', e?.message || e);
 });
 
+void ensureAgentIntegration().catch((e) => {
+    console.error('[migration] agent integration (boot):', e?.message || e);
+});
+
 /** Data URLs em Base64 excedem VARCHAR curtos; sem TEXT a foto não persiste após F5. */
 query(
     `ALTER TABLE users ALTER COLUMN profile_photo_url TYPE text USING profile_photo_url::text`
@@ -256,6 +266,8 @@ app.use(
 app.use(express.json({ limit: '10mb' }));
 
 app.use(createSessionMiddleware({ secret: SESSION_SECRET, crossSiteSession }));
+app.use(agentBearerMiddleware);
+app.use(agentScopeGuard);
 
 app.use('/uploads', express.static(UPLOAD_DIR));
 
@@ -556,14 +568,6 @@ app.get('/api/dashboard/pending-cash-outs', requireAuth, async (req, res) => {
     }
 });
 
-function parseClientDate(body) {
-    if (body.date && typeof body.date === 'object' && body.date.seconds != null) {
-        return new Date(body.date.seconds * 1000).toISOString();
-    }
-    if (body.date && typeof body.date === 'string') return body.date;
-    return new Date().toISOString();
-}
-
 function httpMovementError(message, statusCode = 400) {
     const e = new Error(message);
     e.statusCode = statusCode;
@@ -660,6 +664,10 @@ function expensePayloadFromBody(body, uid) {
     if (category === 'Viagens' && out.paidFromCofrinho) {
         out.isCofrinho = false;
     }
+    const rawExt = body?.externalRef ?? body?.external_ref;
+    if (rawExt != null && String(rawExt).trim()) out.externalRef = String(rawExt).trim();
+    const rawReceipt = body?.receiptUrl ?? body?.receipt_url;
+    if (rawReceipt != null && String(rawReceipt).trim()) out.receiptUrl = String(rawReceipt).trim();
     return out;
 }
 
@@ -730,7 +738,7 @@ function gainPayloadFromBody(body, uid) {
         relatedExpenseId = String(body.relatedExpenseId).trim();
     }
 
-    return {
+    const out = {
         userId: uid,
         accountId,
         category,
@@ -742,6 +750,11 @@ function gainPayloadFromBody(body, uid) {
         recurrenceGroupId,
         relatedExpenseId
     };
+    const rawExt = body?.externalRef ?? body?.external_ref;
+    if (rawExt != null && String(rawExt).trim()) out.externalRef = String(rawExt).trim();
+    const rawReceipt = body?.receiptUrl ?? body?.receipt_url;
+    if (rawReceipt != null && String(rawReceipt).trim()) out.receiptUrl = String(rawReceipt).trim();
+    return out;
 }
 
 async function assertAccountBelongsToUser(accountId, uid) {
@@ -1129,12 +1142,17 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
             // #endregion
         }
 
+        const trace = movementTraceFromRequest(req, req.body);
+
         const wantRecurring =
             !splitRequestBind &&
             (bodyWantsExpenseRecurring(req.body) || queryWantsRecurring(req)) &&
             (base.installmentCount == null || base.installmentCount === 1);
 
         if (wantRecurring) {
+            if (trace.externalRef) {
+                return res.status(400).json({ error: 'externalRef não suportado em série recorrente de saídas' });
+            }
             const dates = monthDatesThroughDecemberSameYear(base.date);
             if (dates.length === 0) {
                 return res.status(400).json({ error: 'Data inválida para série recorrente' });
@@ -1163,11 +1181,11 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                         `INSERT INTO expenses (
                             id, user_id, account_id, category, subcategory, amount, description,
                             date, is_paid, is_cofrinho, installment_count, recurring_monthly,
-                            cash_out_confirmed_periods, recurrence_group_id, is_fixed, reference_only
+                            cash_out_confirmed_periods, recurrence_group_id, is_fixed, reference_only, source
                          ) VALUES (
                             $1,$2,$3,$4,$5,$6,$7,
                             $8,$9,$10,$11,$12,
-                            $13,$14,$15,$16
+                            $13,$14,$15,$16,$17
                          )`,
                         [
                             crypto.randomUUID(),
@@ -1185,7 +1203,8 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                             r.cashOutConfirmedPeriods,
                             r.recurrenceGroupId,
                             r.isFixed ?? false,
-                            refOnly
+                            refOnly,
+                            trace.source
                         ]
                     );
                 }
@@ -1199,7 +1218,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
             });
         }
 
-        const createData = { ...base, recurrenceGroupId: null };
+        const createData = { ...base, recurrenceGroupId: null, ...trace };
         if (!splitRequestBind) delete createData.splitRequestId;
         if (splitRequestBind && splitRequestRow && !splitAlreadyAccepted && splitMonthlySeriesMirror) {
             const { rows: srcMonthRows } = await query(
@@ -1541,12 +1560,14 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                 id, user_id, account_id, category, subcategory, amount, description,
                 date, created_at, is_paid, is_cofrinho, installment_count,
                 cash_out_confirmed_periods, recurring_monthly, recurrence_group_id,
-                is_fixed, reference_only, trip_id, trip_expense_id, paid_from_cofrinho
+                is_fixed, reference_only, trip_id, trip_expense_id, paid_from_cofrinho,
+                source, external_ref, receipt_url
              ) VALUES (
                 $1,$2,$3,$4,$5,$6,$7,
                 $8, now(), $9,$10,$11,
                 $12,$13,$14,
-                $15,$16,$17,$18,$19
+                $15,$16,$17,$18,$19,
+                $20,$21,$22
              )
              RETURNING
                 id,
@@ -1569,7 +1590,10 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                 is_fixed AS "isFixed",
                 trip_id AS "tripId",
                 trip_expense_id AS "tripExpenseId",
-                paid_from_cofrinho AS "paidFromCofrinho"`,
+                paid_from_cofrinho AS "paidFromCofrinho",
+                source,
+                external_ref AS "externalRef",
+                receipt_url AS "receiptUrl"`,
             [
                 expenseId,
                 createData.userId,
@@ -1589,7 +1613,10 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                 refOnlyMain,
                 createData.tripId ?? null,
                 createData.tripExpenseId ?? null,
-                createData.paidFromCofrinho === true
+                createData.paidFromCofrinho === true,
+                trace.source,
+                trace.externalRef,
+                trace.receiptUrl
             ]
         );
         const row = expRows[0];
@@ -1600,12 +1627,15 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
         res.json(normalizeMovement(row));
     } catch (e) {
         console.error('POST /api/expenses', e);
+        if (isExternalRefUniqueViolation(e)) {
+            return res.status(409).json({ error: 'Já existe saída com este externalRef para o usuário' });
+        }
         const code = e.statusCode || 500;
         res.status(code).json({ error: e.message || 'Erro ao criar saída' });
     }
 });
 
-app.put('/api/expenses/:id', requireAuth, async (req, res) => {
+const putExpenseHandler = async (req, res) => {
     try {
         const uid = req.session.userId;
         const { rows: existingRows } = await query(
@@ -1733,7 +1763,10 @@ app.put('/api/expenses/:id', requireAuth, async (req, res) => {
         const code = e.statusCode || 500;
         res.status(code).json({ error: e.message || 'Erro ao atualizar saída' });
     }
-});
+};
+
+app.put('/api/expenses/:id', requireAuth, putExpenseHandler);
+app.patch('/api/expenses/:id', requireAuth, putExpenseHandler);
 
 /**
  * Edição em lote: apenas campos listados em `patch` são alterados nas saídas cujos `ids`
@@ -2435,9 +2468,13 @@ app.post('/api/gains', requireAuth, async (req, res) => {
         const uid = req.session.userId;
         const base = gainPayloadFromBody(req.body, uid);
         await assertAccountBelongsToUser(base.accountId, uid);
+        const trace = movementTraceFromRequest(req, req.body);
 
         const wantRecurring = bodyWantsRecurring(req.body) || queryWantsRecurring(req);
         if (wantRecurring) {
+            if (trace.externalRef) {
+                return res.status(400).json({ error: 'externalRef não suportado em série recorrente de entradas' });
+            }
             const dates = monthDatesThroughDecemberSameYear(base.date);
             if (dates.length === 0) throw httpMovementError('Data inválida para recorrência');
             const groupId = crypto.randomUUID();
@@ -2459,10 +2496,10 @@ app.post('/api/gains', requireAuth, async (req, res) => {
                     await client.query(
                         `INSERT INTO gains (
                             id, user_id, account_id, category, subcategory, amount, description,
-                            date, is_paid, recurrence_group_id, related_expense_id, reference_only
+                            date, is_paid, recurrence_group_id, related_expense_id, reference_only, source
                          ) VALUES (
                             $1,$2,$3,$4,$5,$6,$7,
-                            $8,$9,$10,$11,$12
+                            $8,$9,$10,$11,$12,$13
                          )`,
                         [
                             crypto.randomUUID(),
@@ -2476,7 +2513,8 @@ app.post('/api/gains', requireAuth, async (req, res) => {
                             r.isPaid,
                             r.recurrenceGroupId,
                             null,
-                            refG
+                            refG,
+                            trace.source
                         ]
                     );
                 }
@@ -2495,10 +2533,12 @@ app.post('/api/gains', requireAuth, async (req, res) => {
         const { rows: gainRows } = await query(
             `INSERT INTO gains (
                 id, user_id, account_id, category, subcategory, amount, description,
-                date, is_paid, recurrence_group_id, related_expense_id, reference_only
+                date, is_paid, recurrence_group_id, related_expense_id, reference_only,
+                source, external_ref, receipt_url
              ) VALUES (
                 $1,$2,$3,$4,$5,$6,$7,
-                $8,$9,$10,$11,$12
+                $8,$9,$10,$11,$12,
+                $13,$14,$15
              )
              RETURNING
                 id,
@@ -2512,7 +2552,10 @@ app.post('/api/gains', requireAuth, async (req, res) => {
                 is_paid AS "isPaid",
                 recurrence_group_id AS "recurrenceGroupId",
                 related_expense_id AS "relatedExpenseId",
-                reference_only AS "referenceOnly"`,
+                reference_only AS "referenceOnly",
+                source,
+                external_ref AS "externalRef",
+                receipt_url AS "receiptUrl"`,
             [
                 id,
                 base.userId,
@@ -2525,7 +2568,10 @@ app.post('/api/gains', requireAuth, async (req, res) => {
                 base.isPaid,
                 null,
                 base.relatedExpenseId ?? null,
-                refGainMain
+                refGainMain,
+                trace.source,
+                trace.externalRef,
+                trace.receiptUrl
             ]
         );
         const row = gainRows[0];
@@ -2534,12 +2580,15 @@ app.post('/api/gains', requireAuth, async (req, res) => {
         res.json(normalizeMovement(row));
     } catch (e) {
         console.error('POST /api/gains', e);
+        if (isExternalRefUniqueViolation(e)) {
+            return res.status(409).json({ error: 'Já existe entrada com este externalRef para o usuário' });
+        }
         const code = e.statusCode || 500;
         res.status(code).json({ error: e.message || 'Erro ao criar entrada' });
     }
 });
 
-app.put('/api/gains/:id', requireAuth, async (req, res) => {
+const putGainHandler = async (req, res) => {
     try {
         const uid = req.session.userId;
         const { rows: existingRows } = await query(
@@ -2608,7 +2657,10 @@ app.put('/api/gains/:id', requireAuth, async (req, res) => {
         const code = e.statusCode || 500;
         res.status(code).json({ error: e.message || 'Erro ao atualizar entrada' });
     }
-});
+};
+
+app.put('/api/gains/:id', requireAuth, putGainHandler);
+app.patch('/api/gains/:id', requireAuth, putGainHandler);
 
 /**
  * Edição em lote: apenas campos em `patch` são alterados nas entradas cujos `ids`
@@ -3296,9 +3348,11 @@ app.post('/api/upload', requireAuth, upload.single('file'), (req, res) => {
 app.get('/api/categories', requireAuth, async (req, res) => {
     try {
         const uid = req.session.userId;
-        const [catRes, subRes] = await Promise.all([
-            query(
-                `SELECT
+        const typeRaw = String(req.query?.type ?? '').trim().toUpperCase();
+        const typeFilter = typeRaw === 'GAIN' || typeRaw === 'EXPENSE' ? typeRaw : null;
+        const catParams = [uid];
+        let catSql = `
+                SELECT
                     id,
                     user_id AS "userId",
                     name,
@@ -3307,10 +3361,14 @@ app.get('/api/categories', requireAuth, async (req, res) => {
                     created_at AS "createdAt",
                     updated_at AS "updatedAt"
                  FROM categories
-                 WHERE user_id = $1
-                 ORDER BY name ASC`,
-                [uid]
-            ),
+                 WHERE user_id = $1`;
+        if (typeFilter) {
+            catParams.push(typeFilter);
+            catSql += ` AND type = $${catParams.length}`;
+        }
+        catSql += ` ORDER BY name ASC`;
+        const [catRes, subRes] = await Promise.all([
+            query(catSql, catParams),
             query(
                 `SELECT
                     id,
@@ -4323,6 +4381,8 @@ app.delete('/api/kanban-cards/:id', requireAuth, async (req, res) => {
     }
 });
 
+registerAgentTokenRoutes(app);
+registerFinanceAgentRoutes(app, { normalizeMovement });
 registerDomainRoutes(app, { requireAuth });
 
 /** Produção (Railway etc.): API + React (`front/dist`) ou legado (`dist`) + `/admin`. */
