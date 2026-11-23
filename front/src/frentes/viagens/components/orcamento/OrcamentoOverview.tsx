@@ -82,11 +82,15 @@ export function OrcamentoOverview({
                         </button>
                     </div>
                 </div>
-                <strong className="orc-aportes__balance" title="Saldo líquido (aportes − gastos do cofrinho)">
-                    {formatBRL(snap.cofrinhoRemaining)}
+                <strong
+                    className="orc-aportes__balance"
+                    title="Total aportado no cofrinho (+ rendimento, se houver). Uso do saldo: gráfico e «usados»."
+                >
+                    {formatBRL(snap.cofrinhoAportesTotal)}
                 </strong>
                 <span className="orc-aportes__count">
                     {snap.depositCount} {snap.depositCount === 1 ? 'aporte' : 'aportes'}
+                    {snap.cofrinhoRendimento > 0 ? <> · +{formatBRL(snap.cofrinhoRendimento)} rend.</> : null}
                     {snap.cofrinhoUsed > 0 ? (
                         <>
                             {' '}

@@ -1513,6 +1513,26 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
             return res.json({ expense: normalizeMovement(expense), split: splitRequestRow });
         }
 
+        if (
+            !createData.tripId &&
+            String(createData.category ?? '').trim() === COFRINHO_CATEGORY &&
+            String(createData.subcategory ?? '').trim()
+        ) {
+            const { rows: tripBucketRows } = await query(
+                `SELECT trip_id AS "tripId"
+                 FROM cofrinho_buckets
+                 WHERE user_id = $1
+                   AND trip_id IS NOT NULL
+                   AND lower(trim(name)) = lower(trim($2))
+                 LIMIT 1`,
+                [uid, createData.subcategory]
+            );
+            if (tripBucketRows[0]?.tripId) {
+                createData.tripId = tripBucketRows[0].tripId;
+                if (createData.isCofrinho !== false) createData.isCofrinho = true;
+            }
+        }
+
         if (createData.tripId) await assertTripAccess(uid, createData.tripId);
         const refOnlyMain = await referenceOnlyForUserMovement(uid, createData.date);
         const expenseId = crypto.randomUUID();

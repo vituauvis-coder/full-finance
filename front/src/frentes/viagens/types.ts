@@ -406,6 +406,13 @@ export interface TripFinanceMovementLine {
     author: { id: string; name: string } | null;
 }
 
+export type TripCofrinhoMeta = {
+    aportes: number;
+    gastosCofrinho: number;
+    rendimento: number;
+    remaining: number;
+};
+
 export interface TripDetailResponse {
     trip: Trip;
     scenarioSnapshots?: unknown[];
@@ -413,6 +420,7 @@ export interface TripDetailResponse {
     financeMovements?: {
         lines: TripFinanceMovementLine[];
         totals: { amount: number; aportes?: number; gastosCofrinho?: number };
+        cofrinho?: TripCofrinhoMeta;
     };
 }
 

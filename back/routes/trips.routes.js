@@ -644,7 +644,7 @@ export function registerTripsRoutes(app, { requireAuth }) {
     app.get('/api/trips/:id/finance-movements', requireAuth, async (req, res) => {
         try {
             const view = await listTripFinanceMovements(req.session.userId, req.params.id);
-            res.json({ movements: view.lines, totals: view.totals });
+            res.json({ movements: view.lines, totals: view.totals, cofrinho: view.cofrinho });
         } catch (e) {
             if (e.statusCode === 404) return res.status(404).json({ error: e.message });
             console.error('GET /api/trips/:id/finance-movements', e);

@@ -3351,13 +3351,44 @@
 
 #viagens-page .orc-pop__row {
     display: grid;
-    grid-template-columns: 1fr auto auto;
+    grid-template-columns: minmax(0, 1fr) auto auto;
     align-items: center;
     gap: 0.5rem;
     padding: 0.45rem 0.5rem;
     border-radius: 0.5rem;
     background: var(--v-campo);
     font-size: 0.8125rem;
+}
+
+#viagens-page .orc-pop__when {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-width: 0;
+    line-height: 1.2;
+}
+
+#viagens-page .orc-pop__date {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    color: var(--v-texto);
+}
+
+#viagens-page .orc-pop__author {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 1.55rem;
+    height: 1.55rem;
+    border-radius: 50%;
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1;
+    color: var(--v-texto);
+    background: color-mix(in srgb, var(--v-turquesa) 22%, var(--v-campo));
+    border: 1px solid color-mix(in srgb, var(--v-turquesa) 35%, transparent);
 }
 
 #viagens-page .orc-pop__row strong {

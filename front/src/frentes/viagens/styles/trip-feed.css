@@ -273,12 +273,14 @@
 @media (min-width: 640px) {
     #viagens-page .trip-feed__diary {
         grid-template-columns: repeat(2, minmax(min(100%, 17.5rem), 1fr));
+        gap: 0.85rem;
     }
 }
 
 @media (min-width: 1080px) {
     #viagens-page .trip-feed__diary {
-        grid-template-columns: repeat(3, minmax(min(100%, 16rem), 1fr));
+        grid-template-columns: repeat(2, minmax(min(100%, 22rem), 1fr));
+        gap: 1rem;
     }
 }
 
@@ -315,10 +317,10 @@
 
 #viagens-page .trip-feed__day-head {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr);
     grid-template-rows: auto auto;
-    align-items: center;
-    column-gap: 0.5rem;
+    align-items: baseline;
+    column-gap: 0.65rem;
     row-gap: 0.15rem;
     padding: 0.65rem 0.75rem;
     border-bottom: 1px solid var(--feed-surface-border);
@@ -358,13 +360,13 @@
 
 #viagens-page .trip-feed__day-where {
     display: inline-flex;
-    align-items: center;
+    align-items: baseline;
     justify-content: flex-end;
     gap: 0.3rem;
     margin: 0;
     grid-column: 2;
     grid-row: 1;
-    max-width: 48%;
+    min-width: 0;
     font-size: 0.72rem;
     font-weight: 600;
     color: var(--feed-text-secondary);
@@ -372,6 +374,7 @@
 }
 
 #viagens-page .trip-feed__day-where > span:last-child {
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

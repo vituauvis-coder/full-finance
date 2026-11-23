@@ -16,6 +16,7 @@ export type PiggyDeposit = {
     recordedOn?: string;
     monthKey?: string;
     note?: string;
+    authorName?: string;
 };
 
 export type OrcamentoCategoryId =
@@ -215,18 +216,26 @@ export function sumBudgetCaps(draft: TripDraft): number {
     return total;
 }
 
+export type TripCofrinhoMeta = {
+    aportes: number;
+    gastosCofrinho: number;
+    rendimento: number;
+    remaining: number;
+};
+
 export type OrcamentoSnapshotOptions = {
     /** Linhas unificadas do Dinheiro (`listTripFinanceMovements`). */
     financeMovements?: TripFinanceMovementLine[];
+    /** Saldo do cofrinho-viagem (aportes + rendimento − gastos). */
+    cofrinhoMeta?: TripCofrinhoMeta | null;
 };
 
 function mergedDepositsForSnapshot(
     payload: TripPayload,
     financeMovements: TripFinanceMovementLine[] | undefined
 ): PiggyDeposit[] {
-    const local = readDeposits(payload);
     const fromFinance = financeAportesAsDeposits(financeMovements ?? []);
-    if (fromFinance.length > 0) return [...fromFinance, ...local];
+    if (fromFinance.length > 0) return fromFinance;
     return depositsForForecast(payload);
 }
 
@@ -249,12 +258,18 @@ export function buildOrcamentoSnapshot(
     const tripRef = { payload: draft.payload, budgetCaps: draft.budgetCaps };
     const spentTotal = tripExpensesTotal(tripRef);
     const expensePay = paymentBreakdown(tripRef);
+    const meta = opts.cofrinhoMeta;
     const cofrinhoUsed = financeCofrinho
-        ? financeCofrinho.gastosCofrinho
+        ? (meta?.gastosCofrinho ?? financeCofrinho.gastosCofrinho)
         : sumCofrinhoSpent(draft.payload.expenses ?? []);
     const cofrinhoRemaining = financeCofrinho
-        ? financeCofrinho.remaining
+        ? (meta?.remaining ?? financeCofrinho.remaining)
         : Math.max(0, saved - cofrinhoUsed);
+    const cofrinhoRendimento = meta?.rendimento ?? 0;
+    const cofrinhoAportesTotal =
+        financeCofrinho && (meta?.aportes != null || financeCofrinho.aportes > 0)
+            ? Math.round(((meta?.aportes ?? financeCofrinho.aportes) + cofrinhoRendimento) * 100) / 100
+            : saved;
     const stillToSave = Math.max(0, effectiveGoal - cofrinhoRemaining);
     const spentVsGoalPct =
         effectiveGoal > 0 ? Math.min(100, Math.round((spentTotal / effectiveGoal) * 100)) : 0;
@@ -324,7 +339,9 @@ export function buildOrcamentoSnapshot(
                   : '—',
         tripMonthLabel: pace.tripMonthKey ? monthAndYear(pace.tripMonthKey) : '',
         monthlyNeed: pace.monthlyNeed,
-        currentMonthTotal: currentMonthDepositTotal(deposits, pace.currentMonthKey)
+        currentMonthTotal: currentMonthDepositTotal(deposits, pace.currentMonthKey),
+        cofrinhoRendimento,
+        cofrinhoAportesTotal
     };
 }
 

@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type FocusEvent } from 'react';
 import { fetchFinanceData } from '../../../dinheiro/api/finance';
-import { createExpense } from '../../../dinheiro/api/movements';
+import { createExpense, deleteExpense } from '../../../dinheiro/api/movements';
 import { EXPENSE_COFRINHO_CATEGORY } from '../../../dinheiro/domain/cofrinhoConstants';
 import { isCreditCardType, isPixBankAccountType } from '../../../../lib/accounts';
 import { MaterialIcon } from '../../../../components/icons/MaterialIcon';
-import type { Trip, TripDestination, TripExpense, TripFinanceMovementLine } from '../../types';
+import type { Trip, TripCofrinhoMeta, TripDestination, TripExpense, TripFinanceMovementLine } from '../../types';
 import { formatBRL } from '../../utils/map-utils';
 import type { TripDraft } from '../ViagemFicha';
 import {
@@ -45,6 +45,7 @@ type Props = {
     onFlushSave?: () => void | Promise<void>;
     expenseAuthors?: Record<string, { id: string; name: string }>;
     financeMovements?: TripFinanceMovementLine[];
+    tripCofrinhoMeta?: TripCofrinhoMeta | null;
     onFinanceRefresh?: () => void | Promise<void>;
 };
 
@@ -55,11 +56,12 @@ export function TripOrcamentoPanel({
     onFlushSave,
     expenseAuthors,
     financeMovements = [],
+    tripCofrinhoMeta = null,
     onFinanceRefresh
 }: Props) {
     const snap = useMemo(
-        () => buildOrcamentoSnapshot(draft, new Date(), { financeMovements }),
-        [draft, financeMovements]
+        () => buildOrcamentoSnapshot(draft, new Date(), { financeMovements, cofrinhoMeta: tripCofrinhoMeta }),
+        [draft, financeMovements, tripCofrinhoMeta]
     );
     const [aporteOpen, setAporteOpen] = useState(false);
     const [historyOpen, setHistoryOpen] = useState(false);
@@ -237,16 +239,18 @@ export function TripOrcamentoPanel({
         [financeMovements]
     );
 
-    const depositHistory = useMemo(() => {
-        const local = readDeposits(draft.payload);
-        const fromFinance: PiggyDeposit[] = financeAportes.map((l) => ({
-            id: `finance::${l.id}`,
-            amount: l.amount,
-            recordedOn: l.date ?? undefined,
-            monthKey: l.date?.slice(0, 7),
-            note: l.description
-        }));
-        return [...fromFinance, ...local];
+    const depositHistory = useMemo((): PiggyDeposit[] => {
+        if (financeAportes.length > 0) {
+            return financeAportes.map((l) => ({
+                id: `finance::${l.id}`,
+                amount: l.amount,
+                recordedOn: l.date ?? undefined,
+                monthKey: l.date?.slice(0, 7),
+                note: l.description,
+                authorName: l.author?.name
+            }));
+        }
+        return readDeposits(draft.payload);
     }, [draft.payload, financeAportes]);
 
     async function addDeposit(amount: number, recordedOn: string) {
@@ -275,7 +279,21 @@ export function TripOrcamentoPanel({
         }
     }
 
-    function removeDeposit(id: string) {
+    async function removeDeposit(id: string) {
+        if (id.startsWith('finance::')) {
+            const expenseId = id.slice('finance::'.length);
+            if (!expenseId || !window.confirm('Excluir este aporte? A linha some do Cofrinhos e do extrato (Saídas).')) {
+                return;
+            }
+            try {
+                await deleteExpense(expenseId);
+                window.dispatchEvent(new Event('finance:data-changed'));
+                await onFinanceRefresh?.();
+            } catch (e) {
+                window.alert(e instanceof Error ? e.message : 'Não foi possível excluir o aporte.');
+            }
+            return;
+        }
         onPatch((d) => {
             const list = readDeposits(d.payload).filter((x) => x.id !== id);
             return patchDeposits(d, list);
@@ -450,8 +468,7 @@ export function TripOrcamentoPanel({
                     deposits={depositHistory}
                     onClose={() => setHistoryOpen(false)}
                     onDelete={(id) => {
-                        if (id.startsWith('finance::')) return;
-                        removeDeposit(id);
+                        void removeDeposit(id);
                     }}
                 />
             ) : null}

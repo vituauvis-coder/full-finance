@@ -10,6 +10,7 @@ import type {
     TripLeg,
     TripFlightSegment,
     TripFinanceMovementLine,
+    TripCofrinhoMeta,
     TripPayload,
     TripStay
 } from '../types';
@@ -80,6 +81,7 @@ type Props = {
     onFlushSave?: () => void | Promise<void>;
     expenseAuthors?: Record<string, { id: string; name: string }>;
     financeMovements?: TripFinanceMovementLine[];
+    tripCofrinhoMeta?: TripCofrinhoMeta | null;
     onFinanceRefresh?: () => void | Promise<void>;
 };
 
@@ -134,6 +136,7 @@ export function ViagemFicha({
     onFlushSave,
     expenseAuthors,
     financeMovements = [],
+    tripCofrinhoMeta = null,
     onFinanceRefresh
 }: Props) {
     const [internalDraft, setInternalDraft] = useState(() => tripToDraft(trip));
@@ -549,6 +552,7 @@ export function ViagemFicha({
                         scenarioCount={scenarioCount}
                         onOpenSimulador={onOpenSimulador}
                         financeMovements={financeMovements}
+                        tripCofrinhoMeta={tripCofrinhoMeta}
                     />
                     <TripFeedSection trip={trip} draft={draft} />
                 </div>
@@ -606,6 +610,7 @@ export function ViagemFicha({
                     onFlushSave={onFlushSave}
                     expenseAuthors={expenseAuthors}
                     financeMovements={financeMovements}
+                    tripCofrinhoMeta={tripCofrinhoMeta}
                     onFinanceRefresh={onFinanceRefresh}
                 />
             ) : fichaModulo ? (

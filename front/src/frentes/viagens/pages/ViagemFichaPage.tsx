@@ -23,6 +23,7 @@ export function ViagemFichaPage() {
         draft,
         scenarioWinnerId,
         financeMovements,
+        tripCofrinhoMeta,
         error,
         saveError,
         saving,
@@ -155,6 +156,7 @@ export function ViagemFichaPage() {
                         onOpenSimulador={() => setSimOpen(true)}
                         expenseAuthors={expenseAuthors}
                         financeMovements={financeMovements}
+                        tripCofrinhoMeta={tripCofrinhoMeta}
                     />
                     {simOpen && simDraft ? (
                         <TripSimuladorOverlay

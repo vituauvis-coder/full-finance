@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { MaterialIcon } from '../../../components/icons/MaterialIcon';
-import type { Trip, TripDestination, TripFinanceMovementLine } from '../types';
+import type { Trip, TripCofrinhoMeta, TripDestination, TripFinanceMovementLine } from '../types';
 import type { TripDraft } from './ViagemFicha';
 import { chosenScenarioFromPayload } from '../domain/chosenScenarioResumo';
 import { destinationTags, tripResumoDatesLine, tripResumoDayStats } from '../domain/tripResumoStats';
@@ -23,6 +23,7 @@ type Props = {
     draft: TripDraft;
     destinations: TripDestination[];
     financeMovements?: TripFinanceMovementLine[];
+    tripCofrinhoMeta?: TripCofrinhoMeta | null;
 };
 
 function planBadge(payload: TripDraft['payload'], destinations: TripDestination[], startsOn: string, endsOn: string): {
@@ -42,10 +43,16 @@ function planBadge(payload: TripDraft['payload'], destinations: TripDestination[
     return null;
 }
 
-export function TripResumoPanel({ trip, draft, destinations, financeMovements = [] }: Props) {
+export function TripResumoPanel({
+    trip,
+    draft,
+    destinations,
+    financeMovements = [],
+    tripCofrinhoMeta = null
+}: Props) {
     const orcSnap = useMemo(
-        () => buildOrcamentoSnapshot(draft, new Date(), { financeMovements }),
-        [draft, financeMovements]
+        () => buildOrcamentoSnapshot(draft, new Date(), { financeMovements, cofrinhoMeta: tripCofrinhoMeta }),
+        [draft, financeMovements, tripCofrinhoMeta]
     );
     const stats = useMemo(
         () => tripResumoDayStats(draft.startsOn, draft.endsOn, draft.payload, destinations),

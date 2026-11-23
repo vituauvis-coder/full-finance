@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchTrip, saveTrip } from '../api/trips';
-import type { Trip, TripExpense, TripFinanceMovementLine } from '../types';
+import type { Trip, TripCofrinhoMeta, TripExpense, TripFinanceMovementLine } from '../types';
 import { tripToDraft, type TripDraft } from '../components/ViagemFicha';
 import { alignDraftDatesToChosenScenario } from '../domain/tripResumoStats';
 
@@ -37,6 +37,7 @@ export function useTripAutosave(tripId: string | undefined) {
     const [saveError, setSaveError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
     const [financeMovements, setFinanceMovements] = useState<TripFinanceMovementLine[]>([]);
+    const [tripCofrinhoMeta, setTripCofrinhoMeta] = useState<TripCofrinhoMeta | null>(null);
     const latestDraft = useRef<TripDraft | null>(null);
     const serverPayload = useRef<Trip['payload']>({});
     const [dirty, setDirty] = useState(false);
@@ -63,6 +64,7 @@ export function useTripAutosave(tripId: string | undefined) {
             serverPayload.current = data.trip.payload ?? {};
             setScenarioWinnerId(data.scenarioWinnerId ?? null);
             setFinanceMovements(data.financeMovements?.lines ?? []);
+            setTripCofrinhoMeta(data.financeMovements?.cofrinho ?? null);
             if (aligned) {
                 setDirty(true);
                 setSaveTick((n) => n + 1);
@@ -77,6 +79,15 @@ export function useTripAutosave(tripId: string | undefined) {
     useEffect(() => {
         void load();
     }, [load]);
+
+    useEffect(() => {
+        if (!tripId) return;
+        const onFinanceChanged = () => {
+            void load();
+        };
+        window.addEventListener(FINANCE_REFRESH_EVENT, onFinanceChanged);
+        return () => window.removeEventListener(FINANCE_REFRESH_EVENT, onFinanceChanged);
+    }, [tripId, load]);
 
     const persist = useCallback(
         async (draft: TripDraft) => {
@@ -185,6 +196,7 @@ export function useTripAutosave(tripId: string | undefined) {
         draft,
         scenarioWinnerId,
         financeMovements,
+        tripCofrinhoMeta,
         error,
         saveError,
         saving,

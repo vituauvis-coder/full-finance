@@ -246,11 +246,11 @@ function makeTrailCityPusher(): {
     push: (raw: string, id: string, country?: string, sub?: string) => void;
 } {
     const pins: TripFeedCityPin[] = [];
-    let lastKey = '';
+    const seen = new Set<string>();
     const push = (raw: string, id: string, country?: string, sub?: string) => {
         const key = canonTrailCityKey(raw);
-        if (!key || key === lastKey) return;
-        lastKey = key;
+        if (!key || seen.has(key)) return;
+        seen.add(key);
         pins.push({
             id,
             name: trailCityDisplayName(raw, key),

@@ -332,7 +332,9 @@ async function consumePoolFifo(client, uid, ym, amount, preferredSourceId = null
     return { primarySourceId, slices };
 }
 
-async function insertAllocatedExpense(client, uid, poolRow, bucketName, amount, accountIdOverride) {
+async function insertAllocatedExpense(client, uid, poolRow, bucket, amount, accountIdOverride) {
+    const bucketName = String(bucket?.name ?? '').trim() || 'Cofrinho';
+    const tripId = bucket?.tripId ? String(bucket.tripId).trim() : '';
     const accountId = accountIdOverride || poolRow.accountId;
     const date = todayLocalDateString();
     const refOnly = await referenceOnlyForUserMovement(uid, date);
@@ -344,12 +346,12 @@ async function insertAllocatedExpense(client, uid, poolRow, bucketName, amount, 
             id, user_id, account_id, category, subcategory, amount, description,
             date, is_paid, is_cofrinho, installment_count, recurring_monthly,
             cash_out_confirmed_periods, recurrence_group_id, is_fixed, reference_only,
-            allocation_parent_id
+            allocation_parent_id, trip_id
          ) VALUES (
             $1,$2,$3,$4,$5,$6,$7,
-            $8,true,false,null,false,
+            $8,true,true,null,false,
             null,null,false,$9,
-            $10
+            $10,$11
          )`,
         [
             expenseId,
@@ -361,7 +363,8 @@ async function insertAllocatedExpense(client, uid, poolRow, bucketName, amount, 
             description,
             date,
             refOnly,
-            poolRow?.id || null
+            poolRow?.id || null,
+            tripId || null
         ]
     );
     return expenseId;
@@ -728,7 +731,7 @@ export function registerCofrinhoRoutes(app, requireAuth) {
                     client,
                     uid,
                     poolTemplate,
-                    bucket.name,
+                    bucket,
                     amount,
                     accountId
                 );
