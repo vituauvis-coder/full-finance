@@ -8,13 +8,7 @@ import { debtsSummaryFromData } from '../domain/debtSummaryStats';
 import type { Debt, DebtUpdate } from '../domain/debtTypes';
 import { useDebtsHeaderRegistration } from '../context/DebtsHeaderSlotContext';
 import { useDebtsModals } from '../hooks/useDebtsModals';
-import {
-    DebtsBalanceChart,
-    DebtsCardsGrid,
-    DebtsPageModals,
-    DebtsPageShell,
-    DebtsSummaryPanel
-} from '../components/debts';
+import { DebtsCardsGrid, DebtsPageModals, DebtsPageShell, DebtsTreemapHero } from '../components/debts';
 
 export function DividasPage() {
     const { data, loading, error, refresh } = useFinanceData();
@@ -61,8 +55,7 @@ export function DividasPage() {
 
     return (
         <DebtsPageShell>
-            <DebtsSummaryPanel currency={currency} summary={summary} />
-            <DebtsBalanceChart debts={debts} updates={updates} currency={currency} />
+            <DebtsTreemapHero currency={currency} summary={summary} debts={debts} updates={updates} />
             <DebtsCardsGrid
                 debts={debts}
                 updates={updates}

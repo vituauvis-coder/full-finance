@@ -8,18 +8,21 @@ import { debtsSummaryMonthMom } from '../../domain/debtSummaryStats';
 type Props = {
     currency: string;
     summary: DebtsSummary;
+    gridClassName?: string;
 };
 
-export function DebtsSummaryPanel({ currency, summary }: Props) {
+export function DebtsSummaryPanel({ currency, summary, gridClassName = '' }: Props) {
     const titles = debtsSummaryTitles();
     const monthMom = debtsSummaryMonthMom(summary);
+    const gridClass = ['debts-page__summary', gridClassName].filter(Boolean).join(' ');
 
     return (
-        <MovementSummaryCardsGrid group="debts" ariaLabel="Resumo das dívidas" className="debts-page__summary">
+        <MovementSummaryCardsGrid group="debts" ariaLabel="Resumo das dívidas" className={gridClass}>
             <MovementSummaryCard
                 cardId="debts-summary-total"
                 tone="debts"
-                icon="fa-landmark"
+                icon="account_balance"
+                iconTooltip={false}
                 title={titles.totalToday}
                 description={DEBTS_SUMMARY_COPY.totalToday}
                 value={formatBRL(summary.totalToday, currency)}
@@ -27,7 +30,8 @@ export function DebtsSummaryPanel({ currency, summary }: Props) {
             <MovementSummaryCard
                 cardId="debts-summary-month"
                 tone="debts"
-                icon="fa-chart-line"
+                icon="monitoring"
+                iconTooltip={false}
                 title={titles.monthTotal}
                 description={DEBTS_SUMMARY_COPY.monthTotal}
                 value={formatBRL(summary.totalCurrentMonth, currency)}
@@ -36,7 +40,8 @@ export function DebtsSummaryPanel({ currency, summary }: Props) {
             <MovementSummaryCard
                 cardId="debts-summary-banks"
                 tone="debts"
-                icon="fa-building-columns"
+                icon="domain"
+                iconTooltip={false}
                 title={titles.bankCount}
                 description={DEBTS_SUMMARY_COPY.bankCount}
                 hint="com saldo registrado"

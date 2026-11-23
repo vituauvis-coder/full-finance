@@ -1,10 +1,9 @@
-import { useMemo } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
     Bar,
     CartesianGrid,
     Cell,
     ComposedChart,
-    Legend,
     Line,
     ReferenceLine,
     ResponsiveContainer,
@@ -16,14 +15,16 @@ import { formatBRL } from '../../../../lib/format';
 import { barFill, chartAxisColors, colorWithAlpha } from '../../../dashboard/components/flux/fluxChartTheme';
 import { debtColorHex } from '../../domain/debtColors';
 import type { Debt, DebtUpdate } from '../../domain/debtTypes';
-import { buildDebtsChartSeries } from './buildDebtsChartSeries';
+import type { DebtsChartRow, DebtsChartSeries } from './buildDebtsChartSeries';
 import { FluxChartTooltip } from '../../../dashboard/components/flux/FluxChartTooltip';
 
 type Props = {
-    debts: Debt[];
-    updates: DebtUpdate[];
+    rows: DebtsChartRow[];
+    series: DebtsChartSeries[];
     currency: string;
 };
+
+const CHART_HEIGHT = 280;
 
 function DebtsChartGrid({ axis }: { axis: ReturnType<typeof chartAxisColors> }) {
     return (
@@ -35,12 +36,37 @@ function DebtsChartGrid({ axis }: { axis: ReturnType<typeof chartAxisColors> }) 
     );
 }
 
-export function DebtsBalanceChartView({ debts, updates, currency }: Props) {
+function useChartCanvasWidth(active: boolean) {
+    const ref = useRef<HTMLDivElement | null>(null);
+    const [width, setWidth] = useState(0);
+
+    useLayoutEffect(() => {
+        if (!active) {
+            setWidth(0);
+            return;
+        }
+        const el = ref.current;
+        if (!el) return;
+
+        const measure = () => {
+            if (ref.current) setWidth(ref.current.clientWidth);
+        };
+
+        measure();
+        const ro = new ResizeObserver(measure);
+        ro.observe(el);
+        return () => ro.disconnect();
+    }, [active]);
+
+    return { ref, width };
+}
+
+export function DebtsBalanceChartView({ rows, series, currency }: Props) {
     const axis = chartAxisColors();
     const totalColor = debtColorHex('wine');
     const currentMonth = new Date().getMonth();
-
-    const { rows, series } = useMemo(() => buildDebtsChartSeries(debts, updates), [debts, updates]);
+    const active = rows.length > 0;
+    const { ref, width } = useChartCanvasWidth(active);
 
     const labelMap = useMemo(() => {
         const m: Record<string, string> = { total: 'Total' };
@@ -60,75 +86,68 @@ export function DebtsBalanceChartView({ debts, updates, currency }: Props) {
         return max > 0 ? max * 1.08 : 1;
     }, [rows, series]);
 
-    const margin = { top: 4, right: 8, left: 0, bottom: 0 };
+    const margin = { top: 8, right: 12, left: 4, bottom: 4 };
 
     return (
-        <ResponsiveContainer width="100%" height="100%" minHeight={320}>
-            <ComposedChart data={rows} margin={margin} barCategoryGap="24%" barGap={4}>
-                <DebtsChartGrid axis={axis} />
-                <XAxis
-                    dataKey="label"
-                    tickLine={false}
-                    axisLine={{ stroke: axis.grid }}
-                    tick={{ fill: colorWithAlpha(axis.tick, 0.72), fontSize: 11, fontWeight: 500 }}
-                />
-                <YAxis
-                    domain={[0, yMax]}
-                    tickCount={6}
-                    tickLine={false}
-                    axisLine={false}
-                    tick={{ fill: axis.tick, fontSize: 11 }}
-                    width={72}
-                    tickFormatter={(v) => formatBRL(Number(v), currency)}
-                />
-                <Tooltip
-                    content={<FluxChartTooltip currency={currency} labels={labelMap} />}
-                    cursor={{ fill: 'var(--dash-chart-tooltip-cursor, rgba(255,255,255, 0.06))' }}
-                    shared
-                    itemSorter={(item) => -(Number(item.value) || 0)}
-                />
-                <Legend
-                    verticalAlign="top"
-                    align="center"
-                    wrapperStyle={{
-                        fontSize: 11,
-                        fontWeight: 600,
-                        color: axis.tick,
-                        paddingBottom: 8,
-                        lineHeight: 1.4
-                    }}
-                />
-                <Bar
-                    dataKey="total"
-                    name="Total"
-                    radius={[6, 6, 0, 0]}
-                    maxBarSize={40}
-                    fill={colorWithAlpha(totalColor, 0.38)}
-                    isAnimationActive
-                    animationDuration={400}
-                >
-                    {rows.map((_, index) => (
-                        <Cell key={index} fill={barFill(totalColor, index, currentMonth)} />
-                    ))}
-                </Bar>
-                {series.map((s) => (
-                    <Line
-                        key={s.key}
-                        type="monotone"
-                        dataKey={s.key}
-                        name={s.label}
-                        stroke={s.color}
-                        strokeWidth={2}
-                        dot={{ r: 3, fill: s.color, strokeWidth: 0 }}
-                        activeDot={{ r: 5 }}
-                        connectNulls={s.closed === true}
-                        strokeDasharray={s.closed ? '6 4' : undefined}
-                        strokeOpacity={s.closed ? 0.75 : 1}
-                        isAnimationActive
-                        animationDuration={400}
-                    />
-                ))}
-            </ComposedChart>
-        </ResponsiveContainer>
+        <div ref={ref} className="debts-balance-chart__canvas">
+            {width > 0 ? (
+                <ResponsiveContainer width={width} height={CHART_HEIGHT}>
+                    <ComposedChart data={rows} margin={margin} barCategoryGap="24%" barGap={4}>
+                        <DebtsChartGrid axis={axis} />
+                        <XAxis
+                            dataKey="label"
+                            tickLine={false}
+                            axisLine={{ stroke: axis.grid }}
+                            tick={{ fill: colorWithAlpha(axis.tick, 0.72), fontSize: 11, fontWeight: 500 }}
+                        />
+                        <YAxis
+                            domain={[0, yMax]}
+                            tickCount={6}
+                            tickLine={false}
+                            axisLine={false}
+                            tick={{ fill: axis.tick, fontSize: 11 }}
+                            width={72}
+                            tickFormatter={(v) => formatBRL(Number(v), currency)}
+                        />
+                        <Tooltip
+                            content={<FluxChartTooltip currency={currency} labels={labelMap} />}
+                            cursor={{ fill: 'var(--dash-chart-tooltip-cursor, rgba(255,255, 255, 0.06))' }}
+                            shared
+                            itemSorter={(item) => -(Number(item.value) || 0)}
+                        />
+                        <Bar
+                            dataKey="total"
+                            name="Total"
+                            radius={[6, 6, 0, 0]}
+                            maxBarSize={40}
+                            fill={colorWithAlpha(totalColor, 0.38)}
+                            isAnimationActive
+                            animationDuration={400}
+                        >
+                            {rows.map((_, index) => (
+                                <Cell key={index} fill={barFill(totalColor, index, currentMonth)} />
+                            ))}
+                        </Bar>
+                        {series.map((s) => (
+                            <Line
+                                key={s.key}
+                                type="monotone"
+                                dataKey={s.key}
+                                name={s.label}
+                                stroke={s.color}
+                                strokeWidth={2}
+                                dot={{ r: 3, fill: s.color, strokeWidth: 0 }}
+                                activeDot={{ r: 5 }}
+                                connectNulls={s.closed === true}
+                                strokeDasharray={s.closed ? '6 4' : undefined}
+                                strokeOpacity={s.closed ? 0.75 : 1}
+                                isAnimationActive
+                                animationDuration={400}
+                            />
+                        ))}
+                    </ComposedChart>
+                </ResponsiveContainer>
+            ) : null}
+        </div>
     );
 }

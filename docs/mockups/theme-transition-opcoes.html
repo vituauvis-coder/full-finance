@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Transição de tema — 3 versões</title>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0" rel="stylesheet" />
+    <style>
+        :root {
+            --bg: #f5f5f7;
+            --text: #1d1d1f;
+            --muted: #6e6e73;
+            --sidebar: #fff;
+            --border: rgba(0, 0, 0, 0.08);
+            --hover: rgba(0, 0, 0, 0.05);
+        }
+
+        [data-theme='dark'] {
+            --bg: #141416;
+            --text: #f5f5f7;
+            --muted: #98989d;
+            --sidebar: #1d1d1f;
+            --border: rgba(255, 255, 255, 0.1);
+            --hover: rgba(255, 255, 255, 0.06);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif;
+            background: #0a0a0b;
+            color: #f5f5f7;
+            min-height: 100vh;
+        }
+
+        .page-header {
+            padding: 1.25rem 1.5rem 0.75rem;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .page-header h1 {
+            margin: 0 0 0.35rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .page-header p {
+            margin: 0;
+            font-size: 0.9rem;
+            color: #a1a1a6;
+            line-height: 1.45;
+        }
+
+        .variants {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+            padding: 1rem 1.5rem 1.5rem;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .variant-card {
+            background: #1c1c1e;
+            border: 1px solid #333;
+            border-radius: 14px;
+            padding: 1rem 1.1rem 1.1rem;
+        }
+
+        .variant-card h2 {
+            margin: 0 0 0.35rem;
+            font-size: 1rem;
+        }
+
+        .variant-card .tag {
+            display: inline-block;
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #8e8e93;
+            margin-bottom: 0.5rem;
+        }
+
+        .variant-card p {
+            margin: 0 0 0.85rem;
+            font-size: 0.82rem;
+            color: #a1a1a6;
+            line-height: 1.45;
+        }
+
+        .variant-card ul {
+            margin: 0 0 1rem;
+            padding-left: 1.1rem;
+            font-size: 0.78rem;
+            color: #8e8e93;
+        }
+
+        .variant-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.45rem;
+        }
+
+        .variant-actions button {
+            flex: 1 1 auto;
+            min-width: 7.5rem;
+            border: none;
+            border-radius: 10px;
+            padding: 0.55rem 0.75rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            background: #2c2c2e;
+            color: #f5f5f7;
+        }
+
+        .variant-actions button:hover {
+            background: #3a3a3c;
+        }
+
+        .variant-actions button.primary {
+            background: #f5f5f7;
+            color: #1d1d1f;
+        }
+
+        /* Palco simulando app */
+        .stage-wrap {
+            max-width: 1100px;
+            margin: 0 auto 2rem;
+            padding: 0 1.5rem;
+        }
+
+        .stage-label {
+            font-size: 0.75rem;
+            color: #8e8e93;
+            margin-bottom: 0.5rem;
+        }
+
+        .stage {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            min-height: 320px;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid #333;
+            background: var(--bg);
+            color: var(--text);
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+
+        .stage-sidebar {
+            background: var(--sidebar);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 0.75rem;
+        }
+
+        .stage-sidebar .fake-menu {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            margin-top: 0.5rem;
+        }
+
+        .fake-chip {
+            height: 36px;
+            border-radius: 8px;
+            background: var(--hover);
+        }
+
+        .stage-footer {
+            margin-top: auto;
+            padding-top: 0.55rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .stage-footer-tray {
+            display: flex;
+            gap: 0.25rem;
+            padding: 0.28rem;
+            border-radius: 12px;
+            background: color-mix(in srgb, var(--hover) 80%, transparent);
+            border: 1px solid var(--border);
+        }
+
+        .stage-footer-tray button {
+            flex: 1;
+            border: none;
+            background: transparent;
+            border-radius: 10px;
+            min-height: 40px;
+            cursor: pointer;
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stage-footer-tray button:hover {
+            background: var(--hover);
+            color: var(--text);
+        }
+
+        #demo-theme-btn[aria-pressed='true'] {
+            color: var(--text);
+            background: var(--hover);
+        }
+
+        .material-symbols-rounded {
+            font-family: 'Material Symbols Rounded';
+            font-size: 22px;
+            font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+        }
+
+        .stage-main {
+            padding: 1.25rem 1.5rem;
+        }
+
+        .stage-main h3 {
+            margin: 0 0 0.35rem;
+            font-size: 1.1rem;
+        }
+
+        .stage-main p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.88rem;
+        }
+
+        .stage-blocks {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.65rem;
+            margin-top: 1.25rem;
+        }
+
+        .stage-blocks div {
+            height: 72px;
+            border-radius: 12px;
+            background: var(--hover);
+            border: 1px solid var(--border);
+        }
+
+        /* —— Overlay base —— */
+        .theme-transition {
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .theme-transition__burst {
+            position: absolute;
+            left: calc(var(--tx-x) * 1px - var(--tx-size) * 1px / 2);
+            top: calc(var(--tx-y) * 1px - var(--tx-size) * 1px / 2);
+            width: calc(var(--tx-size) * 1px);
+            height: calc(var(--tx-size) * 1px);
+            border-radius: 50%;
+            transform: scale(0);
+            opacity: 0.98;
+        }
+
+        .theme-transition.is-running .theme-transition__burst {
+            animation: burst var(--tx-dur) var(--tx-ease) forwards;
+        }
+
+        .theme-transition__glyph {
+            position: absolute;
+            left: calc(var(--tx-x) * 1px);
+            top: calc(var(--tx-y) * 1px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transform: translate(-50%, -50%);
+            opacity: 0;
+            z-index: 2;
+        }
+
+        .theme-transition.is-running .theme-transition__glyph {
+            animation: glyph var(--tx-dur) var(--tx-glyph-ease) forwards;
+        }
+
+        .theme-transition__glyph .material-symbols-rounded {
+            font-size: var(--tx-glyph-size);
+        }
+
+        .theme-transition__ripple {
+            position: absolute;
+            left: calc(var(--tx-x) * 1px);
+            top: calc(var(--tx-y) * 1px);
+            width: var(--tx-ripple-base);
+            height: var(--tx-ripple-base);
+            border-radius: 50%;
+            border: 2px solid color-mix(in srgb, #fff 40%, transparent);
+            transform: translate(-50%, -50%) scale(0.15);
+            opacity: 0;
+        }
+
+        .theme-transition.is-running .theme-transition__ripple {
+            animation: ripple var(--tx-dur) var(--tx-ease) forwards;
+        }
+
+        @keyframes burst {
+            0% { transform: scale(0); opacity: 0.95; }
+            45% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(1.02); opacity: 0; }
+        }
+
+        @keyframes glyph {
+            0% { transform: translate(-50%, -50%) scale(var(--tx-glyph-start)) rotate(-40deg); opacity: 0; }
+            30% { transform: translate(-50%, -50%) scale(var(--tx-glyph-peak)) rotate(8deg); opacity: 1; }
+            55% { transform: translate(-50%, -50%) scale(calc(var(--tx-glyph-peak) * 0.92)) rotate(0deg); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(var(--tx-glyph-end)) rotate(16deg); opacity: 0; }
+        }
+
+        @keyframes ripple {
+            0% { transform: translate(-50%, -50%) scale(0.15); opacity: 0.55; }
+            100% { transform: translate(-50%, -50%) scale(var(--tx-ripple-end)); opacity: 0; }
+        }
+
+        /* V1 — atual (rápida, quente) */
+        .theme-transition--v1 {
+            --tx-dur: 1.12s;
+            --tx-ease: cubic-bezier(0.22, 1, 0.36, 1);
+            --tx-glyph-ease: cubic-bezier(0.34, 1.25, 0.64, 1);
+            --tx-glyph-size: 3.75rem;
+            --tx-glyph-start: 0.35;
+            --tx-glyph-peak: 1.08;
+            --tx-glyph-end: 1.65;
+            --tx-ripple-base: 5rem;
+            --tx-ripple-end: 42;
+            --tx-apply: 0.52;
+        }
+
+        .theme-transition--v1 .burst--light {
+            background: radial-gradient(circle at 42% 38%, #fffef5, #ffe8a3 28%, #ffd27a 46%, #f4f4f5 78%, #ebebef);
+            box-shadow: 0 0 90px rgba(255, 184, 77, 0.45);
+        }
+
+        .theme-transition--v1 .burst--dark {
+            background: radial-gradient(circle at 38% 32%, #3d4f6f, #1a2233 36%, #0b0e14 68%, #050608);
+        }
+
+        .theme-transition--v1 .glyph--light .material-symbols-rounded {
+            color: #ff9f1a;
+            filter: drop-shadow(0 0 22px rgba(255, 159, 26, 0.65));
+        }
+
+        .theme-transition--v1 .glyph--dark .material-symbols-rounded {
+            color: #e8ecff;
+            filter: drop-shadow(0 0 18px rgba(168, 184, 255, 0.5));
+        }
+
+        /* V2 — cinemático (mais lento, ícone grande, claro neutro) */
+        .theme-transition--v2 {
+            --tx-dur: 2.05s;
+            --tx-ease: cubic-bezier(0.16, 1, 0.3, 1);
+            --tx-glyph-ease: cubic-bezier(0.22, 1.15, 0.36, 1);
+            --tx-glyph-size: 5.5rem;
+            --tx-glyph-start: 0.25;
+            --tx-glyph-peak: 1.22;
+            --tx-glyph-end: 2.1;
+            --tx-ripple-base: 6.5rem;
+            --tx-ripple-end: 48;
+            --tx-apply: 0.58;
+        }
+
+        .theme-transition--v2 .burst--light {
+            background: radial-gradient(
+                circle at 45% 40%,
+                #ffffff 0%,
+                #f7f7f8 22%,
+                #eeeff2 48%,
+                #e8e8ed 72%,
+                #dfdfe3 100%
+            );
+            box-shadow: 0 0 120px rgba(255, 248, 235, 0.35);
+        }
+
+        .theme-transition--v2 .burst--dark {
+            background: radial-gradient(circle at 40% 35%, #4a5568 0%, #232836 38%, #12151c 70%, #08090c);
+            box-shadow: 0 0 100px rgba(107, 140, 206, 0.35);
+        }
+
+        .theme-transition--v2 .burst--dark::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background-image:
+                radial-gradient(1.5px 1.5px at 20% 25%, #fff, transparent),
+                radial-gradient(1px 1px at 70% 18%, #fff, transparent),
+                radial-gradient(1.2px 1.2px at 55% 62%, #fff, transparent);
+            opacity: 0.85;
+        }
+
+        .theme-transition--v2 .glyph--light .material-symbols-rounded {
+            color: #fbbf24;
+            filter: drop-shadow(0 0 28px rgba(251, 191, 36, 0.45));
+        }
+
+        .theme-transition--v2 .glyph--dark .material-symbols-rounded {
+            color: #f0f4ff;
+            filter: drop-shadow(0 0 32px rgba(176, 196, 255, 0.55));
+        }
+
+        /* V3 — monumental (bem lento, ícone gigante, viaja com a onda) */
+        .theme-transition--v3 {
+            --tx-dur: 2.65s;
+            --tx-ease: cubic-bezier(0.12, 0.85, 0.22, 1);
+            --tx-glyph-ease: cubic-bezier(0.18, 1.05, 0.32, 1);
+            --tx-glyph-size: 7.5rem;
+            --tx-glyph-start: 0.2;
+            --tx-glyph-peak: 1.35;
+            --tx-glyph-end: 2.8;
+            --tx-ripple-base: 8rem;
+            --tx-ripple-end: 52;
+            --tx-apply: 0.62;
+        }
+
+        .theme-transition--v3 .burst--light {
+            background: radial-gradient(
+                circle at 50% 45%,
+                #fff 0%,
+                #f3f6fb 30%,
+                #e9edf5 55%,
+                #dfe3ec 80%,
+                #d4d8e1 100%
+            );
+        }
+
+        .theme-transition--v3 .burst--dark {
+            background: radial-gradient(circle at 48% 42%, #5b4f8a 0%, #2a2440 32%, #14121f 65%, #09080f);
+        }
+
+        .theme-transition--v3 .glyph--light .material-symbols-rounded {
+            color: #fde68a;
+            filter: drop-shadow(0 0 40px rgba(253, 230, 138, 0.5));
+        }
+
+        .theme-transition--v3 .glyph--dark .material-symbols-rounded {
+            color: #ddd6fe;
+            filter: drop-shadow(0 0 42px rgba(167, 139, 250, 0.55));
+        }
+
+        .theme-transition--v3.is-running .theme-transition__glyph {
+            animation-name: glyph-v3;
+        }
+
+        @keyframes glyph-v3 {
+            0% {
+                transform: translate(-50%, -50%) scale(0.2) rotate(-50deg);
+                opacity: 0;
+            }
+            22% {
+                transform: translate(-50%, -50%) scale(1.4) rotate(12deg);
+                opacity: 1;
+            }
+            50% {
+                transform: translate(-50%, -58%) scale(1.25) rotate(-6deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -72%) scale(2.6) rotate(20deg);
+                opacity: 0;
+            }
+        }
+
+        .note {
+            max-width: 1100px;
+            margin: 0 auto 2rem;
+            padding: 0 1.5rem;
+            font-size: 0.8rem;
+            color: #636366;
+        }
+    </style>
+</head>
+<body>
+    <header class="page-header">
+        <h1>Transição sol / lua — 3 versões</h1>
+        <p>
+            Escolha uma versão e use o botão de tema no rodapé do menu (palco abaixo) ou os atalhos em cada cartão.
+            A troca claro ↔ escuro do palco acontece no meio da animação, como no app.
+        </p>
+    </header>
+
+    <div class="variants">
+        <article class="variant-card">
+            <span class="tag">Versão 1</span>
+            <h2>Atual (app hoje)</h2>
+            <p>Rápida (~1,1s), halo bem amarelo, ícone médio (~60px).</p>
+            <ul>
+                <li>Boa para não atrasar o uso</li>
+                <li>Pode parecer “flash” amarelo</li>
+            </ul>
+            <div class="variant-actions">
+                <button type="button" data-run="v1" data-dir="dark">Escuro</button>
+                <button type="button" data-run="v1" data-dir="light">Claro</button>
+            </div>
+        </article>
+
+        <article class="variant-card">
+            <span class="tag">Versão 2</span>
+            <h2>Cinemático</h2>
+            <p>~2s, ícone maior (~88px), claro neutro (pouco amarelo).</p>
+            <ul>
+                <li>Gradiente pérola / cinza claro</li>
+                <li>Equilíbrio velocidade × presença</li>
+            </ul>
+            <div class="variant-actions">
+                <button type="button" class="primary" data-run="v2" data-dir="dark">Escuro</button>
+                <button type="button" class="primary" data-run="v2" data-dir="light">Claro</button>
+            </div>
+        </article>
+
+        <article class="variant-card">
+            <span class="tag">Versão 3</span>
+            <h2>Monumental</h2>
+            <p>~2,6s, ícone grande (~120px) sobe com a onda; noite índigo.</p>
+            <ul>
+                <li>Mais teatral</li>
+                <li>Sol/lua “ocupam” a tela</li>
+            </ul>
+            <div class="variant-actions">
+                <button type="button" data-run="v3" data-dir="dark">Escuro</button>
+                <button type="button" data-run="v3" data-dir="light">Claro</button>
+            </div>
+        </article>
+    </div>
+
+    <div class="stage-wrap">
+        <p class="stage-label">Palco — origem da animação no botão lua/sol</p>
+        <div id="demo-stage" class="stage" data-theme="light">
+            <aside class="stage-sidebar">
+                <div class="fake-chip" style="height: 48px"></div>
+                <div class="fake-menu">
+                    <div class="fake-chip"></div>
+                    <div class="fake-chip"></div>
+                    <div class="fake-chip"></div>
+                </div>
+                <footer class="stage-footer">
+                    <div class="stage-footer-tray">
+                        <button type="button" title="Ferramentas"><span class="material-symbols-rounded">handyman</span></button>
+                        <button type="button" id="demo-theme-btn" title="Tema" aria-pressed="false">
+                            <span class="material-symbols-rounded" id="demo-theme-icon">dark_mode</span>
+                        </button>
+                        <button type="button" title="Sair"><span class="material-symbols-rounded">logout</span></button>
+                    </div>
+                </footer>
+            </aside>
+            <div class="stage-main">
+                <h3>Dashboard</h3>
+                <p>Conteúdo simulado — a versão ativa é a última que você disparou.</p>
+                <div class="stage-blocks"><div></div><div></div><div></div></div>
+            </div>
+        </div>
+    </div>
+
+    <p class="note">
+        Arquivo: <code>docs/mockups/theme-transition-opcoes.html</code> — abra no navegador (duplo clique ou Live Server).
+        Depois de escolher, avise qual versão (1, 2 ou 3) aplicar no React.
+    </p>
+
+    <script>
+        const stage = document.getElementById('demo-stage');
+        const themeBtn = document.getElementById('demo-theme-btn');
+        const themeIcon = document.getElementById('demo-theme-icon');
+        let selectedVariant = 'v2';
+        let busy = false;
+
+        function isDark() {
+            return stage.getAttribute('data-theme') === 'dark';
+        }
+
+        function setStageTheme(dark) {
+            stage.setAttribute('data-theme', dark ? 'dark' : 'light');
+            themeBtn.setAttribute('aria-pressed', dark ? 'true' : 'false');
+            themeIcon.textContent = dark ? 'dark_mode' : 'light_mode';
+        }
+
+        function coverRadius(x, y) {
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            const far = Math.max(
+                Math.hypot(x, y),
+                Math.hypot(w - x, y),
+                Math.hypot(x, h - y),
+                Math.hypot(w - x, h - y)
+            );
+            return far * 2 + 64;
+        }
+
+        function runTransition(variant, toDark, originEl) {
+            if (busy) return;
+            busy = true;
+
+            const rect = originEl.getBoundingClientRect();
+            const x = rect.left + rect.width / 2;
+            const y = rect.top + rect.height / 2;
+            const size = coverRadius(x, y);
+
+            const root = document.createElement('div');
+            root.className = `theme-transition theme-transition--${variant}`;
+            root.style.setProperty('--tx-x', x);
+            root.style.setProperty('--tx-y', y);
+            root.style.setProperty('--tx-size', size);
+
+            const rootStyles = getComputedStyle(root);
+            const durSec = parseFloat(rootStyles.getPropertyValue('--tx-dur')) || 1.12;
+            const applyRatio = parseFloat(rootStyles.getPropertyValue('--tx-apply')) || 0.52;
+            const durMs = durSec * 1000;
+            const applyMs = durMs * applyRatio;
+
+            const burstClass = toDark ? 'burst--dark' : 'burst--light';
+            const glyphClass = toDark ? 'glyph--dark' : 'glyph--light';
+            const icon = toDark ? 'dark_mode' : 'light_mode';
+
+            root.innerHTML = `
+                <div class="theme-transition__burst ${burstClass}"></div>
+                <span class="theme-transition__ripple"></span>
+                <span class="theme-transition__glyph ${glyphClass}">
+                    <span class="material-symbols-rounded">${icon}</span>
+                </span>
+            `;
+
+            document.body.appendChild(root);
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => root.classList.add('is-running'));
+            });
+
+            window.setTimeout(() => setStageTheme(toDark), applyMs);
+            window.setTimeout(() => {
+                root.remove();
+                busy = false;
+            }, durMs + 80);
+        }
+
+        function toggleWithVariant(variant) {
+            selectedVariant = variant;
+            const toDark = !isDark();
+            runTransition(variant, toDark, themeBtn);
+        }
+
+        themeBtn.addEventListener('click', () => toggleWithVariant(selectedVariant));
+
+        document.querySelectorAll('[data-run]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const variant = btn.getAttribute('data-run');
+                const dir = btn.getAttribute('data-dir');
+                selectedVariant = variant;
+                const toDark = dir === 'dark';
+                if (isDark() === toDark) return;
+                runTransition(variant, toDark, themeBtn);
+            });
+        });
+    </script>
+</body>
+</html>

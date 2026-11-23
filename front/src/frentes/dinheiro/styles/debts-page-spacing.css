@@ -1,4 +1,4 @@
-/* Dívidas — stack moderno (paridade entradas / cofrinhos) */
+/* Dívidas — stack moderno (paridade dashboard / entradas / cofrinhos) */
 
 #debts-page.debts-page--modern {
     display: flex;
@@ -15,53 +15,8 @@
     margin-bottom: 0;
 }
 
-#debts-page.debts-page--modern > .summary-cards.movements-summary {
-    gap: var(--dash-stack-gap-tight);
-}
-
 .page-content--dashboard-modern .app-header--debts #debts-header-actions {
     display: flex;
-}
-
-/* KPIs e gráfico — tokens dash (legacy debts.css usa --bg-light) */
-.page-content--dashboard-modern #debts-page.debts-page--modern .debts-page__summary .movement-summary-card,
-.page-content--dashboard-modern #debts-page.debts-page--modern .debts-page__charts-section .reports-chart-container.debts-page__chart-card {
-    background-color: var(--dash-surface-bg);
-    border: 1px solid var(--dash-surface-border);
-    border-radius: var(--dash-surface-radius);
-    box-shadow: var(--dash-surface-shadow);
-}
-
-.page-content--dashboard-modern #debts-page .debts-page__summary.movements-summary .card-icon.debts {
-    background: color-mix(in srgb, var(--debts-accent, #9f1239) 14%, var(--dash-surface-bg));
-    color: var(--debts-accent, #9f1239);
-}
-
-[data-theme='dark'] .page-content--dashboard-modern #debts-page .debts-page__summary.movements-summary .card-icon.debts {
-    background: color-mix(in srgb, var(--debts-accent, #9f1239) 20%, var(--dash-surface-bg));
-    color: var(--debts-accent-muted, var(--debts-accent));
-}
-
-.page-content--dashboard-modern #debts-page .debts-page__charts-section .reports-chart-header h3 {
-    color: var(--dash-text-primary);
-}
-
-.page-content--dashboard-modern #debts-page .debts-page__charts-section .reports-chart-hint {
-    color: var(--dash-text-secondary);
-}
-
-[data-theme='dark'] .page-content--dashboard-modern #debts-page.debts-page--modern .debts-page__summary .movement-summary-card,
-[data-theme='dark'] .page-content--dashboard-modern #debts-page.debts-page--modern .debts-page__charts-section .reports-chart-container.debts-page__chart-card {
-    background-color: var(--dash-surface-bg);
-    border-color: var(--dash-surface-border);
-    box-shadow: var(--dash-surface-shadow);
-}
-
-#debts-page.debts-page--modern .dashboard-reports-section,
-#debts-page.debts-page--modern .dashboard-reports-charts-grid,
-#debts-page.debts-page--modern .skeleton-page .dashboard-reports-section,
-#debts-page.debts-page--modern .skeleton-page .dashboard-reports-charts-grid {
-    margin-bottom: 0;
 }
 
 #debts-page.debts-page--modern .skeleton-page > * {
@@ -69,50 +24,268 @@
     margin-bottom: 0;
 }
 
-.debts-page__chart-empty {
-    color: var(--dash-text-tertiary, var(--text-muted));
-    font-size: 0.875rem;
-    text-align: center;
-    margin: 0;
-    padding: 2rem 1rem;
+/* —— Layout compacto + hero (paridade Entradas / Cofrinhos) —— */
+#debts-page.movements-page--modern.movements-page--compact {
+    gap: calc(var(--dash-stack-gap) * 0.92);
 }
 
-.page-content--dashboard-modern #debts-page .debts-page__chart-canvas.flux-chart-canvas {
-    min-height: min(380px, 42vh);
+#debts-page.movements-page--modern .movements-treemap-hero {
+    display: grid;
+    grid-template-columns: minmax(12rem, 14rem) minmax(0, 1fr);
+    gap: 0.7rem;
+    width: 100%;
+    align-items: stretch;
 }
 
-.page-content--dashboard-modern #debts-page .flux-chart-canvas .recharts-legend-item-text {
-    color: var(--dash-text-secondary) !important;
-}
-
-.page-content--dashboard-modern #debts-page .flux-chart-canvas .recharts-legend-wrapper {
-    width: 100% !important;
-}
-
-.page-content--dashboard-modern #debts-page .flux-chart-canvas .recharts-default-legend {
-    display: flex !important;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.35rem 1rem;
-    line-height: 1.4;
-}
-
-.page-content--dashboard-modern #debts-page .debts-page__charts-section .reports-chart-header {
-    flex-wrap: wrap;
-    align-items: flex-start;
-    gap: 0.35rem 1rem;
-}
-
-.page-content--dashboard-modern #debts-page .debts-page__charts-section .reports-chart-hint {
-    margin: 0;
-    font-size: 0.8rem;
-    flex: 1 1 12rem;
-    text-align: right;
-}
-
-/* Legacy debts.css — altura fixa do canvas Chart.js */
-.page-content--dashboard-modern #debts-page .debts-page__chart-wrapper {
-    height: auto;
+#debts-page .debts-summary-metrics--stack.summary-cards,
+#debts-page.movements-page--modern .movements-treemap-hero__summary.summary-cards {
+    display: flex;
+    flex-direction: column;
+    justify-content: stretch;
+    height: 100%;
+    gap: 0.45rem;
+    margin-bottom: 0;
+    min-width: 0;
     min-height: 0;
-    max-height: none;
+}
+
+#debts-page.movements-page--modern .movements-treemap-hero__summary .movement-summary-card {
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.62rem;
+    min-height: 0;
+    padding: 0.78rem 0.82rem;
+    border-radius: 12px;
+    border: 1px solid var(--dash-surface-border);
+    box-shadow: var(--dash-surface-shadow);
+    background: linear-gradient(
+        165deg,
+        color-mix(in srgb, var(--debts-accent, #9f1239) 7%, var(--dash-surface-bg)) 0%,
+        var(--dash-surface-bg) 62%
+    );
+}
+
+#debts-page .debts-summary-metrics--stack .movement-summary-card .card-content h3 {
+    font-size: 0.62rem;
+    line-height: 1.28;
+    letter-spacing: 0.05em;
+}
+
+#debts-page .debts-summary-metrics--stack .movement-summary-card .card-content p.movement-summary-card__value {
+    font-size: 1.02rem;
+    line-height: 1.18;
+    margin-top: 0.14rem;
+}
+
+#debts-page.movements-page--modern.movements-page--compact .movements-treemap-hero__summary .movement-summary-card__value {
+    font-size: 1.06rem;
+}
+
+#debts-page .debts-summary-metrics--stack .card-metric-hint {
+    display: block;
+    font-size: 0.6rem;
+    font-weight: 500;
+    margin-top: 0.12rem;
+    line-height: 1.22;
+    letter-spacing: 0.01em;
+    opacity: 0.92;
+    color: var(--dash-text-tertiary, var(--text-muted));
+}
+
+#debts-page .debts-summary-metrics--stack .movement-summary-card__footer {
+    margin-top: 0.02rem;
+}
+
+#debts-page.movements-page--modern .movements-treemap-hero__summary .card-icon.debts {
+    width: 2.45rem;
+    height: 2.45rem;
+    min-width: 2.45rem;
+    min-height: 2.45rem;
+    background: color-mix(in srgb, var(--debts-accent, #9f1239) 14%, var(--dash-surface-bg));
+    color: var(--debts-accent, #9f1239);
+}
+
+[data-theme='dark'] #debts-page.movements-page--modern .movements-treemap-hero__summary .card-icon.debts {
+    background: color-mix(in srgb, var(--debts-accent, #9f1239) 20%, var(--dash-surface-bg));
+    color: var(--debts-accent-muted, var(--debts-accent));
+}
+
+#debts-page.movements-page--modern .movements-treemap-hero__map {
+    flex: 1 1 auto;
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    align-self: stretch;
+}
+
+#debts-page.movements-page--modern .movements-treemap-hero__map.treemap-container {
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 0;
+    height: 100%;
+}
+
+#debts-page.movements-page--modern.movements-page--compact .treemap-container.debts-hero__chart {
+    padding: calc(var(--dash-surface-pad-y) * 0.88) calc(var(--dash-surface-pad-x) * 0.92);
+    min-height: 22.5rem;
+}
+
+.debts-hero__chart {
+    flex: 1 1 auto;
+    min-height: 22.5rem;
+    max-width: 100%;
+    width: 100%;
+    overflow: visible;
+    border-radius: 12px;
+    border: 1px solid var(--dash-surface-border);
+    background: var(--dash-surface-bg);
+    box-shadow: var(--dash-surface-shadow);
+    padding: 0.6rem 0.7rem 0.5rem;
+}
+
+#debts-page .movements-treemap-hero__map.debts-hero__chart {
+    align-self: stretch;
+    min-height: 22.5rem;
+}
+
+/* —— Gráfico no hero —— */
+.debts-balance-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 20rem;
+    max-width: 100%;
+    overflow: visible;
+}
+
+.debts-balance-chart__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.35rem 0.75rem;
+}
+
+.debts-balance-chart__title {
+    margin: 0;
+    font-size: 0.88rem;
+    font-weight: 650;
+    color: var(--dash-text-primary);
+}
+
+.debts-balance-chart__hint {
+    margin: 0;
+    font-size: 0.68rem;
+    color: var(--dash-text-secondary, var(--text-muted, #6b7280));
+    text-align: right;
+    flex: 1 1 12rem;
+}
+
+.debts-balance-chart__plot {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    width: 100%;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.debts-balance-chart__canvas {
+    flex: 0 0 auto;
+    width: 100%;
+    min-height: 17.5rem;
+    height: 17.5rem;
+    max-width: 100%;
+    overflow: visible;
+    position: relative;
+}
+
+.debts-balance-chart__canvas .recharts-wrapper {
+    max-width: 100%;
+}
+
+.debts-balance-chart__canvas .recharts-cartesian-axis-tick-value {
+    font-variant-numeric: tabular-nums;
+}
+
+.debts-balance-chart__empty {
+    margin: 0;
+    padding: 2rem 0.5rem;
+    text-align: center;
+    font-size: 0.82rem;
+    color: var(--dash-text-tertiary, var(--text-muted));
+}
+
+.debts-balance-chart__foot {
+    flex-shrink: 0;
+    width: 100%;
+    max-width: 100%;
+    padding-top: 0.35rem;
+    margin-top: 0.1rem;
+    border-top: 1px solid var(--dash-surface-border);
+}
+
+.debts-balance-chart__legend {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
+    gap: 0.22rem 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.65rem;
+    line-height: 1.25;
+    color: var(--dash-text-secondary, var(--text-muted));
+    max-height: 3.25rem;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.debts-balance-chart__legend li {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.debts-balance-chart__legend-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.debts-balance-chart__swatch {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+.debts-balance-chart__swatch--line {
+    height: 0.18rem;
+    width: 0.9rem;
+    border-radius: 2px;
+}
+
+/* Legenda nativa do Recharts não é usada nesta tela */
+#debts-page .debts-balance-chart__canvas .recharts-legend-wrapper {
+    display: none !important;
+}
+
+@media (max-width: 820px) {
+    #debts-page.movements-page--modern .movements-treemap-hero {
+        grid-template-columns: 1fr;
+    }
+
+    #debts-page .debts-balance-chart__hint {
+        text-align: left;
+        flex: 1 1 100%;
+    }
 }

@@ -11,6 +11,7 @@ import { ferramentasRoutes } from '../frentes/ferramentas/routes';
 import { perfilRoutes } from '../frentes/perfil/routes';
 import { ScreenLoader } from '../components/ui/ScreenLoader';
 import { ConfirmProvider } from '../components/ui/confirm';
+import { ThemeTransitionOverlay } from '../components/theme/ThemeTransitionOverlay';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
     const { loading, user } = useAuth();
@@ -21,7 +22,9 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 
 export function App() {
     return (
-        <Routes>
+        <>
+            <ThemeTransitionOverlay />
+            <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route
@@ -45,5 +48,6 @@ export function App() {
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </>
     );
 }

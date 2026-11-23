@@ -98,7 +98,8 @@ function veilForPath(pathname: string, search: string): VeilRoute | null {
     if (path === '/dinheiro/dividas') {
         return {
             sectionId: 'debts-page',
-            sectionClass: 'page active debts-page debts-page--modern',
+            sectionClass:
+                'page active debts-page debts-page--modern movements-page--modern movements-page--compact',
             layout: <DebtsSkeletonLayout />
         };
     }

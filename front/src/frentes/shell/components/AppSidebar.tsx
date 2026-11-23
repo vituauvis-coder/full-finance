@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../../app/AuthProvider';
-import { readTheme, toggleTheme } from '../../../app/theme';
+import { readTheme, toggleThemeWithTransition } from '../../../app/theme';
 import { legacyPageIdFromPath } from '../../../legacy/routeMap';
 import {
     readLastTripId,
     rememberLastTripId,
-    SIDEBAR_FERRAMENTAS,
     SIDEBAR_GROUPS,
     tripIdFromPathname,
     viagensModuleItems
@@ -35,6 +34,12 @@ export function AppSidebar() {
     );
     const [dark, setDark] = useState(() => readTheme() === 'dark');
 
+    useEffect(() => {
+        const sync = () => setDark(readTheme() === 'dark');
+        window.addEventListener('meumundo-themechange', sync);
+        return () => window.removeEventListener('meumundo-themechange', sync);
+    }, []);
+
     return (
         <>
             <div id="sidebar-overlay" className="sidebar-overlay hidden" />
@@ -51,18 +56,16 @@ export function AppSidebar() {
                                 onReveal={() => reveal(group.id)}
                             />
                         ))}
-                        <li className="sidebar-root-item">
-                            <SidebarNavLink
-                                to={SIDEBAR_FERRAMENTAS.to}
-                                icon={SIDEBAR_FERRAMENTAS.icon}
-                                label={SIDEBAR_FERRAMENTAS.label}
-                                subtitle={SIDEBAR_FERRAMENTAS.subtitle}
-                            />
-                        </li>
                     </ul>
                     <SidebarFooter
                         dark={dark}
-                        onToggleTheme={() => setDark(toggleTheme() === 'dark')}
+                        onToggleTheme={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            toggleThemeWithTransition({
+                                x: rect.left + rect.width / 2,
+                                y: rect.top + rect.height / 2
+                            });
+                        }}
                         onLogout={() => void logout()}
                     />
                 </nav>

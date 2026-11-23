@@ -64,6 +64,13 @@ const FINANCAS_ITEMS: readonly SidebarLeaf[] = [
         icon: 'track_changes',
         label: 'Planejamento',
         subtitle: 'Orçamento zero'
+    },
+    {
+        to: '/dinheiro/dividas',
+        page: 'debts',
+        icon: 'warning',
+        label: 'Dívidas',
+        subtitle: 'Empréstimos e obrigações'
     }
 ];
 

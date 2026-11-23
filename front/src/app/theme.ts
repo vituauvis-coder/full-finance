@@ -1,7 +1,29 @@
 const THEME_KEY = 'meumundo-theme';
 const LEGACY_KEY = 'fullfinan-theme';
 
+export const THEME_TRANSITION_EVENT = 'meumundo-theme-transition';
+
 export type ThemeMode = 'light' | 'dark';
+
+export type ThemeTransitionDetail = {
+    toDark: boolean;
+    x: number;
+    y: number;
+};
+
+export type ThemeTransitionOrigin = { x: number; y: number };
+
+export function themeTransitionCoverRadius(x: number, y: number): number {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const far = Math.max(Math.hypot(x, y), Math.hypot(w - x, y), Math.hypot(x, h - y), Math.hypot(w - x, h - y));
+    return far * 2 + 64;
+}
+
+function prefersReducedThemeMotion(): boolean {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
 
 export function readTheme(): ThemeMode {
     try {
@@ -35,5 +57,20 @@ export function applyTheme(theme: ThemeMode) {
 export function toggleTheme(): ThemeMode {
     const next = readTheme() === 'dark' ? 'light' : 'dark';
     applyTheme(next);
+    return next;
+}
+
+/** Alterna tema com revelação sol/lua a partir do ponto de origem (ex.: botão do menu). */
+export function toggleThemeWithTransition(origin: ThemeTransitionOrigin): ThemeMode {
+    const next: ThemeMode = readTheme() === 'dark' ? 'light' : 'dark';
+    if (prefersReducedThemeMotion()) {
+        applyTheme(next);
+        return next;
+    }
+    window.dispatchEvent(
+        new CustomEvent<ThemeTransitionDetail>(THEME_TRANSITION_EVENT, {
+            detail: { toDark: next === 'dark', x: origin.x, y: origin.y }
+        })
+    );
     return next;
 }

@@ -11,21 +11,32 @@ function DebtGoalCardSkeleton() {
     );
 }
 
+function DebtsBalanceChartSkeleton() {
+    return (
+        <section className="debts-balance-chart" aria-hidden="true">
+            <header className="debts-balance-chart__head">
+                <Skeleton className="skeleton-panel__title" style={{ width: '9.5rem' }} />
+                <Skeleton className="skeleton-panel__subtitle" style={{ width: '14rem', maxWidth: '72%' }} />
+            </header>
+            <Skeleton className="debts-balance-chart__canvas skeleton-panel__body--chart" />
+        </section>
+    );
+}
+
 export function DebtsSkeletonLayout() {
     return (
         <>
-            <MovementSummaryCardsSkeleton count={3} group="debts" ariaLabel="Resumo das dívidas" />
-            <section className="dashboard-reports-section debts-page__charts-section" aria-hidden="true">
-                <div className="debts-page__charts dashboard-reports-charts-grid dashboard-reports-charts-grid--single">
-                    <div className="reports-chart-container dashboard-flux-chart-card debts-page__chart-card skeleton-panel">
-                        <div className="skeleton-panel__head">
-                            <Skeleton className="skeleton-panel__title" style={{ width: '10rem' }} />
-                            <Skeleton className="skeleton-panel__subtitle" />
-                        </div>
-                        <Skeleton className="skeleton-panel__body skeleton-panel__body--chart debts-page__chart-wrapper" />
-                    </div>
+            <div className="movements-treemap-hero movements-treemap-hero--debts" aria-hidden="true">
+                <MovementSummaryCardsSkeleton
+                    count={3}
+                    group="debts"
+                    ariaLabel="Resumo das dívidas"
+                    className="movements-treemap-hero__summary debts-summary-metrics--stack"
+                />
+                <div className="movements-treemap-hero__map treemap-container debts-hero__chart">
+                    <DebtsBalanceChartSkeleton />
                 </div>
-            </section>
+            </div>
             <section className="zero-budget__blocks-section" aria-hidden="true">
                 <div className="zero-budget__blocks-grid">
                     {Array.from({ length: 3 }, (_, i) => (

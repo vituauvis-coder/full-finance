@@ -6,7 +6,11 @@ type Props = {
 
 export function DebtsPageShell({ children }: Props) {
     return (
-        <section id="debts-page" className="page active debts-page debts-page--modern" aria-label="Dívidas">
+        <section
+            id="debts-page"
+            className="page active debts-page debts-page--modern movements-page--modern movements-page--compact"
+            aria-label="Dívidas"
+        >
             {children}
         </section>
     );
