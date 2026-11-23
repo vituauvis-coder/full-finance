@@ -3,7 +3,17 @@ import { apiFetch } from '../../../lib/http';
 import { formatBRL } from '../../../lib/format';
 import type { ZeroBudgetBlock, ZeroBudgetTodo } from '../domain/zeroBudgetTypes';
 import { blockCategoryName } from '../domain/zeroBudgetPlanning';
-import { ZeroBudgetLegacyModal } from './ZeroBudgetLegacyModal';
+import {
+    Dialog,
+    DialogBody,
+    DialogCloseButton,
+    DialogFooter,
+    DialogForm,
+    DialogHeader,
+    DialogPanel,
+    DialogTitle
+} from '../../../components/ui/dialog';
+import { FormActions, FormField, FormInput } from '../../../components/ui/form';
 import { ScreenLoader } from '../../../components/ui/ScreenLoader';
 import { DeleteIcon } from '../../../components/icons/DeleteIcon';
 
@@ -18,9 +28,59 @@ function roundMoney2(n: number) {
     return Math.round(n * 100) / 100;
 }
 
+function TodoAmountInput({
+    todoId,
+    amount,
+    onCommit
+}: {
+    todoId: string;
+    amount: number;
+    onCommit: (id: string, next: number) => Promise<void>;
+}) {
+    const [draft, setDraft] = useState(() => String(amount));
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        setDraft(String(amount));
+    }, [amount, todoId]);
+
+    async function commit() {
+        const next = roundMoney2(parseFloat(draft.replace(',', '.')) || 0);
+        if (next === amount) return;
+        setSaving(true);
+        try {
+            await onCommit(todoId, next);
+        } finally {
+            setSaving(false);
+        }
+    }
+
+    return (
+        <input
+            type="number"
+            className="zb-todos-dialog__item-amount"
+            min={0}
+            step={0.01}
+            value={draft}
+            disabled={saving}
+            aria-label="Valor estimado do item"
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={() => void commit()}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    void commit();
+                    (e.target as HTMLInputElement).blur();
+                }
+            }}
+        />
+    );
+}
+
 export function ZeroBudgetBlockTodosModal({ open, block, currency, onClose }: Props) {
     const [todos, setTodos] = useState<ZeroBudgetTodo[]>([]);
     const [loading, setLoading] = useState(false);
+    const [adding, setAdding] = useState(false);
     const blockId = block?.id ?? null;
 
     const load = useCallback(async () => {
@@ -44,162 +104,180 @@ export function ZeroBudgetBlockTodosModal({ open, block, currency, onClose }: Pr
 
     const total = useMemo(() => todos.reduce((s, t) => s + (Number(t.amount) || 0), 0), [todos]);
     const heading = block ? blockCategoryName(block) || 'Meta' : 'Meta';
+    const itemCountLabel = todos.length === 1 ? '1 item' : `${todos.length} itens`;
+
+    const commitAmount = useCallback(async (todoId: string, amount: number) => {
+        let snapshot: ZeroBudgetTodo[] | null = null;
+        setTodos((list) => {
+            snapshot = list;
+            return list.map((row) => (row.id === todoId ? { ...row, amount } : row));
+        });
+        try {
+            await apiFetch(`/api/zero-budget/todos/${encodeURIComponent(todoId)}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ amount })
+            });
+        } catch {
+            if (snapshot) setTodos(snapshot);
+        }
+    }, []);
+
+    async function togglePurchased(t: ZeroBudgetTodo) {
+        const next = !t.isPurchased;
+        let snapshot: ZeroBudgetTodo[] | null = null;
+        setTodos((list) => {
+            snapshot = list;
+            return list.map((row) => (row.id === t.id ? { ...row, isPurchased: next } : row));
+        });
+        try {
+            await apiFetch(`/api/zero-budget/todos/${encodeURIComponent(t.id)}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ isPurchased: next })
+            });
+        } catch {
+            if (snapshot) setTodos(snapshot);
+        }
+    }
+
+    async function removeTodo(t: ZeroBudgetTodo) {
+        if (!window.confirm('Remover este item da lista?')) return;
+        let snapshot: ZeroBudgetTodo[] | null = null;
+        setTodos((list) => {
+            snapshot = list;
+            return list.filter((row) => row.id !== t.id);
+        });
+        try {
+            await apiFetch(`/api/zero-budget/todos/${encodeURIComponent(t.id)}`, { method: 'DELETE' });
+        } catch {
+            if (snapshot) setTodos(snapshot);
+        }
+    }
 
     async function onSubmit(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();
-        if (!blockId) return;
+        if (!blockId || adding) return;
         const fd = new FormData(e.currentTarget);
         const title = String(fd.get('title') ?? '').trim();
         if (!title) return;
         const amount = roundMoney2(parseFloat(String(fd.get('amount') ?? '')) || 0);
-        await apiFetch(`/api/zero-budget/blocks/${encodeURIComponent(blockId)}/todos`, {
-            method: 'POST',
-            body: JSON.stringify({ title, amount })
-        });
-        e.currentTarget.reset();
-        await load();
+        setAdding(true);
+        try {
+            await apiFetch(`/api/zero-budget/blocks/${encodeURIComponent(blockId)}/todos`, {
+                method: 'POST',
+                body: JSON.stringify({ title, amount })
+            });
+            e.currentTarget.reset();
+            await load();
+        } finally {
+            setAdding(false);
+        }
     }
 
     return (
-        <ZeroBudgetLegacyModal
-            open={open}
-            onClose={onClose}
-            id="zb-block-todos-overlay"
-            contentClassName="modal-content--zero-budget modal-content--zb-todos"
-            labelledBy="zb-todos-panel-title"
-        >
-            <button type="button" className="modal-close-btn" data-zb-todos-close aria-label="Fechar" onClick={onClose}>
-                &times;
-            </button>
-            <h3 id="zb-todos-panel-title">
-                <span>{heading}</span>
-            </h3>
-            <div className="zb-todos-modal__body">
-                {loading ? (
-                    <ScreenLoader variant="inline" label="Carregando lista" />
-                ) : (
-                    <ul className="zb-todos-modal__list">
-                        {todos.length === 0 ? (
-                            <li className="zb-todos-modal__empty">
-                                Nenhum item ainda. Use o formulário abaixo para adicionar.
-                            </li>
-                        ) : (
-                            todos.map((t) => {
-                                const bought = Boolean(t.isPurchased);
-                                const amt = roundMoney2(Number(t.amount) || 0);
-                                return (
-                                    <li
-                                        key={t.id}
-                                        className={`zb-todos-modal__item${bought ? ' is-purchased' : ''}`}
-                                        data-zb-todo-purchased={bought ? '1' : '0'}
-                                    >
-                                        <button
-                                            type="button"
-                                            className="zb-todos-modal__item-toggle"
-                                            style={{ all: 'unset', display: 'contents', cursor: 'pointer' }}
-                                            onClick={() =>
-                                                void (async () => {
-                                                    await apiFetch(`/api/zero-budget/todos/${encodeURIComponent(t.id)}`, {
-                                                        method: 'PATCH',
-                                                        body: JSON.stringify({ isPurchased: !bought })
-                                                    });
-                                                    await load();
-                                                })()
-                                            }
-                                        >
-                                            <span className="zb-todos-modal__check" aria-hidden="true">
-                                                <i className={`fas ${bought ? 'fa-check-circle' : 'fa-circle'}`}></i>
-                                            </span>
-                                            <span className="zb-todos-modal__item-title">{t.title}</span>
-                                        </button>
-                                        <input
-                                            type="number"
-                                            className="zb-todos-modal__item-amount"
-                                            min={0}
-                                            step={0.01}
-                                            value={amt}
-                                            aria-label="Valor estimado do item"
-                                            onChange={(e) =>
-                                                void (async () => {
-                                                    const v = roundMoney2(parseFloat(e.target.value) || 0);
-                                                    await apiFetch(`/api/zero-budget/todos/${encodeURIComponent(t.id)}`, {
-                                                        method: 'PATCH',
-                                                        body: JSON.stringify({ amount: v })
-                                                    });
-                                                    await load();
-                                                })()
-                                            }
-                                        />
-                                        <button
-                                            type="button"
-                                            className="zb-todos-modal__remove"
-                                            aria-label="Remover item"
-                                            onClick={() => {
-                                                if (!window.confirm('Remover este item da lista?')) return;
-                                                void (async () => {
-                                                    await apiFetch(`/api/zero-budget/todos/${encodeURIComponent(t.id)}`, {
-                                                        method: 'DELETE'
-                                                    });
-                                                    await load();
-                                                })();
-                                            }}
-                                        >
-                                            <DeleteIcon size="sm" />
-                                        </button>
-                                    </li>
-                                );
-                            })
-                        )}
-                    </ul>
-                )}
-                <div className="zb-todos-modal__total-row">
-                    <span className="zb-todos-modal__total-label">Total da lista</span>
-                    <strong className="zb-todos-modal__total-value">{formatBRL(total, currency)}</strong>
-                </div>
-            </div>
-            <form className="zero-budget-modal__form" onSubmit={(e) => void onSubmit(e)}>
-                <div className="zb-todos-modal__new-grid">
-                    <div className="zb-todos-modal__field zb-todos-modal__field--title">
-                        <label htmlFor="zb-todos-title-input" className="zero-budget-modal__field-label">
-                            Novo item
-                        </label>
-                        <input
-                            id="zb-todos-title-input"
-                            type="text"
-                            name="title"
-                            className="zero-budget-modal__text-input"
-                            maxLength={500}
-                            placeholder="Ex.: presente, assinatura, equipamento…"
-                            autoComplete="off"
-                            required
-                        />
+        <Dialog open={open} onClose={onClose} id="zb-todos-dialog">
+            <DialogPanel size="lg" className="zb-todos-dialog">
+                <DialogHeader>
+                    <div className="zb-todos-dialog__heading">
+                        <DialogTitle>{heading}</DialogTitle>
+                        {todos.length > 0 ? (
+                            <p className="zb-todos-dialog__meta" aria-live="polite">
+                                {itemCountLabel}
+                            </p>
+                        ) : null}
                     </div>
-                    <div className="zb-todos-modal__field zb-todos-modal__field--amount">
-                        <label htmlFor="zb-todos-amount-input" className="zero-budget-modal__field-label">
-                            Valor
-                        </label>
-                        <input
-                            id="zb-todos-amount-input"
-                            type="number"
-                            name="amount"
-                            className="zero-budget-modal__text-input"
-                            min={0}
-                            step={0.01}
-                            placeholder="0"
-                            inputMode="decimal"
-                            aria-label="Valor estimado (opcional)"
-                        />
+                    <DialogCloseButton />
+                </DialogHeader>
+
+                <DialogBody>
+                    <div className="zb-todos-dialog__body">
+                    {loading ? (
+                        <ScreenLoader variant="inline" label="Carregando lista" />
+                    ) : (
+                        <ul className="zb-todos-dialog__list" aria-label="Itens da lista">
+                            {todos.length === 0 ? (
+                                <li className="zb-todos-dialog__empty">
+                                    Nenhum item ainda. Descreva abaixo o que quer guardar e o valor estimado.
+                                </li>
+                            ) : (
+                                todos.map((t) => {
+                                    const bought = Boolean(t.isPurchased);
+                                    const amt = roundMoney2(Number(t.amount) || 0);
+                                    return (
+                                        <li
+                                            key={t.id}
+                                            className={`zb-todos-dialog__item${bought ? ' is-purchased' : ''}`}
+                                        >
+                                            <button
+                                                type="button"
+                                                className="zb-todos-dialog__toggle"
+                                                aria-pressed={bought}
+                                                aria-label={bought ? 'Marcar como pendente' : 'Marcar como comprado'}
+                                                onClick={() => void togglePurchased(t)}
+                                            >
+                                                <span className="zb-todos-dialog__check" aria-hidden="true">
+                                                    <i className={`fas ${bought ? 'fa-check-circle' : 'fa-circle'}`} />
+                                                </span>
+                                                <span className="zb-todos-dialog__item-title">{t.title}</span>
+                                            </button>
+                                            <TodoAmountInput todoId={t.id} amount={amt} onCommit={commitAmount} />
+                                            <button
+                                                type="button"
+                                                className="zb-todos-dialog__remove"
+                                                aria-label="Remover item"
+                                                onClick={() => void removeTodo(t)}
+                                            >
+                                                <DeleteIcon size="sm" />
+                                            </button>
+                                        </li>
+                                    );
+                                })
+                            )}
+                        </ul>
+                    )}
+
+                    <div className="zb-todos-dialog__total" role="status">
+                        <span className="zb-todos-dialog__total-label">Total da lista</span>
+                        <strong className="zb-todos-dialog__total-value">{formatBRL(total, currency)}</strong>
                     </div>
-                </div>
-                <div className="form-actions">
-                    <button type="button" className="btn-secondary" data-zb-todos-close onClick={onClose}>
-                        Fechar
-                    </button>
-                    <button type="submit" className="btn-primary">
-                        <span>Adicionar</span>
-                    </button>
-                </div>
-            </form>
-        </ZeroBudgetLegacyModal>
+                    </div>
+                </DialogBody>
+
+                <DialogForm className="zb-todos-dialog__form ui-form" onSubmit={(e) => void onSubmit(e)}>
+                    <div className="ui-form-grid ui-form-grid--2 zb-todos-dialog__new-grid">
+                        <FormField id="zb-todos-title-input" label="Novo item">
+                            <FormInput
+                                id="zb-todos-title-input"
+                                name="title"
+                                maxLength={500}
+                                placeholder="Ex.: presente, assinatura, equipamento…"
+                                autoComplete="off"
+                                required
+                                disabled={adding}
+                            />
+                        </FormField>
+                        <FormField id="zb-todos-amount-input" label="Valor">
+                            <FormInput
+                                id="zb-todos-amount-input"
+                                name="amount"
+                                type="number"
+                                min={0}
+                                step={0.01}
+                                placeholder="0"
+                                inputMode="decimal"
+                                disabled={adding}
+                            />
+                        </FormField>
+                    </div>
+                    <DialogFooter>
+                        <FormActions
+                            onCancel={onClose}
+                            cancelLabel="Fechar"
+                            submitLabel="Adicionar"
+                            busy={adding}
+                        />
+                    </DialogFooter>
+                </DialogForm>
+            </DialogPanel>
+        </Dialog>
     );
 }

@@ -5,6 +5,12 @@ import type { Account } from '../../lib/types/finance';
 import { patchExpensesBatch } from '../../frentes/dinheiro/api/movements';
 import { DialogForm, DialogFrame } from '../ui/dialog';
 import { FormActions, FormAlert, FormField, FormSelect } from '../ui/form';
+import {
+    CategoriesCatalogScope,
+    CategoryCatalogSelect,
+    SubcategoryCatalogSelect,
+    SUBCATEGORY_BATCH_CLEAR
+} from './categories';
 
 type Props = {
     open: boolean;
@@ -17,7 +23,7 @@ type Props = {
 };
 
 export function ExpenseBatchModal({ open, count, ids, accounts, ownerUserId = null, onClose, onSaved }: Props) {
-    const { categories } = useCategories('expense');
+    const { categories, refresh: refreshCategories } = useCategories('expense');
     const paymentOptions = useMemo(
         () => buildPaymentMethodOptions(accounts, { ownerUserId: ownerUserId ?? undefined }),
         [accounts, ownerUserId]
@@ -30,8 +36,6 @@ export function ExpenseBatchModal({ open, count, ids, accounts, ownerUserId = nu
     const [isCofrinho, setIsCofrinho] = useState('');
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
-
-    const subs = useMemo(() => categories.find((c) => c.name === category)?.subcategories ?? [], [categories, category]);
 
     useEffect(() => {
         if (!open) return;
@@ -49,7 +53,7 @@ export function ExpenseBatchModal({ open, count, ids, accounts, ownerUserId = nu
         const patch: Record<string, unknown> = {};
         if (accountId) patch.accountId = accountId;
         if (category) patch.category = category;
-        if (subcategory === '__clear__') patch.subcategory = null;
+        if (subcategory === SUBCATEGORY_BATCH_CLEAR) patch.subcategory = null;
         else if (subcategory) {
             if (!category) {
                 setError('Selecione a categoria antes de escolher subcategoria.');
@@ -82,6 +86,7 @@ export function ExpenseBatchModal({ open, count, ids, accounts, ownerUserId = nu
             <p id="expense-batch-modal-summary" className="ui-form-hint-block">
                 {count} saída(s) selecionada(s). Campos em branco não serão alterados.
             </p>
+            <CategoriesCatalogScope kind="expense" onRefresh={refreshCategories}>
             <DialogForm id="expense-batch-form" onSubmit={(e) => void onSubmit(e)}>
                 <FormField id="expense-batch-account" label="Conta / cartão">
                     <FormSelect id="expense-batch-account" value={accountId} onChange={(e) => setAccountId(e.target.value)}>
@@ -93,31 +98,25 @@ export function ExpenseBatchModal({ open, count, ids, accounts, ownerUserId = nu
                         ))}
                     </FormSelect>
                 </FormField>
-                <FormField id="expense-batch-category" label="Categoria">
-                    <FormSelect id="expense-batch-category" value={category} onChange={(e) => setCategory(e.target.value)}>
-                        <option value="">— não alterar —</option>
-                        {categories.map((c) => (
-                            <option key={c.id} value={c.name}>
-                                {c.name}
-                            </option>
-                        ))}
-                    </FormSelect>
-                </FormField>
-                <FormField id="expense-batch-subcategory" label="Subcategoria">
-                    <FormSelect
-                        id="expense-batch-subcategory"
-                        value={subcategory}
-                        onChange={(e) => setSubcategory(e.target.value)}
-                    >
-                        <option value="">— não alterar —</option>
-                        <option value="__clear__">Limpar subcategoria</option>
-                        {subs.map((s) => (
-                            <option key={s.id} value={s.name}>
-                                {s.name}
-                            </option>
-                        ))}
-                    </FormSelect>
-                </FormField>
+                <CategoryCatalogSelect
+                    id="expense-batch-category"
+                    value={category}
+                    categories={categories}
+                    placeholder="— não alterar —"
+                    onChange={(v) => {
+                        setCategory(v);
+                        setSubcategory('');
+                    }}
+                />
+                <SubcategoryCatalogSelect
+                    id="expense-batch-subcategory"
+                    parentCategoryName={category}
+                    value={subcategory}
+                    categories={categories}
+                    placeholder="— não alterar —"
+                    includeBatchClear
+                    onChange={setSubcategory}
+                />
                 <FormField id="expense-batch-fixed" label="Essencial">
                     <FormSelect id="expense-batch-fixed" value={isFixed} onChange={(e) => setIsFixed(e.target.value)}>
                         <option value="">— não alterar —</option>
@@ -142,6 +141,7 @@ export function ExpenseBatchModal({ open, count, ids, accounts, ownerUserId = nu
                 <FormAlert message={error} />
                 <FormActions onCancel={onClose} submitLabel="Aplicar" busy={busy} />
             </DialogForm>
+            </CategoriesCatalogScope>
         </DialogFrame>
     );
 }

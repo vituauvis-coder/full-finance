@@ -11,7 +11,12 @@ import { DeleteIcon } from '../../../../components/icons/DeleteIcon';
 import type { TripDestination, TripExpense, TripExpensePaymentMethod, TripPayload } from '../../types';
 import { formatBRL } from '../../utils/map-utils';
 import { ExpenseDateField } from './ExpenseDateField';
-import { ORCAMENTO_CATEGORIES, orcamentoCategoryLabel, type OrcamentoCategoryId } from './orcamento-model';
+import {
+    ORCAMENTO_CATEGORIES,
+    orcamentoCategoryLabel,
+    visibleBuiltinOrcamentoCategories,
+    type OrcamentoCategoryId
+} from './orcamento-model';
 
 function expenseCategorySelectValue(ex: TripExpense): string {
     if (ex.customCategoryId) return `custom:${ex.customCategoryId}`;
@@ -283,11 +288,22 @@ export function ExpenseRow({
                                 }
                             }}
                         >
-                            {ORCAMENTO_CATEGORIES.map((c) => (
-                                <option key={c.id} value={c.id}>
-                                    {orcamentoCategoryLabel(tripPayload, c.id, c.label)}
-                                </option>
-                            ))}
+                            {(() => {
+                                const visible = visibleBuiltinOrcamentoCategories(tripPayload);
+                                const currentBuiltin = ex.customCategoryId ? null : ex.category ?? 'extras';
+                                const extra =
+                                    currentBuiltin &&
+                                    !visible.some((c) => c.id === currentBuiltin) &&
+                                    ORCAMENTO_CATEGORIES.some((c) => c.id === currentBuiltin)
+                                        ? ORCAMENTO_CATEGORIES.find((c) => c.id === currentBuiltin)
+                                        : null;
+                                const options = extra ? [...visible, extra] : visible;
+                                return options.map((c) => (
+                                    <option key={c.id} value={c.id}>
+                                        {orcamentoCategoryLabel(tripPayload, c.id, c.label)}
+                                    </option>
+                                ));
+                            })()}
                             {(tripPayload?.budgetCustomCategories ?? tripPayload?.budget_custom_categories ?? [])
                                 .length > 0 ? (
                                 <optgroup label="Suas categorias">

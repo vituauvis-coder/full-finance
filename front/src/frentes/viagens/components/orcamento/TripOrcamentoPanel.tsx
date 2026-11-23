@@ -16,6 +16,7 @@ import {
     patchDeposits,
     readDeposits,
     readBudgetCategoryLabels,
+    readBudgetHiddenCategories,
     type PiggyDeposit
 } from './orcamento-model';
 import { CategoryLedgerPop } from './CategoryLedgerPop';
@@ -173,26 +174,47 @@ export function TripOrcamentoPanel({
         });
     }
 
-    function removeCustomCategory(id: string) {
-        if (isBuiltinOrcamentoCategory(id)) return;
+    function removeBudgetCategory(id: string) {
+        const isBuiltin = isBuiltinOrcamentoCategory(id);
         onPatch((d) => {
-            const custom = (d.payload.budgetCustomCategories ?? d.payload.budget_custom_categories ?? []).filter(
-                (c) => c.id !== id
-            );
+            let payload = { ...d.payload };
+            if (isBuiltin) {
+                const hidden = [...readBudgetHiddenCategories(payload)];
+                if (!hidden.includes(id)) hidden.push(id);
+                const labels = { ...readBudgetCategoryLabels(payload) };
+                delete labels[id];
+                payload = {
+                    ...payload,
+                    budgetHiddenCategories: hidden,
+                    budget_hidden_categories: hidden,
+                    budgetCategoryLabels: labels,
+                    budget_category_labels: labels
+                };
+            } else {
+                const custom = (payload.budgetCustomCategories ?? payload.budget_custom_categories ?? []).filter(
+                    (c) => c.id !== id
+                );
+                payload = {
+                    ...payload,
+                    budgetCustomCategories: custom,
+                    budget_custom_categories: custom
+                };
+            }
             const nextCaps = { ...(d.budgetCaps ?? {}) };
             delete nextCaps[id];
-            const expenses = (d.payload.expenses ?? []).map((ex) =>
-                ex.customCategoryId === id ? { ...ex, customCategoryId: null, category: 'extras' } : ex
-            );
+            const expenses = (payload.expenses ?? []).map((ex) => {
+                if (ex.customCategoryId === id) {
+                    return { ...ex, customCategoryId: null, category: 'extras' };
+                }
+                if (isBuiltin && !ex.customCategoryId && (ex.category ?? 'extras') === id) {
+                    return { ...ex, category: 'extras' };
+                }
+                return ex;
+            });
             return {
                 ...d,
                 budgetCaps: nextCaps,
-                payload: {
-                    ...d.payload,
-                    budgetCustomCategories: custom,
-                    budget_custom_categories: custom,
-                    expenses
-                }
+                payload: { ...payload, expenses }
             };
         });
         if (ledgerCategoryId === id) setLedgerCategoryId(null);
@@ -349,6 +371,16 @@ export function TripOrcamentoPanel({
         return sortExpenses(list);
     }, [draft.payload.expenses, editingExpenseId]);
 
+    const categoryCount = snap.categoryRows.length;
+    const expenseCount = expenses.length;
+    const columnListRows = Math.max(categoryCount, expenseCount, 3);
+
+    const columnsLayoutStyle = {
+        '--orc-cat-count': categoryCount,
+        '--orc-exp-count': expenseCount,
+        '--orc-list-rows': columnListRows
+    } as CSSProperties;
+
     return (
         <section className="orc-workspace" aria-label="Orçamento da viagem">
             <OrcamentoOverview
@@ -367,7 +399,7 @@ export function TripOrcamentoPanel({
                 onOpenAporte={() => setAporteOpen(true)}
             />
 
-            <div className="orc-columns">
+            <div className="orc-columns" style={columnsLayoutStyle}>
                 <section className="orc-panel orc-panel--categories" aria-labelledby="orc-cat-title">
                     <div className="orc-panel__head">
                         <h3 id="orc-cat-title" className="orc-panel__title">
@@ -395,11 +427,7 @@ export function TripOrcamentoPanel({
                                     onCapChange={(v) => setCap(row.id, v)}
                                     onClear={() => clearCap(row.id)}
                                     onLabelChange={(label) => setCategoryLabel(row.id, label)}
-                                    onRemove={
-                                        isBuiltinOrcamentoCategory(row.id)
-                                            ? undefined
-                                            : () => removeCustomCategory(row.id)
-                                    }
+                                    onRemove={() => removeBudgetCategory(row.id)}
                                     onCycleIcon={
                                         isBuiltinOrcamentoCategory(row.id)
                                             ? undefined
@@ -537,17 +565,17 @@ function CategoryBudgetRow({
                     defaultLabel={defaultLabel}
                     onCommit={onLabelChange}
                 />
-                {onRemove ? (
-                    <button
-                        type="button"
-                        className="orc-cat-row__remove-cat"
-                        aria-label={`Excluir categoria ${row.label}`}
-                        onClick={onRemove}
-                    >
-                        <MaterialIcon name="delete" variant="app" opticalSize={14} />
-                    </button>
-                ) : null}
             </div>
+            {onRemove ? (
+                <button
+                    type="button"
+                    className="orc-cat-row__remove-cat"
+                    aria-label={`Excluir categoria ${row.label}`}
+                    onClick={onRemove}
+                >
+                    <MaterialIcon name="delete" variant="app" opticalSize={14} />
+                </button>
+            ) : null}
             <button type="button" className="orc-cat-row__hit" onClick={onOpen} aria-label={`Ver gastos de ${row.label}`}>
                 {onCycleIcon ? (
                     <button
@@ -569,10 +597,6 @@ function CategoryBudgetRow({
                 )}
                 <div className="orc-cat-row__main">
                     <div className="orc-cat-row__meta">
-                        <span className="orc-cat-row__spent">
-                            {formatBRL(row.used)}
-                            {cap > 0 ? <span className="orc-cat-row__of"> · {pct}%</span> : null}
-                        </span>
                         <div className="orc-cat-row__pay">
                             <PayMethodChips pay={row.pay} layout="inline" ariaHidden />
                         </div>
@@ -589,7 +613,13 @@ function CategoryBudgetRow({
                     aria-hidden
                 />
             </button>
-            <CategoryCapControl cap={cap} label={row.label} onCapChange={onCapChange} onClear={onClear} />
+            <div className="orc-cat-row__aside">
+                <span className="orc-cat-row__spent">
+                    {formatBRL(row.used)}
+                    {cap > 0 ? <span className="orc-cat-row__of"> · {pct}%</span> : null}
+                </span>
+                <CategoryCapControl cap={cap} label={row.label} onCapChange={onCapChange} onClear={onClear} />
+            </div>
         </li>
     );
 }

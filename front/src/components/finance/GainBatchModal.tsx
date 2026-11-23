@@ -5,6 +5,12 @@ import { buildAccountSelectOptions } from '../../lib/accountSelectOptions';
 import { patchGainsBatch } from '../../frentes/dinheiro/api/movements';
 import { DialogForm, DialogFrame } from '../ui/dialog';
 import { FormActions, FormAlert, FormField, FormSelect } from '../ui/form';
+import {
+    CategoriesCatalogScope,
+    CategoryCatalogSelect,
+    SubcategoryCatalogSelect,
+    SUBCATEGORY_BATCH_CLEAR
+} from './categories';
 
 type Props = {
     open: boolean;
@@ -16,7 +22,7 @@ type Props = {
 };
 
 export function GainBatchModal({ open, count, ids, accounts, onClose, onSaved }: Props) {
-    const { categories } = useCategories('gain');
+    const { categories, refresh: refreshCategories } = useCategories('gain');
     const [accountId, setAccountId] = useState('');
     const [category, setCategory] = useState('');
     const [subcategory, setSubcategory] = useState('');
@@ -24,7 +30,6 @@ export function GainBatchModal({ open, count, ids, accounts, onClose, onSaved }:
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
 
-    const subs = useMemo(() => categories.find((c) => c.name === category)?.subcategories ?? [], [categories, category]);
     const accountOptions = useMemo(() => buildAccountSelectOptions(accounts), [accounts]);
 
     useEffect(() => {
@@ -41,7 +46,7 @@ export function GainBatchModal({ open, count, ids, accounts, onClose, onSaved }:
         const patch: Record<string, unknown> = {};
         if (accountId) patch.accountId = accountId;
         if (category) patch.category = category;
-        if (subcategory === '__clear__') patch.subcategory = null;
+        if (subcategory === SUBCATEGORY_BATCH_CLEAR) patch.subcategory = null;
         else if (subcategory) {
             if (!category) {
                 setError('Selecione a categoria antes de escolher subcategoria.');
@@ -72,6 +77,7 @@ export function GainBatchModal({ open, count, ids, accounts, onClose, onSaved }:
             <p id="gain-batch-modal-summary" className="ui-form-hint-block">
                 {count} entrada(s) selecionada(s). Campos em branco não serão alterados.
             </p>
+            <CategoriesCatalogScope kind="gain" onRefresh={refreshCategories}>
             <DialogForm id="gain-batch-form" onSubmit={(e) => void onSubmit(e)}>
                 <FormField id="gain-batch-account" label="Conta">
                     <FormSelect id="gain-batch-account" value={accountId} onChange={(e) => setAccountId(e.target.value)}>
@@ -83,31 +89,25 @@ export function GainBatchModal({ open, count, ids, accounts, onClose, onSaved }:
                         ))}
                     </FormSelect>
                 </FormField>
-                <FormField id="gain-batch-category" label="Categoria">
-                    <FormSelect id="gain-batch-category" value={category} onChange={(e) => setCategory(e.target.value)}>
-                        <option value="">— não alterar —</option>
-                        {categories.map((c) => (
-                            <option key={c.id} value={c.name}>
-                                {c.name}
-                            </option>
-                        ))}
-                    </FormSelect>
-                </FormField>
-                <FormField id="gain-batch-subcategory" label="Subcategoria">
-                    <FormSelect
-                        id="gain-batch-subcategory"
-                        value={subcategory}
-                        onChange={(e) => setSubcategory(e.target.value)}
-                    >
-                        <option value="">— não alterar —</option>
-                        <option value="__clear__">Limpar subcategoria</option>
-                        {subs.map((s) => (
-                            <option key={s.id} value={s.name}>
-                                {s.name}
-                            </option>
-                        ))}
-                    </FormSelect>
-                </FormField>
+                <CategoryCatalogSelect
+                    id="gain-batch-category"
+                    value={category}
+                    categories={categories}
+                    placeholder="— não alterar —"
+                    onChange={(v) => {
+                        setCategory(v);
+                        setSubcategory('');
+                    }}
+                />
+                <SubcategoryCatalogSelect
+                    id="gain-batch-subcategory"
+                    parentCategoryName={category}
+                    value={subcategory}
+                    categories={categories}
+                    placeholder="— não alterar —"
+                    includeBatchClear
+                    onChange={setSubcategory}
+                />
                 <FormField id="gain-batch-received" label="Recebido">
                     <FormSelect id="gain-batch-received" value={received} onChange={(e) => setReceived(e.target.value)}>
                         <option value="">— não alterar —</option>
@@ -118,6 +118,7 @@ export function GainBatchModal({ open, count, ids, accounts, onClose, onSaved }:
                 <FormAlert message={error} />
                 <FormActions onCancel={onClose} submitLabel="Aplicar" busy={busy} />
             </DialogForm>
+            </CategoriesCatalogScope>
         </DialogFrame>
     );
 }

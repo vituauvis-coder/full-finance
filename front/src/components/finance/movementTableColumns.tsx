@@ -13,6 +13,7 @@ import { DeleteIcon } from '../icons/DeleteIcon';
 import { EditIcon } from '../icons/EditIcon';
 import { SplitIcon } from '../icons/SplitIcon';
 import { ExpenseInstallmentCell } from './ExpenseInstallmentCell';
+import { resolveExpenseMovementAccount } from '../../lib/expenseMovementAccount';
 
 export type MovementSortKey = 'date' | 'description' | 'category' | 'account' | 'amount' | 'status';
 
@@ -103,7 +104,7 @@ export function buildMovementTableColumns(opts: GainsOpts | ExpensesOpts): DataT
             cellClassName: 'expenses-td-installments',
             align: 'center',
             render: (m) => {
-                const acc = m.accountId && accountById ? accountById.get(m.accountId) : undefined;
+                const acc = resolveExpenseMovementAccount(m, opts.accounts);
                 return (
                     <ExpenseInstallmentCell
                         expense={m}

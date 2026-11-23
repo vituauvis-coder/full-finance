@@ -18,8 +18,8 @@ type Props = {
     barDenom: number;
 };
 
-const SALDO_LIVRE_HINT =
-    'Entradas do mês (inclui expectativa de estorno) menos saídas essenciais com vencimento no mês.';
+const BALANCO_MES_HINT =
+    'Entradas do mês (inclui expectativa de estorno) menos fixas e faturas de cartão — mesmo balanço do painel e da carteira.';
 
 export function ZeroBudgetSummaryHero({
     currency,
@@ -37,14 +37,21 @@ export function ZeroBudgetSummaryHero({
     const thirdHint = remainingAllocationHint(availableBalance, remaining, isOverallocated);
     const thirdTone = remainingSummaryMetricTone(availableBalance, remaining, isOverallocated);
 
+    const balancoTone =
+        availableBalance > 0 ? 'positive' : availableBalance < 0 ? 'negative' : 'neutral';
+
     return (
         <section className="zero-budget__summary zero-budget__summary--minimal" aria-label="Resumo do planejamento do mês">
             <div className="zero-budget__summary-stack">
-                <p className="zero-budget__summary-label" title={SALDO_LIVRE_HINT}>
-                    Saldo livre
+                <p className="zero-budget__summary-label" title={BALANCO_MES_HINT}>
+                    Balanço do mês
                 </p>
 
-                <p className="zero-budget__summary-amount">{formatBRL(availableBalance, currency)}</p>
+                <p
+                    className={`zero-budget__summary-amount zero-budget__summary-amount--${balancoTone}`}
+                >
+                    {formatBRL(availableBalance, currency)}
+                </p>
 
                 <div className="zero-budget__summary-track">
                     <ZeroBudgetAllocationBar

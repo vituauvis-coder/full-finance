@@ -44,6 +44,7 @@ type TableModeProps = {
     onSplit?: (m: Movement) => void;
     onEdit?: (m: Movement) => void;
     onDelete?: (m: Movement) => void;
+    onView?: (m: Movement) => void;
 };
 
 type Props = TableModeProps & {
@@ -60,13 +61,16 @@ function MovementLedgerTable({
     emptyMessage,
     onRowClick,
     rowClassName,
-    tableProps
+    tableProps,
+    invoiceTableMode = false
 }: {
     rows: Movement[];
     emptyMessage: string;
     onRowClick?: (m: Movement) => void;
     rowClassName?: string;
     tableProps: TableModeProps;
+    /** Fatura: linha abre modal e esconde ações em massa na tabela. */
+    invoiceTableMode?: boolean;
 }) {
     const {
         currency,
@@ -90,7 +94,7 @@ function MovementLedgerTable({
         onDelete
     } = tableProps;
 
-    const isInvoiceView = Boolean(onRowClick);
+    const stripTableActions = invoiceTableMode;
 
     return (
         <MovementsTable
@@ -106,12 +110,12 @@ function MovementLedgerTable({
             expenseDisplayDate={expenseDisplayDate}
             accountLabel={accountLabel}
             statusLabel={statusLabel}
-            onToggleStatus={isInvoiceView ? undefined : onToggleStatus}
+            onToggleStatus={stripTableActions ? undefined : onToggleStatus}
             statusToggleBusy={statusToggleBusy}
-            selectedIds={isInvoiceView ? undefined : selectedIds}
-            onToggleRow={isInvoiceView ? undefined : onToggleRow}
+            selectedIds={stripTableActions ? undefined : selectedIds}
+            onToggleRow={stripTableActions ? undefined : onToggleRow}
             onTogglePage={
-                isInvoiceView || !onToggleRow
+                stripTableActions || !onToggleRow
                     ? undefined
                     : (on) => {
                           for (const r of rows) {
@@ -121,9 +125,9 @@ function MovementLedgerTable({
                           }
                       }
             }
-            onSplit={isInvoiceView ? undefined : onSplit}
-            onEdit={isInvoiceView ? undefined : onEdit}
-            onDelete={isInvoiceView ? undefined : onDelete}
+            onSplit={stripTableActions ? undefined : onSplit}
+            onEdit={stripTableActions ? undefined : onEdit}
+            onDelete={stripTableActions ? undefined : onDelete}
             sortKey={sortKey}
             sortDir={sortDir}
             onSort={onSort}
@@ -157,6 +161,7 @@ export function ExpensesTabbedLedger({
     onSplit,
     onEdit,
     onDelete,
+    onView,
     sortKey,
     sortDir,
     onSort
@@ -248,7 +253,8 @@ export function ExpensesTabbedLedger({
         onToggleRow,
         onSplit,
         onEdit,
-        onDelete
+        onDelete,
+        onView
     };
 
     return (
@@ -285,9 +291,16 @@ export function ExpensesTabbedLedger({
                             ? (m) => {
                                   if (isExpenseInvoiceRowId(m.id)) openInvoice(m);
                               }
-                            : undefined
+                            : onView
                     }
-                    rowClassName={tab === 'invoices' ? 'expenses-invoice-row' : undefined}
+                    invoiceTableMode={tab === 'invoices'}
+                    rowClassName={
+                        tab === 'invoices'
+                            ? 'expenses-invoice-row'
+                            : onView
+                              ? 'expenses-detail-row'
+                              : undefined
+                    }
                 />
                 <TablePaginationBar
                     page={active.pagination.page}

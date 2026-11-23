@@ -11,6 +11,26 @@
     min-height: 0;
 }
 
+.page-content.page-content--dashboard-modern:has(#zero-budget-page.zero-budget-page) {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.page-content.page-content--dashboard-modern:has(#zero-budget-page.zero-budget-page) .screen-swap {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.page-content.page-content--dashboard-modern:has(#zero-budget-page.zero-budget-page) .screen-swap__stage {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
 #zero-budget-page .zero-budget > .civil-period-timeline--surfaced {
     margin-bottom: 0;
     flex-shrink: 0;

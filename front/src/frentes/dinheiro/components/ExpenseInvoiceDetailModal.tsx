@@ -80,9 +80,9 @@ export function ExpenseInvoiceDetailModal({
             onClose={onClose}
             id="expense-invoice-detail-modal"
             size="lg"
-            panelClassName="expense-invoice-detail-modal ui-dialog__panel--invoice-wide"
+            panelClassName="expense-lines-detail-modal expense-invoice-detail-modal ui-dialog__panel--invoice-wide"
         >
-            <div className="expense-invoice-detail movements-page--modern">
+            <div className="expense-lines-detail expense-invoice-detail movements-page--modern">
                 <p className="expense-invoice-detail__total">
                     Total da fatura: <strong>{formatBRL(total, currency)}</strong>
                     <span className="expense-invoice-detail__count">

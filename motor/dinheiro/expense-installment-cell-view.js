@@ -65,7 +65,38 @@ export function buildExpenseInstallmentCellView(parts) {
         };
     }
 
-    // Sem parcela no período filtrado: não usar estado global (evita «Quitada» no mês errado).
+    if (parts.allPaid) {
+        return {
+            label: 'Quitada',
+            monthLine: '',
+            monthHint: `Contrato quitado (${total}/${total})`,
+            title: paidHint + ` de ${total}`,
+            tone: 'settled',
+            monthNone: true,
+            parcelIndex: null,
+            parcelTotal: total,
+            ahead: 0,
+            monthPaid: true
+        };
+    }
+
+    const remaining = Math.max(0, Number(parts.remaining) || 0);
+    if (remaining > 0) {
+        const label = remaining === 1 ? '1 restante' : `${remaining} restantes`;
+        return {
+            label,
+            monthLine: '',
+            monthHint: `${paidCount} pagas · ${remaining} em aberto`,
+            title: [paidHint + ` de ${total}`, label, 'Nenhuma parcela cai no período filtrado'].join(' · '),
+            tone: 'open',
+            monthNone: true,
+            parcelIndex: null,
+            parcelTotal: total,
+            ahead: remaining,
+            monthPaid: false
+        };
+    }
+
     return null;
 }
 

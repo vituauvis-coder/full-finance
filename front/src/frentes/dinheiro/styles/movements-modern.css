@@ -1095,133 +1095,176 @@
     }
 }
 
-#expenses-page .data-table__row--clickable.expenses-invoice-row {
+#expenses-page .data-table__row--clickable.expenses-invoice-row,
+#expenses-page .data-table__row--clickable.expenses-detail-row {
     cursor: pointer;
 }
 
-#expenses-page .data-table__row--clickable.expenses-invoice-row:hover td {
+#expenses-page .data-table__row--clickable.expenses-invoice-row:hover td,
+#expenses-page .data-table__row--clickable.expenses-detail-row:hover td {
     background: var(--dash-layer-inset);
 }
 
-/* Modal fatura (portal): mesmo ritmo do extrato em #expenses-page */
+/* Modal fatura / detalhe saída (portal): tabela compacta numa linha */
+.ui-dialog__panel.expense-lines-detail-modal.ui-dialog__panel--invoice-wide,
 .ui-dialog__panel.expense-invoice-detail-modal.ui-dialog__panel--invoice-wide {
     width: min(100%, 58rem);
     max-width: min(96vw, 58rem);
 }
 
+#expense-detail-modal.ui-dialog {
+    z-index: 2500;
+}
+
+.expense-lines-detail__table-shell.page-content--dashboard-modern .data-table-host,
 .expense-invoice-detail__table-shell.page-content--dashboard-modern .data-table-host {
     overflow-x: auto;
 }
 
-.expense-invoice-detail__table-shell.page-content--dashboard-modern #expense-invoice-detail-table.data-table {
+.expense-lines-detail__table-shell.page-content--dashboard-modern :is(#expense-invoice-detail-table, #expense-detail-view-table).data-table,
+.expense-invoice-detail__table-shell.page-content--dashboard-modern :is(#expense-invoice-detail-table, #expense-detail-view-table).data-table {
     table-layout: auto;
     min-width: 52rem;
 }
 
-.expense-invoice-detail.movements-page--modern #expense-invoice-detail-table .movement-td-compact {
+.expense-lines-detail.movements-page--modern :is(#expense-invoice-detail-table, #expense-detail-view-table) tbody td,
+.expense-invoice-detail.movements-page--modern :is(#expense-invoice-detail-table, #expense-detail-view-table) tbody td {
+    padding-top: 0.38rem;
+    padding-bottom: 0.38rem;
+    font-size: 0.8125rem;
+    line-height: 1.25;
+    vertical-align: middle;
+}
+
+.expense-lines-detail.movements-page--modern :is(#expense-invoice-detail-table, #expense-detail-view-table) thead th,
+.expense-invoice-detail.movements-page--modern :is(#expense-invoice-detail-table, #expense-detail-view-table) thead th {
+    padding-top: 0.45rem;
+    padding-bottom: 0.45rem;
+    font-size: 0.68rem;
+}
+
+.expense-lines-detail.movements-page--modern :is(#expense-invoice-detail-table, #expense-detail-view-table) .movement-td-compact,
+.expense-invoice-detail.movements-page--modern :is(#expense-invoice-detail-table, #expense-detail-view-table) .movement-td-compact {
     white-space: nowrap;
     vertical-align: middle;
 }
 
-.expense-invoice-detail.movements-page--modern #expense-invoice-detail-table td.expenses-td-description {
-    min-width: 9.5rem;
-    white-space: normal;
-    word-break: break-word;
-    line-height: 1.4;
+.expense-lines-detail.movements-page--modern :is(#expense-invoice-detail-table, #expense-detail-view-table) td.expenses-td-description,
+.expense-invoice-detail.movements-page--modern :is(#expense-invoice-detail-table, #expense-detail-view-table) td.expenses-td-description {
+    min-width: 7rem;
+    max-width: 12rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.25;
 }
 
-.expense-invoice-detail.movements-page--modern #expense-invoice-detail-table td.despesa {
+.expense-lines-detail.movements-page--modern :is(#expense-invoice-detail-table, #expense-detail-view-table) td.despesa,
+.expense-invoice-detail.movements-page--modern :is(#expense-invoice-detail-table, #expense-detail-view-table) td.despesa {
     color: var(--movement-expense-color, var(--expenses-accent, #f43f5e));
     font-weight: 700;
-    font-size: 0.95rem;
+    font-size: 0.875rem;
     font-variant-numeric: tabular-nums;
 }
 
-.expense-invoice-detail.movements-page--modern #expense-invoice-detail-table th.expenses-th-installments,
-.expense-invoice-detail.movements-page--modern #expense-invoice-detail-table td.expenses-td-installments {
+.expense-lines-detail.movements-page--modern :is(#expense-invoice-detail-table, #expense-detail-view-table) th.expenses-th-installments,
+.expense-lines-detail.movements-page--modern :is(#expense-invoice-detail-table, #expense-detail-view-table) td.expenses-td-installments,
+.expense-invoice-detail.movements-page--modern :is(#expense-invoice-detail-table, #expense-detail-view-table) th.expenses-th-installments,
+.expense-invoice-detail.movements-page--modern :is(#expense-invoice-detail-table, #expense-detail-view-table) td.expenses-td-installments {
     white-space: nowrap;
     text-align: center;
     vertical-align: middle;
-    min-width: 7.25rem;
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
+    min-width: 6.5rem;
+    padding-left: 0.35rem;
+    padding-right: 0.35rem;
 }
 
-.expense-invoice-detail.movements-page--modern #expense-invoice-detail-table td.expenses-td-installments {
-    font-size: 0.82rem;
-    font-weight: 500;
-    line-height: 1.2;
-    padding-top: 0.55rem;
-    padding-bottom: 0.55rem;
-}
-
-.expense-invoice-detail.movements-page--modern #expense-invoice-detail-table .expenses-installment-stack {
-    --exp-inst-pill-w: 6.85rem;
+.expense-lines-detail.movements-page--modern :is(#expense-invoice-detail-table, #expense-detail-view-table) .expenses-installment-stack,
+.expense-invoice-detail.movements-page--modern :is(#expense-invoice-detail-table, #expense-detail-view-table) .expenses-installment-stack {
+    --exp-inst-pill-w: 6.35rem;
     display: inline-flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.15rem;
-    width: var(--exp-inst-pill-w);
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    width: auto;
     max-width: 100%;
     margin-inline: auto;
 }
 
-.expense-invoice-detail.movements-page--modern #expense-invoice-detail-table .expenses-installment-cell__label {
-    display: block;
+.expense-lines-detail.movements-page--modern :is(#expense-invoice-detail-table, #expense-detail-view-table) .expenses-installment-cell__label,
+.expense-invoice-detail.movements-page--modern :is(#expense-invoice-detail-table, #expense-detail-view-table) .expenses-installment-cell__label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     box-sizing: border-box;
-    width: 100%;
-    min-height: 1.45rem;
+    width: auto;
+    min-width: var(--exp-inst-pill-w, 6.35rem);
+    min-height: 1.35rem;
     font-weight: 600;
     letter-spacing: 0.01em;
-    font-size: 0.82rem;
-    line-height: 1.2;
-    padding: 0.12rem 0.35rem;
+    font-size: 0.78rem;
+    line-height: 1.15;
+    padding: 0.1rem 0.35rem;
     border-radius: 6px;
     border: 1px solid transparent;
     text-align: center;
     white-space: nowrap;
 }
 
-.expense-invoice-detail.movements-page--modern #expense-invoice-detail-table .expenses-installment-cell__month-parcel {
-    display: block;
-    width: 100%;
-    box-sizing: border-box;
-    font-size: 0.62rem;
-    font-weight: 600;
-    line-height: 1.15;
-    color: var(--dash-text-tertiary, var(--text-light));
-    text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+.expense-lines-detail.movements-page--modern :is(#expense-invoice-detail-table, #expense-detail-view-table) .expenses-installment-cell__month-parcel,
+.expense-invoice-detail.movements-page--modern :is(#expense-invoice-detail-table, #expense-detail-view-table) .expenses-installment-cell__month-parcel {
+    display: none;
 }
 
-.expense-invoice-detail.movements-page--modern #expense-invoice-detail-table .expenses-installment-cell--open .expenses-installment-cell__label {
+.expense-lines-detail.movements-page--modern :is(#expense-invoice-detail-table, #expense-detail-view-table) .expenses-installment-cell--open .expenses-installment-cell__label,
+.expense-invoice-detail.movements-page--modern :is(#expense-invoice-detail-table, #expense-detail-view-table) .expenses-installment-cell--open .expenses-installment-cell__label {
     color: var(--warning-text);
     background: var(--warning-chip-bg);
     border-color: var(--warning-chip-border-strong);
 }
 
-.expense-invoice-detail.movements-page--modern #expense-invoice-detail-table .expenses-installment-cell--settled .expenses-installment-cell__label {
+.expense-lines-detail.movements-page--modern :is(#expense-invoice-detail-table, #expense-detail-view-table) .expenses-installment-cell--settled .expenses-installment-cell__label,
+.expense-invoice-detail.movements-page--modern :is(#expense-invoice-detail-table, #expense-detail-view-table) .expenses-installment-cell--settled .expenses-installment-cell__label {
     color: #15803d;
     background: color-mix(in srgb, var(--gains-accent) 16%, transparent);
     border-color: color-mix(in srgb, var(--gains-accent) 38%, transparent);
     font-weight: 700;
 }
 
-.expense-invoice-detail.movements-page--modern #expense-invoice-detail-table td.expenses-td-status {
+.expense-lines-detail.movements-page--modern :is(#expense-invoice-detail-table, #expense-detail-view-table) td.expenses-td-status,
+.expense-invoice-detail.movements-page--modern :is(#expense-invoice-detail-table, #expense-detail-view-table) td.expenses-td-status {
     text-align: center;
     white-space: nowrap;
     vertical-align: middle;
 }
 
-.expense-invoice-detail.movements-page--modern #expense-invoice-detail-table th.movement-th-category,
-.expense-invoice-detail.movements-page--modern #expense-invoice-detail-table td.movement-td-category {
+.expense-lines-detail.movements-page--modern :is(#expense-invoice-detail-table, #expense-detail-view-table) th.movement-th-category,
+.expense-lines-detail.movements-page--modern :is(#expense-invoice-detail-table, #expense-detail-view-table) td.movement-td-category,
+.expense-invoice-detail.movements-page--modern :is(#expense-invoice-detail-table, #expense-detail-view-table) th.movement-th-category,
+.expense-invoice-detail.movements-page--modern :is(#expense-invoice-detail-table, #expense-detail-view-table) td.movement-td-category {
     text-align: center;
 }
 
-.expense-invoice-detail.movements-page--modern #expense-invoice-detail-table thead th:last-child {
+.expense-lines-detail.movements-page--modern :is(#expense-invoice-detail-table, #expense-detail-view-table) thead th:last-child,
+.expense-invoice-detail.movements-page--modern :is(#expense-invoice-detail-table, #expense-detail-view-table) thead th:last-child {
     text-align: center;
+}
+
+.expense-lines-detail.movements-page--modern :is(#expense-invoice-detail-table, #expense-detail-view-table) td.transaction-actions .transaction-actions__inner,
+.expense-invoice-detail.movements-page--modern :is(#expense-invoice-detail-table, #expense-detail-view-table) td.transaction-actions .transaction-actions__inner {
+    display: inline-flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    flex-wrap: nowrap;
+}
+
+.expense-lines-detail.movements-page--modern :is(#expense-invoice-detail-table, #expense-detail-view-table) .table-action-btn,
+.expense-invoice-detail.movements-page--modern :is(#expense-invoice-detail-table, #expense-detail-view-table) .table-action-btn {
+    width: 1.75rem;
+    height: 1.75rem;
+    min-width: 1.75rem;
 }
 
 .expense-invoice-detail__total {
@@ -1236,6 +1279,7 @@
     color: var(--dash-text-tertiary);
 }
 
+.expense-lines-detail-modal :is(.expense-lines-detail, .expense-invoice-detail) .table-container.data-table-host,
 .expense-invoice-detail-modal .expense-invoice-detail .table-container.data-table-host {
     margin: 0;
     max-height: min(62vh, 34rem);

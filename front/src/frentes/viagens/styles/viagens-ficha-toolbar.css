@@ -50,6 +50,49 @@
     min-height: calc(100dvh - 3.5rem);
 }
 
+/* Orçamento: colunas com mesma altura e scroll próprio (não competir com .page-content) */
+.page-content.page-content--dashboard-modern:has(#viagens-page.viagens-page--ficha .orc-workspace) {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding-top: 0.5rem;
+    padding-bottom: 0.15rem;
+}
+
+.page-content.page-content--dashboard-modern:has(#viagens-page.viagens-page--ficha .orc-workspace) .screen-swap {
+    flex: 1 1 auto;
+    min-height: calc(100dvh - 2.75rem);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.page-content.page-content--dashboard-modern:has(#viagens-page.viagens-page--ficha .orc-workspace) .screen-swap__stage {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+#viagens-page.viagens-page--ficha:has(.orc-workspace) {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+}
+
+#viagens-page.viagens-page--ficha:has(.orc-workspace) .viagens-root,
+#viagens-page.viagens-page--ficha:has(.orc-workspace) .viagens-ficha {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+}
+
+#viagens-page.viagens-page--ficha:has(.orc-workspace) .viagens-ficha__header {
+    flex-shrink: 0;
+}
+
 #viagens-page.viagens-page--ficha .viagens-ficha__header {
     display: block;
     position: relative;

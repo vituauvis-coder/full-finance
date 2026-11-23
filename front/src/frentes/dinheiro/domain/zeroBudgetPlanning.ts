@@ -1,9 +1,13 @@
+import { calcMaxAllocation, calcTotalAllocated } from '@legacy/js/core/zero-budget-calculator.js';
+import { gainMatchesDashboardFacet } from '../../../lib/dashboardExpenseFacets';
+import { getPeriodDateBounds } from '../../../lib/period';
+import type { DashboardFacets, FinanceData, Movement } from '../../../lib/types/finance';
+import { loadDashboardFacetsFromStorage } from '../../dashboard/domain/dashboardFacetStorage';
 import {
-    calcAvailableBalance,
-    calcMaxAllocation,
-    calcTotalAllocated
-} from '@legacy/js/core/zero-budget-calculator.js';
-import type { FinanceData } from '../../../lib/types/finance';
+    balancoFromIncomeAndMandatory,
+    computeMonthWalletFlowTotals
+} from '../../dashboard/domain/monthWalletFlow';
+import { sumInPeriod } from '../../dashboard/domain/periodTotals';
 import type { ZeroBudgetBlock } from './zeroBudgetTypes';
 import { gainsWithSyntheticExpectedSplits } from '../../dashboard/domain/syntheticSplitGains';
 
@@ -23,13 +27,33 @@ export function mergedGainsForZeroBudget(data: FinanceData, month: number, year:
     });
 }
 
+function monthIncomeForBalanco(
+    gains: Movement[],
+    startDate: Date,
+    endDate: Date,
+    facets: DashboardFacets
+): number {
+    if (facets.gains.size > 0) {
+        return sumInPeriod(gains, startDate, endDate, (g) => gainMatchesDashboardFacet(g, facets.gains));
+    }
+    return sumInPeriod(gains, startDate, endDate, (g) => Boolean(g && !g.referenceOnly));
+}
+
+/** Saldo livre do planejamento = balanço do mês (entradas − fixas − faturas), igual painel/carteira. */
 export function zeroBudgetAvailableBalance(data: FinanceData, month: number, year: number): number {
+    const period = `month-${month - 1}`;
+    const facets = loadDashboardFacetsFromStorage();
+    const { startDate, endDate } = getPeriodDateBounds(period, year);
     const gains = mergedGainsForZeroBudget(data, month, year);
-    return calcAvailableBalance(gains, data.userExpenses ?? [], month, year, {
-        accounts: data.userAccounts ?? [],
-        userProfile: data.userProfile ?? null,
-        splitOutgoing: data.expenseSplitRequests?.outgoing ?? []
-    });
+    const income = monthIncomeForBalanco(gains, startDate, endDate, facets);
+    const flow = computeMonthWalletFlowTotals(
+        data.userExpenses ?? [],
+        data.userAccounts ?? [],
+        period,
+        year,
+        data.expenseSplitRequests
+    );
+    return balancoFromIncomeAndMandatory(income, flow.mandatoryOut);
 }
 
 export function collectExpenseCategoryNames(
@@ -110,14 +134,14 @@ export function allocatedAllocationHint(
     totalAllocated: number,
     isOverallocated: boolean
 ): string {
-    if (isOverallocated) return 'Acima do saldo livre';
+    if (isOverallocated) return 'Acima do balanço do mês';
     if (availableBalance <= 0) {
-        return totalAllocated > 0 ? 'Fora do saldo do mês' : 'Sem saldo no mês';
+        return totalAllocated > 0 ? 'Fora do balanço do mês' : 'Balanço zerado ou negativo';
     }
     const pct = Math.min(100, Math.round((totalAllocated / availableBalance) * 100));
     if (pct <= 0) return 'Nada nas metas ainda';
-    if (pct >= 100) return 'Saldo todo em blocos';
-    return `${pct}% do saldo livre`;
+    if (pct >= 100) return 'Balanço todo em blocos';
+    return `${pct}% do balanço`;
 }
 
 export function allocatedSummaryMetricTone(
@@ -140,7 +164,7 @@ export function remainingAllocationHint(
     remaining: number,
     isOverallocated: boolean
 ): string {
-    if (isOverallocated) return 'Acima do saldo livre do mês';
+    if (isOverallocated) return 'Acima do balanço do mês';
     if (remaining <= 0) return 'Tudo distribuído';
     const tone = remainingToneClass(availableBalance, remaining, isOverallocated);
     if (tone === 'zero-budget__stat--remaining-safe') return 'Margem para alocar';

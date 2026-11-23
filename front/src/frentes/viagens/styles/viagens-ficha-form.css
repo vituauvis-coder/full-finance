@@ -39,6 +39,10 @@
     min-height: calc(100dvh - 4.25rem);
 }
 
+#viagens-page.viagens-page--ficha:has(.orc-workspace) .viagens-ficha {
+    min-height: 0;
+}
+
 #viagens-page.viagens-page--ficha .viagens-ficha__sections {
     max-width: none;
     width: 100%;

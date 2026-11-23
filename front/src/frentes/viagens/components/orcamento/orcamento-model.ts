@@ -55,6 +55,25 @@ export function readBudgetCategoryLabels(payload?: TripPayload | null): Record<s
     return out;
 }
 
+export function readBudgetHiddenCategories(payload?: TripPayload | null): string[] {
+    const raw = payload?.budgetHiddenCategories ?? payload?.budget_hidden_categories;
+    if (!Array.isArray(raw)) return [];
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const id of raw) {
+        const key = String(id ?? '').trim();
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        out.push(key);
+    }
+    return out;
+}
+
+export function visibleBuiltinOrcamentoCategories(payload?: TripPayload | null) {
+    const hidden = new Set(readBudgetHiddenCategories(payload));
+    return ORCAMENTO_CATEGORIES.filter((c) => !hidden.has(c.id));
+}
+
 export function defaultOrcamentoCategoryLabel(id: string): string {
     return ORCAMENTO_CATEGORIES.find((c) => c.id === id)?.label ?? id;
 }
@@ -206,7 +225,7 @@ function capAmount(draft: TripDraft, id: string): number {
 
 export function sumBudgetCaps(draft: TripDraft): number {
     let total = 0;
-    for (const def of ORCAMENTO_CATEGORIES) {
+    for (const def of visibleBuiltinOrcamentoCategories(draft.payload)) {
         total += capAmount(draft, def.id);
     }
     const custom = draft.payload.budgetCustomCategories ?? draft.payload.budget_custom_categories ?? [];
@@ -284,7 +303,7 @@ export function buildOrcamentoSnapshot(
         now
     });
 
-    const categoryRows = ORCAMENTO_CATEGORIES.map((def) => {
+    const categoryRows = visibleBuiltinOrcamentoCategories(draft.payload).map((def) => {
         const cap = capAmount(draft, def.id);
         const used = expensesSpent(tripRef, { category: def.id });
         const pay = paymentBreakdown(tripRef, { category: def.id });

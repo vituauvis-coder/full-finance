@@ -6,8 +6,12 @@ import {
     isInstallmentDuePaidForCashOut
 } from '@motor/dinheiro/credit-installments.js';
 import { isCreditCardType } from '../../../lib/accounts';
-import { isLoanExpense } from '../../../lib/loanExpense';
+import { isLoanExpense } from '@motor/dinheiro/loan-expense.js';
 import type { Account, Movement, UserProfile } from '../../../lib/types/finance';
+import {
+    isExpenseInstallmentTableRow,
+    type ExpenseInstallmentTableRow
+} from './expenseInstallmentTableRows';
 
 export type InstallmentListPeriod = {
     startDate: Date;
@@ -40,6 +44,19 @@ export function resolveExpenseInstallmentMonthParcel(
     now: Date,
     listPeriod: InstallmentListPeriod | null
 ): InstallmentMonthParcel | null {
+    const inst = expense as ExpenseInstallmentTableRow;
+    if (isExpenseInstallmentTableRow(expense)) {
+        const index = Number(inst.__instParcelIndex);
+        const total = Number(inst.__instParcelTotal);
+        if (!Number.isFinite(index) || index < 1) return null;
+        return {
+            index,
+            total: Number.isFinite(total) && total >= 2 ? total : null,
+            paid: !!inst.__instParcelPaid,
+            scope: 'row'
+        };
+    }
+
     let due: Date | null = null;
     if (listPeriod) {
         const dues = getDueDatesForExpenseListPeriod(
@@ -74,10 +91,12 @@ export function getExpenseInstallmentLabelParts(
     listPeriod: InstallmentListPeriod | null = null
 ): InstallmentLabelParts | null {
     if (!expense) return null;
+    const inst = expense as ExpenseInstallmentTableRow;
+    if (inst.__instRow && inst.__instEmptyPeriod) return null;
 
     const nField = Math.max(
         1,
-        parseInt(String(expense.installmentCount ?? '1'), 10) || 1
+        parseInt(String(expense.installmentCount ?? inst.__instParcelTotal ?? '1'), 10) || 1
     );
     const nParc = parseInt(String(expense.installmentCount ?? ''), 10);
     const cardOrLoan =

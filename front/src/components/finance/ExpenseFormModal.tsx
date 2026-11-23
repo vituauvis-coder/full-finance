@@ -17,6 +17,11 @@ import {
 } from '../../lib/accounts';
 import { EXPENSE_LOAN_PAYMENT_VALUE, isLoanExpense } from '../../lib/loanExpense';
 import { useCategories } from '../../hooks/useCategories';
+import {
+    CategoriesCatalogScope,
+    CategoryCatalogSelect,
+    SubcategoryCatalogSelect
+} from './categories';
 import { DialogForm, DialogFrame } from '../ui/dialog';
 import {
     FormActions,
@@ -68,7 +73,7 @@ export function ExpenseFormModal({
     onClose,
     onSaved
 }: Props) {
-    const { categories } = useCategories('expense');
+    const { categories, refresh: refreshCategories } = useCategories('expense');
     const [loanAccountId, setLoanAccountId] = useState('');
     const [trips, setTrips] = useState<{ id: string; title: string }[]>([]);
     const [tripId, setTripId] = useState('');
@@ -266,7 +271,6 @@ export function ExpenseFormModal({
         });
     }, [open, showInstallmentPreview, date, nInst, installmentAccount, loanCategory]);
 
-    const subs = categories.find((c) => c.name === category)?.subcategories ?? [];
     const title = editing ? 'Editar saída' : fromRateio ? 'Confirmar sua parte do rateio' : 'Nova saída';
 
     function togglePaidPeriod(periodKey: string) {
@@ -363,7 +367,8 @@ export function ExpenseFormModal({
             size="md"
             panelClassName="expense-form-modal__panel"
         >
-            <DialogForm className="ui-form expense-form-modal" onSubmit={(e) => void onSubmit(e)}>
+            <CategoriesCatalogScope kind="expense" onRefresh={refreshCategories}>
+                <DialogForm className="ui-form expense-form-modal" onSubmit={(e) => void onSubmit(e)}>
                 <FormAlert message={error} />
                 {fromRateio ? (
                     <p className="expense-form-modal__rateio-hint">
@@ -373,35 +378,29 @@ export function ExpenseFormModal({
                 ) : null}
 
                 <FormGrid columns={2}>
-                    <FormField id="expense-category-select" label="Categoria">
-                        <FormSelect
-                            id="expense-category-select"
-                            value={category}
-                            onChange={(e) => setCategory(e.target.value)}
-                            required
-                        >
-                            <option value="">Selecione…</option>
-                            {categories.map((c) => (
-                                <option key={c.id} value={c.name}>
-                                    {c.name}
-                                </option>
-                            ))}
-                        </FormSelect>
-                    </FormField>
-                    <FormField id="expense-subcategory-select" label="Subcategoria">
-                        <FormSelect
-                            id="expense-subcategory-select"
-                            value={subcategory}
-                            onChange={(e) => setSubcategory(e.target.value)}
-                        >
-                            <option value="">—</option>
-                            {subs.map((s) => (
-                                <option key={s.id} value={s.name}>
-                                    {s.name}
-                                </option>
-                            ))}
-                        </FormSelect>
-                    </FormField>
+                    <CategoryCatalogSelect
+                        id="expense-category-select"
+                        value={category}
+                        categories={categories}
+                        required
+                        onChange={(v) => {
+                            setCategory(v);
+                            setSubcategory('');
+                        }}
+                    />
+                    <SubcategoryCatalogSelect
+                        id="expense-subcategory-select"
+                        parentCategoryName={category}
+                        value={subcategory}
+                        categories={categories}
+                        onChange={setSubcategory}
+                        allowCatalog={category !== EXPENSE_COFRINHO_CATEGORY}
+                        leadingOptions={
+                            category === EXPENSE_COFRINHO_CATEGORY ? (
+                                <option value={COFRINHO_POOL_SUBCATEGORY}>Pool — aguardar alocação</option>
+                            ) : null
+                        }
+                    />
                 </FormGrid>
 
                 {category === EXPENSE_COFRINHO_CATEGORY && !fromRateio ? (
@@ -615,6 +614,7 @@ export function ExpenseFormModal({
                     submitLabel={fromRateio ? 'Aceitar e lançar' : 'Salvar'}
                 />
             </DialogForm>
+            </CategoriesCatalogScope>
         </DialogFrame>
     );
 }

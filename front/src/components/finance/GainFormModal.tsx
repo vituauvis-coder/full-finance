@@ -1,6 +1,11 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import type { Account, Movement } from '../../lib/types/finance';
 import { useCategories } from '../../hooks/useCategories';
+import {
+    CategoriesCatalogScope,
+    CategoryCatalogSelect,
+    SubcategoryCatalogSelect
+} from './categories';
 import { sortedBankAccounts } from '../../lib/accounts';
 import { ambiguousAccountNameKeys, accountSelectDisplayName } from '../../lib/accountSelectOptions';
 import { DialogForm, DialogFrame } from '../ui/dialog';
@@ -41,7 +46,7 @@ export function GainFormModal({
     period = defaultPeriod(),
     civilYear = defaultCivilYear()
 }: Props) {
-    const { categories } = useCategories('gain');
+    const { categories, refresh: refreshCategories } = useCategories('gain');
     const [description, setDescription] = useState('');
     const [amount, setAmount] = useState('');
     const [accountId, setAccountId] = useState('');
@@ -78,7 +83,6 @@ export function GainFormModal({
         }
     }, [open, editing, accounts, period, civilYear]);
 
-    const subs = categories.find((c) => c.name === category)?.subcategories ?? [];
     const bankOptions = useMemo(() => {
         const banks = sortedBankAccounts(accounts);
         const ambiguous = ambiguousAccountNameKeys(banks);
@@ -127,38 +131,27 @@ export function GainFormModal({
             onClose={onClose}
             size="md"
         >
+            <CategoriesCatalogScope kind="gain" onRefresh={refreshCategories}>
             <DialogForm onSubmit={(e) => void onSubmit(e)}>
                 <FormAlert message={error} />
                 <FormGrid columns={2}>
-                    <FormField id="gain-category-select" label="Categoria">
-                        <FormSelect
-                            id="gain-category-select"
-                            value={category}
-                            onChange={(e) => setCategory(e.target.value)}
-                            required
-                        >
-                            <option value="">Selecione…</option>
-                            {categories.map((c) => (
-                                <option key={c.id} value={c.name}>
-                                    {c.name}
-                                </option>
-                            ))}
-                        </FormSelect>
-                    </FormField>
-                    <FormField id="gain-subcategory-select" label="Subcategoria">
-                        <FormSelect
-                            id="gain-subcategory-select"
-                            value={subcategory}
-                            onChange={(e) => setSubcategory(e.target.value)}
-                        >
-                            <option value="">—</option>
-                            {subs.map((s) => (
-                                <option key={s.id} value={s.name}>
-                                    {s.name}
-                                </option>
-                            ))}
-                        </FormSelect>
-                    </FormField>
+                    <CategoryCatalogSelect
+                        id="gain-category-select"
+                        value={category}
+                        categories={categories}
+                        required
+                        onChange={(v) => {
+                            setCategory(v);
+                            setSubcategory('');
+                        }}
+                    />
+                    <SubcategoryCatalogSelect
+                        id="gain-subcategory-select"
+                        parentCategoryName={category}
+                        value={subcategory}
+                        categories={categories}
+                        onChange={setSubcategory}
+                    />
                 </FormGrid>
                 <FormField id="gain-description" label="Descrição">
                     <FormInput
@@ -214,6 +207,7 @@ export function GainFormModal({
                 </div>
                 <FormActions onCancel={onClose} busy={saving} />
             </DialogForm>
+            </CategoriesCatalogScope>
         </DialogFrame>
     );
 }

@@ -18,7 +18,7 @@ export function getColorHex(colorClass: string | undefined): string {
         'bg-yellow-500': '#eab308',
         'bg-gray-500': '#6b7280'
     };
-    return colorMap[String(colorClass || '').trim()] || '#f2c94c';
+    return colorMap[String(colorClass || '').trim()] || '#f2c94c'; /* --dash-warning / ouro */
 }
 
 export const ZERO_BUDGET_COLORS = [

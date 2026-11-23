@@ -1,0 +1,200 @@
+/* Gerenciar categorias — escopo forte no dialog (evita colisão com listas legadas) */
+
+#manage-categories-dialog.ui-dialog {
+    z-index: 2600;
+}
+
+#manage-categories-dialog .fin-cat-manage-panel.ui-dialog__panel {
+    width: min(100%, 30rem);
+}
+
+#manage-categories-dialog .ui-dialog__body {
+    padding: 0.5rem 1.15rem 1.15rem;
+}
+
+.fin-cat-manage-panel__content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-height: 0;
+}
+
+.fin-cat-manage-panel__empty {
+    margin: 0;
+    padding: 1.25rem 0.5rem;
+    text-align: center;
+    font-size: 0.875rem;
+    line-height: 1.45;
+    color: var(--dash-text-tertiary, var(--text-light));
+}
+
+.fin-cat-manage-panel__list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    max-height: min(52vh, 24rem);
+    overflow-y: auto;
+    padding-right: 0.15rem;
+    scrollbar-gutter: stable;
+}
+
+.fin-cat-manage-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    gap: 0.35rem 0.5rem;
+    align-items: center;
+    padding: 0.6rem 0.65rem;
+    border-radius: 12px;
+    border: 1px solid var(--dash-border-strong, var(--border-color));
+    background: var(--dash-layer-control, color-mix(in srgb, var(--text-color) 6%, var(--bg-light)));
+}
+
+[data-theme='dark'] #manage-categories-dialog .fin-cat-manage-row {
+    background: color-mix(in srgb, var(--text-color, #fafafa) 6%, var(--bg-light, #262626));
+}
+
+.fin-cat-manage-row__main {
+    grid-column: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
+}
+
+.fin-cat-manage-row__name {
+    margin: 0;
+    font-family: var(--font-family, 'Poppins', sans-serif);
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+    color: var(--dash-text-primary, var(--text-color));
+}
+
+.fin-cat-manage-row__pill {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.18rem 0.45rem;
+    border-radius: 6px;
+    line-height: 1.2;
+}
+
+.fin-cat-manage-row__pill--gain {
+    background: color-mix(in srgb, var(--dash-chart-gain, #2dd4bf) 22%, transparent);
+    color: color-mix(in srgb, var(--dash-chart-gain, #2dd4bf) 85%, var(--text-color));
+}
+
+.fin-cat-manage-row__pill--expense {
+    background: color-mix(in srgb, var(--dash-chart-expense, #fb7185) 20%, transparent);
+    color: color-mix(in srgb, var(--dash-chart-expense, #fb7185) 82%, var(--text-color));
+}
+
+.fin-cat-manage-row__actions {
+    grid-column: 2;
+    grid-row: 1;
+    display: flex;
+    gap: 0.3rem;
+    flex-shrink: 0;
+}
+
+.fin-cat-manage-row__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.1rem;
+    height: 2.1rem;
+    padding: 0;
+    border: 1px solid var(--dash-border, var(--border-color));
+    border-radius: 8px;
+    background: var(--dash-layer-inset, var(--bg-color));
+    color: var(--dash-text-secondary, var(--text-light));
+    cursor: pointer;
+    transition:
+        border-color 0.15s ease,
+        color 0.15s ease,
+        background 0.15s ease;
+}
+
+.fin-cat-manage-row__btn:hover:not(:disabled) {
+    border-color: var(--dash-border-strong, var(--border-color));
+    color: var(--dash-text-primary, var(--text-color));
+}
+
+.fin-cat-manage-row__btn--danger:hover:not(:disabled) {
+    border-color: color-mix(in srgb, #ef4444 50%, var(--border-color));
+    color: #ef4444;
+}
+
+.fin-cat-manage-row__btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.fin-cat-manage-subs {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    margin-top: 0.15rem;
+    padding-top: 0.45rem;
+    border-top: 1px solid color-mix(in srgb, var(--dash-border, var(--border-color)) 72%, transparent);
+}
+
+.fin-cat-manage-sub {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.15rem 0 0.15rem 0.75rem;
+}
+
+.fin-cat-manage-sub__name {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-family: var(--font-family, 'Poppins', sans-serif);
+    font-size: 0.8125rem;
+    line-height: 1.3;
+    color: var(--dash-text-secondary, var(--text-light));
+}
+
+.fin-cat-manage-sub__name::before {
+    content: '•';
+    margin-right: 0.35rem;
+    color: var(--dash-text-tertiary, var(--text-light));
+}
+
+.fin-cat-manage-panel__add {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    width: 100%;
+    padding: 0.65rem 0.85rem;
+    border-radius: 10px;
+    border: 1px dashed var(--dash-border-strong, var(--border-color));
+    background: transparent;
+    font-family: var(--font-family, 'Poppins', sans-serif);
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--dash-text-primary, var(--text-color));
+    cursor: pointer;
+    transition:
+        border-color 0.15s ease,
+        background 0.15s ease;
+}
+
+.fin-cat-manage-panel__add:hover {
+    border-color: var(--dash-border-strong, var(--border-color));
+    background: color-mix(in srgb, var(--text-color) 5%, transparent);
+}
+
+#category-form-dialog.ui-dialog,
+#subcategory-form-dialog.ui-dialog {
+    z-index: 2700;
+}

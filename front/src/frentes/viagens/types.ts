@@ -332,6 +332,9 @@ export interface TripPayload {
     /** Rótulos personalizados das categorias fixas do orçamento (id → nome). */
     budget_category_labels?: Record<string, string>;
     budgetCategoryLabels?: Record<string, string>;
+    /** Categorias padrão removidas da lista do orçamento (ids de `ORCAMENTO_CATEGORIES`). */
+    budget_hidden_categories?: string[];
+    budgetHiddenCategories?: string[];
     time_scenarios?: TripTimeScenario[];
     timeScenarios?: TripTimeScenario[];
     chosen_time_scenario_id?: string | null;

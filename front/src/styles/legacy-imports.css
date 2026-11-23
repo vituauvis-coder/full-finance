@@ -41,6 +41,7 @@
 @import '../frentes/dashboard/styles/dashboard-page-spacing.css';
 @import '../frentes/dinheiro/styles/zero-budget-page-spacing.css';
 @import '../frentes/dinheiro/styles/zero-budget-components.css';
+@import '../frentes/dinheiro/styles/zero-budget-todos-modal.css';
 @import '../frentes/dashboard/styles/dashboard-pending-modern.css';
 @import '../frentes/dashboard/styles/dashboard-icons.css';
 @import '../frentes/perfil/styles/profile-modern.css';
@@ -50,6 +51,7 @@
 @import '../frentes/dinheiro/styles/expense-splits-outgoing-modal.css';
 @import '../components/finance/expense-form-installment-preview.css';
 @import '../components/finance/expense-form-modal.css';
+@import '../components/finance/categories/category-catalog.css';
 @import '../frentes/dinheiro/styles/wallet-modern.css';
 @import '../frentes/dinheiro/styles/wallet-catalog.css';
 @import '../frentes/dinheiro/styles/wallet-account-modal.css';

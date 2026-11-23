@@ -3,6 +3,7 @@ import { acceptedOutgoingSplits } from '../../dashboard/domain/splitRequestsForB
 import { MovementSummaryCard, MovementSummaryCardsGrid } from '../../../components/finance/MovementSummaryCard';
 import { MovementsTable } from '../../../components/finance/MovementsTable';
 import { ExpenseFormModal } from '../../../components/finance/ExpenseFormModal';
+import { ExpenseDetailModal } from '../../../components/finance/ExpenseDetailModal';
 import { TablePaginationBar } from '../../../components/finance/TablePaginationBar';
 import { CategoryTreemap } from '../../../components/finance/CategoryTreemap';
 import { MovementListFilterRibbon } from '../../../components/finance/MovementListFilterRibbon';
@@ -94,6 +95,7 @@ export function SaidasPage() {
     const listFilters = useMovementListFilters();
     const { period, year, onPeriodChange, onYearChange } = useCivilPeriodState();
     const [modalOpen, setModalOpen] = useState(false);
+    const [detailExpense, setDetailExpense] = useState<Movement | null>(null);
     const [editing, setEditing] = useState<Movement | null>(null);
     const [splitSeed, setSplitSeed] = useState<ExpenseSplitSeed | null>(null);
     const [splitModalOpen, setSplitModalOpen] = useState(false);
@@ -466,6 +468,12 @@ export function SaidasPage() {
         setSplitSeed(null);
         setModalOpen(true);
     }, []);
+
+    const openExpenseView = useCallback((m: Movement) => {
+        if (isCofrinhoApplicationExtratoRow(m)) return;
+        setDetailExpense(m);
+    }, []);
+
     useMovementHeaderAdd('add-expense-btn', openAddModal);
     const outgoingSplitsHeader = useMemo(() => {
         if (pendingOutgoingCount === 0) return null;
@@ -702,6 +710,7 @@ export function SaidasPage() {
                         setEditing(m);
                         setModalOpen(true);
                     }}
+                    onView={openExpenseView}
                     onDelete={(m) => {
                         if (isCofrinhoApplicationExtratoRow(m)) return;
                         void onDelete(m);
@@ -768,6 +777,8 @@ export function SaidasPage() {
                     if (isCofrinhoApplicationExtratoRow(m)) return;
                     void onDelete(m);
                 }}
+                onRowClick={openExpenseView}
+                rowClassName="expenses-detail-row"
                 sortKey={sortKey}
                 sortDir={sortDir}
                 onSort={(key) => toggleSort(key as ExpenseSortKey)}
@@ -784,6 +795,44 @@ export function SaidasPage() {
                 </>
             )}
             </div>
+            <ExpenseDetailModal
+                open={detailExpense != null}
+                expense={detailExpense}
+                currency={currency}
+                accountById={accountById}
+                expenseAccounts={data.userAccounts}
+                allExpenses={data.userExpenses}
+                acceptedSplits={acceptedOutgoingSplits(data.expenseSplitRequests)}
+                userProfile={userProfile}
+                listPeriod={listPeriod}
+                expenseDisplayDate={expenseDisplayDate}
+                accountLabel={(id) => accountName(data.userAccounts, id)}
+                statusLabel={(m) =>
+                    expenseRowAppearsPaid(m, accountById.get(String(m.accountId)), userProfile, listPeriod)
+                        ? 'Pago'
+                        : 'Pendente'
+                }
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={toggleSort}
+                onToggleStatus={(m) => void onToggleStatus(m)}
+                statusToggleBusy={statusToggleBusy}
+                onSplit={(m) => {
+                    setSplitExpense(m);
+                    setSplitModalOpen(true);
+                }}
+                onEdit={(m) => {
+                    if (isCofrinhoApplicationExtratoRow(m)) return;
+                    setSplitSeed(null);
+                    setEditing(m);
+                    setModalOpen(true);
+                }}
+                onDelete={(m) => {
+                    if (isCofrinhoApplicationExtratoRow(m)) return;
+                    void onDelete(m);
+                }}
+                onClose={() => setDetailExpense(null)}
+            />
             <ExpenseFormModal
                 open={modalOpen}
                 editing={editing}
