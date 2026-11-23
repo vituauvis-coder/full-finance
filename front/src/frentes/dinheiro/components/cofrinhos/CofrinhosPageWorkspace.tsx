@@ -12,7 +12,10 @@ type Props = {
     onEditBucket: (bucket: CofrinhoBucket) => void;
     onAllocate: (bucketId?: string, poolYearMonth?: string) => void;
     onOpenHistory: (bucket: CofrinhoBucket) => void;
+    onReconcile: (bucket: CofrinhoBucket) => void;
     onDeleteApplication: (id: string) => void;
+    onDeleteMonthlyBalance: (id: string) => void;
+    onDeleteMonthlyBalanceMonth: (bucketId: string, yearMonth: string) => void;
     onRefresh: () => Promise<void>;
 };
 
@@ -22,7 +25,10 @@ export function CofrinhosPageWorkspace({
     onEditBucket,
     onAllocate,
     onOpenHistory,
+    onReconcile,
     onDeleteApplication,
+    onDeleteMonthlyBalance,
+    onDeleteMonthlyBalanceMonth,
     onRefresh
 }: Props) {
     const {
@@ -34,6 +40,7 @@ export function CofrinhosPageWorkspace({
         goals,
         expenses,
         tripPayloadOutflows,
+        monthlyBalances,
         summary,
         pendingByMonth
     } = model;
@@ -47,6 +54,7 @@ export function CofrinhosPageWorkspace({
                 buckets={buckets}
                 applications={applications}
                 expenses={expenses}
+                monthlyBalances={monthlyBalances}
             />
             <CofrinhosPendingBanner
                 items={pendingByMonth}
@@ -63,15 +71,19 @@ export function CofrinhosPageWorkspace({
                 onEdit={onEditBucket}
                 onAllocate={onAllocate}
                 onOpenHistory={onOpenHistory}
+                onReconcile={onReconcile}
             />
             <CofrinhosLedgerStatement
                 expenses={expenses}
                 tripPayloadOutflows={tripPayloadOutflows}
                 applications={applications}
                 buckets={buckets}
+                monthlyBalances={monthlyBalances}
                 accounts={accounts}
                 currency={currency}
                 onDeleteApplication={onDeleteApplication}
+                onDeleteMonthlyBalance={onDeleteMonthlyBalance}
+                onDeleteMonthlyBalanceMonth={onDeleteMonthlyBalanceMonth}
                 onRefresh={onRefresh}
             />
         </>

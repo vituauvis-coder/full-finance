@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { acceptedOutgoingSplits } from '../../dashboard/domain/splitRequestsForBalance';
 import { MovementSummaryCard, MovementSummaryCardsGrid } from '../../../components/finance/MovementSummaryCard';
 import { MovementsTable } from '../../../components/finance/MovementsTable';
@@ -20,7 +20,7 @@ import {
 import { useCivilPeriodState } from '../../../hooks/useCivilPeriodState';
 import { accountName, type ListFilter } from '../../../lib/movementList';
 import { expenseRowDisplayDate, filterExpensesInPeriod } from '../../../lib/filterExpensesInPeriod';
-import { EXPENSE_TREEMAP_PALETTE } from '../../../lib/treemapData';
+import { capCofrinhoTreemapBlocks, capTreemapBlocks, EXPENSE_TREEMAP_PALETTE } from '../../../lib/treemapData';
 import { buildExpenseTreemapBlocks } from '../../../lib/expenseTreemap';
 import { useTablePagination } from '../../../hooks/useTablePagination';
 import { compareExpenseRows, useMovementSort, type ExpenseSortKey } from '../../../hooks/useMovementSort';
@@ -46,15 +46,33 @@ import { confirmExpenseCashOut, deleteExpense, patchExpensesBatch } from '../api
 import { playPingSound } from '../../../app/uiSounds';
 import { MovementBatchBar } from '../../../components/finance/MovementBatchBar';
 import { ExpenseSplitsBanner } from '../components/ExpenseSplitsBanner';
-import { ExpenseSplitsOutgoingPanel } from '../components/ExpenseSplitsOutgoingPanel';
+import { ExpenseSplitsOutgoingModal } from '../components/ExpenseSplitsOutgoingModal';
 import { ExpenseSplitModal } from '../components/ExpenseSplitModal';
 import { CivilPeriodToolbar } from '../../../components/finance/CivilPeriodToolbar';
 import { useMovementHeaderAdd } from '../hooks/useMovementHeaderAdd';
+import { useMovementHeaderIcon } from '../hooks/useMovementHeaderIcon';
 import { useOpenCreateFromNavigation } from '../hooks/useOpenCreateFromNavigation';
 import {
+    aggregateExpenseTotalsAllYears,
     aggregateExpenseTotalsCivilYear,
+    buildExpenseTreemapBlocksAllYears,
     buildExpenseTreemapBlocksCivilYear
 } from '../domain/expenseCivilYearTotals';
+import {
+    EXPENSE_COFRINHO_CATEGORY
+} from '../domain/cofrinhoConstants';
+import { filterCofrinhoSaidasListRows } from '../domain/cofrinhoInflowEvents';
+import {
+    buildCofrinhoSaidasExtratoMovements,
+    filterCofrinhoSaidasExtratoForList,
+    isCofrinhoApplicationExtratoRow
+} from '../domain/cofrinhoSaidasExtrato';
+import {
+    aggregateCofrinhoCategoryTotalsFromFiltered,
+    buildCofrinhoCashOutTreemapBlocks,
+    patchExpenseTreemapCofrinhoCategory,
+    type CofrinhoSaidasMetricsInput
+} from '../domain/cofrinhoSaidasTotals';
 import {
     civilMonthKey,
     expenseSummaryFromRows,
@@ -82,8 +100,13 @@ export function SaidasPage() {
     const [splitExpense, setSplitExpense] = useState<Movement | null>(null);
     const [selected, setSelected] = useState<Set<string>>(() => new Set());
     const [batchModalOpen, setBatchModalOpen] = useState(false);
+    const [outgoingSplitsOpen, setOutgoingSplitsOpen] = useState(false);
 
     const currency = data?.userProfile?.currency ?? 'BRL';
+    const pendingOutgoingCount = useMemo(() => {
+        const outgoing = data?.expenseSplitRequests?.outgoing ?? [];
+        return outgoing.filter((s) => s && String(s.status).toUpperCase() === 'PENDING').length;
+    }, [data?.expenseSplitRequests?.outgoing]);
     const paymentStatus = useMemo(() => {
         const s = new Set<'paid' | 'unpaid'>();
         if (listFilters?.expensesStatus.paid) s.add('paid');
@@ -106,9 +129,11 @@ export function SaidasPage() {
         () => listFilters?.clearDateManual()
     );
 
+    const cofrinhoCategoryFilter = (drawer?.category || '') === EXPENSE_COFRINHO_CATEGORY;
+
     const filtered = useMemo(() => {
         if (!data) return [];
-        return filterExpensesInPeriod(data.userExpenses, data.userAccounts, period, year, {
+        const rows = filterExpensesInPeriod(data.userExpenses, data.userAccounts, period, year, {
             q: listFilters?.searchQ ?? '',
             paymentStatus,
             accountId: drawer?.accountId || undefined,
@@ -118,7 +143,23 @@ export function SaidasPage() {
             dateFrom: drawer?.dateFrom || undefined,
             dateTo: drawer?.dateTo || undefined
         });
-    }, [data, period, year, listFilters?.searchQ, paymentStatus, drawer, amountMin, amountMax]);
+        return filterCofrinhoSaidasListRows(
+            rows,
+            data.cofrinhoBuckets ?? [],
+            data.cofrinhoApplications ?? [],
+            cofrinhoCategoryFilter
+        );
+    }, [
+        cofrinhoCategoryFilter,
+        data,
+        period,
+        year,
+        listFilters?.searchQ,
+        paymentStatus,
+        drawer,
+        amountMin,
+        amountMax
+    ]);
 
     const accountLabelFn = useMemo(
         () => (id?: string) => (data ? accountName(data.userAccounts, id) : '—'),
@@ -167,9 +208,6 @@ export function SaidasPage() {
         onViewModeChange: setViewMode
     };
 
-    const pagination = useTablePagination(sorted.length, 'expenses');
-    const rows = sorted.slice(pagination.start, pagination.end);
-
     const listPeriod = useMemo(() => getPeriodDateBounds(period, year), [period, year]);
 
     const periodLabel = useMemo(() => {
@@ -209,6 +247,7 @@ export function SaidasPage() {
             amountMax
         ]
     );
+
     const summarySplitOpts = useMemo(() => {
         const splits = acceptedOutgoingSplits(data?.expenseSplitRequests);
         return {
@@ -218,8 +257,47 @@ export function SaidasPage() {
         };
     }, [data?.expenseSplitRequests, data?.userExpenses, period, year]);
 
+    const cofrinhoSaidasMetrics = useMemo((): CofrinhoSaidasMetricsInput | null => {
+        if (!data) return null;
+        return {
+            allExpenses: data.userExpenses,
+            filtered,
+            accounts: data.userAccounts,
+            buckets: data.cofrinhoBuckets ?? [],
+            applications: data.cofrinhoApplications ?? [],
+            monthlyBalances: data.cofrinhoMonthlyBalances ?? [],
+            tripPayloadOutflows: data.cofrinhoTripPayloadOutflows ?? [],
+            period,
+            civilYear: year,
+            splitOpts: summarySplitOpts,
+            accountFilterId: drawer?.accountId || undefined
+        };
+    }, [data, drawer?.accountId, filtered, period, summarySplitOpts, year]);
+
+    const cofrinhoExtratoRows = useMemo(() => {
+        if (!cofrinhoSaidasMetrics) return [];
+        const raw = buildCofrinhoSaidasExtratoMovements(cofrinhoSaidasMetrics);
+        return filterCofrinhoSaidasExtratoForList(raw, cofrinhoSaidasMetrics, listFilter);
+    }, [cofrinhoSaidasMetrics, listFilter]);
+
+    const sortedCofrinhoExtrato = useMemo(() => {
+        const arr = [...cofrinhoExtratoRows];
+        arr.sort((a, b) => compareExpenseRows(a, b, sortKey, sortDir, accountLabelFn));
+        return arr;
+    }, [cofrinhoExtratoRows, sortKey, sortDir, accountLabelFn]);
+
+    const simpleListSource = cofrinhoCategoryFilter ? sortedCofrinhoExtrato : sorted;
+    const pagination = useTablePagination(simpleListSource.length, 'expenses');
+    const rows = simpleListSource.slice(pagination.start, pagination.end);
+
     const expenseSummary = useMemo(() => {
         if (!data || !statusFilterActive) return { showHint: true as const };
+        if (cofrinhoCategoryFilter && cofrinhoSaidasMetrics) {
+            return {
+                showHint: false as const,
+                ...aggregateCofrinhoCategoryTotalsFromFiltered(cofrinhoSaidasMetrics)
+            };
+        }
         if (isCivilYearPeriod(period)) {
             return {
                 showHint: false as const,
@@ -233,8 +311,22 @@ export function SaidasPage() {
                 )
             };
         }
+        if (isAllYearsPeriod(period)) {
+            return {
+                showHint: false as const,
+                ...aggregateExpenseTotalsAllYears(
+                    data.userExpenses,
+                    data.userAccounts,
+                    listFilter,
+                    summarySplitOpts,
+                    data.userProfile
+                )
+            };
+        }
         return expenseSummaryFromRows(filtered, data.userAccounts, statusFilterActive, summarySplitOpts);
     }, [
+        cofrinhoCategoryFilter,
+        cofrinhoSaidasMetrics,
         data,
         filtered,
         listFilter,
@@ -245,9 +337,13 @@ export function SaidasPage() {
     ]);
 
     const treemapBlocks = useMemo(() => {
-        if (!data) return [];
+        if (!data || !cofrinhoSaidasMetrics) return [];
+        if (cofrinhoCategoryFilter) {
+            return buildCofrinhoCashOutTreemapBlocks(cofrinhoSaidasMetrics);
+        }
+        let blocks: ReturnType<typeof buildExpenseTreemapBlocks>;
         if (isCivilYearPeriod(period)) {
-            return buildExpenseTreemapBlocksCivilYear(
+            blocks = buildExpenseTreemapBlocksCivilYear(
                 data.userExpenses,
                 data.userAccounts,
                 year,
@@ -255,9 +351,19 @@ export function SaidasPage() {
                 summarySplitOpts,
                 data.userProfile
             );
+        } else if (isAllYearsPeriod(period)) {
+            blocks = buildExpenseTreemapBlocksAllYears(
+                data.userExpenses,
+                data.userAccounts,
+                listFilter,
+                summarySplitOpts,
+                data.userProfile
+            );
+        } else {
+            blocks = buildExpenseTreemapBlocks(filtered, data.userAccounts);
         }
-        return buildExpenseTreemapBlocks(filtered, data.userAccounts);
-    }, [data, period, year, filtered, listFilter, summarySplitOpts]);
+        return patchExpenseTreemapCofrinhoCategory(blocks, cofrinhoSaidasMetrics);
+    }, [cofrinhoCategoryFilter, cofrinhoSaidasMetrics, data, period, year, filtered, listFilter, summarySplitOpts]);
 
     const expenseMom = useMemo(() => {
         if (!data || expenseSummary.showHint) {
@@ -361,6 +467,20 @@ export function SaidasPage() {
         setModalOpen(true);
     }, []);
     useMovementHeaderAdd('add-expense-btn', openAddModal);
+    const outgoingSplitsHeader = useMemo(() => {
+        if (pendingOutgoingCount === 0) return null;
+        return {
+            id: 'expense-splits-outgoing-btn',
+            icon: 'schedule_send',
+            title: 'Pedidos de estorno aguardando resposta',
+            badge: pendingOutgoingCount,
+            onClick: () => setOutgoingSplitsOpen(true)
+        };
+    }, [pendingOutgoingCount]);
+    useMovementHeaderIcon(outgoingSplitsHeader);
+    useEffect(() => {
+        if (pendingOutgoingCount === 0) setOutgoingSplitsOpen(false);
+    }, [pendingOutgoingCount]);
     useOpenCreateFromNavigation(openAddModal);
 
     if (showSkeleton) {
@@ -401,11 +521,6 @@ export function SaidasPage() {
                     setSplitSeed(seed);
                     setModalOpen(true);
                 }}
-            />
-            <ExpenseSplitsOutgoingPanel
-                outgoing={data.expenseSplitRequests?.outgoing ?? []}
-                currency={currency}
-                onChanged={refresh}
             />
             <div className="movements-treemap-hero movements-treemap-hero--expenses">
             <MovementSummaryCardsGrid
@@ -521,6 +636,7 @@ export function SaidasPage() {
                         title="Mapa de Saídas"
                         emptyMessage="Nenhuma saída no período selecionado."
                         compact
+                        capBlocks={cofrinhoCategoryFilter ? capCofrinhoTreemapBlocks : capTreemapBlocks}
                     />
                 </div>
             </div>
@@ -543,7 +659,7 @@ export function SaidasPage() {
                 <ExpensesTabbedLedger
                     essentialRows={ledgerSplit.essential}
                     otherRows={ledgerSplit.other}
-                    cofrinhoRows={ledgerSplit.cofrinhos}
+                    cofrinhoRows={sortedCofrinhoExtrato}
                     invoiceRows={ledgerSplit.invoices}
                     invoiceBundles={ledgerSplit.bundles}
                     currency={currency}
@@ -581,11 +697,15 @@ export function SaidasPage() {
                         setSplitModalOpen(true);
                     }}
                     onEdit={(m) => {
+                        if (isCofrinhoApplicationExtratoRow(m)) return;
                         setSplitSeed(null);
                         setEditing(m);
                         setModalOpen(true);
                     }}
-                    onDelete={(m) => void onDelete(m)}
+                    onDelete={(m) => {
+                        if (isCofrinhoApplicationExtratoRow(m)) return;
+                        void onDelete(m);
+                    }}
                     sortKey={sortKey}
                     sortDir={sortDir}
                     onSort={toggleSort}
@@ -639,11 +759,15 @@ export function SaidasPage() {
                     setSplitModalOpen(true);
                 }}
                 onEdit={(m) => {
+                    if (isCofrinhoApplicationExtratoRow(m)) return;
                     setSplitSeed(null);
                     setEditing(m);
                     setModalOpen(true);
                 }}
-                onDelete={(m) => void onDelete(m)}
+                onDelete={(m) => {
+                    if (isCofrinhoApplicationExtratoRow(m)) return;
+                    void onDelete(m);
+                }}
                 sortKey={sortKey}
                 sortDir={sortDir}
                 onSort={(key) => toggleSort(key as ExpenseSortKey)}
@@ -664,6 +788,7 @@ export function SaidasPage() {
                 open={modalOpen}
                 editing={editing}
                 accounts={data.userAccounts}
+                ownerUserId={data.userProfile?.id}
                 splitSeed={splitSeed}
                 onClose={() => {
                     setModalOpen(false);
@@ -676,6 +801,7 @@ export function SaidasPage() {
                 open={splitModalOpen}
                 expense={splitExpense}
                 accounts={data.userAccounts}
+                ownerUserId={data.userProfile?.id}
                 outgoing={data.expenseSplitRequests?.outgoing ?? []}
                 currency={currency}
                 onClose={() => {
@@ -689,11 +815,19 @@ export function SaidasPage() {
                 count={selected.size}
                 ids={[...selected]}
                 accounts={data.userAccounts}
+                ownerUserId={data.userProfile?.id}
                 onClose={() => setBatchModalOpen(false)}
                 onSaved={async () => {
                     setSelected(new Set());
                     await refresh();
                 }}
+            />
+            <ExpenseSplitsOutgoingModal
+                open={outgoingSplitsOpen}
+                outgoing={data.expenseSplitRequests?.outgoing ?? []}
+                currency={currency}
+                onClose={() => setOutgoingSplitsOpen(false)}
+                onChanged={refresh}
             />
         </section>
     );

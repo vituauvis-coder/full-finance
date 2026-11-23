@@ -10,27 +10,14 @@ import {
 import { createPortal } from 'react-dom';
 import { MaterialIcon } from '../../icons/MaterialIcon';
 import { MONTH_SHORT_PT, monthTitlePt } from '../../../lib/calendarUi';
+import {
+    type PopCoords,
+    type PopoverPlacement,
+    popoverCoordsFromTrigger,
+    resolvePopoverPlacement
+} from './popoverCoords';
 
-const POP_WIDTH_PX = 288;
-const POP_ESTIMATE_PX = 280;
-
-type PopCoords = { top: number; left: number; width: number };
-
-function popCoordsFromTrigger(trigger: HTMLElement, popHeight = POP_ESTIMATE_PX): PopCoords {
-    const width = Math.min(POP_WIDTH_PX, window.innerWidth - 16);
-    const r = trigger.getBoundingClientRect();
-    let left = r.left;
-    if (left + width > window.innerWidth - 8) left = Math.max(8, window.innerWidth - 8 - width);
-    if (left < 8) left = 8;
-
-    let top = r.bottom + 8;
-    if (top + popHeight > window.innerHeight - 8) {
-        const above = r.top - 8 - popHeight;
-        if (above >= 8) top = above;
-    }
-
-    return { top, left, width };
-}
+const POP_LAYOUT = { widthPx: 288, anchorHeightPx: 280 };
 
 function coerceYearMonth(raw: string): string | null {
     const m = String(raw ?? '').trim().match(/^(\d{4})-(\d{2})$/);
@@ -88,6 +75,7 @@ export function MonthPicker({
     const fieldId = id ?? fallbackId;
     const triggerRef = useRef<HTMLButtonElement>(null);
     const popRef = useRef<HTMLDivElement>(null);
+    const placementRef = useRef<PopoverPlacement | null>(null);
     const [open, setOpen] = useState(false);
     const [coords, setCoords] = useState<PopCoords | null>(null);
 
@@ -98,8 +86,10 @@ export function MonthPicker({
     const updateCoords = useCallback(() => {
         const trigger = triggerRef.current;
         if (!trigger) return;
-        const popHeight = popRef.current?.offsetHeight ?? POP_ESTIMATE_PX;
-        setCoords(popCoordsFromTrigger(trigger, popHeight));
+        if (!placementRef.current) {
+            placementRef.current = resolvePopoverPlacement(trigger, POP_LAYOUT.anchorHeightPx);
+        }
+        setCoords(popoverCoordsFromTrigger(trigger, placementRef.current, POP_LAYOUT));
     }, []);
 
     useEffect(() => {
@@ -122,7 +112,11 @@ export function MonthPicker({
             window.removeEventListener('resize', updateCoords);
             window.removeEventListener('scroll', updateCoords, true);
         };
-    }, [open, updateCoords, cursorYear]);
+    }, [open, updateCoords]);
+
+    useEffect(() => {
+        if (!open) placementRef.current = null;
+    }, [open]);
 
     useEffect(() => {
         if (!open) return;
@@ -158,7 +152,10 @@ export function MonthPicker({
         if (disabled) return;
         if (open) setOpen(false);
         else {
-            if (triggerRef.current) setCoords(popCoordsFromTrigger(triggerRef.current));
+            if (triggerRef.current) {
+                placementRef.current = resolvePopoverPlacement(triggerRef.current, POP_LAYOUT.anchorHeightPx);
+                setCoords(popoverCoordsFromTrigger(triggerRef.current, placementRef.current, POP_LAYOUT));
+            }
             setOpen(true);
         }
     }

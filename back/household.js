@@ -83,6 +83,16 @@ export function cofrinhoApplicationAccessibleSql(uidParamIndex = 1) {
     )`;
 }
 
+/** Reconciliação mensal visível pelo autor ou pela caixinha acessível na casa. */
+export function cofrinhoMonthlyBalanceAccessibleSql(uidParamIndex = 1) {
+    return `(
+        cofrinho_monthly_balances.user_id = $${uidParamIndex}
+        OR cofrinho_monthly_balances.bucket_id IN (
+            SELECT id FROM cofrinho_buckets WHERE ${cofrinhoBucketAccessibleSql(uidParamIndex)}
+        )
+    )`;
+}
+
 /** Caixinha do usuário ou caixinha-viagem da mesma casa. */
 export function cofrinhoBucketAccessibleSql(uidParamIndex = 1) {
     return `(

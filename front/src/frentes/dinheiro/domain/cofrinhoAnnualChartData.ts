@@ -6,12 +6,16 @@ import { bucketChartBarGradient, bucketColorHex } from './cofrinhoConstants';
 import { cofrinhoBucketDeltaForMovement } from './cofrinhoMovementLedger';
 import { toYearMonthKey } from './cofrinhoPeriod';
 import { movementDate } from '../../../lib/period';
+import { buildCofrinhoMonthlyYieldEvents } from '@motor/dinheiro/cofrinho-monthly-yield.js';
+import type { CofrinhoMonthlyBalance } from './cofrinhoMonthlyBalances';
+import { monthlyBalanceBucketId } from './cofrinhoMonthlyBalances';
 
 export type CofrinhoAnnualChartPoint = {
     index: number;
     label: string;
     yearMonth: string;
     monthInflow: number;
+    monthYield: number;
     cumulative: number;
     [stackKey: string]: number | string;
 };
@@ -59,7 +63,8 @@ export function buildCofrinhoAnnualChartSeries(
     buckets: CofrinhoBucket[],
     applications: CofrinhoApplication[],
     expenses: Movement[],
-    year: number
+    year: number,
+    monthlyBalances: CofrinhoMonthlyBalance[] = []
 ): CofrinhoAnnualChartSeries {
     const ordered = [...(buckets ?? [])].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
     const bucketMeta = ordered.map((b) => {
@@ -77,6 +82,23 @@ export function buildCofrinhoAnnualChartSeries(
     const inflows = collectCofrinhoInflowEvents(ordered, applications, expenses).filter((ev) =>
         inflowEventMatchesYear(ev, year)
     );
+
+    const yieldByMonth = new Map<string, number>();
+    for (const ev of buildCofrinhoMonthlyYieldEvents(
+        (monthlyBalances ?? []).map((b) => {
+            const raw = b as CofrinhoMonthlyBalance & { reference_month?: string };
+            return {
+                id: b.id,
+                bucketId: monthlyBalanceBucketId(b),
+                referenceMonth: raw.referenceMonth ?? raw.reference_month,
+                principalAmount: Number(b.principalAmount) || 0,
+                balanceWithYield: Number(b.balanceWithYield) || 0
+            };
+        })
+    )) {
+        if (!ev.yearMonth.startsWith(`${year}-`)) continue;
+        yieldByMonth.set(ev.yearMonth, Math.round(((yieldByMonth.get(ev.yearMonth) ?? 0) + ev.amount) * 100) / 100);
+    }
 
     const monthlyNet = Array.from({ length: 12 }, () => new Map<string, number>());
     for (let mi = 0; mi < 12; mi++) {
@@ -100,6 +122,7 @@ export function buildCofrinhoAnnualChartSeries(
             label: MONTH_NAMES[mi],
             yearMonth,
             monthInflow: 0,
+            monthYield: yieldByMonth.get(yearMonth) ?? 0,
             cumulative: 0
         };
 

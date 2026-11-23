@@ -1,0 +1,32 @@
+---
+description: Fluxo Cofrinhos — Saídas (pool) → distribuição; totais e extrato alinhados
+globs: front/src/frentes/dinheiro/**/*cofrinho*,front/src/frentes/dinheiro/pages/SaidasPage.tsx,front/src/components/finance/ExpenseFormModal.tsx,back/cofrinho-allocation.js
+alwaysApply: false
+---
+
+# Cofrinhos — Pool → distribuição
+
+## Fluxo do usuário (comissão / PLR / décimo)
+
+1. **Saídas**: categoria `Cofrinhos`, subcategoria **`Pool`** — único débito de conta para esse dinheiro.
+2. **Cofrinhos**: usar **Distribuir** no banner de pool pendente (aplicação por caixinha).
+3. **Não** criar segunda saída na caixinha para o mesmo valor já distribuído (gera espelho/duplicata).
+
+**Aporte direto na caixinha** (sem pool): Saídas · subcategoria = nome da caixinha — conta 1× no dash (não distribuir de novo no módulo Cofrinhos).
+
+**Viagens · orçamento · Aportar**: `createExpense` com `tripId` + subcategoria = título da viagem — mesma regra B, bucket via `tripId` (`TripOrcamentoPanel.tsx`).
+
+Nunca os dois caminhos A e B para o **mesmo** valor.
+
+## Código — onde manter consistência
+
+| Camada | Arquivo | Papel |
+|--------|---------|--------|
+| Dedup espelho | `cofrinhoInflowEvents.ts` (`expenseOmittedFromCofrinhoInflowAsDuplicate`, `filterAllocatedCofrinhoMirrorsForSaidasTotals`) | Ignorar `allocated_expense` e duplicata aplicação |
+| Dashboard Saídas | `cofrinhoSaidasTotals.ts` | Treemap/total = ledger entradas sem yield + pool |
+| Extrato aba Cofrinhos | `cofrinhoSaidasExtrato.ts` | Mesmas linhas que o extrato do módulo Cofrinhos |
+| Lista Saídas | `SaidasPage.tsx` | Não somar espelhos; treemap patcheia bloco Cofrinhos |
+
+**Rendimento** nunca entra em Saídas (só reconciliação mensal no módulo Cofrinhos).
+
+Ao alterar alocação (`back/cofrinho-allocation.js`), preservar `allocated_expense_id` e não duplicar movimentos visíveis na Saídas.

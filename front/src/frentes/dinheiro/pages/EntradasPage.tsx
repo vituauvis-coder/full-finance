@@ -441,6 +441,8 @@ export function EntradasPage() {
                 open={modalOpen}
                 editing={editing}
                 accounts={data.userAccounts}
+                period={period}
+                civilYear={year}
                 onClose={() => setModalOpen(false)}
                 onSaved={refresh}
             />

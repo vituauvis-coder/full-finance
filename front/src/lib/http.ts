@@ -25,7 +25,18 @@ export async function apiFetch(path: string, init?: RequestInit) {
         }
     });
     if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
+        const text = await res.text();
+        let body: { error?: string } = {};
+        try {
+            body = JSON.parse(text) as { error?: string };
+        } catch {
+            const routeMissing = text.match(/Cannot (?:GET|POST|PUT|PATCH|DELETE) ([^\s<]+)/);
+            if (routeMissing) {
+                throw new Error(
+                    'Servidor desatualizado — reinicie o back-end (npm run dev) e tente de novo.'
+                );
+            }
+        }
         throw new Error(
             (typeof body.error === 'string' && body.error) ||
                 (res.status === 404 ? 'Não encontrado' : res.statusText)

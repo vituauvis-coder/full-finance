@@ -3,7 +3,7 @@ import { getMonthKeysInPeriod } from '@motor/dinheiro/period-bounds.js';
 import { monthKeyFromDate } from '@motor/dinheiro/finance-preferences.js';
 import { isCreditCardType } from '../../../lib/accounts';
 import { filterExpensesByListFilter } from '../../../lib/filterExpensesInPeriod';
-import { CIVIL_YEAR_PERIOD } from '../../../lib/period';
+import { CIVIL_YEAR_PERIOD, movementDate } from '../../../lib/period';
 import { aggregateByCategory } from '../../../lib/treemapData';
 import type { Account, Movement, UserProfile } from '../../../lib/types/finance';
 import type { ListFilter } from '../../../lib/movementList';
@@ -12,6 +12,7 @@ import {
     type ExpenseSummarySplitOpts,
     type ExpenseSummaryTotals
 } from './expenseSummaryStats';
+import { movementSkipsAccountCashOut } from './cofrinhoMovementLedger';
 
 function civilYearMonthKeys(civilYear: number, now = new Date()) {
     const keys = getMonthKeysInPeriod(CIVIL_YEAR_PERIOD, now, { civilYear });
@@ -23,17 +24,45 @@ function civilYearMonthKeys(civilYear: number, now = new Date()) {
     });
 }
 
-function sumContributionsForYear(
+function allYearsMonthKeys(rows: Movement[], now = new Date()): string[] {
+    let startY = now.getFullYear();
+    let startM = 0;
+    for (const t of rows) {
+        const d = movementDate(t);
+        if (Number.isNaN(d.getTime())) continue;
+        const y = d.getFullYear();
+        const m = d.getMonth();
+        if (y < startY || (y === startY && m < startM)) {
+            startY = y;
+            startM = m;
+        }
+    }
+    const keys: string[] = [];
+    let y = startY;
+    let m = startM;
+    const endY = now.getFullYear();
+    const endM = now.getMonth();
+    while (y < endY || (y === endY && m <= endM)) {
+        keys.push(`${y}-${String(m + 1).padStart(2, '0')}`);
+        m += 1;
+        if (m > 11) {
+            m = 0;
+            y += 1;
+        }
+    }
+    return keys;
+}
+
+function sumContributionsForMonthKeys(
     rows: Movement[],
     accounts: Account[],
-    civilYear: number,
+    months: string[],
     splitOpts: ExpenseSummarySplitOpts,
     userProfile?: UserProfile | null
 ) {
     const byId = new Map(accounts.map((a) => [a.id, a]));
     const splits = splitOpts.splitRequests ?? [];
     const allEx = splitOpts.allUserExpenses ?? rows;
-    const months = civilYearMonthKeys(civilYear);
     let total = 0;
     let essential = 0;
     let creditCard = 0;
@@ -44,6 +73,7 @@ function sumContributionsForYear(
     for (const mk of months) {
         const cutoff = new Date(Number(mk.slice(0, 4)), Number(mk.slice(5, 7)), 0, 23, 59, 59, 999);
         for (const t of rows) {
+            if (movementSkipsAccountCashOut(t)) continue;
             const acc = t.accountId ? byId.get(t.accountId) : undefined;
             const contrib = expenseContributionPaidThroughListMonthKey(
                 t,
@@ -78,6 +108,22 @@ function sumContributionsForYear(
     } satisfies ExpenseSummaryTotals;
 }
 
+function sumContributionsForYear(
+    rows: Movement[],
+    accounts: Account[],
+    civilYear: number,
+    splitOpts: ExpenseSummarySplitOpts,
+    userProfile?: UserProfile | null
+) {
+    return sumContributionsForMonthKeys(
+        rows,
+        accounts,
+        civilYearMonthKeys(civilYear),
+        splitOpts,
+        userProfile
+    );
+}
+
 export function aggregateExpenseTotalsCivilYear(
     allRows: Movement[],
     accounts: Account[],
@@ -90,6 +136,17 @@ export function aggregateExpenseTotalsCivilYear(
     return sumContributionsForYear(rows, accounts, civilYear, splitOpts, userProfile);
 }
 
+export function aggregateExpenseTotalsAllYears(
+    allRows: Movement[],
+    accounts: Account[],
+    listFilter: ListFilter,
+    splitOpts: ExpenseSummarySplitOpts,
+    userProfile?: UserProfile | null
+): ExpenseSummaryTotals {
+    const rows = filterExpensesByListFilter(allRows, accounts, listFilter);
+    return sumContributionsForMonthKeys(rows, accounts, allYearsMonthKeys(rows), splitOpts, userProfile);
+}
+
 /** Treemap por categoria — soma mês a mês (cartão por vencimento). */
 export function buildExpenseTreemapBlocksCivilYear(
     allRows: Movement[],
@@ -100,15 +157,32 @@ export function buildExpenseTreemapBlocksCivilYear(
     userProfile?: UserProfile | null
 ) {
     const rows = filterExpensesByListFilter(allRows, accounts, listFilter);
+    const synthetic = buildSyntheticContributionsForMonthKeys(
+        rows,
+        accounts,
+        civilYearMonthKeys(civilYear),
+        splitOpts,
+        userProfile
+    );
+    return aggregateByCategory(synthetic);
+}
+
+function buildSyntheticContributionsForMonthKeys(
+    rows: Movement[],
+    accounts: Account[],
+    months: string[],
+    splitOpts: ExpenseSummarySplitOpts,
+    userProfile?: UserProfile | null
+): Movement[] {
     const byId = new Map(accounts.map((a) => [a.id, a]));
     const splits = splitOpts.splitRequests ?? [];
     const allEx = splitOpts.allUserExpenses ?? rows;
-    const months = civilYearMonthKeys(civilYear);
     const synthetic: Movement[] = [];
 
     for (const mk of months) {
         const cutoff = new Date(Number(mk.slice(0, 4)), Number(mk.slice(5, 7)), 0, 23, 59, 59, 999);
         for (const t of rows) {
+            if (movementSkipsAccountCashOut(t)) continue;
             const acc = t.accountId ? byId.get(t.accountId) : undefined;
             const contrib = expenseContributionPaidThroughListMonthKey(
                 t,
@@ -129,5 +203,23 @@ export function buildExpenseTreemapBlocksCivilYear(
         }
     }
 
+    return synthetic;
+}
+
+export function buildExpenseTreemapBlocksAllYears(
+    allRows: Movement[],
+    accounts: Account[],
+    listFilter: ListFilter,
+    splitOpts: ExpenseSummarySplitOpts,
+    userProfile?: UserProfile | null
+) {
+    const rows = filterExpensesByListFilter(allRows, accounts, listFilter);
+    const synthetic = buildSyntheticContributionsForMonthKeys(
+        rows,
+        accounts,
+        allYearsMonthKeys(rows),
+        splitOpts,
+        userProfile
+    );
     return aggregateByCategory(synthetic);
 }

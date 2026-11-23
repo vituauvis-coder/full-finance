@@ -1,7 +1,11 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import type { Account, ExpenseSplitSeed, Movement } from '../../lib/types/finance';
 import { fetchTripsList } from '../../frentes/viagens/api/trips';
-import { EXPENSE_COFRINHO_CATEGORY } from '../../frentes/dinheiro/domain/cofrinhoConstants';
+import {
+    COFRINHO_POOL_SUBCATEGORY,
+    EXPENSE_COFRINHO_CATEGORY,
+    isCofrinhoPoolSubcategoryName
+} from '../../frentes/dinheiro/domain/cofrinhoConstants';
 import { VIAGENS_EXPENSE_CATEGORY } from '../../frentes/dinheiro/domain/cofrinhoMovementLedger';
 import { MaterialIcon } from '../icons/MaterialIcon';
 import { ExpenseFormPaymentPicker } from './ExpenseFormPaymentPicker';
@@ -43,6 +47,8 @@ type Props = {
     open: boolean;
     editing: Movement | null;
     accounts: Account[];
+    /** Lista de pagamento = só contas do titular (casa compartilhada). */
+    ownerUserId?: string | null;
     splitSeed?: ExpenseSplitSeed | null;
     onClose: () => void;
     onSaved: () => void | Promise<void>;
@@ -57,6 +63,7 @@ export function ExpenseFormModal({
     open,
     editing,
     accounts,
+    ownerUserId = null,
     splitSeed = null,
     onClose,
     onSaved
@@ -79,8 +86,13 @@ export function ExpenseFormModal({
         (category === VIAGENS_EXPENSE_CATEGORY || category === EXPENSE_COFRINHO_CATEGORY);
     const tripTitleById = useMemo(() => new Map(trips.map((t) => [t.id, t.title])), [trips]);
     const paymentOptions = useMemo(
-        () => buildPaymentMethodOptions(accounts, { includeLoan: loanCategory }),
-        [accounts, loanCategory]
+        () =>
+            buildPaymentMethodOptions(accounts, {
+                includeLoan: loanCategory,
+                ownerUserId: ownerUserId ?? undefined,
+                alwaysIncludeAccountIds: editing?.accountId ? [String(editing.accountId)] : undefined
+            }),
+        [accounts, loanCategory, ownerUserId, editing?.accountId]
     );
     const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
     const [isPaid, setIsPaid] = useState(false);
@@ -209,6 +221,12 @@ export function ExpenseFormModal({
         if (title && linksTrip) setSubcategory(title);
         if (category === EXPENSE_COFRINHO_CATEGORY) setIsCofrinho(true);
     }, [tripId, tripTitleById, linksTrip, category, open]);
+
+    useEffect(() => {
+        if (!open || editing || fromRateio) return;
+        if (category !== EXPENSE_COFRINHO_CATEGORY || tripId) return;
+        if (!subcategory.trim()) setSubcategory(COFRINHO_POOL_SUBCATEGORY);
+    }, [category, editing, fromRateio, open, subcategory, tripId]);
 
     useEffect(() => {
         if (!open || editing || fromRateio) return;
@@ -385,6 +403,23 @@ export function ExpenseFormModal({
                         </FormSelect>
                     </FormField>
                 </FormGrid>
+
+                {category === EXPENSE_COFRINHO_CATEGORY && !fromRateio ? (
+                    <p className="expense-form-modal__hint" role="note">
+                        {isCofrinhoPoolSubcategoryName(subcategory) ? (
+                            <>
+                                Comissão, PLR ou décimo: grave no <strong>{COFRINHO_POOL_SUBCATEGORY}</strong> e
+                                distribua nas caixinhas em <strong>Cofrinhos</strong>.
+                            </>
+                        ) : subcategory.trim() ? (
+                            <>
+                                Aporte direto na caixinha «{subcategory}» (conta 1× aqui). Para holerite/PLR,
+                                use <strong>{COFRINHO_POOL_SUBCATEGORY}</strong> e distribua depois em Cofrinhos
+                                — não repita o mesmo valor nas duas formas.
+                            </>
+                        ) : null}
+                    </p>
+                ) : null}
 
                 {linksTrip ? (
                     <FormField id="expense-trip-select" label="Viagem">

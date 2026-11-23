@@ -47,6 +47,7 @@ import { registerAuthRoutes } from './routes/auth.routes.js';
 import { registerDomainRoutes } from './routes/register-domain-routes.js';
 import { ensureExpenseTripLinkColumns } from './migrations/expense-trip-link.js';
 import { ensureCofrinhoViagemLedgerColumns } from './migrations/cofrinho-viagem-ledger.js';
+import { ensureCofrinhoMonthlyBalancesTable } from './migrations/cofrinho-monthly-balances.js';
 import { ensureAccountWalletColumns } from './migrations/account-wallet-columns.js';
 import { requireAuth, requireAdmin } from './middleware/auth.js';
 import { createSessionMiddleware } from './session-middleware.js';
@@ -221,6 +222,10 @@ void ensureCofrinhoViagemLedgerColumns().catch((e) => {
     console.error('[migration] cofrinho viagem ledger (boot):', e?.message || e);
 });
 
+void ensureCofrinhoMonthlyBalancesTable().catch((e) => {
+    console.error('[migration] cofrinho monthly balances (boot):', e?.message || e);
+});
+
 /** Data URLs em Base64 excedem VARCHAR curtos; sem TEXT a foto não persiste após F5. */
 query(
     `ALTER TABLE users ALTER COLUMN profile_photo_url TYPE text USING profile_photo_url::text`
@@ -390,7 +395,8 @@ app.get('/api/data', requireAuth, async (req, res) => {
                 return {
                     cofrinhoBuckets: [],
                     cofrinhoApplications: [],
-                    cofrinhoBucketGoals: []
+                    cofrinhoBucketGoals: [],
+                    cofrinhoMonthlyBalances: []
                 };
             }),
             fetchCofrinhoTripPayloadOutflows(uid).catch((e) => {
@@ -430,6 +436,7 @@ app.get('/api/data', requireAuth, async (req, res) => {
         cofrinhoBuckets: cofrinhoBundle.cofrinhoBuckets || [],
         cofrinhoApplications: cofrinhoBundle.cofrinhoApplications || [],
         cofrinhoBucketGoals: cofrinhoBundle.cofrinhoBucketGoals || [],
+        cofrinhoMonthlyBalances: cofrinhoBundle.cofrinhoMonthlyBalances || [],
         cofrinhoTripPayloadOutflows: Array.isArray(cofrinhoTripPayloadOutflows)
             ? cofrinhoTripPayloadOutflows
             : [],
@@ -3504,6 +3511,7 @@ app.delete('/api/user', requireAuth, async (req, res) => {
         );
         await client.query(`DELETE FROM expenses WHERE user_id = $1`, [uid]);
         await client.query(`DELETE FROM gains WHERE user_id = $1`, [uid]);
+        await client.query(`DELETE FROM cofrinho_monthly_balances WHERE user_id = $1`, [uid]);
         await client.query(`DELETE FROM cofrinho_applications WHERE user_id = $1`, [uid]);
         await client.query(`DELETE FROM cofrinho_bucket_goals WHERE user_id = $1`, [uid]);
         await client.query(`DELETE FROM cofrinho_buckets WHERE user_id = $1`, [uid]);
@@ -3986,6 +3994,7 @@ app.delete('/api/admin/users/:id', requireAdmin, async (req, res) => {
         );
         await client.query(`DELETE FROM expenses WHERE user_id = $1`, [userId]);
         await client.query(`DELETE FROM gains WHERE user_id = $1`, [userId]);
+        await client.query(`DELETE FROM cofrinho_monthly_balances WHERE user_id = $1`, [userId]);
         await client.query(`DELETE FROM cofrinho_applications WHERE user_id = $1`, [userId]);
         await client.query(`DELETE FROM cofrinho_bucket_goals WHERE user_id = $1`, [userId]);
         await client.query(`DELETE FROM cofrinho_buckets WHERE user_id = $1`, [userId]);

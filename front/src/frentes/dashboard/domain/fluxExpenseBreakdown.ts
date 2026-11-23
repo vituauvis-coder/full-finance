@@ -89,7 +89,6 @@ function breakdownFromContributionRows(
     const totals: FluxExpenseBreakdownTotals = { ...EMPTY_FLUX_BREAKDOWN };
 
     for (const m of rows) {
-        if (m.referenceOnly) continue;
         const acc = m.accountId ? accountById.get(String(m.accountId)) : undefined;
         const amt = getExpenseSummaryContributionAmount(m, acc, splitRequests, allExpenses, monthKey);
         if (!Number.isFinite(amt) || amt <= 0) continue;
@@ -126,7 +125,6 @@ export function fluxDailyBreakdownInMonth(
     const monthKey = civilMonthKey(period, civilYear) ?? '';
 
     for (const m of rows) {
-        if (m.referenceOnly) continue;
         const acc = m.accountId ? accountById.get(String(m.accountId)) : undefined;
         const due = expenseRowDisplayDate(m, acc, period, civilYear);
         if (due.getFullYear() !== civilYear || due.getMonth() !== mi) continue;

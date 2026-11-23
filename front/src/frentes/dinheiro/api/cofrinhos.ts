@@ -1,5 +1,6 @@
 import { apiFetch } from '../../../lib/http';
 import type { CofrinhoApplication, CofrinhoBucket, CofrinhoBucketGoal } from '../domain/cofrinhoAggregations';
+import type { CofrinhoMonthlyBalance } from '../domain/cofrinhoMonthlyBalances';
 
 export async function createCofrinhoBucket(body: {
     name: string;
@@ -104,4 +105,27 @@ export async function fetchPoolAvailable(yearMonth: string): Promise<number> {
 
 export async function deleteCofrinhoApplication(id: string): Promise<void> {
     await apiFetch(`/api/cofrinho-applications/${id}`, { method: 'DELETE' });
+}
+
+export async function saveCofrinhoMonthlyBalanceBatch(body: {
+    bucketId: string;
+    referenceMonth: string;
+    lines: { accountId: string; principalAmount: number; balanceWithYield: number }[];
+}): Promise<{ lines: CofrinhoMonthlyBalance[] }> {
+    return apiFetch<{ lines: CofrinhoMonthlyBalance[] }>('/api/cofrinho-monthly-balances/batch', {
+        method: 'POST',
+        body: JSON.stringify(body)
+    });
+}
+
+export async function deleteCofrinhoMonthlyBalanceMonth(
+    bucketId: string,
+    referenceMonth: string
+): Promise<void> {
+    const q = new URLSearchParams({ bucketId, referenceMonth });
+    await apiFetch(`/api/cofrinho-monthly-balances/month?${q}`, { method: 'DELETE' });
+}
+
+export async function deleteCofrinhoMonthlyBalance(id: string): Promise<void> {
+    await apiFetch(`/api/cofrinho-monthly-balances/${id}`, { method: 'DELETE' });
 }

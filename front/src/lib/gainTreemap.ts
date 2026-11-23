@@ -1,22 +1,19 @@
+import { gainTopLevelCategory as gainTopLevelCategoryMotor, prepareGainsForTreemap as prepareGainsForTreemapMotor } from '@motor/dinheiro/gain-treemap.js';
 import type { Movement } from './types/finance';
 import { aggregateByCategory } from './treemapData';
 
+/** Legado / APIs que ainda distinguem pré-âncora; listas e gráficos somam todas as linhas visíveis. */
 export function gainCountsInTotals(t: Movement) {
     return Boolean(t && !t.referenceOnly);
 }
 
 export function gainTopLevelCategory(t: Movement) {
-    const c = String(t.category ?? '').trim();
-    return c || '—';
+    return gainTopLevelCategoryMotor(t);
 }
 
-/** Linhas elegíveis ao treemap de entradas (sem referenceOnly, categoria top-level). */
+/** Treemap Entradas: mesma base do extrato visível (inclui referenceOnly se estiver na lista). */
 export function prepareGainsForTreemap(rows: Movement[]) {
-    return rows.filter(gainCountsInTotals).map((t) => ({
-        ...t,
-        category: gainTopLevelCategory(t),
-        subcategory: (t.subcategory && String(t.subcategory).trim()) || 'Geral'
-    }));
+    return prepareGainsForTreemapMotor(rows) as Movement[];
 }
 
 export function buildGainTreemapBlocks(rows: Movement[]) {

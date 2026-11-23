@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { MaterialIcon } from '../../../../components/icons/MaterialIcon';
 import { formatBRL } from '../../../../lib/format';
 import type { Account } from '../../../../lib/types/finance';
@@ -9,6 +9,8 @@ import {
     type CofrinhoTripPayloadOutflow
 } from '../../domain/cofrinhoLedgerRows';
 import type { CofrinhoApplication, CofrinhoBucket } from '../../domain/cofrinhoAggregations';
+import type { CofrinhoMonthlyBalance } from '../../domain/cofrinhoMonthlyBalances';
+import { mergeCofrinhoLedgerWithYield } from '../../domain/cofrinhoYieldLedger';
 import { bucketColorHex } from '../../domain/cofrinhoConstants';
 import { cofrinhoLedgerAccountAccent } from '../../domain/cofrinhoLedgerAccountAccent';
 import {
@@ -20,15 +22,19 @@ import {
 import { CofrinhosLedgerFilterRibbon } from './CofrinhosLedgerFilterRibbon';
 import { CofrinhoLedgerInflowEditModal } from './CofrinhoLedgerInflowEditModal';
 import { cofrinhoPaymentAccounts } from '../../domain/cofrinhoPaymentAccounts';
+import { takeCofrinhosLedgerAccountNav } from '../../domain/cofrinhoLedgerNav';
 
 type Props = {
     expenses: Movement[];
     tripPayloadOutflows?: CofrinhoTripPayloadOutflow[];
     applications: CofrinhoApplication[];
     buckets: CofrinhoBucket[];
+    monthlyBalances: CofrinhoMonthlyBalance[];
     accounts: Account[];
     currency: string;
     onDeleteApplication: (id: string) => void;
+    onDeleteMonthlyBalance: (id: string) => void;
+    onDeleteMonthlyBalanceMonth: (bucketId: string, yearMonth: string) => void;
     onRefresh: () => Promise<void>;
 };
 
@@ -37,13 +43,23 @@ export function CofrinhosLedgerStatement({
     tripPayloadOutflows = [],
     applications,
     buckets,
+    monthlyBalances,
     accounts,
     currency,
     onDeleteApplication,
+    onDeleteMonthlyBalance,
+    onDeleteMonthlyBalanceMonth,
     onRefresh
 }: Props) {
     const [filters, setFilters] = useState(defaultCofrinhosLedgerFilters);
     const [editRow, setEditRow] = useState<CofrinhoLedgerRow | null>(null);
+
+    useEffect(() => {
+        const accountId = takeCofrinhosLedgerAccountNav();
+        if (accountId) {
+            setFilters((prev) => ({ ...prev, accountId }));
+        }
+    }, []);
     const paymentAccounts = useMemo(() => cofrinhoPaymentAccounts(accounts), [accounts]);
     const editPaymentAccounts = useMemo(() => {
         if (!editRow?.accountId) return paymentAccounts;
@@ -64,8 +80,9 @@ export function CofrinhosLedgerStatement({
             scope,
             tripPayloadOutflows
         );
-        return filterCofrinhoLedgerRows(base, filters);
-    }, [accounts, applications, buckets, expenses, filters, scope, tripPayloadOutflows]);
+        const merged = mergeCofrinhoLedgerWithYield(base, monthlyBalances, buckets, scope);
+        return filterCofrinhoLedgerRows(merged, filters);
+    }, [accounts, applications, buckets, expenses, filters, monthlyBalances, scope, tripPayloadOutflows]);
 
     const totals = useMemo(() => {
         let inSum = 0;
@@ -161,7 +178,7 @@ export function CofrinhosLedgerStatement({
                                     key={row.id}
                                     className={`cofrinho-statement__row cofrinhos-ledger__row${
                                         row.kind === 'out' ? ' is-out' : ''
-                                    }${showEdit ? ' is-editable' : ''}`}
+                                    }${row.isYield ? ' is-yield' : ''}${showEdit ? ' is-editable' : ''}`}
                                     role="row"
                                     style={{ ['--cofrinho-accent' as string]: accent }}
                                     onClick={
@@ -183,7 +200,13 @@ export function CofrinhosLedgerStatement({
                                     </span>
                                     <span className="cofrinhos-ledger__desc" role="cell" title={row.title}>
                                         <MaterialIcon
-                                            name={row.kind === 'in' ? 'south_west' : 'north_east'}
+                                            name={
+                                                row.isYield
+                                                    ? 'trending_up'
+                                                    : row.kind === 'in'
+                                                      ? 'south_west'
+                                                      : 'north_east'
+                                            }
                                             variant="app"
                                             opticalSize={14}
                                             className="cofrinhos-ledger__flow-icon"
@@ -229,7 +252,21 @@ export function CofrinhosLedgerStatement({
                                                 <MaterialIcon name="edit" variant="app" opticalSize={15} />
                                             </button>
                                         ) : null}
-                                        {row.deletable ? (
+                                        {row.deletable && row.isYield && row.yieldMonthKey ? (
+                                            <button
+                                                type="button"
+                                                className="cofrinhos-ledger__delete"
+                                                title="Excluir reconciliação"
+                                                onClick={() => {
+                                                    const [bucketId, ym] = row.yieldMonthKey!.split('|');
+                                                    onDeleteMonthlyBalanceMonth(bucketId, ym);
+                                                }}
+                                            >
+                                                <MaterialIcon name="delete" variant="app" opticalSize={15} />
+                                                <span className="sr-only">Excluir</span>
+                                            </button>
+                                        ) : null}
+                                        {row.deletable && row.applicationId ? (
                                             <button
                                                 type="button"
                                                 className="cofrinhos-ledger__delete"

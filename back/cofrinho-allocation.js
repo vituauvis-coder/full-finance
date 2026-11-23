@@ -8,9 +8,11 @@ import {
     accountsVisibleToUserSql,
     cofrinhoApplicationAccessibleSql,
     cofrinhoBucketAccessibleSql,
+    cofrinhoMonthlyBalanceAccessibleSql,
     expenseAccessibleToUserSql,
     expensesOnHouseholdAccountsSql
 } from './household.js';
+import { ensureCofrinhoMonthlyBalancesTable } from './migrations/cofrinho-monthly-balances.js';
 import { referenceOnlyForUserMovement } from './reference-only.js';
 import { safeUpsertBalanceSnapshot } from './balance-snapshot.js';
 import { ensureCofrinhoViagemLedgerColumns } from './migrations/cofrinho-viagem-ledger.js';
@@ -80,6 +82,18 @@ const GOAL_SELECT = `SELECT
     created_at AS "createdAt"
  FROM cofrinho_bucket_goals`;
 
+const MONTHLY_BALANCE_SELECT = `SELECT
+    id,
+    user_id AS "userId",
+    bucket_id AS "bucketId",
+    account_id AS "accountId",
+    reference_month AS "referenceMonth",
+    principal_amount AS "principalAmount",
+    balance_with_yield AS "balanceWithYield",
+    created_at AS "createdAt",
+    updated_at AS "updatedAt"
+ FROM cofrinho_monthly_balances`;
+
 function normalizeReferenceMonth(raw) {
     if (raw == null || raw === '') return null;
     const s = String(raw).trim();
@@ -112,6 +126,12 @@ function parseSpentOnDate(spentOn) {
 function parseAmount(v) {
     const n = parseFloat(v);
     if (!Number.isFinite(n) || n <= 0) return null;
+    return Math.round(n * 100) / 100;
+}
+
+function parseNonNegativeAmount(v) {
+    const n = parseFloat(v);
+    if (!Number.isFinite(n) || n < 0) return null;
     return Math.round(n * 100) / 100;
 }
 
@@ -426,6 +446,7 @@ export async function ensureDefaultCofrinhoBuckets(userId) {
  * @param {string} userId
  */
 export async function fetchCofrinhoBundle(userId) {
+    await ensureCofrinhoMonthlyBalancesTable();
     await ensureDefaultCofrinhoBuckets(userId);
     const {
         backfillTripCofrinhoBucketsForUser,
@@ -436,7 +457,7 @@ export async function fetchCofrinhoBundle(userId) {
     await mergeDuplicateTripNameBuckets(userId);
     await normalizeLegacyAspirationBucket(userId);
     await withTransaction((client) => ensurePoolSubcategory(userId, client));
-    const [bucketsRes, appsRes, goalsRes] = await Promise.all([
+    const [bucketsRes, appsRes, goalsRes, balancesRes] = await Promise.all([
         query(
             `${BUCKET_SELECT} WHERE user_id = $1 OR ${cofrinhoBucketAccessibleSql(1)} ORDER BY sort_order ASC, name ASC`,
             [userId]
@@ -445,12 +466,17 @@ export async function fetchCofrinhoBundle(userId) {
             `${APPLICATION_SELECT} WHERE ${cofrinhoApplicationAccessibleSql(1)} ORDER BY reference_month DESC, created_at DESC`,
             [userId]
         ),
-        query(`${GOAL_SELECT} WHERE user_id = $1 ORDER BY year DESC, bucket_id ASC`, [userId])
+        query(`${GOAL_SELECT} WHERE user_id = $1 ORDER BY year DESC, bucket_id ASC`, [userId]),
+        query(
+            `${MONTHLY_BALANCE_SELECT} WHERE ${cofrinhoMonthlyBalanceAccessibleSql(1)} ORDER BY reference_month DESC, bucket_id ASC`,
+            [userId]
+        )
     ]);
     return {
         cofrinhoBuckets: bucketsRes.rows,
         cofrinhoApplications: appsRes.rows,
-        cofrinhoBucketGoals: goalsRes.rows
+        cofrinhoBucketGoals: goalsRes.rows,
+        cofrinhoMonthlyBalances: balancesRes.rows
     };
 }
 
@@ -1051,6 +1077,128 @@ export function registerCofrinhoRoutes(app, requireAuth) {
         ]);
         if (!rows[0]) return res.status(404).json({ error: 'Não encontrado' });
         await query(`DELETE FROM cofrinho_bucket_goals WHERE id = $1 AND user_id = $2`, [req.params.id, uid]);
+        res.json({ ok: true });
+    });
+
+    async function assertBucketAccessible(bucketId, uid) {
+        const { rows: bucketRows } = await query(
+            `${BUCKET_SELECT} WHERE id = $1 AND ${cofrinhoBucketAccessibleSql(2)}`,
+            [bucketId, uid]
+        );
+        return bucketRows[0] ?? null;
+    }
+
+  // --- Reconciliação mensal (rendimento) ---
+    async function postCofrinhoMonthlyBalanceBatch(req, res) {
+        const uid = req.session.userId;
+        try {
+            await ensureCofrinhoMonthlyBalancesTable();
+            const bucketId = String(req.body.bucketId || req.body.bucket_id || '').trim();
+            const ref = normalizeReferenceMonth(req.body.referenceMonth ?? req.body.reference_month);
+            const lines = Array.isArray(req.body.lines) ? req.body.lines : [];
+            if (!bucketId) return res.status(400).json({ error: 'Caixinha obrigatória' });
+            if (!ref) return res.status(400).json({ error: 'Mês de referência inválido' });
+            if (!lines.length) return res.status(400).json({ error: 'Informe ao menos uma conta' });
+            if (!(await assertBucketAccessible(bucketId, uid))) {
+                return res.status(404).json({ error: 'Caixinha não encontrada' });
+            }
+
+            const normalized = [];
+            const accountIds = new Set();
+            for (const line of lines) {
+                const accountId = String(line.accountId || line.account_id || '').trim();
+                if (!accountId || accountIds.has(accountId)) continue;
+                const principal = parseNonNegativeAmount(line.principalAmount ?? line.principal_amount);
+                const balance = parseNonNegativeAmount(line.balanceWithYield ?? line.balance_with_yield);
+                if (principal == null || balance == null) {
+                    return res.status(400).json({ error: 'Valores inválidos em uma das contas' });
+                }
+                if (balance + 0.001 < principal) {
+                    return res.status(400).json({ error: 'Saldo no banco menor que aportes em uma conta' });
+                }
+                accountIds.add(accountId);
+                normalized.push({ accountId, principal, balance });
+            }
+            if (!normalized.length) return res.status(400).json({ error: 'Informe contas válidas' });
+
+            const saved = await withTransaction(async (client) => {
+                await client.query(
+                    `DELETE FROM cofrinho_monthly_balances
+                     WHERE user_id = $1 AND bucket_id = $2 AND reference_month = $3
+                       AND (
+                           account_id IS NULL
+                           OR account_id <> ALL($4::uuid[])
+                       )`,
+                    [uid, bucketId, ref, normalized.map((l) => l.accountId)]
+                );
+
+                const out = [];
+                for (const line of normalized) {
+                    const { rows: existing } = await client.query(
+                        `SELECT id FROM cofrinho_monthly_balances
+                         WHERE user_id = $1 AND bucket_id = $2 AND reference_month = $3 AND account_id = $4`,
+                        [uid, bucketId, ref, line.accountId]
+                    );
+                    if (existing[0]) {
+                        const { rows } = await client.query(
+                            `UPDATE cofrinho_monthly_balances
+                             SET principal_amount = $2, balance_with_yield = $3, updated_at = NOW()
+                             WHERE id = $1
+                             RETURNING
+                                id, user_id AS "userId", bucket_id AS "bucketId", account_id AS "accountId",
+                                reference_month AS "referenceMonth", principal_amount AS "principalAmount",
+                                balance_with_yield AS "balanceWithYield", created_at AS "createdAt", updated_at AS "updatedAt"`,
+                            [existing[0].id, line.principal, line.balance]
+                        );
+                        out.push(rows[0]);
+                    } else {
+                        const id = crypto.randomUUID();
+                        const { rows } = await client.query(
+                            `INSERT INTO cofrinho_monthly_balances (
+                                id, user_id, bucket_id, account_id, reference_month, principal_amount, balance_with_yield
+                             ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+                             RETURNING
+                                id, user_id AS "userId", bucket_id AS "bucketId", account_id AS "accountId",
+                                reference_month AS "referenceMonth", principal_amount AS "principalAmount",
+                                balance_with_yield AS "balanceWithYield", created_at AS "createdAt", updated_at AS "updatedAt"`,
+                            [id, uid, bucketId, line.accountId, ref, line.principal, line.balance]
+                        );
+                        out.push(rows[0]);
+                    }
+                }
+                return out;
+            });
+
+            res.json({ lines: saved });
+        } catch (err) {
+            console.error('[cofrinho-monthly-balances/batch]', err);
+            res.status(500).json({ error: 'Não foi possível guardar o saldo mensal' });
+        }
+    }
+
+    app.post('/api/cofrinho-monthly-balances/batch', requireAuth, postCofrinhoMonthlyBalanceBatch);
+    app.post('/api/cofrinho-monthly-balances', requireAuth, postCofrinhoMonthlyBalanceBatch);
+
+    app.delete('/api/cofrinho-monthly-balances/month', requireAuth, async (req, res) => {
+        const uid = req.session.userId;
+        const bucketId = String(req.query.bucketId || req.query.bucket_id || '').trim();
+        const ref = normalizeReferenceMonth(req.query.referenceMonth ?? req.query.reference_month);
+        if (!bucketId || !ref) return res.status(400).json({ error: 'Parâmetros inválidos' });
+        await query(
+            `DELETE FROM cofrinho_monthly_balances WHERE user_id = $1 AND bucket_id = $2 AND reference_month = $3`,
+            [uid, bucketId, ref]
+        );
+        res.json({ ok: true });
+    });
+
+    app.delete('/api/cofrinho-monthly-balances/:id', requireAuth, async (req, res) => {
+        const uid = req.session.userId;
+        const { rows } = await query(
+            `SELECT id FROM cofrinho_monthly_balances WHERE id = $1 AND ${cofrinhoMonthlyBalanceAccessibleSql(2)}`,
+            [req.params.id, uid]
+        );
+        if (!rows[0]) return res.status(404).json({ error: 'Não encontrado' });
+        await query(`DELETE FROM cofrinho_monthly_balances WHERE id = $1`, [req.params.id]);
         res.json({ ok: true });
     });
 }

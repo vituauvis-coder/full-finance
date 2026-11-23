@@ -11,13 +11,17 @@ type Props = {
     count: number;
     ids: string[];
     accounts: Account[];
+    ownerUserId?: string | null;
     onClose: () => void;
     onSaved: () => void | Promise<void>;
 };
 
-export function ExpenseBatchModal({ open, count, ids, accounts, onClose, onSaved }: Props) {
+export function ExpenseBatchModal({ open, count, ids, accounts, ownerUserId = null, onClose, onSaved }: Props) {
     const { categories } = useCategories('expense');
-    const paymentOptions = useMemo(() => buildPaymentMethodOptions(accounts), [accounts]);
+    const paymentOptions = useMemo(
+        () => buildPaymentMethodOptions(accounts, { ownerUserId: ownerUserId ?? undefined }),
+        [accounts, ownerUserId]
+    );
     const [accountId, setAccountId] = useState('');
     const [category, setCategory] = useState('');
     const [subcategory, setSubcategory] = useState('');

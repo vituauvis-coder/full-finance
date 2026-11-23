@@ -32,6 +32,14 @@ export type MovementHeaderAddAction = {
     onClick: () => void;
 };
 
+export type MovementHeaderIconAction = {
+    id: string;
+    icon: string;
+    title: string;
+    badge?: number;
+    onClick: () => void;
+};
+
 type Ctx = {
     drawerOpen: boolean;
     setDrawerOpen: (v: boolean) => void;
@@ -51,6 +59,8 @@ type Ctx = {
     clearDateManual: () => void;
     headerAddAction: MovementHeaderAddAction | null;
     setHeaderAddAction: (action: MovementHeaderAddAction | null) => void;
+    headerIconAction: MovementHeaderIconAction | null;
+    setHeaderIconAction: (action: MovementHeaderIconAction | null) => void;
 };
 
 const MovementListFiltersContext = createContext<Ctx | null>(null);
@@ -73,6 +83,7 @@ export function MovementListFiltersProvider({ children }: { children: ReactNode 
     const [expensesStatus, setExpensesStatus] = useState<ListStatusChips>(() => loadExpensesListStatusChips());
     const [dateManual, setDateManual] = useState(false);
     const [headerAddAction, setHeaderAddAction] = useState<MovementHeaderAddAction | null>(null);
+    const [headerIconAction, setHeaderIconAction] = useState<MovementHeaderIconAction | null>(null);
 
     useEffect(() => {
         const onHydrated = () => {
@@ -145,7 +156,9 @@ export function MovementListFiltersProvider({ children }: { children: ReactNode 
             setDateManual,
             clearDateManual,
             headerAddAction,
-            setHeaderAddAction
+            setHeaderAddAction,
+            headerIconAction,
+            setHeaderIconAction
         }),
         [
             drawerOpen,
@@ -161,7 +174,8 @@ export function MovementListFiltersProvider({ children }: { children: ReactNode 
             setExpensesStatusUnpaid,
             dateManual,
             clearDateManual,
-            headerAddAction
+            headerAddAction,
+            headerIconAction
         ]
     );
 

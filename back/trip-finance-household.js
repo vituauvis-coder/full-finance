@@ -20,27 +20,31 @@ export async function listTripFinanceMovements(userId, tripId) {
                 e.is_cofrinho AS "isCofrinho",
                 e.paid_from_cofrinho AS "paidFromCofrinho",
                 e.date,
+                e.created_at AS "createdAt",
                 u.name AS "authorName"
          FROM expenses e
          JOIN users u ON u.id = e.user_id
          WHERE e.trip_id = $1
-         ORDER BY e.date DESC NULLS LAST, e.created_at DESC`,
+         ORDER BY e.created_at ASC`,
         [tripId]
     );
 
+    const householdExpenses = rows.map((r) => ({
+        id: r.id,
+        tripExpenseId: r.tripExpenseId,
+        amount: Number(r.amount),
+        description: r.description,
+        category: r.category,
+        isCofrinho: r.isCofrinho,
+        paidFromCofrinho: r.paidFromCofrinho,
+        date: r.date,
+        createdAt: r.createdAt,
+        userId: r.userId,
+        authorName: r.authorName
+    }));
+
     return mergeTripFinanceView({
         payloadExpenses,
-        householdExpenses: rows.map((r) => ({
-            id: r.id,
-            tripExpenseId: r.tripExpenseId,
-            amount: Number(r.amount),
-            description: r.description,
-            category: r.category,
-            isCofrinho: r.isCofrinho,
-            paidFromCofrinho: r.paidFromCofrinho,
-            date: r.date,
-            userId: r.userId,
-            authorName: r.authorName
-        }))
+        householdExpenses
     });
 }

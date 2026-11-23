@@ -82,6 +82,20 @@ async function findFinanceExpenseId(userId, tripId, tripExpenseId, hintId) {
     return rows[0]?.id ?? null;
 }
 
+/** Primeiro espelho Dinheiro da linha do orçamento (qualquer membro da casa). */
+async function findCanonicalFinanceExpenseForTripLine(tripId, tripExpenseId) {
+    if (!tripExpenseId) return null;
+    const { rows } = await query(
+        `SELECT id, user_id AS "userId"
+         FROM expenses
+         WHERE trip_id = $1 AND trip_expense_id = $2
+         ORDER BY created_at ASC
+         LIMIT 1`,
+        [tripId, tripExpenseId]
+    );
+    return rows[0] ?? null;
+}
+
 async function upsertFinanceFromDraft(userId, draft) {
     const movementDate = parseSpentOnDate(draft.date);
     const refOnly = await referenceOnlyForUserMovement(userId, movementDate);
@@ -220,7 +234,28 @@ export async function syncFinanceExpenseForTripExpense(userId, tripId, tripExpen
         throw e;
     }
     await ensureViagensCatalogForHousehold(userId, opts.tripTitle);
-    const newId = await upsertFinanceFromDraft(userId, draft);
+
+    const tripExpenseId = tripExpense?.id ?? draft.tripExpenseId;
+    let ownId = await findFinanceExpenseId(userId, tripId, tripExpenseId, financeId);
+    const canonical = await findCanonicalFinanceExpenseForTripLine(tripId, tripExpenseId);
+
+    if (ownId && canonical && String(ownId) !== String(canonical.id) && String(canonical.userId) !== String(userId)) {
+        await deleteFinanceExpense(userId, ownId);
+        ownId = null;
+    }
+
+    const mirrorOwnerId =
+        ownId != null
+            ? userId
+            : canonical?.userId
+              ? canonical.userId
+              : userId;
+    const existingFinanceExpenseId = ownId ?? canonical?.id ?? financeId;
+
+    const newId = await upsertFinanceFromDraft(mirrorOwnerId, {
+        ...draft,
+        existingFinanceExpenseId
+    });
     const expenseOut = {
         ...working,
         financeExpenseId: newId,

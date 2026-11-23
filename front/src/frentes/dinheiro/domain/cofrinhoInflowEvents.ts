@@ -6,7 +6,11 @@ import {
     isCofrinhoPoolExpense
 } from './cofrinhoAggregations';
 import { expenseIsMarkedCofrinho } from './expenseLedgerBuckets';
-import { cofrinhoBucketDeltaForMovement, resolveCofrinhoBucketForMovement } from './cofrinhoMovementLedger';
+import {
+    cofrinhoBucketDeltaForMovement,
+    movementPaidFromTripCofrinho,
+    resolveCofrinhoBucketForMovement
+} from './cofrinhoMovementLedger';
 import { referenceMonthToYearMonth, toYearMonthKey } from './cofrinhoPeriod';
 import type { CofrinhoPeriodScope } from './cofrinhoPeriodScope';
 
@@ -39,7 +43,7 @@ function applicationCreatedAt(app: CofrinhoApplication): string {
     return String(app.createdAt ?? raw.created_at ?? '');
 }
 
-function allocatedExpenseIds(applications: CofrinhoApplication[]): Set<string> {
+export function allocatedExpenseIds(applications: CofrinhoApplication[]): Set<string> {
     const ids = new Set<string>();
     for (const a of applications ?? []) {
         const raw = a as CofrinhoApplication & { allocated_expense_id?: string; allocatedExpenseId?: string };
@@ -47,6 +51,71 @@ function allocatedExpenseIds(applications: CofrinhoApplication[]): Set<string> {
         if (id) ids.add(String(id));
     }
     return ids;
+}
+
+/**
+ * Saída espelhada da alocação (ou duplicata de aplicação) — entra no razão de Cofrinhos só pela aplicação.
+ * Remove da lista de Saídas para o total não contar em dobro.
+ */
+export function expenseOmittedFromCofrinhoInflowAsDuplicate(
+    e: Movement,
+    buckets: CofrinhoBucket[],
+    applications: CofrinhoApplication[]
+): boolean {
+    if (e.isPaid === false) return false;
+    if (!isCofrinhoBucketExpense(e)) return false;
+    if (allocatedExpenseIds(applications).has(String(e.id))) return true;
+
+    const ym = movementYearMonth(e);
+    if (!ym) return false;
+
+    const resolved = resolveCofrinhoBucketForMovement(e, buckets);
+    if (!resolved) return false;
+    const delta = cofrinhoBucketDeltaForMovement(e, resolved);
+    if (delta <= 0) return false;
+
+    return (applications ?? []).some((a) => {
+        const bId = applicationBucketId(a);
+        const refYm = referenceMonthToYearMonth(applicationReferenceMonth(a));
+        const appAmt = Number(a.amount) || 0;
+        return bId === resolved.id && refYm === ym && Math.abs(appAmt - delta) < 0.01;
+    });
+}
+
+/** Só saídas `allocated_expense` — espelho automático da distribuição pool→caixinha. */
+export function isAllocatedCofrinhoMirrorExpense(
+    e: Movement,
+    applications: CofrinhoApplication[]
+): boolean {
+    return allocatedExpenseIds(applications).has(String(e.id));
+}
+
+/**
+ * Base para o **card de total** em Saídas com filtro Cofrinhos (não esconde da tabela).
+ * Remove apenas espelhos de alocação; mantém pool, aportes diretos e lançamentos com aplicação paralela.
+ */
+export function filterAllocatedCofrinhoMirrorsForSaidasTotals(
+    expenses: Movement[],
+    applications: CofrinhoApplication[]
+): Movement[] {
+    if (!applications?.length) return expenses;
+    return (expenses ?? []).filter((e) => !isAllocatedCofrinhoMirrorExpense(e, applications));
+}
+
+/** Gasto de viagem «debitar da meta» — não é saída de conta; só Cofrinhos + orçamento. */
+export function excludeTripMetaExpensesFromSaidasList(expenses: Movement[]): Movement[] {
+    return (expenses ?? []).filter((e) => !movementPaidFromTripCofrinho(e));
+}
+
+/** Lista Saídas: remove espelhos automáticos e gastos pagos da meta da viagem. */
+export function filterCofrinhoSaidasListRows(
+    expenses: Movement[],
+    _buckets: CofrinhoBucket[],
+    applications: CofrinhoApplication[],
+    _categoryCofrinhosFilterActive: boolean
+): Movement[] {
+    const withoutMirrors = filterAllocatedCofrinhoMirrorsForSaidasTotals(expenses, applications);
+    return excludeTripMetaExpensesFromSaidasList(withoutMirrors);
 }
 
 function movementYearMonth(e: Movement): string {
@@ -73,7 +142,6 @@ export function collectCofrinhoInflowEvents(
     expenses: Movement[]
 ): CofrinhoInflowEvent[] {
     const events: CofrinhoInflowEvent[] = [];
-    const mirroredExpenseIds = allocatedExpenseIds(applications);
     const bucketIds = new Set(buckets.map((b) => b.id));
 
     for (const app of applications ?? []) {
@@ -99,9 +167,7 @@ export function collectCofrinhoInflowEvents(
     }
 
     for (const e of expenses ?? []) {
-        if (e.isPaid === false) continue;
-        if (!isCofrinhoBucketExpense(e)) continue;
-        if (mirroredExpenseIds.has(String(e.id))) continue;
+        if (expenseOmittedFromCofrinhoInflowAsDuplicate(e, buckets, applications)) continue;
 
         const ym = movementYearMonth(e);
         if (!ym) continue;
@@ -110,14 +176,6 @@ export function collectCofrinhoInflowEvents(
         if (!resolved) continue;
         const delta = cofrinhoBucketDeltaForMovement(e, resolved);
         if (delta <= 0) continue;
-
-        const dupApp = (applications ?? []).some((a) => {
-            const bId = applicationBucketId(a);
-            const refYm = referenceMonthToYearMonth(applicationReferenceMonth(a));
-            const appAmt = Number(a.amount) || 0;
-            return bId === resolved.id && refYm === ym && Math.abs(appAmt - delta) < 0.01;
-        });
-        if (dupApp) continue;
 
         events.push({
                 id: `exp-in-${e.id}-${resolved.id}`,

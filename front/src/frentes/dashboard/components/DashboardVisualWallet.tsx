@@ -173,6 +173,7 @@ export function DashboardVisualWallet({
                         open={expenseModalOpen}
                         editing={null}
                         accounts={data.userAccounts}
+                        ownerUserId={data.userProfile?.id}
                         onClose={() => setExpenseModalOpen(false)}
                         onSaved={refresh}
                     />

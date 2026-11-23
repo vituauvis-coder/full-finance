@@ -1,7 +1,8 @@
-import { type FormEvent, useEffect, useState } from 'react';
+import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import type { Account, Movement } from '../../lib/types/finance';
 import { useCategories } from '../../hooks/useCategories';
 import { sortedBankAccounts } from '../../lib/accounts';
+import { ambiguousAccountNameKeys, accountSelectDisplayName } from '../../lib/accountSelectOptions';
 import { DialogForm, DialogFrame } from '../ui/dialog';
 import {
     FormActions,
@@ -19,16 +20,27 @@ import {
     updateGain,
     type GainFormPayload
 } from '../../frentes/dinheiro/api/movements';
+import { defaultCivilYear, defaultMovementFormDate, defaultPeriod } from '../../lib/period';
 
 type Props = {
     open: boolean;
     editing: Movement | null;
     accounts: Account[];
-    onClose: () => void;
+    onClose: () => void | Promise<void>;
     onSaved: () => void | Promise<void>;
+    period?: string;
+    civilYear?: number;
 };
 
-export function GainFormModal({ open, editing, accounts, onClose, onSaved }: Props) {
+export function GainFormModal({
+    open,
+    editing,
+    accounts,
+    onClose,
+    onSaved,
+    period = defaultPeriod(),
+    civilYear = defaultCivilYear()
+}: Props) {
     const { categories } = useCategories('gain');
     const [description, setDescription] = useState('');
     const [amount, setAmount] = useState('');
@@ -60,13 +72,18 @@ export function GainFormModal({ open, editing, accounts, onClose, onSaved }: Pro
             setAccountId(banks[0]?.id ?? '');
             setCategory('');
             setSubcategory('');
-            setDate(new Date().toISOString().slice(0, 10));
+            setDate(defaultMovementFormDate(period, civilYear));
             setIsPaid(true);
             setRecurring(false);
         }
-    }, [open, editing, accounts]);
+    }, [open, editing, accounts, period, civilYear]);
 
     const subs = categories.find((c) => c.name === category)?.subcategories ?? [];
+    const bankOptions = useMemo(() => {
+        const banks = sortedBankAccounts(accounts);
+        const ambiguous = ambiguousAccountNameKeys(banks);
+        return banks.map((a) => ({ id: a.id, label: accountSelectDisplayName(a, ambiguous) }));
+    }, [accounts]);
 
     async function onSubmit(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();
@@ -168,9 +185,9 @@ export function GainFormModal({ open, editing, accounts, onClose, onSaved }: Pro
                     <FormField id="gain-account" label="Conta">
                         <FormSelect id="gain-account" value={accountId} onChange={(e) => setAccountId(e.target.value)} required>
                             <option value="">Selecione…</option>
-                            {sortedBankAccounts(accounts).map((a) => (
+                            {bankOptions.map((a) => (
                                 <option key={a.id} value={a.id}>
-                                    {a.name}
+                                    {a.label}
                                 </option>
                             ))}
                         </FormSelect>

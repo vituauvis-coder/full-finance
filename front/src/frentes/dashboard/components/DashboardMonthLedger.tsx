@@ -174,7 +174,7 @@ export function DashboardMonthLedger({
     const headClass = embedded ? 'wallet-embedded-ledger__head' : 'dashboard-tri-col__head';
     const titleClass = embedded ? 'wallet-embedded-ledger__title' : 'dashboard-tri-col__title';
     const scrollClass = embedded
-        ? 'wallet-embedded-ledger__scroll'
+        ? 'wallet-embedded-ledger__scroll dashboard-tri-col__scroll dashboard-month-ledger__list-wrap'
         : 'dashboard-tri-col__scroll dashboard-month-ledger__list-wrap';
 
     return (

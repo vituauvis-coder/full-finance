@@ -54,7 +54,7 @@ export function filterMovementsInPeriod(
     const useDrawerDates = Boolean(filter.dateFrom || filter.dateTo);
     return rows
         .filter((m) => {
-            if (m.referenceOnly) return false;
+            // referenceOnly (pré-âncora): pode aparecer no extrato — mapa/cards somam o que está na lista.
             const d = movementDate(m);
             if (Number.isNaN(d.getTime())) return false;
             if (useDrawerDates) {

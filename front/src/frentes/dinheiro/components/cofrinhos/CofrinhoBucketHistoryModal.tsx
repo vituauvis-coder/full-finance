@@ -17,6 +17,7 @@ import type { Movement } from '../../../../lib/types/finance';
 import { bucketColorHex } from '../../domain/cofrinhoConstants';
 import { cofrinhoKindMeta } from '../../domain/cofrinhoBucketTypes';
 import type { CofrinhoInflowEvent } from '../../domain/cofrinhoInflowEvents';
+import { cofrinhoLedgerAccountAccent } from '../../domain/cofrinhoLedgerAccountAccent';
 import { MaterialIcon } from '../../../../components/icons/MaterialIcon';
 
 type Props = {
@@ -37,12 +38,29 @@ function refMonthLabelFromYm(ym: string): string {
     return `${MONTH_NAMES[mi]}/${y}`;
 }
 
-function registeredOn(ev: CofrinhoInflowEvent): string {
-    if (!ev.sortAt) return '—';
-    return formatMovementDate({ date: ev.sortAt });
+function recordDateForEvent(
+    ev: CofrinhoInflowEvent,
+    expenses: Movement[],
+    applications: CofrinhoApplication[]
+): string {
+    if (ev.expenseId) {
+        const exp = expenses.find((e) => String(e.id) === String(ev.expenseId));
+        if (exp?.date) return formatMovementDate(exp);
+    }
+    if (ev.applicationId) {
+        const app = applications.find((a) => String(a.id) === String(ev.applicationId));
+        const raw = app as CofrinhoApplication & { allocated_expense_id?: string };
+        const allocId = app?.allocatedExpenseId ?? raw?.allocated_expense_id;
+        if (allocId) {
+            const exp = expenses.find((e) => String(e.id) === String(allocId));
+            if (exp?.date) return formatMovementDate(exp);
+        }
+    }
+    if (ev.sortAt) return formatMovementDate({ date: ev.sortAt });
+    return '—';
 }
 
-const STATEMENT_COLS = 'cofrinho-statement__cols';
+const STATEMENT_COLS = 'cofrinho-statement__cols cofrinho-statement__cols--history';
 
 export function CofrinhoBucketHistoryModal({
     open,
@@ -56,9 +74,9 @@ export function CofrinhoBucketHistoryModal({
 }: Props) {
     const rows = useMemo(() => {
         if (!bucket) return [];
-        return collectCofrinhoInflowEvents(buckets, applications, expenses).filter(
-            (ev) => ev.bucketId === bucket.id
-        );
+        return collectCofrinhoInflowEvents(buckets, applications, expenses)
+            .filter((ev) => ev.bucketId === bucket.id)
+            .sort((a, b) => String(b.sortAt).localeCompare(String(a.sortAt)));
     }, [applications, bucket, buckets, expenses]);
 
     const total = useMemo(() => rows.reduce((s, r) => s + r.amount, 0), [rows]);
@@ -101,7 +119,8 @@ export function CofrinhoBucketHistoryModal({
                         <div className="cofrinho-statement" role="table" aria-label="Extrato de aportes">
                             <div className={`cofrinho-statement__header ${STATEMENT_COLS}`} role="row">
                                 <span role="columnheader">Mês ref.</span>
-                                <span role="columnheader">Conta</span>
+                                <span role="columnheader">Descrição</span>
+                                <span role="columnheader">Conta / cartão</span>
                                 <span role="columnheader">Registro</span>
                                 <span role="columnheader" className="cofrinho-statement__th-amount">
                                     Valor
@@ -109,24 +128,43 @@ export function CofrinhoBucketHistoryModal({
                             </div>
                             <ul className="cofrinho-statement__rows" role="rowgroup">
                                 {rows.map((ev) => {
-                                    const account = accountName(accounts, ev.accountId);
+                                    const accountLabel = accountName(accounts, ev.accountId);
+                                    const account = ev.accountId
+                                        ? accounts.find((a) => a.id === ev.accountId)
+                                        : undefined;
+                                    const accountAccent = cofrinhoLedgerAccountAccent(account);
+                                    const hasAccount = Boolean(accountLabel) && accountLabel !== '—';
                                     return (
                                         <li key={ev.id} className={`cofrinho-statement__row ${STATEMENT_COLS}`} role="row">
                                             <span className="cofrinho-statement__ref" role="cell">
                                                 {refMonthLabelFromYm(ev.yearMonth)}
                                             </span>
-                                            <span className="cofrinho-statement__account" role="cell" title={account}>
+                                            <span className="cofrinho-history__desc" role="cell" title={ev.title}>
                                                 <MaterialIcon
                                                     name="south_west"
                                                     variant="app"
                                                     opticalSize={14}
                                                     className="cofrinho-statement__flow-icon"
                                                 />
-                                                <span className="cofrinho-statement__account-name">{ev.title}</span>
-                                                <span className="cofrinho-statement__status is-done">Aporte</span>
+                                                <span className="cofrinho-history__desc-text">{ev.title}</span>
+                                            </span>
+                                            <span className="cofrinho-history__account" role="cell">
+                                                {hasAccount ? (
+                                                    <span
+                                                        className="cofrinho-history__account-tag"
+                                                        title={accountLabel}
+                                                        style={{
+                                                            ['--ledger-account-accent' as string]: accountAccent
+                                                        }}
+                                                    >
+                                                        {accountLabel}
+                                                    </span>
+                                                ) : (
+                                                    <span className="cofrinho-history__account-tag is-empty">—</span>
+                                                )}
                                             </span>
                                             <span className="cofrinho-statement__date" role="cell">
-                                                {registeredOn(ev)}
+                                                {recordDateForEvent(ev, expenses, applications)}
                                             </span>
                                             <span className="cofrinho-statement__amount" role="cell">
                                                 {formatBRL(ev.amount, currency)}

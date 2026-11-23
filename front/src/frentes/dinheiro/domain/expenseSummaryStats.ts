@@ -5,6 +5,7 @@ import { computeMomVariation, type MomVariationState } from '../../dashboard/dom
 import { filterExpensesInPeriod } from '../../../lib/filterExpensesInPeriod';
 import type { ListFilter } from '../../../lib/movementList';
 import { isSingleMonthPeriod, listFilterForMomCompare, previousCivilMonth } from './movementPeriodMom';
+import { movementSkipsAccountCashOut } from './cofrinhoMovementLedger';
 
 export type ExpenseSummarySplitOpts = {
     splitRequests?: ExpenseSplitRequest[];
@@ -70,6 +71,7 @@ export function aggregateExpenseTotals(
     let otherCount = 0;
 
     for (const t of rows) {
+        if (movementSkipsAccountCashOut(t)) continue;
         const acc = t.accountId ? byId.get(t.accountId) : undefined;
         const amt = getExpenseSummaryContributionAmount(t, acc, splits, allEx, monthKey);
         total += amt;

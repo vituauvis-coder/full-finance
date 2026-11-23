@@ -593,7 +593,7 @@ export function registerTripsRoutes(app, { requireAuth }) {
 
     app.get('/api/trips/:id', requireAuth, async (req, res) => {
         try {
-            const row = await repo.getTripForUser(req.session.userId, req.params.id);
+            let row = await repo.getTripForUser(req.session.userId, req.params.id);
             if (!row) return res.status(404).json({ error: 'Não encontrada' });
             try {
                 await ensureViagensCatalogForHousehold(req.session.userId, row.title);

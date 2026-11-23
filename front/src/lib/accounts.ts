@@ -1,5 +1,14 @@
+import { accountUniquenessKey } from '@motor/dinheiro/account-uniqueness.js';
+import { accountEligibleForExpensePix } from '@motor/dinheiro/expense-payment-accounts.js';
+import { dedupeAccountsByInstitutionName } from '@motor/dinheiro/account-select-dedupe.js';
 import type { Account } from './types/finance';
 import { EXPENSE_LOAN_PAYMENT_VALUE } from './loanExpense';
+import {
+    accountSelectDisplayName,
+    accountsOwnedByUser,
+    ambiguousAccountNameKeys,
+    dedupeAccountsByUniqueness
+} from './accountSelectOptions';
 
 export function isPixBankAccountType(type?: string) {
     const t = String(type ?? '');
@@ -37,27 +46,72 @@ export function isCashBalanceAccountType(type?: string) {
 }
 
 export function sortedBankAccounts(accounts: Account[]) {
-    return accounts.filter(isBankAccount).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+    return dedupeAccountsByUniqueness(accounts.filter(isBankAccount));
 }
 
 export function sortedCardAccounts(accounts: Account[]) {
-    return accounts.filter((a) => isCardAccountType(a.type)).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+    return dedupeAccountsByUniqueness(accounts.filter((a) => isCardAccountType(a.type)));
 }
 
 export type PaymentOption = { value: string; label: string; group: 'pix' | 'card' };
 
-export function buildPaymentMethodOptions(accounts: Account[], opts?: { includeLoan?: boolean }): PaymentOption[] {
+export function buildPaymentMethodOptions(
+    accounts: Account[],
+    opts?: { includeLoan?: boolean; ownerUserId?: string | null; alwaysIncludeAccountIds?: string[] }
+): PaymentOption[] {
+    const all = accounts ?? [];
+    let pool = all;
+    if (opts?.ownerUserId) pool = accountsOwnedByUser(pool, opts.ownerUserId);
+
+    const banks = dedupeAccountsByInstitutionName(
+        pool.filter((a) => accountEligibleForExpensePix(a) && isBankAccount(a))
+    );
+    const cards = dedupeAccountsByUniqueness(pool.filter((a) => isCardAccountType(a.type)));
+
+    const holderIds = new Set(
+        pool.map((a) => String(a.holderUserId ?? a.userId ?? '').trim()).filter(Boolean)
+    );
+    const ambiguous =
+        holderIds.size > 1 ? ambiguousAccountNameKeys([...banks, ...cards]) : new Set<string>();
+
     const out: PaymentOption[] = [];
-    for (const b of sortedBankAccounts(accounts)) {
-        out.push({ value: b.id, label: `PIX — ${b.name}`, group: 'pix' });
+    const seenPix = new Set<string>();
+    for (const b of banks) {
+        const ukey = accountUniquenessKey(b) ?? b.id;
+        if (seenPix.has(ukey)) continue;
+        seenPix.add(ukey);
+        const label = accountSelectDisplayName(b, ambiguous);
+        out.push({ value: b.id, label: `PIX — ${label}`, group: 'pix' });
     }
-    for (const c of sortedCardAccounts(accounts)) {
+    const seenCard = new Set<string>();
+    for (const c of cards) {
+        const ukey = accountUniquenessKey(c) ?? c.id;
+        if (seenCard.has(ukey)) continue;
+        seenCard.add(ukey);
         const kind = isCreditCardType(c.type) ? 'crédito' : 'débito';
-        out.push({ value: c.id, label: `${c.name} (${kind})`, group: 'card' });
+        const label = accountSelectDisplayName(c, ambiguous);
+        out.push({ value: c.id, label: `${label} (${kind})`, group: 'card' });
     }
     if (opts?.includeLoan) {
         out.push({ value: EXPENSE_LOAN_PAYMENT_VALUE, label: 'Empréstimo', group: 'pix' });
     }
+
+    const have = new Set(out.map((o) => String(o.value)));
+    for (const rawId of opts?.alwaysIncludeAccountIds ?? []) {
+        const id = String(rawId ?? '').trim();
+        if (!id || have.has(id)) continue;
+        const acc = all.find((a) => String(a.id) === id);
+        if (!acc) continue;
+        const label = accountSelectDisplayName(acc, ambiguous);
+        if (isCardAccountType(acc.type)) {
+            const kind = isCreditCardType(acc.type) ? 'crédito' : 'débito';
+            out.push({ value: id, label: `${label} (${kind})`, group: 'card' });
+        } else if (accountEligibleForExpensePix(acc)) {
+            out.push({ value: id, label: `PIX — ${label}`, group: 'pix' });
+        }
+        have.add(id);
+    }
+
     return out;
 }
 

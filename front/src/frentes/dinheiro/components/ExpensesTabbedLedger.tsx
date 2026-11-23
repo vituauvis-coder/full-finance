@@ -203,7 +203,7 @@ export function ExpensesTabbedLedger({
             pagination: cofrinhosPagination,
             tabId: 'expenses-tab-cofrinhos',
             label: 'Cofrinhos',
-            empty: 'Nenhuma aplicação em cofrinho no período.'
+            empty: 'Nenhum aporte ou distribuição no período.'
         }
     } as const;
 

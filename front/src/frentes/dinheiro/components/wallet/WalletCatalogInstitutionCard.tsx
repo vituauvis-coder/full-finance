@@ -45,18 +45,20 @@ function MetricCell({
     value,
     meta,
     cardId,
+    cofrinhosAccountId,
     tone
 }: {
     label: string;
     value: string;
     meta?: string;
     cardId?: string;
+    cofrinhosAccountId?: string;
     tone?: 'credit' | 'cofrinho' | 'neutral';
 }) {
     const className = [
         'wallet-catalog-unified__metric',
         tone ? `wallet-catalog-unified__metric--${tone}` : '',
-        cardId ? 'wallet-card-open' : 'wallet-catalog-unified__metric--static'
+        cardId || cofrinhosAccountId ? 'wallet-card-open' : 'wallet-catalog-unified__metric--static'
     ]
         .filter(Boolean)
         .join(' ');
@@ -68,6 +70,19 @@ function MetricCell({
             {meta ? <span className="wallet-catalog-unified__metric-meta">{meta}</span> : null}
         </>
     );
+
+    if (cofrinhosAccountId) {
+        return (
+            <button
+                type="button"
+                className={className}
+                data-wallet-link-cofrinhos={cofrinhosAccountId}
+                aria-label={`${label}: ${value}. Abrir Cofrinhos`}
+            >
+                {body}
+            </button>
+        );
+    }
 
     if (cardId) {
         return (
@@ -110,34 +125,12 @@ export function WalletCatalogInstitutionCard({
     const cofrinhoHasActivity =
         cofrinho &&
         (cofrinho.accumulated > 0 || cofrinho.withdrawn > 0 || Math.abs(cofrinhoNet) > 0);
-    const cofrinhoValue = cofrinho ? formatBRL(cofrinhoNet, currency) : '—';
-    const cofrinhoMeta = useMemo(() => {
-        if (!cofrinho || !cofrinhoHasActivity) return cofrinho ? 'Sem aportes nesta conta vinculada' : undefined;
-        const parts: string[] = [];
-        const ledgerName = cofrinho.ledgerAccountId
-            ? data.userAccounts.find((a) => a.id === cofrinho.ledgerAccountId)?.name
-            : undefined;
-        if (ledgerName) parts.push(`Saídas: ${ledgerName}`);
-        const monthDelta = cofrinho.monthAccumulated - cofrinho.monthWithdrawn;
-        if (monthDelta !== 0) {
-            parts.push(`${monthLbl}: ${monthDelta > 0 ? '+' : '−'}${formatBRL(Math.abs(monthDelta), currency)}`);
-        }
-        if (cofrinho.accumulated > 0) parts.push(`Aportado ${formatBRL(cofrinho.accumulated, currency)}`);
-        if (cofrinho.withdrawn > 0) parts.push(`Usado ${formatBRL(cofrinho.withdrawn, currency)}`);
-        if (cofrinho.lastEventAt) {
-            const d = new Date(`${cofrinho.lastEventAt}T12:00:00`);
-            if (!Number.isNaN(d.getTime())) {
-                parts.push(
-                    `Último ${d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' }).replace(/\./g, '')}`
-                );
-            }
-        }
-        return parts.join(' · ');
-    }, [cofrinho, cofrinhoHasActivity, monthLbl, currency, data.userAccounts]);
+    const cofrinhoValue =
+        cofrinho && cofrinhoHasActivity ? formatBRL(cofrinhoNet, currency) : cofrinho ? '—' : '—';
 
     const balanceCardId = cash?.account.id ?? primaryAccount.id;
     const creditCardId = credit?.card.id;
-    const cofrinhoCardId = cofrinho?.ledgerAccountId ?? cofrinho?.account.id;
+    const cofrinhosNavAccountId = cofrinho?.ledgerAccountId ?? cofrinho?.account.id;
 
     const dueHint =
         credit?.dueDay != null ? `Vence dia ${credit.dueDay}` : credit ? `Ref. ${monthLbl}` : undefined;
@@ -199,8 +192,7 @@ export function WalletCatalogInstitutionCard({
                         <MetricCell
                             label="Cofrinho"
                             value={cofrinhoValue}
-                            meta={cofrinhoMeta}
-                            cardId={cofrinhoCardId}
+                            cofrinhosAccountId={cofrinhosNavAccountId}
                             tone="cofrinho"
                         />
                     ) : null}

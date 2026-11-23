@@ -24,7 +24,6 @@ import { PiggyAportePop } from './PiggyAportePop';
 import { OrcamentoOverview } from './OrcamentoOverview';
 import { PayMethodChips } from './PayMethodChips';
 import { PiggyHistoryPop } from './PiggyHistoryPop';
-import { TripFinanceLedgerStrip } from './TripFinanceLedgerStrip';
 import '../../styles/orcamento-workspace.css';
 
 function sortExpenses(list: TripExpense[]): TripExpense[] {
@@ -349,8 +348,6 @@ export function TripOrcamentoPanel({
                 onOpenHistory={() => setHistoryOpen(true)}
                 onOpenAporte={() => setAporteOpen(true)}
             />
-
-            <TripFinanceLedgerStrip lines={financeMovements} />
 
             <div className="orc-columns">
                 <section className="orc-panel orc-panel--categories" aria-labelledby="orc-cat-title">

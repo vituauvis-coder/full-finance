@@ -72,3 +72,19 @@ export function movementDate(m: { date?: string | { seconds?: number } }): Date 
     if (typeof d === 'object' && d.seconds != null) return new Date(d.seconds * 1000);
     return new Date(d as string);
 }
+
+export function toLocalDateInputValue(d: Date) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
+/** Data inicial ao criar entrada/saída: hoje se cair no período visível, senão o 1º dia do recorte. */
+export function defaultMovementFormDate(period: string, civilYear: number, now = new Date()) {
+    if (isAllYearsPeriod(period)) return toLocalDateInputValue(now);
+    const { startDate, endDate } = getPeriodDateBounds(period, civilYear, now);
+    const t = now.getTime();
+    if (t >= startDate.getTime() && t <= endDate.getTime()) return toLocalDateInputValue(now);
+    return toLocalDateInputValue(startDate);
+}

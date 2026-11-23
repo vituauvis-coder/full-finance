@@ -146,7 +146,7 @@
     background-color: var(--cpt-accent-muted);
     border-color: var(--cpt-accent-border);
     color: var(--cpt-accent);
-    font-weight: 750;
+    font-weight: 650;
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--cpt-accent) 12%, transparent);
 }
 

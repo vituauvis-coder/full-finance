@@ -1,0 +1,46 @@
+.page-toolbar__icon--badge-host {
+    position: relative;
+}
+
+.page-toolbar__icon-badge {
+    position: absolute;
+    top: -0.2rem;
+    right: -0.2rem;
+    min-width: 1.05rem;
+    height: 1.05rem;
+    padding: 0 0.22rem;
+    border-radius: 999px;
+    font-size: 0.58rem;
+    font-weight: 700;
+    line-height: 1.05rem;
+    text-align: center;
+    color: #fff;
+    background: var(--expenses-accent, #f97316);
+    border: 1.5px solid var(--dash-surface-bg, var(--bg-light));
+    pointer-events: none;
+}
+
+.expense-splits-outgoing-modal__hint {
+    margin: 0 0 0.85rem;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    color: var(--dash-text-tertiary, var(--text-muted));
+}
+
+.expense-splits-outgoing-modal__empty {
+    margin: 0;
+    font-size: 0.86rem;
+    color: var(--dash-text-tertiary, var(--text-muted));
+}
+
+.expense-splits-panel__list--modal {
+    margin: 0;
+}
+
+.modal-content--expense-splits-outgoing .expense-splits-panel__card {
+    margin-bottom: 0.5rem;
+}
+
+.modal-content--expense-splits-outgoing .expense-splits-panel__card:last-child {
+    margin-bottom: 0;
+}

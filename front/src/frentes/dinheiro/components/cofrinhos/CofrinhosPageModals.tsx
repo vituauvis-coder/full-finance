@@ -3,6 +3,7 @@ import type { CofrinhoBucket, CofrinhoBucketGoal } from '../../domain/cofrinhoAg
 import { CofrinhoBucketModal } from './CofrinhoBucketModal';
 import { CofrinhoApplicationModal } from './CofrinhoApplicationModal';
 import { CofrinhoBucketHistoryModal } from './CofrinhoBucketHistoryModal';
+import { CofrinhoMonthlyReconcileModal } from './CofrinhoMonthlyReconcileModal';
 import type { CofrinhosPageModel } from '../../hooks/useCofrinhosPageModel';
 import { pickPoolYearMonthForAllocation } from '../../domain/cofrinhoPending';
 import { cofrinhoPaymentAccounts } from '../../domain/cofrinhoPaymentAccounts';
@@ -16,10 +17,12 @@ type Props = {
     allocateBucketId: string | null;
     allocatePoolYearMonth: string | null;
     historyBucket: CofrinhoBucket | null;
+    reconcileBucket: CofrinhoBucket | null;
     accounts: Account[];
     onCloseBucket: () => void;
     onCloseApplication: () => void;
     onCloseHistory: () => void;
+    onCloseReconcile: () => void;
     onSaved: () => Promise<void>;
 };
 
@@ -32,10 +35,12 @@ export function CofrinhosPageModals({
     allocateBucketId,
     allocatePoolYearMonth,
     historyBucket,
+    reconcileBucket,
     accounts,
     onCloseBucket,
     onCloseApplication,
     onCloseHistory,
+    onCloseReconcile,
     onSaved
 }: Props) {
     const goals = model.goals as CofrinhoBucketGoal[];
@@ -76,6 +81,19 @@ export function CofrinhosPageModals({
                 expenses={model.expenses}
                 accounts={accounts}
                 currency={model.currency}
+            />
+            <CofrinhoMonthlyReconcileModal
+                open={reconcileBucket != null}
+                onClose={onCloseReconcile}
+                bucket={reconcileBucket}
+                buckets={model.buckets}
+                applications={model.applications}
+                expenses={model.expenses}
+                monthlyBalances={model.monthlyBalances}
+                accounts={accounts}
+                tripPayloadOutflows={model.tripPayloadOutflows}
+                currency={model.currency}
+                onSaved={onSaved}
             />
         </>
     );

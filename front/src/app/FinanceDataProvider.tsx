@@ -1,4 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+    dedupeExpensesByTripExpenseId,
+    preferredFinanceIdFromTripOutflows
+} from '@motor/dinheiro/dedupe-household-trip-expenses.js';
 import { apiFetch } from '../lib/http';
 import { normalizeFinanceAccounts } from '../lib/normalizeAccounts';
 import { PROFILE_UPDATED_EVENT } from '../lib/profileEvents';
@@ -22,6 +26,7 @@ const EMPTY: FinanceData = {
     cofrinhoBuckets: [],
     cofrinhoApplications: [],
     cofrinhoBucketGoals: [],
+    cofrinhoMonthlyBalances: [],
     cofrinhoTripPayloadOutflows: [],
     userDebts: [],
     userDebtUpdates: [],
@@ -40,11 +45,16 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
         try {
             setError(null);
             const raw = await apiFetch<FinanceData>('/api/data');
+            const tripOutflows = raw.cofrinhoTripPayloadOutflows ?? [];
+            const preferredTripExpenseFinanceIds = preferredFinanceIdFromTripOutflows(tripOutflows);
             setData({
                 ...EMPTY,
                 ...raw,
                 userAccounts: normalizeFinanceAccounts(raw.userAccounts),
-                userExpenses: raw.userExpenses ?? [],
+                userExpenses: dedupeExpensesByTripExpenseId(
+                    raw.userExpenses ?? [],
+                    preferredTripExpenseFinanceIds
+                ),
                 userGains: raw.userGains ?? [],
                 expenseSplitRequests: raw.expenseSplitRequests ?? { incoming: [], outgoing: [] },
                 cofrinhoTripPayloadOutflows: raw.cofrinhoTripPayloadOutflows ?? []

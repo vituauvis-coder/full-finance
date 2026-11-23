@@ -1,12 +1,13 @@
 export const COFRINHOS_SUMMARY_COPY = {
-    pending:
-        'Saldo de saídas em «Cofrinhos» na subcategoria Pool, ainda não distribuído nas caixinhas.',
-    monthAllocated: 'Total distribuído nas caixinhas no mês civil atual (aportes registados).',
-    totalInBuckets: 'Soma de todo o patrimônio alocado nas caixinhas, em todos os meses.'
+    totalContributed: 'Aportes líquidos nas caixinhas (entradas menos saídas), sem contar rendimento.',
+    totalAccumulated: 'Saldo total das caixinhas com o rendimento já reconciliado no banco.',
+    averageMonthly: 'Média dos valores aportados brutos em meses em que houve aporte.',
+    totalYield: 'Soma do rendimento registrado ao informar saldo no banco (reconciliação mensal).'
 } as const;
 
 export const COFRINHOS_SUMMARY_TITLES = {
-    totalInBuckets: 'Total nas caixinhas',
-    monthAllocated: 'Total alocado no mês',
-    pending: 'Pendente de alocar'
+    totalContributed: 'Total aportado',
+    totalAccumulated: 'Total com rendimento',
+    averageMonthly: 'Média aportada por mês',
+    totalYield: 'Rendeu'
 } as const;

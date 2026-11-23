@@ -6,6 +6,7 @@ import {
     type CofrinhoBucket,
     type CofrinhoBucketGoal
 } from '../domain/cofrinhoAggregations';
+import type { CofrinhoMonthlyBalance } from '../domain/cofrinhoMonthlyBalances';
 import { ALL_YEARS_PERIOD, defaultCivilYear, defaultPeriod } from '../../../lib/period';
 import { yearMonthFromCivilPeriod } from '../domain/cofrinhoPeriod';
 import { type CofrinhoPeriodScope, resolveCofrinhoPeriodScope } from '../domain/cofrinhoPeriodScope';
@@ -21,6 +22,7 @@ export type CofrinhosPageModel = {
     buckets: CofrinhoBucket[];
     applications: CofrinhoApplication[];
     goals: CofrinhoBucketGoal[];
+    monthlyBalances: CofrinhoMonthlyBalance[];
     expenses: Movement[];
     tripPayloadOutflows: CofrinhoTripPayloadOutflow[];
     summary: CofrinhoSummary;
@@ -28,9 +30,10 @@ export type CofrinhosPageModel = {
 };
 
 const EMPTY_SUMMARY: CofrinhoSummary = {
-    totalInBuckets: 0,
-    monthAllocated: 0,
-    pending: 0
+    totalContributed: 0,
+    totalAccumulated: 0,
+    averageMonthlyContribution: 0,
+    totalYield: 0
 };
 
 export function useCofrinhosPageModel(data: FinanceData | null): CofrinhosPageModel | null {
@@ -52,12 +55,24 @@ export function useCofrinhosPageModel(data: FinanceData | null): CofrinhosPageMo
 
     const applications = (data?.cofrinhoApplications ?? []) as CofrinhoApplication[];
     const goals = (data?.cofrinhoBucketGoals ?? []) as CofrinhoBucketGoal[];
+    const monthlyBalances = (data?.cofrinhoMonthlyBalances ?? []) as CofrinhoMonthlyBalance[];
     const expenses = data?.userExpenses ?? [];
     const tripPayloadOutflows = data?.cofrinhoTripPayloadOutflows ?? [];
+    const accounts = data?.userAccounts ?? [];
 
     const summary = useMemo(
-        () => (data ? cofrinhoHeroSummary(buckets, applications, expenses) : EMPTY_SUMMARY),
-        [applications, buckets, data, expenses]
+        () =>
+            data
+                ? cofrinhoHeroSummary(
+                      buckets,
+                      applications,
+                      expenses,
+                      monthlyBalances,
+                      accounts,
+                      tripPayloadOutflows
+                  )
+                : EMPTY_SUMMARY,
+        [accounts, applications, buckets, data, expenses, monthlyBalances, tripPayloadOutflows]
     );
 
     const pendingByMonth = useMemo(
@@ -76,6 +91,7 @@ export function useCofrinhosPageModel(data: FinanceData | null): CofrinhosPageMo
         buckets,
         applications,
         goals,
+        monthlyBalances,
         expenses,
         tripPayloadOutflows,
         summary,

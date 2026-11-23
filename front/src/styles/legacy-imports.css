@@ -47,6 +47,7 @@
 @import '../frentes/dinheiro/styles/movements-modern.css';
 @import '../frentes/dinheiro/styles/expense-split.css';
 @import '../frentes/dinheiro/styles/expense-splits-incoming-modern.css';
+@import '../frentes/dinheiro/styles/expense-splits-outgoing-modal.css';
 @import '../components/finance/expense-form-installment-preview.css';
 @import '../components/finance/expense-form-modal.css';
 @import '../frentes/dinheiro/styles/wallet-modern.css';

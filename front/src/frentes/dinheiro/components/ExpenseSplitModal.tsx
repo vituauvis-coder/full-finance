@@ -26,11 +26,13 @@ import {
     splitStatusClass,
     splitStatusLabel
 } from '../domain/expenseSplitUi';
+import { buildSplitCreditAccountOptions } from '../../../lib/accountSelectOptions';
 
 type Props = {
     open: boolean;
     expense: Movement | null;
     accounts: Account[];
+    ownerUserId?: string | null;
     outgoing: ExpenseSplitRequest[];
     currency: string;
     preferredScope?: 'FULL_EXPENSE' | 'INSTALLMENT';
@@ -49,6 +51,7 @@ export function ExpenseSplitModal({
     preferredScope,
     preferredInstallmentIndex,
     preferredPeriodKey,
+    ownerUserId,
     onClose,
     onSaved
 }: Props) {
@@ -69,6 +72,10 @@ export function ExpenseSplitModal({
     const existing = useMemo(
         () => (expense ? outgoingForExpense(outgoing, expense.id) : []),
         [expense, outgoing]
+    );
+    const creditAccountOptions = useMemo(
+        () => buildSplitCreditAccountOptions(accounts, ownerUserId),
+        [accounts, ownerUserId]
     );
 
     const money = useMemo(() => {
@@ -95,7 +102,7 @@ export function ExpenseSplitModal({
                 : ''
         );
         setAmountMode('per_installment');
-        setCreditAccountId(accounts[0]?.id ?? '');
+        setCreditAccountId(creditAccountOptions[0]?.id ?? '');
         setUsersError(null);
         void fetchUsersForSplit()
             .then((r) => setUsers(r.users ?? []))
@@ -103,7 +110,7 @@ export function ExpenseSplitModal({
                 setUsers([]);
                 setUsersError(err instanceof Error ? err.message : 'Erro ao carregar usuários');
             });
-    }, [open, expense, preferredScope, preferredInstallmentIndex, nParc, accounts]);
+    }, [open, expense, preferredScope, preferredInstallmentIndex, nParc, creditAccountOptions]);
 
     useEffect(() => {
         if (!open || !money) return;
@@ -330,9 +337,9 @@ export function ExpenseSplitModal({
                             required
                         >
                             <option value="">Selecione…</option>
-                            {accounts.map((a) => (
+                            {creditAccountOptions.map((a) => (
                                 <option key={a.id} value={a.id}>
-                                    {a.name || 'Conta'}
+                                    {a.label}
                                 </option>
                             ))}
                         </FormSelect>

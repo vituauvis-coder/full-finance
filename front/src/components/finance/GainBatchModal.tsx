@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import { useCategories } from '../../hooks/useCategories';
 import type { Account } from '../../lib/types/finance';
+import { buildAccountSelectOptions } from '../../lib/accountSelectOptions';
 import { patchGainsBatch } from '../../frentes/dinheiro/api/movements';
 import { DialogForm, DialogFrame } from '../ui/dialog';
 import { FormActions, FormAlert, FormField, FormSelect } from '../ui/form';
@@ -24,6 +25,7 @@ export function GainBatchModal({ open, count, ids, accounts, onClose, onSaved }:
     const [error, setError] = useState('');
 
     const subs = useMemo(() => categories.find((c) => c.name === category)?.subcategories ?? [], [categories, category]);
+    const accountOptions = useMemo(() => buildAccountSelectOptions(accounts), [accounts]);
 
     useEffect(() => {
         if (!open) return;
@@ -74,9 +76,9 @@ export function GainBatchModal({ open, count, ids, accounts, onClose, onSaved }:
                 <FormField id="gain-batch-account" label="Conta">
                     <FormSelect id="gain-batch-account" value={accountId} onChange={(e) => setAccountId(e.target.value)}>
                         <option value="">— não alterar —</option>
-                        {accounts.map((a) => (
+                        {accountOptions.map((a) => (
                             <option key={a.id} value={a.id}>
-                                {a.name}
+                                {a.label}
                             </option>
                         ))}
                     </FormSelect>

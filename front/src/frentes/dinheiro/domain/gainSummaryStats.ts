@@ -1,4 +1,4 @@
-import { gainCountsInTotals, gainTopLevelCategory } from '../../../lib/gainTreemap';
+import { gainTopLevelCategory } from '../../../lib/gainTreemap';
 import type { Movement } from '../../../lib/types/finance';
 import { computeMomVariation, type MomVariationState } from '../../dashboard/domain/momVariation';
 import { filterMovementsInPeriod, type ListFilter } from '../../../lib/movementList';
@@ -41,7 +41,6 @@ export function aggregateGainTotals(rows: Movement[]): GainSummaryTotals {
     let extra = 0;
 
     for (const t of rows) {
-        if (!gainCountsInTotals(t)) continue;
         const amt = Number(t.amount) || 0;
         if (t.isPaid === false) {
             pending += amt;

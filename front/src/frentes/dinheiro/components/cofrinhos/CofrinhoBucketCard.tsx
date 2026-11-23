@@ -22,6 +22,7 @@ type Props = {
     onEdit: (bucket: CofrinhoBucket) => void;
     onAllocate: (bucketId: string) => void;
     onOpenHistory: (bucket: CofrinhoBucket) => void;
+    onReconcile: (bucket: CofrinhoBucket) => void;
 };
 
 export function CofrinhoBucketCard({
@@ -34,7 +35,8 @@ export function CofrinhoBucketCard({
     goalYear,
     onEdit,
     onAllocate,
-    onOpenHistory
+    onOpenHistory,
+    onReconcile
 }: Props) {
     const name = bucket.name ?? 'Caixinha';
     const kindMeta = cofrinhoKindMeta(bucket);
@@ -110,6 +112,15 @@ export function CofrinhoBucketCard({
                 >
                     <MaterialIcon name="add" variant="app" opticalSize={17} />
                     Aportar
+                </button>
+                <button
+                    type="button"
+                    className="cofrinho-bucket-table__reconcile"
+                    title="Atualizar saldo mensal"
+                    aria-label={`Atualizar saldo com rendimento — ${name}`}
+                    onClick={() => onReconcile(bucket)}
+                >
+                    <MaterialIcon name="monitoring" variant="app" opticalSize={16} />
                 </button>
                 <button
                     type="button"

@@ -14,7 +14,8 @@ export function CofrinhosPage() {
     useCofrinhosPeriodState();
     const modals = useCofrinhosModals();
     const model = useCofrinhosPageModel(data);
-    const { deleteApplication } = useCofrinhosApplicationActions(refresh);
+    const { deleteApplication, deleteMonthlyBalance, deleteMonthlyBalanceMonth } =
+        useCofrinhosApplicationActions(refresh);
 
     useCofrinhosHeaderRegistration(modals.openCreateBucket);
 
@@ -42,7 +43,10 @@ export function CofrinhosPage() {
                 onEditBucket={modals.openEditBucket}
                 onAllocate={modals.openAllocate}
                 onOpenHistory={modals.openHistory}
+                onReconcile={modals.openReconcile}
                 onDeleteApplication={(id) => void deleteApplication(id)}
+                onDeleteMonthlyBalance={(id) => void deleteMonthlyBalance(id)}
+                onDeleteMonthlyBalanceMonth={(bucketId, ym) => void deleteMonthlyBalanceMonth(bucketId, ym)}
                 onRefresh={refresh}
             />
             <CofrinhosPageModals
@@ -58,6 +62,8 @@ export function CofrinhosPage() {
                 onCloseBucket={modals.closeBucketModal}
                 onCloseApplication={modals.closeApplicationModal}
                 onCloseHistory={modals.closeHistory}
+                reconcileBucket={modals.reconcileBucket}
+                onCloseReconcile={modals.closeReconcile}
                 onSaved={refresh}
             />
         </CofrinhosPageShell>

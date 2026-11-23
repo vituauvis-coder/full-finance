@@ -51,6 +51,11 @@ export type CofrinhoLedgerRow = {
     /** Data do registro (YYYY-MM-DD). */
     recordDate: string;
     editable: boolean;
+    /** Linha de rendimento — excluir remove o snapshot mensal. */
+    yieldSnapshotId?: string;
+    /** `bucketId|YYYY-MM` — remove todos os saldos da caixinha naquele mês. */
+    yieldMonthKey?: string;
+    isYield?: boolean;
 };
 
 function bucketName(buckets: CofrinhoBucket[], id: string): string {

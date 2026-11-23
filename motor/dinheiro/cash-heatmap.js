@@ -1,5 +1,6 @@
 import { isCreditCardType } from './account-type.js';
 import { getExpensePerInstallmentDisplayAmount } from './credit-installments.js';
+import { movementSkipsAccountCashOut } from './cofrinho-movement-ledger.js';
 import { filterExpenseRowsForListPeriod } from './expense-list-period.js';
 import { movementDateToJsDate } from './movement-date.js';
 
@@ -95,6 +96,7 @@ export function buildMonthDayMap(expenses, gains, accounts, year, monthIndex) {
     });
 
     for (const t of expenses || []) {
+        if (movementSkipsAccountCashOut(t)) continue;
         const d = movementDate(t);
         if (d.getFullYear() !== year || d.getMonth() !== monthIndex) continue;
         const agg = dayMap.get(d.getDate());
@@ -170,6 +172,7 @@ export function buildDayDetailItems(expenses, gains, accounts, year, monthIndex,
     const inPeriod = filterExpenseRowsForListPeriod(expenses, accounts, periodStart, periodEnd);
 
     for (const t of inPeriod) {
+        if (movementSkipsAccountCashOut(t)) continue;
         const d = movementDate(t);
         if (!sameCalendarDay(d, target)) continue;
         const acc = accountById.get(String(t.accountId));

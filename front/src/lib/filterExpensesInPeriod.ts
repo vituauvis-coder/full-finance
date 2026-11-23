@@ -7,6 +7,7 @@ import { getPeriodDateBounds, isAllYearsPeriod, movementDate } from './period';
 import type { Account, Movement } from './types/finance';
 import type { ListFilter } from './movementList';
 import { expandAccountFilterIds } from './movementListAccountFilter';
+import { expenseIsMarkedCofrinho } from '../frentes/dinheiro/domain/expenseLedgerBuckets';
 
 const ALL_YEARS_LIST_START = new Date(1900, 0, 1, 0, 0, 0, 0);
 const ALL_YEARS_LIST_END = new Date(2099, 11, 31, 23, 59, 59, 999);
@@ -34,6 +35,7 @@ export function filterExpensesByListFilter(rows: Movement[], accounts: Account[]
         if (accountFilterIds && !accountFilterIds.has(String(m.accountId ?? ''))) return false;
         if (filter.category && (m.category || '') !== filter.category) return false;
         const amt = expenseListDisplayAmount(m, acc);
+        if (expenseIsMarkedCofrinho(m) && amt < 0.001) return false;
         if (filter.amountMin != null && Number.isFinite(filter.amountMin) && amt < filter.amountMin) return false;
         if (filter.amountMax != null && Number.isFinite(filter.amountMax) && amt > filter.amountMax)
             return false;
@@ -93,6 +95,7 @@ export function filterExpensesInPeriod(
             if (accountFilterIds && !accountFilterIds.has(String(m.accountId ?? ''))) return false;
             if (filter.category && (m.category || '') !== filter.category) return false;
             const amt = expenseListDisplayAmount(m, acc);
+            if (expenseIsMarkedCofrinho(m) && amt < 0.001) return false;
             if (filter.amountMin != null && Number.isFinite(filter.amountMin) && amt < filter.amountMin)
                 return false;
             if (filter.amountMax != null && Number.isFinite(filter.amountMax) && amt > filter.amountMax)

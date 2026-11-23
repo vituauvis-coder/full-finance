@@ -65,6 +65,20 @@ export function monthCellsLifeOS(year: number, month: number): Array<{ key: stri
     return cells;
 }
 
+/** Grade fixa de 6 semanas — popover de data não muda de altura entre meses. */
+export const CALENDAR_GRID_SLOT_COUNT = 42;
+
+export function monthGridCellsLifeOS(
+    year: number,
+    month: number
+): Array<{ key: string | null; day: number | null }> {
+    const cells = monthCellsLifeOS(year, month);
+    while (cells.length < CALENDAR_GRID_SLOT_COUNT) {
+        cells.push({ key: null, day: null });
+    }
+    return cells.slice(0, CALENDAR_GRID_SLOT_COUNT);
+}
+
 export function cursorFromDayKey(key: string): { year: number; month: number } {
     const parts = dayKeyToYmd(key);
     if (parts) return { year: parts.year, month: parts.month };

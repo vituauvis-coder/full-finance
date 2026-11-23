@@ -14,6 +14,7 @@ type Props = {
     onEdit: (bucket: CofrinhoBucket) => void;
     onAllocate: (bucketId: string) => void;
     onOpenHistory: (bucket: CofrinhoBucket) => void;
+    onReconcile: (bucket: CofrinhoBucket) => void;
 };
 
 export function CofrinhoGoalCardsGrid({
@@ -25,7 +26,8 @@ export function CofrinhoGoalCardsGrid({
     goalYear,
     onEdit,
     onAllocate,
-    onOpenHistory
+    onOpenHistory,
+    onReconcile
 }: Props) {
     if (buckets.length === 0) {
         return (
@@ -86,6 +88,7 @@ export function CofrinhoGoalCardsGrid({
                                     onEdit={onEdit}
                                     onAllocate={onAllocate}
                                     onOpenHistory={onOpenHistory}
+                                    onReconcile={onReconcile}
                                 />
                             ))}
                         </Fragment>

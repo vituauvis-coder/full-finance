@@ -1,6 +1,6 @@
-import { accountUniquenessKey } from '@motor/dinheiro/account-uniqueness.js';
 import type { Account } from './types/finance';
 import { buildPaymentMethodOptions } from './accounts';
+import { accountUniquenessKey } from '@motor/dinheiro/account-uniqueness.js';
 
 export type MovementListAccountOption = { value: string; label: string };
 

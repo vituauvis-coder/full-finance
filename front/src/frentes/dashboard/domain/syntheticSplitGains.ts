@@ -11,7 +11,7 @@ export function gainsWithSyntheticExpectedSplits(params: {
     now?: Date;
 }): Movement[] {
     const now = params.now ?? new Date();
-    const base = (params.gains ?? []).filter((g) => g && !g.referenceOnly);
+    const base = (params.gains ?? []).filter((g) => g);
     const synthetic = buildSyntheticExpectedSplitGainsRows(
         params.period,
         now,

@@ -28,7 +28,6 @@ function sumGainsInRange(
 ): number {
     let gSum = 0;
     for (const g of gains) {
-        if (g.referenceOnly) continue;
         const d = movementDate(g);
         if (d < start || d > end) continue;
         if (facets && !gainMatchesDashboardFacet(g, facets.gains)) continue;

@@ -21,7 +21,7 @@ export function CofrinhosSkeletonLayout() {
                     count={3}
                     group="cofrinhos"
                     ariaLabel="Resumo dos cofrinhos"
-                    className="movements-treemap-hero__summary"
+                    className="movements-treemap-hero__summary cofrinhos-summary-metrics--stack"
                 />
                 <Skeleton className="skeleton-panel skeleton-panel--treemap movements-treemap-hero__map" />
             </div>

@@ -67,6 +67,23 @@ export function MovementFacetHeaderActions({
                 </div>
             ) : null}
             <div className="page-toolbar__tools">
+                {ctx?.headerIconAction ? (
+                    <button
+                        type="button"
+                        id={ctx.headerIconAction.id}
+                        className="page-toolbar__icon btn-secondary header-action-btn header-action-btn--icon page-toolbar__icon--badge-host"
+                        title={ctx.headerIconAction.title}
+                        aria-label={ctx.headerIconAction.title}
+                        onClick={ctx.headerIconAction.onClick}
+                    >
+                        <MaterialIcon name={ctx.headerIconAction.icon} variant="app" />
+                        {ctx.headerIconAction.badge != null && ctx.headerIconAction.badge > 0 ? (
+                            <span className="page-toolbar__icon-badge" aria-hidden="true">
+                                {ctx.headerIconAction.badge > 9 ? '9+' : ctx.headerIconAction.badge}
+                            </span>
+                        ) : null}
+                    </button>
+                ) : null}
                 {ctx?.headerAddAction ? (
                     <button
                         type="button"

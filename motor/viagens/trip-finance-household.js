@@ -1,3 +1,8 @@
+import {
+    dedupeExpensesByTripExpenseId,
+    preferredFinanceIdByTripExpenseFromPayload
+} from '../dinheiro/dedupe-household-trip-expenses.js';
+
 /**
  * Une expenses do payload da viagem com lançamentos Dinheiro da household.
  * Preferência: linha de `expenses` (com autor) quando há o mesmo tripExpenseId.
@@ -38,11 +43,19 @@ function financeLineDateIso(raw) {
     return d.toISOString().slice(0, 10);
 }
 
+function dedupeHouseholdTripExpenses(householdExpenses, payloadExpenses) {
+    return dedupeExpensesByTripExpenseId(
+        householdExpenses,
+        preferredFinanceIdByTripExpenseFromPayload(payloadExpenses)
+    );
+}
+
 export function mergeTripFinanceView({ payloadExpenses = [], householdExpenses = [] } = {}) {
+    const household = dedupeHouseholdTripExpenses(householdExpenses, payloadExpenses);
     const covered = new Set();
     const lines = [];
 
-    for (const ex of householdExpenses) {
+    for (const ex of household) {
         const tripExpenseId = ex.tripExpenseId ?? null;
         if (tripExpenseId) covered.add(tripExpenseId);
         const ledgerKind = financeLedgerKind(ex);

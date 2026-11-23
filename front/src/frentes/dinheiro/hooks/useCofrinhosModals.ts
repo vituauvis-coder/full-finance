@@ -8,6 +8,7 @@ export function useCofrinhosModals() {
     const [allocateBucketId, setAllocateBucketId] = useState<string | null>(null);
     const [allocatePoolYearMonth, setAllocatePoolYearMonth] = useState<string | null>(null);
     const [historyBucket, setHistoryBucket] = useState<CofrinhoBucket | null>(null);
+    const [reconcileBucket, setReconcileBucket] = useState<CofrinhoBucket | null>(null);
 
     const openCreateBucket = useCallback(() => {
         setEditingBucket(null);
@@ -35,6 +36,9 @@ export function useCofrinhosModals() {
     const openHistory = useCallback((bucket: CofrinhoBucket) => setHistoryBucket(bucket), []);
     const closeHistory = useCallback(() => setHistoryBucket(null), []);
 
+    const openReconcile = useCallback((bucket: CofrinhoBucket) => setReconcileBucket(bucket), []);
+    const closeReconcile = useCallback(() => setReconcileBucket(null), []);
+
     return {
         bucketModalOpen,
         editingBucket,
@@ -48,6 +52,9 @@ export function useCofrinhosModals() {
         closeApplicationModal,
         historyBucket,
         openHistory,
-        closeHistory
+        closeHistory,
+        reconcileBucket,
+        openReconcile,
+        closeReconcile
     };
 }

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMovementListFilters } from '../context/MovementListFiltersContext';
+import { stashCofrinhosLedgerAccountNav } from '../domain/cofrinhoLedgerNav';
 
 import type { WalletAccountKind } from '../wallet/walletAccountKind';
 
@@ -58,6 +59,15 @@ export function useWalletInstitutionListClicks(
                 return;
             }
 
+            const linkCofrinhos = target.closest('[data-wallet-link-cofrinhos]');
+            if (linkCofrinhos) {
+                e.preventDefault();
+                const acct = linkCofrinhos.getAttribute('data-wallet-link-cofrinhos');
+                if (acct) stashCofrinhosLedgerAccountNav(acct);
+                navigate('/dinheiro/cofrinhos');
+                return;
+            }
+
             const plastic = target.closest('button.wallet-card-open[data-card-id]');
             if (plastic) {
                 const cardId = plastic.getAttribute('data-card-id');
@@ -71,6 +81,15 @@ export function useWalletInstitutionListClicks(
         const onKeyDown = (e: KeyboardEvent) => {
             if (e.key !== 'Enter' && e.key !== ' ') return;
             const target = e.target as HTMLElement | null;
+            const linkCofrinhos = target?.closest('[data-wallet-link-cofrinhos]');
+            if (linkCofrinhos) {
+                e.preventDefault();
+                const acct = linkCofrinhos.getAttribute('data-wallet-link-cofrinhos');
+                if (acct) stashCofrinhosLedgerAccountNav(acct);
+                navigate('/dinheiro/cofrinhos');
+                return;
+            }
+
             const plastic = target?.closest('button.wallet-card-open[data-card-id]');
             if (!plastic) return;
             e.preventDefault();

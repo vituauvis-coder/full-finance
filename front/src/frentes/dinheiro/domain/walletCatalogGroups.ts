@@ -11,7 +11,10 @@ import {
 } from '../wallet/walletAccountKind';
 import { sortWalletCatalogGroups } from './walletCatalogSort';
 import { enrichInstitutionWalletFunctions } from '@motor/dinheiro/wallet-institution-functions.js';
-import { summarizeWalletAccountCofrinho } from '@motor/dinheiro/wallet-account-cofrinho.js';
+import { summarizeWalletCofrinhoFromLedger } from './cofrinhoLedgerNet';
+import type { CofrinhoApplication, CofrinhoBucket } from './cofrinhoAggregations';
+import type { CofrinhoMonthlyBalance } from './cofrinhoMonthlyBalances';
+import type { CofrinhoTripPayloadOutflow } from './cofrinhoLedgerRows';
 import { walletDisplayCashBalance } from './walletCashBalance';
 
 export type CatalogFacetKind =
@@ -144,11 +147,21 @@ function cofrinhoLedgerAccountId(acc: Account): string | null {
 
 function cofrinhoSummaryForAccountId(
     ledgerAccountId: string,
-    expenses: Movement[],
+    data: FinanceData,
     year: number,
     monthIndex: number
 ) {
-    return summarizeWalletAccountCofrinho(expenses, new Set([ledgerAccountId]), { year, monthIndex });
+    return summarizeWalletCofrinhoFromLedger({
+        ledgerAccountId,
+        buckets: (data.cofrinhoBuckets ?? []) as CofrinhoBucket[],
+        applications: (data.cofrinhoApplications ?? []) as CofrinhoApplication[],
+        expenses: data.userExpenses ?? [],
+        accounts: data.userAccounts ?? [],
+        monthlyBalances: (data.cofrinhoMonthlyBalances ?? []) as CofrinhoMonthlyBalance[],
+        tripPayloadOutflows: (data.cofrinhoTripPayloadOutflows ?? []) as CofrinhoTripPayloadOutflow[],
+        year,
+        monthIndex
+    });
 }
 
 function linkedCofrinhos(bankId: string, accounts: Account[]) {
@@ -255,12 +268,7 @@ function groupFromRow(
         const linked = linkedCofrinhos(bank.id, data.userAccounts);
         /** Saídas gravam `accountId` na conta de pagamento (corrente) — sempre o id da instituição no catálogo. */
         const ledgerId = String(bank.id);
-        const cofrinhoStats = cofrinhoSummaryForAccountId(
-            ledgerId,
-            data.userExpenses,
-            year,
-            monthIndex
-        );
+        const cofrinhoStats = cofrinhoSummaryForAccountId(ledgerId, data, year, monthIndex);
         const hasLedgerActivity =
             cofrinhoStats.accumulated > 0 ||
             cofrinhoStats.withdrawn > 0 ||
@@ -361,7 +369,7 @@ export function buildWalletCatalogGroups(
         if (!ledgerId) continue;
         if (groups.some((g) => g.id === ledgerId)) continue;
         const facetKinds: CatalogFacetKind[] = ['cofrinho'];
-        const stats = cofrinhoSummaryForAccountId(ledgerId, bundle.userExpenses, year, monthIndex);
+        const stats = cofrinhoSummaryForAccountId(ledgerId, bundle, year, monthIndex);
         groups.push({
             id: acc.id,
             title: acc.name,

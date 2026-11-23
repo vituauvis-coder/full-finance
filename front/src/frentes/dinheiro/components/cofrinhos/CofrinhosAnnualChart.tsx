@@ -18,6 +18,7 @@ import {
     type CofrinhoAnnualChartPoint
 } from '../../domain/cofrinhoAnnualChartData';
 import type { CofrinhoApplication, CofrinhoBucket } from '../../domain/cofrinhoAggregations';
+import type { CofrinhoMonthlyBalance } from '../../domain/cofrinhoMonthlyBalances';
 import {
     COFRINHO_CHART_BAR_STROKE,
     COFRINHO_CHART_LINE_PURPLE
@@ -30,7 +31,10 @@ type Props = {
     buckets: CofrinhoBucket[];
     applications: CofrinhoApplication[];
     expenses: Movement[];
+    monthlyBalances: CofrinhoMonthlyBalance[];
 };
+
+const COFRINHO_YIELD_GREEN = '#22c55e';
 
 const CHART_HEIGHT = 300;
 const CHART_MIN_WIDTH = 320;
@@ -90,6 +94,12 @@ function CofrinhosChartTooltip({
                 <span>Aportado no mês</span>
                 <span>{formatBRL(point.monthInflow, currency)}</span>
             </div>
+            {point.monthYield > 0.001 ? (
+                <div className="cofrinhos-annual-chart__tooltip-row is-yield">
+                    <span>Rendimento no mês</span>
+                    <span>{formatBRL(point.monthYield, currency)}</span>
+                </div>
+            ) : null}
             <div className="cofrinhos-annual-chart__tooltip-row">
                 <span>Acumulado no ano</span>
                 <span>{formatBRL(point.cumulative, currency)}</span>
@@ -108,11 +118,19 @@ function CofrinhosChartTooltip({
     );
 }
 
-export function CofrinhosAnnualChart({ year, period, currency, buckets, applications, expenses }: Props) {
+export function CofrinhosAnnualChart({
+    year,
+    period,
+    currency,
+    buckets,
+    applications,
+    expenses,
+    monthlyBalances
+}: Props) {
     const axis = chartAxisColors();
     const series = useMemo(
-        () => buildCofrinhoAnnualChartSeries(buckets, applications, expenses, year),
-        [applications, buckets, expenses, year]
+        () => buildCofrinhoAnnualChartSeries(buckets, applications, expenses, year, monthlyBalances),
+        [applications, buckets, expenses, monthlyBalances, year]
     );
 
     const activeMonthIndex = useMemo(() => {
@@ -123,7 +141,8 @@ export function CofrinhosAnnualChart({ year, period, currency, buckets, applicat
 
     const yDomain = useMemo((): [number, number] => {
         const maxY = series.points.reduce(
-            (top, p) => Math.max(top, p.cumulative, p.monthInflow),
+            (top, p) =>
+                Math.max(top, p.cumulative + p.monthYield, p.cumulative, p.monthInflow),
             0
         );
         const pad = maxY > 0 ? maxY * 0.14 : 1;
@@ -141,7 +160,9 @@ export function CofrinhosAnnualChart({ year, period, currency, buckets, applicat
     const highlightLabel =
         activeMonthIndex >= 0 ? series.points[activeMonthIndex]?.label ?? null : null;
 
-    const hasData = series.points.some((p) => p.cumulative > 0.001 || p.monthInflow > 0.001);
+    const hasData = series.points.some(
+        (p) => p.cumulative > 0.001 || p.monthInflow > 0.001 || p.monthYield > 0.001
+    );
     const { ref: canvasRef, width: chartWidth } = useChartCanvasWidth(hasData);
 
     return (
@@ -149,7 +170,7 @@ export function CofrinhosAnnualChart({ year, period, currency, buckets, applicat
             <header className="cofrinhos-annual-chart__head">
                 <h3 className="cofrinhos-annual-chart__title">Alocação anual {year}</h3>
                 <p className="cofrinhos-annual-chart__hint">
-                    Barras = saldo acumulado (por caixinha) · linha = aporte no mês
+                    Colunas = saldo acumulado (trecho verde = rendimento do mês) · linha roxa = aporte
                 </p>
             </header>
             {!hasData ? (
@@ -202,7 +223,7 @@ export function CofrinhosAnnualChart({ year, period, currency, buckets, applicat
                                     strokeOpacity={0}
                                 />
                             ) : null}
-                            {series.buckets.map((b, i) => (
+                            {series.buckets.map((b) => (
                                 <Bar
                                     key={b.id}
                                     dataKey={b.stackKey}
@@ -211,11 +232,23 @@ export function CofrinhosAnnualChart({ year, period, currency, buckets, applicat
                                     fill={`url(#${chartGradientId(b.id)})`}
                                     stroke={COFRINHO_CHART_BAR_STROKE}
                                     strokeWidth={1.5}
-                                    radius={i === series.buckets.length - 1 ? [5, 5, 0, 0] : [0, 0, 0, 0]}
+                                    radius={[0, 0, 0, 0]}
                                     maxBarSize={36}
                                     isAnimationActive={false}
                                 />
                             ))}
+                            <Bar
+                                dataKey="monthYield"
+                                name="Rendimento no mês"
+                                stackId="cumulative"
+                                fill={COFRINHO_YIELD_GREEN}
+                                fillOpacity={0.92}
+                                stroke={colorWithAlpha(COFRINHO_YIELD_GREEN, 0.35)}
+                                strokeWidth={1}
+                                radius={[5, 5, 0, 0]}
+                                maxBarSize={36}
+                                isAnimationActive={false}
+                            />
                             <Line
                                 type="monotone"
                                 dataKey="monthInflow"
@@ -264,6 +297,13 @@ export function CofrinhosAnnualChart({ year, period, currency, buckets, applicat
                                 <span className="cofrinhos-annual-chart__legend-label">{b.name}</span>
                             </li>
                         ))}
+                        <li title="Rendimento do mês no topo da coluna">
+                            <span
+                                className="cofrinhos-annual-chart__swatch"
+                                style={{ background: COFRINHO_YIELD_GREEN }}
+                            />
+                            <span className="cofrinhos-annual-chart__legend-label">Rendimento (topo)</span>
+                        </li>
                         <li className="cofrinhos-annual-chart__legend-line" title="Total aportado no mês">
                             <span className="cofrinhos-annual-chart__swatch cofrinhos-annual-chart__swatch--line" />
                             <span className="cofrinhos-annual-chart__legend-label">Aporte no mês</span>

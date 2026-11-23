@@ -221,13 +221,21 @@
     font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 24;
 }
 
-/* Extrato embutido */
-#wallet-page.wallet-page--modern .wallet-embedded-ledger {
+/* Extrato — mesma coluna tri do dashboard (sem cortar em 22rem) */
+#wallet-page.wallet-page--modern .wallet-tri-column .wallet-embedded-ledger {
     display: flex;
     flex-direction: column;
     gap: 0.65rem;
-    min-height: 12rem;
-    max-height: min(42vh, 22rem);
+    min-height: 0;
+    height: var(--dashboard-tri-col-h);
+    max-height: var(--dashboard-tri-col-h);
+    padding: 0.8rem 0.9rem 0.85rem;
+    box-sizing: border-box;
+    background: var(--dash-surface-bg);
+    border: 1px solid var(--dash-surface-border);
+    border-radius: var(--dash-surface-radius);
+    box-shadow: var(--dash-surface-shadow);
+    overflow: hidden;
 }
 
 #wallet-page.wallet-page--modern .wallet-embedded-ledger__head {
@@ -236,6 +244,11 @@
     align-items: baseline;
     justify-content: space-between;
     gap: 0.35rem 0.75rem;
+    flex-shrink: 0;
+}
+
+#wallet-page.wallet-page--modern .wallet-embedded-ledger .dashboard-ledger-filter {
+    flex-shrink: 0;
 }
 
 #wallet-page.wallet-page--modern .wallet-embedded-ledger__title {
@@ -255,10 +268,13 @@
 }
 
 #wallet-page.wallet-page--modern .wallet-embedded-ledger__scroll {
-    flex: 1;
+    flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
+    overscroll-behavior: contain;
     padding-right: 0.15rem;
+    position: relative;
+    height: 100%;
 }
 
 #wallet-page.wallet-page--modern .wallet-embedded-ledger .dashboard-month-ledger__list {

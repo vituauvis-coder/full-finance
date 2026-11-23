@@ -15,34 +15,21 @@ import {
     cursorFromDayKey,
     formatDateLabelPt,
     isDayKeyInRange,
-    monthCellsLifeOS,
+    monthGridCellsLifeOS,
     monthTitlePt,
     todayKey,
     WEEK_SHORT_PT
 } from '../../../lib/calendarUi';
 import { DatePickerMonthGrid } from './DatePickerMonthGrid';
 import { DatePickerPeriodNav } from './DatePickerPeriodNav';
+import {
+    type PopCoords,
+    type PopoverPlacement,
+    popoverCoordsFromTrigger,
+    resolvePopoverPlacement
+} from './popoverCoords';
 
-const POP_WIDTH_PX = 296;
-const POP_ESTIMATE_PX = 340;
-
-type PopCoords = { top: number; left: number; width: number };
-
-function popCoordsFromTrigger(trigger: HTMLElement, popHeight = POP_ESTIMATE_PX): PopCoords {
-    const width = Math.min(POP_WIDTH_PX, window.innerWidth - 16);
-    const r = trigger.getBoundingClientRect();
-    let left = r.left;
-    if (left + width > window.innerWidth - 8) left = Math.max(8, window.innerWidth - 8 - width);
-    if (left < 8) left = 8;
-
-    let top = r.bottom + 8;
-    if (top + popHeight > window.innerHeight - 8) {
-        const above = r.top - 8 - popHeight;
-        if (above >= 8) top = above;
-    }
-
-    return { top, left, width };
-}
+const POP_LAYOUT = { widthPx: 296, anchorHeightPx: 360 };
 
 export type DatePickerProps = {
     id?: string;
@@ -73,6 +60,7 @@ export function DatePicker({
     const fieldId = id ?? fallbackId;
     const triggerRef = useRef<HTMLButtonElement>(null);
     const popRef = useRef<HTMLDivElement>(null);
+    const placementRef = useRef<PopoverPlacement | null>(null);
     const [open, setOpen] = useState(false);
     const [coords, setCoords] = useState<PopCoords | null>(null);
     const [panel, setPanel] = useState<'days' | 'months'>('days');
@@ -83,8 +71,10 @@ export function DatePicker({
     const updateCoords = useCallback(() => {
         const trigger = triggerRef.current;
         if (!trigger) return;
-        const popHeight = popRef.current?.offsetHeight ?? POP_ESTIMATE_PX;
-        setCoords(popCoordsFromTrigger(trigger, popHeight));
+        if (!placementRef.current) {
+            placementRef.current = resolvePopoverPlacement(trigger, POP_LAYOUT.anchorHeightPx);
+        }
+        setCoords(popoverCoordsFromTrigger(trigger, placementRef.current, POP_LAYOUT));
     }, []);
 
     useEffect(() => {
@@ -108,7 +98,11 @@ export function DatePicker({
             window.removeEventListener('resize', updateCoords);
             window.removeEventListener('scroll', updateCoords, true);
         };
-    }, [open, updateCoords, cursor.year, cursor.month]);
+    }, [open, updateCoords]);
+
+    useEffect(() => {
+        if (!open) placementRef.current = null;
+    }, [open]);
 
     useEffect(() => {
         if (!open) return;
@@ -130,7 +124,7 @@ export function DatePicker({
         };
     }, [open]);
 
-    const cells = useMemo(() => monthCellsLifeOS(cursor.year, cursor.month), [cursor.year, cursor.month]);
+    const cells = useMemo(() => monthGridCellsLifeOS(cursor.year, cursor.month), [cursor.year, cursor.month]);
     const today = todayKey();
     const label = dateKey ? formatDateLabelPt(dateKey) : placeholder;
 
@@ -144,7 +138,10 @@ export function DatePicker({
         if (disabled) return;
         if (open) setOpen(false);
         else {
-            if (triggerRef.current) setCoords(popCoordsFromTrigger(triggerRef.current));
+            if (triggerRef.current) {
+                placementRef.current = resolvePopoverPlacement(triggerRef.current, POP_LAYOUT.anchorHeightPx);
+                setCoords(popoverCoordsFromTrigger(triggerRef.current, placementRef.current, POP_LAYOUT));
+            }
             setOpen(true);
         }
     }

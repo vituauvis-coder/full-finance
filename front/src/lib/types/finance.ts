@@ -136,6 +136,7 @@ export type FinanceData = {
     cofrinhoBuckets: unknown[];
     cofrinhoApplications: unknown[];
     cofrinhoBucketGoals: unknown[];
+    cofrinhoMonthlyBalances?: unknown[];
     /** Gastos “Debitar da meta” ainda só no payload da viagem. */
     cofrinhoTripPayloadOutflows?: CofrinhoTripPayloadOutflow[];
     userDebts: unknown[];

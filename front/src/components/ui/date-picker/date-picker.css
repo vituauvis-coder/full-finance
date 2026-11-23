@@ -169,6 +169,7 @@
 .ui-date-picker__grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
+    grid-template-rows: repeat(6, 1fr);
     gap: 0.2rem;
 }
 
@@ -264,8 +265,10 @@
 
 .ui-date-range-picker__hint {
     margin: 0 0 0.45rem;
+    min-height: 1.05rem;
     font-size: 0.72rem;
     font-weight: 600;
+    line-height: 1.05rem;
     color: var(--dash-text-tertiary, var(--text-light));
 }
 
