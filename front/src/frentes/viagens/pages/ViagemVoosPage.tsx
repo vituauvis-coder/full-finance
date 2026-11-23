@@ -5,7 +5,8 @@ import {
     tripFlightSegments
 } from '@motor/viagens/flight-simulation.js';
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ScreenLoader } from '../../../components/ui/ScreenLoader';
+import { ViagensTripModuleSkeleton } from '../../../components/skeleton/viagens/ViagensTripSkeletons';
+import { useTripPageSkeleton } from '../../../hooks/useTripPageSkeleton';
 import { ViagensBackControl } from '../components/ViagensBackControl';
 import { ViagensPortalSection } from '../components/ViagensPortalSection';
 import type { TripDraft } from '../components/ViagemFicha';
@@ -50,6 +51,7 @@ export function ViagemVoosPage() {
     const navigate = useNavigate();
     const { pathname } = useLocation();
     const { trip, draft, error, saveError, saving, onDraftChange } = useTripAutosave(tripId);
+    const { showPageSkeleton } = useTripPageSkeleton(!trip || !draft);
     const draftRef = useRef(draft);
     draftRef.current = draft;
     const isEditor = pathname.includes('/emissao/');
@@ -127,12 +129,10 @@ export function ViagemVoosPage() {
         );
     }
 
-    if (!trip || !draft) {
+    if (showPageSkeleton || !trip || !draft) {
         return (
             <ViagensPortalSection ficha>
-                <div className="viagens-root viagens-ficha">
-                    <ScreenLoader label="Carregando transportes" />
-                </div>
+                <ViagensTripModuleSkeleton variant="transporte" />
             </ViagensPortalSection>
         );
     }

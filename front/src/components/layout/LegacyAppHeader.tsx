@@ -1,6 +1,13 @@
 import { useLocation } from 'react-router-dom';
 import { DashboardHeaderActions } from '../../frentes/dashboard/components/header/DashboardHeaderActions';
+import { useFinanceShellVeil } from '../../hooks/useFinanceShellVeil';
+import { useViagensShellVeil } from '../../hooks/useViagensShellVeil';
 import { LEGACY_PAGE_HEADERS, legacyPageIdFromPath } from '../../legacy/routeMap';
+import {
+    AppHeaderTitleSkeleton,
+    HeaderNotificationsSkeleton,
+    HeaderRightSkeleton
+} from '../skeleton/HeaderChromeSkeleton';
 import { MaterialIcon } from '../icons/MaterialIcon';
 import { HeaderNotifications } from './HeaderNotifications';
 import { MovementFacetHeaderActions } from './header/MovementFacetHeaderActions';
@@ -15,6 +22,7 @@ export function LegacyAppHeader() {
     const pageId = legacyPageIdFromPath(pathname) ?? 'dashboard';
     const meta = LEGACY_PAGE_HEADERS[pageId];
     const viagensAtlas = pathname === '/viagens' || pathname === '/viagens/';
+    const shellVeil = useFinanceShellVeil(pageId) || useViagensShellVeil(pageId);
 
     return (
         <>
@@ -23,45 +31,55 @@ export function LegacyAppHeader() {
             </button>
             <header className={`app-header ${meta.headerClass ?? ''}`}>
                 <div className="header-left">
-                    <div className="header-page-heading header-page-heading--emoji-swap" id="header-page-heading" aria-live="polite">
-                        <span className="header-page-emoji" id="current-page-emoji" aria-hidden="true">
-                            {meta.materialIcon ? (
-                                <MaterialIcon name={meta.materialIcon} variant="app" />
-                            ) : (
-                                <i className={`fas ${meta.icon}`} aria-hidden="true"></i>
-                            )}
-                        </span>
-                        <span className="header-page-title" id="current-page-title">
-                            {meta.title}
-                        </span>
-                    </div>
+                    {shellVeil ? (
+                        <AppHeaderTitleSkeleton />
+                    ) : (
+                        <div className="header-page-heading header-page-heading--emoji-swap" id="header-page-heading" aria-live="polite">
+                            <span className="header-page-emoji" id="current-page-emoji" aria-hidden="true">
+                                {meta.materialIcon ? (
+                                    <MaterialIcon name={meta.materialIcon} variant="app" />
+                                ) : (
+                                    <i className={`fas ${meta.icon}`} aria-hidden="true"></i>
+                                )}
+                            </span>
+                            <span className="header-page-title" id="current-page-title">
+                                {meta.title}
+                            </span>
+                        </div>
+                    )}
                 </div>
                 <div className="header-right">
-                    <DashboardHeaderActions hidden={pageId !== 'dashboard'} />
-                    <MovementFacetHeaderActions
-                        hidden={pageId !== 'gains'}
-                        id="gains-header-actions"
-                        ariaLabel="Ações de entradas"
-                        paidLabel="Recebido"
-                        unpaidLabel="Pendente"
-                        tone="gains"
-                        showQuickStatus={false}
-                    />
-                    <MovementFacetHeaderActions
-                        hidden={pageId !== 'expenses'}
-                        id="expenses-header-actions"
-                        ariaLabel="Ações de saídas"
-                        paidLabel="Pago"
-                        unpaidLabel="Pendente"
-                        tone="expenses"
-                        showQuickStatus={false}
-                    />
-                    <ViagensHeaderActions hidden={pageId !== 'viagens' || !viagensAtlas} />
-                    <ZeroBudgetHeaderActions hidden={pageId !== 'zero-budget'} />
-                    <WalletHeaderActions hidden={pageId !== 'wallet'} />
-                    <CofrinhosHeaderActions hidden={pageId !== 'cofrinhos'} />
-                    <DebtsHeaderActions hidden={pageId !== 'debts'} />
-                    <HeaderNotifications />
+                    {shellVeil ? (
+                        <HeaderRightSkeleton pageId={pageId} viagensAtlas={viagensAtlas} />
+                    ) : (
+                        <>
+                            <DashboardHeaderActions hidden={pageId !== 'dashboard'} />
+                            <MovementFacetHeaderActions
+                                hidden={pageId !== 'gains'}
+                                id="gains-header-actions"
+                                ariaLabel="Ações de entradas"
+                                paidLabel="Recebido"
+                                unpaidLabel="Pendente"
+                                tone="gains"
+                                showQuickStatus={false}
+                            />
+                            <MovementFacetHeaderActions
+                                hidden={pageId !== 'expenses'}
+                                id="expenses-header-actions"
+                                ariaLabel="Ações de saídas"
+                                paidLabel="Pago"
+                                unpaidLabel="Pendente"
+                                tone="expenses"
+                                showQuickStatus={false}
+                            />
+                            <ViagensHeaderActions hidden={pageId !== 'viagens' || !viagensAtlas} />
+                            <ZeroBudgetHeaderActions hidden={pageId !== 'zero-budget'} />
+                            <WalletHeaderActions hidden={pageId !== 'wallet'} />
+                            <CofrinhosHeaderActions hidden={pageId !== 'cofrinhos'} />
+                            <DebtsHeaderActions hidden={pageId !== 'debts'} />
+                        </>
+                    )}
+                    {shellVeil ? <HeaderNotificationsSkeleton /> : <HeaderNotifications />}
                 </div>
             </header>
         </>

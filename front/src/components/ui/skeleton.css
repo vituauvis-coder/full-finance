@@ -66,6 +66,71 @@
     border-radius: 999px;
 }
 
+/* Painel — faixa de facetas no app-header */
+.skeleton-dashboard-header-ribbon .movement-status-pills {
+    pointer-events: none;
+}
+
+.skeleton-dashboard-header-ribbon .movement-status-pills .skeleton--pill {
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.skeleton-dashboard-header-ribbon .movement-filter-ribbon__group--grow {
+    display: flex;
+    align-items: center;
+    min-width: 5.5rem;
+    flex: 1 1 8rem;
+    max-width: 11rem;
+}
+
+.skeleton-dashboard-header-ribbon .skeleton-dashboard-header-ribbon__category {
+    border-radius: 10px;
+    width: 100%;
+}
+
+.skeleton-header-title {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-width: 0;
+}
+
+.skeleton-header-title__emoji {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.skeleton-header-title__label {
+    border-radius: 6px;
+    flex-shrink: 0;
+}
+
+.skeleton-header-toolbar {
+    pointer-events: none;
+}
+
+.skeleton-header-toolbar .page-toolbar__cluster {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 3px;
+    border-radius: 10px;
+}
+
+.skeleton-header-toolbar__cta {
+    border-radius: 10px;
+}
+
+.skeleton-header-notifications {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+}
+
 .skeleton--circle {
     border-radius: 50%;
     flex-shrink: 0;

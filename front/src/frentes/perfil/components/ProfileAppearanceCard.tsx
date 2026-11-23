@@ -90,7 +90,7 @@ export function ProfileAppearanceCard({
                 />
 
                 <p className="profile-modern__hint profile-modern__hint--flush">
-                    O tema claro ou escuro está no menu lateral, em «Modo escuro».
+                    O tema claro ou escuro está no menu lateral, em «Tema escuro».
                 </p>
                 {appearanceMessage ? <p className="profile-modern__feedback">{appearanceMessage}</p> : null}
             </div>

@@ -2,18 +2,21 @@
  * Atlas — uma peça contínua (header + grid), sem cantos “quadrados” entre blocos.
  */
 
-.page-content.page-content--dashboard-modern:has(#viagens-page .viagens-casa-layout) {
+.page-content.page-content--dashboard-modern:has(#viagens-page .viagens-casa-layout),
+.page-content.page-content--dashboard-modern:has(#viagens-page .skeleton-viagens-atlas) {
     /* Laterais/topo = .page-content do portal; só zera o rodapé para o atlas preencher a viewport */
     padding: 2rem 2rem 0;
 }
 
 @media (max-width: 768px) {
-    .page-content.page-content--dashboard-modern:has(#viagens-page .viagens-casa-layout) {
+    .page-content.page-content--dashboard-modern:has(#viagens-page .viagens-casa-layout),
+    .page-content.page-content--dashboard-modern:has(#viagens-page .skeleton-viagens-atlas) {
         padding: 1rem 1rem 0;
     }
 }
 
-.page-content.page-content--dashboard-modern:has(#viagens-page .viagens-casa-layout) > .app-header {
+.page-content.page-content--dashboard-modern:has(#viagens-page .viagens-casa-layout) > .app-header,
+.page-content.page-content--dashboard-modern:has(#viagens-page .skeleton-viagens-atlas) > .app-header {
     margin-bottom: var(--dash-stack-gap, 1.25rem);
     border-radius: 12px;
     border: 1px solid var(--dash-border, var(--v-borda));
@@ -24,12 +27,42 @@
     background: transparent;
 }
 
-#viagens-page .viagens-casa-layout {
+#viagens-page .viagens-casa-layout,
+section.viagens-page.viagens-page--atlas-modern .viagens-casa-layout {
     gap: 0 !important;
     border: 1px solid var(--dash-border, var(--v-borda));
     border-radius: 12px;
     overflow: hidden;
     background: var(--dash-layer-raised, var(--v-painel));
+}
+
+/* Véu de rota — grid do atlas sem duplicar #viagens-page */
+section.viagens-page.viagens-page--atlas-modern .viagens-casa-layout {
+    display: grid;
+    grid-template-columns: min(400px, 38vw) minmax(0, 1fr);
+    flex: 1 1 auto;
+    align-items: stretch;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    max-height: none;
+}
+
+section.viagens-page.viagens-page--atlas-modern .viagens-casa-sidebar {
+    grid-column: 1;
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+section.viagens-page.viagens-page--atlas-modern .viagens-casa-main {
+    grid-column: 2;
+    min-height: 0;
+    padding: 0 !important;
+    background: var(--dash-layer-inset, var(--v-noite));
 }
 
 #viagens-page .viagens-casa-main {
@@ -42,4 +75,28 @@
     border: none !important;
     border-radius: 0 !important;
     box-shadow: none;
+}
+
+.page-content.page-content--dashboard-modern:has(#viagens-page .skeleton-viagens-atlas) .screen-swap {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.page-content.page-content--dashboard-modern:has(#viagens-page .skeleton-viagens-atlas) .screen-swap__stage {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+#viagens-page.viagens-page:has(.skeleton-viagens-atlas) {
+    flex: 1 1 auto;
+    min-height: 0;
+    gap: 0.5rem;
+    padding-bottom: 0;
+    overflow: hidden;
 }

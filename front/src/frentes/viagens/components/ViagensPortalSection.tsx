@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import '../styles/viagens-skeleton.css';
 
 type Props = {
     children: ReactNode;

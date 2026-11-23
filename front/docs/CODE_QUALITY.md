@@ -53,7 +53,7 @@ Referência para PRs e revisões. **Checklist obrigatório** ao alterar uma fren
 - **Spinner (`ScreenLoader`)** fica para: sessão/auth, rotas fullscreen sem skeleton, botões (`BusyButton`), blocos inline pequenos.
 - Troca de rota no shell: `RouteTransitionVeil` em `ScreenSwap` (mesmo layout que o skeleton da página destino).
 - Nova tela com fetch: criar ou estender um skeleton na mesma PR; se o layout for igual a outra página, reutilize o skeleton existente.
-- Duração mínima: `SKELETON_MIN_MS` (1s) em `lib/skeletonTiming.ts` — `useSkeletonMinDuration(loading)` na página e `ScreenSwap` na navegação. Respeitar `prefers-reduced-motion`.
+- Duração mínima: `SKELETON_MIN_MS` (10s) em `lib/skeletonTiming.ts` — `useSkeletonMinDuration(loading)` na página e `ScreenSwap` na navegação. Respeitar `prefers-reduced-motion`.
 - **Sem cores semânticas** no placeholder (verde entradas, vermelho saídas, acentos de timeline): só cinza / tokens `dash-*` e shimmer.
 
 ## CSS

@@ -10,11 +10,13 @@ import { CofrinhosHeaderSlotProvider } from '../../frentes/dinheiro/context/Cofr
 import { DebtsHeaderSlotProvider } from '../../frentes/dinheiro/context/DebtsHeaderSlotContext';
 import { WalletHeaderSlotProvider } from '../../frentes/dinheiro/context/WalletHeaderSlotContext';
 import { ViagensHeaderSlotProvider } from '../../frentes/viagens/context/ViagensHeaderSlotContext';
+import { ViagensShellVeilProvider } from '../../frentes/viagens/context/ViagensShellVeilContext';
 import { DashboardCategoryDrawer } from '../finance/DashboardCategoryDrawer';
 import { AppAmbientBackground } from './AppAmbientBackground';
 import { LegacyAppHeader } from './LegacyAppHeader';
 import { LegacySidebar } from './LegacySidebar';
 import { RouteErrorBoundary } from '../RouteErrorBoundary';
+import { RouteTransitionProvider } from './RouteTransitionContext';
 import { ScreenSwap } from './ScreenSwap';
 import { UiChipsHydrator } from '../../app/UiChipsHydrator';
 
@@ -76,6 +78,7 @@ export function LegacyAppShell() {
                 <CofrinhosHeaderSlotProvider>
                 <DebtsHeaderSlotProvider>
                 <WalletHeaderSlotProvider>
+                <ViagensShellVeilProvider>
                 <ViagensHeaderSlotProvider>
                     <UiChipsHydrator />
                     <div id="app" className="app-container">
@@ -87,17 +90,20 @@ export function LegacyAppShell() {
                                 }`}
                             >
                                 <AppAmbientBackground />
-                                <LegacyAppHeader />
-                                <RouteErrorBoundary>
-                                    <ScreenSwap>
-                                        <Outlet />
-                                    </ScreenSwap>
-                                </RouteErrorBoundary>
+                                <RouteTransitionProvider>
+                                    <LegacyAppHeader />
+                                    <RouteErrorBoundary>
+                                        <ScreenSwap>
+                                            <Outlet />
+                                        </ScreenSwap>
+                                    </RouteErrorBoundary>
+                                </RouteTransitionProvider>
                             </main>
                             <DashboardCategoryDrawer />
                         </motionMain>
                     </div>
                 </ViagensHeaderSlotProvider>
+                </ViagensShellVeilProvider>
                 </WalletHeaderSlotProvider>
                 </DebtsHeaderSlotProvider>
                 </CofrinhosHeaderSlotProvider>

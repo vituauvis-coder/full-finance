@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type MutableRefObject } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ScreenLoader } from '../../../components/ui/ScreenLoader';
+import { ViagensTripModuleSkeleton } from '../../../components/skeleton/viagens/ViagensTripSkeletons';
+import { useTripPageSkeleton } from '../../../hooks/useTripPageSkeleton';
 import { ViagensBackControl } from '../components/ViagensBackControl';
 import { ViagensPortalSection } from '../components/ViagensPortalSection';
 import type { TripDraft } from '../components/ViagemFicha';
@@ -34,6 +35,7 @@ export function ViagemRoteirosPage() {
     const { tripId } = useParams<{ tripId: string }>();
     const navigate = useNavigate();
     const { trip, draft, error, saveError, saving, onDraftChange, flushSave } = useTripAutosave(tripId);
+    const { showPageSkeleton } = useTripPageSkeleton(!trip || !draft);
     const draftRef = useRef(draft);
     draftRef.current = draft;
 
@@ -48,12 +50,10 @@ export function ViagemRoteirosPage() {
         );
     }
 
-    if (!trip || !draft) {
+    if (showPageSkeleton || !trip || !draft) {
         return (
             <ViagensPortalSection ficha>
-                <div className="viagens-root viagens-ficha">
-                    <ScreenLoader label="Carregando roteiro" />
-                </div>
+                <ViagensTripModuleSkeleton variant="roteiros" />
             </ViagensPortalSection>
         );
     }

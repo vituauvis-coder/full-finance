@@ -39,7 +39,7 @@ import {
     expenseRowCanConfirmCashOut
 } from '../../../lib/expenseRowCashOut';
 import { MovementsPageSkeleton } from '../../../components/skeleton/MovementsPageSkeleton';
-import { useSkeletonMinDuration } from '../../../hooks/useSkeletonMinDuration';
+import { useFinanceShellVeil } from '../../../hooks/useFinanceShellVeil';
 import { movementDate } from '../../../lib/period';
 import { useMovementListFilters } from '../context/MovementListFiltersContext';
 import { confirmExpenseCashOut, deleteExpense, patchExpensesBatch } from '../api/movements';
@@ -90,7 +90,7 @@ import { isCreditCardType } from '../../../lib/accounts';
 export function SaidasPage() {
     const { confirm } = useConfirm();
     const { data, loading, error, refresh } = useFinanceData();
-    const showSkeleton = useSkeletonMinDuration(loading);
+    const showSkeleton = useFinanceShellVeil('expenses');
     const listFilters = useMovementListFilters();
     const { period, year, onPeriodChange, onYearChange } = useCivilPeriodState();
     const [modalOpen, setModalOpen] = useState(false);

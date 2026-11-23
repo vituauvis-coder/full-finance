@@ -5,7 +5,7 @@ import { WalletPageSkeleton } from '../../../components/skeleton/WalletPageSkele
 import { useFinanceData } from '../../../app/FinanceDataProvider';
 import { CIVIL_YEAR_PERIOD, walletCatalogMonthIndex } from '../../../lib/period';
 import { useCivilPeriodState } from '../../../hooks/useCivilPeriodState';
-import { useSkeletonMinDuration } from '../../../hooks/useSkeletonMinDuration';
+import { useFinanceShellVeil } from '../../../hooks/useFinanceShellVeil';
 import type { Account } from '../../../lib/types/finance';
 import { WalletAccountFormModal } from '../wallet/WalletAccountFormModal';
 import { WalletCardCatalog } from '../components/wallet/WalletCardCatalog';
@@ -19,7 +19,7 @@ export function CarteiraPage() {
     const navigate = useNavigate();
     const listFilters = useMovementListFilters();
     const { data, loading, error, refresh } = useFinanceData();
-    const showSkeleton = useSkeletonMinDuration(loading);
+    const showSkeleton = useFinanceShellVeil('wallet');
     const { period, year, onPeriodChange, onYearChange } = useCivilPeriodState();
     const monthIndex = useMemo(() => walletCatalogMonthIndex(period, year), [period, year]);
     const onYearScopeSelect = useCallback(() => onPeriodChange(CIVIL_YEAR_PERIOD), [onPeriodChange]);

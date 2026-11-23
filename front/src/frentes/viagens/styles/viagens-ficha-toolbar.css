@@ -15,6 +15,26 @@
 
 .page-content.page-content--dashboard-modern:has(#viagens-page.viagens-page--ficha) .screen-swap {
     margin-top: 0;
+    flex: 1 1 auto;
+    min-height: min(calc(100dvh - 3.5rem), 100%);
+    display: flex;
+    flex-direction: column;
+}
+
+.page-content.page-content--dashboard-modern:has(#viagens-page.viagens-page--ficha .viagens-skeleton--trip-module) .screen-swap {
+    min-height: calc(100dvh - 3.5rem);
+}
+
+.page-content.page-content--dashboard-modern:has(#viagens-page.viagens-page--ficha) .screen-swap__stage {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+#viagens-page.viagens-page--ficha:has(.viagens-skeleton--trip-module) {
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 #viagens-page.viagens-page--ficha {

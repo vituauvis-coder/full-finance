@@ -21,7 +21,7 @@ import { useGainsTreemapPalette } from '../../../lib/treemapAccentPalette';
 import { buildGainTreemapBlocks } from '../../../lib/gainTreemap';
 import { useTablePagination } from '../../../hooks/useTablePagination';
 import { MovementsPageSkeleton } from '../../../components/skeleton/MovementsPageSkeleton';
-import { useSkeletonMinDuration } from '../../../hooks/useSkeletonMinDuration';
+import { useFinanceShellVeil } from '../../../hooks/useFinanceShellVeil';
 import { compareGainRows, useMovementSort, type GainSortKey } from '../../../hooks/useMovementSort';
 import { usePeriodSyncedDrawerDates } from '../../../hooks/usePeriodSyncedDrawerDates';
 import { GainBatchModal } from '../../../components/finance/GainBatchModal';
@@ -44,7 +44,7 @@ import { GainsTabbedLedger } from '../components/GainsTabbedLedger';
 export function EntradasPage() {
     const { confirm } = useConfirm();
     const { data, loading, error, refresh } = useFinanceData();
-    const showSkeleton = useSkeletonMinDuration(loading);
+    const showSkeleton = useFinanceShellVeil('gains');
     const listFilters = useMovementListFilters();
     const { period, year, onPeriodChange, onYearChange } = useCivilPeriodState();
     const [modalOpen, setModalOpen] = useState(false);

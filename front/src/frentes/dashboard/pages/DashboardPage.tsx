@@ -8,7 +8,7 @@ import { useDashboardFacets } from '../context/DashboardFacetsContext';
 import { computeDashboardMetrics, type DashboardMetricsDisplay } from '../domain/dashboardMetrics';
 import { acceptedOutgoingSplits } from '../domain/splitRequestsForBalance';
 import { DashboardPageSkeleton } from '../../../components/skeleton/DashboardPageSkeleton';
-import { useSkeletonMinDuration } from '../../../hooks/useSkeletonMinDuration';
+import { useFinanceShellVeil } from '../../../hooks/useFinanceShellVeil';
 
 const EMPTY_METRICS: DashboardMetricsDisplay = {
     balance: '—',
@@ -25,8 +25,8 @@ const EMPTY_METRICS: DashboardMetricsDisplay = {
 };
 
 export function DashboardPage() {
-    const { data, loading, error } = useFinanceData();
-    const showSkeleton = useSkeletonMinDuration(loading);
+    const { data, error } = useFinanceData();
+    const showSkeleton = useFinanceShellVeil('dashboard');
     const facetsCtx = useDashboardFacets();
     const { period, year, onPeriodChange, onYearChange, selectChartMonth } = useCivilPeriodState();
     const [cards, setCards] = useState<DashboardMetricsDisplay>(EMPTY_METRICS);

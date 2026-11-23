@@ -3,7 +3,7 @@ import { updateDebt } from '../api/debts';
 import type { DebtColorKey } from '../domain/debtColors';
 import { useFinanceData } from '../../../app/FinanceDataProvider';
 import { DebtsPageSkeleton } from '../../../components/skeleton/DebtsPageSkeleton';
-import { useSkeletonMinDuration } from '../../../hooks/useSkeletonMinDuration';
+import { useFinanceShellVeil } from '../../../hooks/useFinanceShellVeil';
 import { debtsSummaryFromData } from '../domain/debtSummaryStats';
 import type { Debt, DebtUpdate } from '../domain/debtTypes';
 import { useDebtsHeaderRegistration } from '../context/DebtsHeaderSlotContext';
@@ -18,7 +18,7 @@ import {
 
 export function DividasPage() {
     const { data, loading, error, refresh } = useFinanceData();
-    const showSkeleton = useSkeletonMinDuration(loading);
+    const showSkeleton = useFinanceShellVeil('debts');
     const modals = useDebtsModals();
 
     const currency = data?.userProfile?.currency ?? 'BRL';

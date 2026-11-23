@@ -6,11 +6,15 @@ import { ZeroBudgetSkeletonLayout } from '../skeleton/ZeroBudgetPageSkeleton';
 import { WalletSkeletonLayout } from '../skeleton/WalletPageSkeleton';
 import { CofrinhosSkeletonLayout } from '../skeleton/CofrinhosPageSkeleton';
 import { DebtsSkeletonLayout } from '../skeleton/DebtsPageSkeleton';
+import { ViagensTripSkeletonByVariant } from '../skeleton/viagens/ViagensTripSkeletons';
+import { viagensSkeletonVariantFromLocation } from '../skeleton/viagens/viagensSkeletonRoute';
 
 type VeilRoute = {
     sectionClass: string;
     sectionId?: string;
     layout: ReactNode;
+    /** Atlas / ficha — ocupa a viewport sem gap do `.skeleton-page`. */
+    flushLayout?: boolean;
 };
 
 const GAINS_VEIL: MovementsSkeletonConfig = {
@@ -25,8 +29,22 @@ const EXPENSES_VEIL: MovementsSkeletonConfig = {
     cardCount: 4
 };
 
-function veilForPath(pathname: string): VeilRoute | null {
+function veilForPath(pathname: string, search: string): VeilRoute | null {
     const path = pathname.replace(/\/+$/, '') || '/';
+
+    const viagensVariant = viagensSkeletonVariantFromLocation(path, search);
+    if (viagensVariant === 'atlas') {
+        return {
+            sectionId: 'viagens-page',
+            sectionClass: 'viagens-page viagens-page--atlas-modern',
+            flushLayout: true,
+            layout: (
+                <div className="viagens-root">
+                    <ViagensTripSkeletonByVariant variant="atlas" />
+                </div>
+            )
+        };
+    }
 
     if (path === '/dashboard') {
         return {
@@ -90,14 +108,14 @@ function veilForPath(pathname: string): VeilRoute | null {
 
 /** Véu decorativo na troca de rota — mesmo skeleton do carregamento inicial. */
 export function RouteTransitionVeil() {
-    const { pathname } = useLocation();
-    const route = veilForPath(pathname);
+    const { pathname, search } = useLocation();
+    const route = veilForPath(pathname, search);
     if (!route) return null;
 
     return (
         <div className="screen-swap__veil" aria-hidden="true">
-            <section id={route.sectionId} className={route.sectionClass}>
-                <div className="skeleton-page">{route.layout}</div>
+            <section {...(route.sectionId ? { id: route.sectionId } : {})} className={route.sectionClass}>
+                {route.flushLayout ? route.layout : <div className="skeleton-page">{route.layout}</div>}
             </section>
         </div>
     );

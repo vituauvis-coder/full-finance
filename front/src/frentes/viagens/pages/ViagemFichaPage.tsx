@@ -6,10 +6,13 @@ import { ViagemFicha, type TripDraft } from '../components/ViagemFicha';
 import { parseFichaModulo, type FichaModuloId } from '../components/ViagemModulos';
 import { TripSimuladorOverlay } from '../components/TripSimuladorOverlay';
 import { useTripAutosave } from '../hooks/useTripAutosave';
-import { ScreenLoader } from '../../../components/ui/ScreenLoader';
+import { ViagensTripModuleSkeleton } from '../../../components/skeleton/viagens/ViagensTripSkeletons';
+import { useTripPageSkeleton } from '../../../hooks/useTripPageSkeleton';
 import { ViagemFichaHero } from '../components/ViagemFichaHero';
 import { ViagensBackControl } from '../components/ViagensBackControl';
 import '../styles/viagens-ficha-toolbar.css';
+import '../styles/viagens-ficha-form.css';
+import '../styles/orcamento-workspace.css';
 import '../theme/viagens-theme.css';
 
 export function ViagemFichaPage() {
@@ -38,6 +41,7 @@ export function ViagemFichaPage() {
     const [simOpen, setSimOpen] = useState(false);
     const [searchParams, setSearchParams] = useSearchParams();
     const fichaModulo = parseFichaModulo(searchParams.get('modulo'));
+    const { showPageSkeleton } = useTripPageSkeleton(!trip || !draft);
 
     useEffect(() => {
         if (fichaModulo === 'hospedagens' && tripId) {
@@ -87,12 +91,11 @@ export function ViagemFichaPage() {
         );
     }
 
-    if (!trip || !draft) {
+    if (showPageSkeleton || !trip || !draft) {
+        const variant = fichaModulo === 'orcamento' ? 'orcamento' : 'ficha';
         return (
             <ViagensPortalSection ficha>
-                <div className="viagens-root viagens-ficha">
-                    <ScreenLoader label="Carregando ficha" />
-                </div>
+                <ViagensTripModuleSkeleton variant={variant} />
             </ViagensPortalSection>
         );
     }

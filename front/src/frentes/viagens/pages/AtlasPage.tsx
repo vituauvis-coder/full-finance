@@ -13,7 +13,8 @@ import '../styles/viagens-atlas-chrome.css';
 import '../styles/viagens-map-atlas-theme.css';
 import '../styles/viagens-header-actions.css';
 import '../theme/viagens-theme.css';
-import { ScreenLoader } from '../../../components/ui/ScreenLoader';
+import { AtlasSkeletonLayout } from '../../../components/skeleton/viagens/ViagensTripSkeletons';
+import { useViagensAtlasSkeleton } from '../../../hooks/useViagensShellVeil';
 
 export function AtlasPage() {
     const navigate = useNavigate();
@@ -21,6 +22,7 @@ export function AtlasPage() {
     const [visits, setVisits] = useState<MapVisit[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
+    const { routePending, showPageSkeleton } = useViagensAtlasSkeleton(loading);
     const [focusedTripId, setFocusedTripId] = useState<string | null>(null);
     const load = useCallback(async () => {
         try {
@@ -40,16 +42,18 @@ export function AtlasPage() {
         void load();
     }, [load]);
 
+    if (routePending) return null;
+
     return (
-        <ViagensPortalSection>
+        <ViagensPortalSection atlasModern>
             <div className="viagens-root">
                 {error ? (
                     <p role="alert" className="viagens-toast viagens-toast--error">
                         {error}
                     </p>
                 ) : null}
-                {loading ? (
-                    <ScreenLoader label="Carregando atlas" />
+                {showPageSkeleton ? (
+                    <AtlasSkeletonLayout />
                 ) : (
                     <div className="viagens-casa-layout">
                         <div className="viagens-casa-sidebar">

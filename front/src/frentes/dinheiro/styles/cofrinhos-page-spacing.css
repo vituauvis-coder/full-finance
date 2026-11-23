@@ -147,8 +147,86 @@
 }
 
 #cofrinhos-page .cofrinhos-page__chart-skeleton.skeleton-panel__body--chart {
-    min-height: 7.5rem;
-    height: 7.5rem;
+    min-height: 18.75rem;
+    height: 18.75rem;
+}
+
+/* Skeleton — gráfico anual, tabela de caixinhas e extrato */
+#cofrinhos-page .skeleton-cofrinhos-annual-chart__canvas {
+    min-height: 18.75rem;
+    height: 18.75rem;
+    width: 100%;
+    border-radius: calc(var(--dash-surface-radius) - 4px);
+}
+
+#cofrinhos-page .skeleton-cofrinhos-annual-chart__month {
+    height: 0.55rem;
+    width: 72%;
+    margin: 0 auto;
+    border-radius: 4px;
+}
+
+#cofrinhos-page .skeleton-cofrinhos-annual-chart__legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem 0.85rem;
+}
+
+#cofrinhos-page .skeleton-cofrinhos-annual-chart__legend-item {
+    width: 5.5rem;
+    height: 0.7rem;
+    border-radius: 6px;
+}
+
+#cofrinhos-page .skeleton-cofrinho-bucket-table__name-wrap {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+}
+
+#cofrinhos-page .skeleton-cofrinho-bucket-table__row .cofrinho-bucket-table__cell--name {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+}
+
+#cofrinhos-page .skeleton-cofrinho-bucket-table__progress {
+    display: block;
+    width: 100%;
+    max-width: 7.5rem;
+    height: 0.28rem;
+    margin-top: 0.25rem;
+    border-radius: 999px;
+}
+
+#cofrinhos-page .skeleton-cofrinho-bucket-table__action {
+    width: 4.85rem;
+    height: 1.85rem;
+    border-radius: 8px;
+}
+
+#cofrinhos-page .skeleton-cofrinhos-ledger-filter__pill {
+    width: 6.25rem;
+    height: 1.85rem;
+    border-radius: 8px;
+}
+
+#cofrinhos-page .skeleton-cofrinhos-ledger__bucket-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-width: 0;
+}
+
+#cofrinhos-page .skeleton-cofrinhos-ledger__account-tag {
+    width: 4.25rem;
+    height: 1.35rem;
+    border-radius: 6px;
+}
+
+#cofrinhos-page .skeleton-cofrinhos-ledger__summary-card {
+    gap: 0.35rem;
 }
 
 .page-content--dashboard-modern #cofrinhos-page .skeleton-zero-budget__block-card {

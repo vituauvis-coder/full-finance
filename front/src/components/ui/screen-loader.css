@@ -102,8 +102,11 @@
     box-sizing: border-box;
 }
 
-.screen-swap__veil > .page {
+.screen-swap__veil > .page,
+.screen-swap__veil > section {
     width: 100%;
+    min-height: 100%;
+    box-sizing: border-box;
     background: transparent;
 }
 

@@ -16,11 +16,11 @@ import {
 } from '../domain/zeroBudgetPlanning';
 import type { ZeroBudgetBlock } from '../domain/zeroBudgetTypes';
 import { ZeroBudgetPageSkeleton } from '../../../components/skeleton/ZeroBudgetPageSkeleton';
-import { useSkeletonMinDuration } from '../../../hooks/useSkeletonMinDuration';
+import { useFinanceShellVeil } from '../../../hooks/useFinanceShellVeil';
 
 export function PlanejamentoPage() {
     const { data, loading, error } = useFinanceData();
-    const showInitialSkeleton = useSkeletonMinDuration(loading || !data);
+    const showInitialSkeleton = useFinanceShellVeil('zero-budget');
     const { period, year, onPeriodChange, onYearChange } = useCivilPeriodState();
     const [blocks, setBlocks] = useState<ZeroBudgetBlock[]>([]);
     const [blocksLoading, setBlocksLoading] = useState(true);

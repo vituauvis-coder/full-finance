@@ -1666,3 +1666,83 @@
     }
 
 }
+
+/* Skeleton — espelha tri-painel + catálogo */
+#wallet-page.wallet-page--modern .skeleton-wallet-tri-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    min-height: 0;
+}
+
+#wallet-page.wallet-page--modern .skeleton-wallet-tri-col .skeleton-panel__body--heatmap {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+}
+
+#wallet-page.wallet-page--modern .skeleton-wallet-buckets {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    margin-top: auto;
+    padding-top: 0.4rem;
+}
+
+#wallet-page.wallet-page--modern .skeleton-wallet-bucket {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+#wallet-page.wallet-page--modern .skeleton-wallet-ledger__rows {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    overflow: hidden;
+    padding-top: 0.15rem;
+}
+
+#wallet-page.wallet-page--modern .skeleton-wallet-ledger__row {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+#wallet-page.wallet-page--modern .skeleton-wallet-catalog-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    min-width: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--dash-surface-border);
+    border-radius: calc(var(--dash-surface-radius) + 2px);
+    background: linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--dash-layer-control) 65%, var(--dash-surface-bg)) 0%,
+        var(--dash-surface-bg) 42%
+    );
+    box-shadow: var(--dash-surface-shadow);
+}
+
+#wallet-page.wallet-page--modern .skeleton-wallet-catalog-row__plastic {
+    width: calc(100% - 1.4rem);
+    max-width: var(--wallet-catalog-plastic-w, 11.25rem);
+    aspect-ratio: 11.25 / 7.35;
+    margin: 0.55rem auto 0;
+    border-radius: var(--wallet-catalog-plastic-radius, 16px);
+}
+
+#wallet-page.wallet-page--modern .skeleton-wallet-catalog-row__copy {
+    padding: 0.35rem 0.7rem 0.7rem;
+}
+
+#wallet-page.wallet-page--modern .skeleton-wallet-catalog-row__kpis {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-top: 0.5rem;
+}

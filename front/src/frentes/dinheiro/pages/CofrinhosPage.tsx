@@ -1,7 +1,7 @@
 import { CofrinhosPageSkeleton } from '../../../components/skeleton/CofrinhosPageSkeleton';
 import { useFinanceData } from '../../../app/FinanceDataProvider';
 import { useCofrinhosPeriodState } from '../hooks/useCofrinhosPeriodState';
-import { useSkeletonMinDuration } from '../../../hooks/useSkeletonMinDuration';
+import { useFinanceShellVeil } from '../../../hooks/useFinanceShellVeil';
 import { useCofrinhosHeaderRegistration } from '../context/CofrinhosHeaderSlotContext';
 import { useCofrinhosPageModel } from '../hooks/useCofrinhosPageModel';
 import { useCofrinhosModals } from '../hooks/useCofrinhosModals';
@@ -10,7 +10,7 @@ import { CofrinhosPageModals, CofrinhosPageShell, CofrinhosPageWorkspace } from 
 
 export function CofrinhosPage() {
     const { data, loading, error, refresh } = useFinanceData();
-    const showSkeleton = useSkeletonMinDuration(loading || !data);
+    const showSkeleton = useFinanceShellVeil('cofrinhos');
     useCofrinhosPeriodState();
     const modals = useCofrinhosModals();
     const model = useCofrinhosPageModel(data);
