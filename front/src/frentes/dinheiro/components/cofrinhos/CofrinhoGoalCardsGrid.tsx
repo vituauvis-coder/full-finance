@@ -63,8 +63,12 @@ export function CofrinhoGoalCardsGrid({
                     <span role="columnheader" className="cofrinhos-buckets-table__th-num cofrinhos-buckets-table__th-valor">
                         Valor aportado
                     </span>
-                    <span role="columnheader" className="cofrinhos-buckets-table__th-num">
-                        Rendeu
+                    <span
+                        role="columnheader"
+                        className="cofrinhos-buckets-table__th-num"
+                        title="Aportes + rendimento registrado"
+                    >
+                        Total
                     </span>
                     <span role="columnheader" className="cofrinhos-buckets-table__th-progress">
                         Progresso

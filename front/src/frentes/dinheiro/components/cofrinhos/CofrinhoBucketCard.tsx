@@ -97,14 +97,13 @@ export function CofrinhoBucketCard({
             </span>
 
             <span
-                className="cofrinho-bucket-table__cell cofrinho-bucket-table__cell--yield cofrinho-bucket-table__cell--num"
+                className={`cofrinho-bucket-table__cell cofrinho-bucket-table__cell--yield cofrinho-bucket-table__cell--num${hasYield ? ' has-yield-delta' : ''}`}
                 role="cell"
             >
+                <strong className="cofrinho-bucket-table__yield-total">{formatBRL(accumulated, currency)}</strong>
                 {hasYield ? (
-                    <span className="cofrinho-bucket-table__yield has-value">+{formatBRL(rendeu, currency)}</span>
-                ) : (
-                    <span className="cofrinho-bucket-table__yield">—</span>
-                )}
+                    <span className="cofrinho-bucket-table__yield-delta">+{formatBRL(rendeu, currency)}</span>
+                ) : null}
             </span>
 
             <span className="cofrinho-bucket-table__cell cofrinho-bucket-table__cell--progress" role="cell">
