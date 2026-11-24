@@ -968,6 +968,41 @@
     margin: 0;
 }
 
+.profile-modern__currency-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 10px;
+    border: 1px solid var(--dash-border);
+    background: var(--dash-layer-inset);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.profile-modern__currency-wrap:focus-within {
+    border-color: var(--accent-color, #3b82f6);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-color, #3b82f6) 16%, transparent);
+}
+
+.profile-modern__currency-prefix {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--dash-text-tertiary);
+    user-select: none;
+}
+
+.profile-modern__currency-input {
+    width: 100%;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    font-size: 1rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    color: var(--dash-text-primary);
+}
+
 .profile-modern__prose {
     margin: 0 0 0.25rem;
     font-size: 0.8125rem;

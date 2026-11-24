@@ -8,6 +8,7 @@ import { CofrinhosSkeletonLayout } from '../skeleton/CofrinhosPageSkeleton';
 import { DebtsSkeletonLayout } from '../skeleton/DebtsPageSkeleton';
 import { ViagensTripSkeletonByVariant } from '../skeleton/viagens/ViagensTripSkeletons';
 import { viagensSkeletonVariantFromLocation } from '../skeleton/viagens/viagensSkeletonRoute';
+import { EstudosHomeSkeletonLayout } from '../skeleton/EstudosPageSkeleton';
 
 type VeilRoute = {
     sectionClass: string;
@@ -101,6 +102,14 @@ function veilForPath(pathname: string, search: string): VeilRoute | null {
             sectionClass:
                 'page active debts-page debts-page--modern movements-page--modern movements-page--compact',
             layout: <DebtsSkeletonLayout />
+        };
+    }
+
+    if (path === '/estudos' || path.startsWith('/estudos/')) {
+        return {
+            sectionId: 'estudos-page',
+            sectionClass: 'page active estudos-page',
+            layout: <EstudosHomeSkeletonLayout />
         };
     }
 

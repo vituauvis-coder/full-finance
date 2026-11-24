@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
-import { normalizeSplitScope } from '@motor/dinheiro/split-net.js';
+import { expenseIdForSplitLookup, normalizeSplitScope } from '@motor/dinheiro/split-net.js';
 import type { Account, ExpenseSplitRequest, Movement } from '../../../lib/types/finance';
 import { formatBRL } from '../../../lib/format';
 import { DialogForm, DialogFrame } from '../../../components/ui/dialog';
@@ -61,17 +61,24 @@ export function ExpenseSplitModal({
     const [recipientEmail, setRecipientEmail] = useState('');
     const [scope, setScope] = useState<'FULL_EXPENSE' | 'INSTALLMENT'>('FULL_EXPENSE');
     const [installmentIndex, setInstallmentIndex] = useState('');
-    const [amountMode, setAmountMode] = useState<'per_installment' | 'total'>('per_installment');
+    const [amountMode, setAmountMode] = useState<'per_installment' | 'total'>('total');
     const [amount, setAmount] = useState('');
     const [creditAccountId, setCreditAccountId] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
     const [removingId, setRemovingId] = useState<string | null>(null);
 
-    const nParc = Math.max(1, parseInt(String(expense?.installmentCount ?? '1'), 10) || 1);
+    const splitExpense = useMemo(() => {
+        if (!expense) return null;
+        const baseId = expenseIdForSplitLookup(expense);
+        if (baseId === expense.id) return expense;
+        return { ...expense, id: baseId };
+    }, [expense]);
+
+    const nParc = Math.max(1, parseInt(String(splitExpense?.installmentCount ?? '1'), 10) || 1);
     const existing = useMemo(
-        () => (expense ? outgoingForExpense(outgoing, expense.id) : []),
-        [expense, outgoing]
+        () => (splitExpense ? outgoingForExpense(outgoing, splitExpense.id) : []),
+        [splitExpense, outgoing]
     );
     const creditAccountOptions = useMemo(
         () => buildSplitCreditAccountOptions(accounts, ownerUserId),
@@ -79,18 +86,18 @@ export function ExpenseSplitModal({
     );
 
     const money = useMemo(() => {
-        if (!expense) return null;
+        if (!splitExpense) return null;
         const idx = parseInt(installmentIndex, 10);
         return computeSplitMoneyContext(
-            expense,
+            splitExpense,
             outgoing,
             scope,
             Number.isFinite(idx) ? idx : null
         );
-    }, [expense, outgoing, scope, installmentIndex]);
+    }, [splitExpense, outgoing, scope, installmentIndex]);
 
     useEffect(() => {
-        if (!open || !expense) return;
+        if (!open || !splitExpense) return;
         setError(null);
         setRecipientEmail('');
         const wantScope =
@@ -101,7 +108,7 @@ export function ExpenseSplitModal({
                 ? String(preferredInstallmentIndex)
                 : ''
         );
-        setAmountMode('per_installment');
+        setAmountMode(wantScope === 'FULL_EXPENSE' ? 'total' : 'per_installment');
         setCreditAccountId(creditAccountOptions[0]?.id ?? '');
         setUsersError(null);
         void fetchUsersForSplit()
@@ -110,7 +117,7 @@ export function ExpenseSplitModal({
                 setUsers([]);
                 setUsersError(err instanceof Error ? err.message : 'Erro ao carregar usuários');
             });
-    }, [open, expense, preferredScope, preferredInstallmentIndex, nParc, creditAccountOptions]);
+    }, [open, splitExpense, preferredScope, preferredInstallmentIndex, nParc, creditAccountOptions]);
 
     useEffect(() => {
         if (!open || !money) return;
@@ -124,7 +131,7 @@ export function ExpenseSplitModal({
         }
     }, [open, money?.remaining, money?.n, money?.per, money?.scope, amountMode, scope, installmentIndex]);
 
-    const desc = String(expense?.description || '').trim() || 'Saída';
+    const desc = String(splitExpense?.description || '').trim() || 'Saída';
     const showAmountMode = !!(money && money.scope === 'FULL_EXPENSE' && money.n >= 2);
     const amountLabel =
         showAmountMode && amountMode === 'per_installment' ? 'Valor por parcela' : 'Valor';
@@ -136,7 +143,7 @@ export function ExpenseSplitModal({
 
     async function onSubmit(e: FormEvent) {
         e.preventDefault();
-        if (!expense || !money) return;
+        if (!splitExpense || !money) return;
         const email = recipientEmail.trim().toLowerCase();
         let amt = parseFloat(amount);
         if (!email || !Number.isFinite(amt) || amt <= 0) {
@@ -160,13 +167,13 @@ export function ExpenseSplitModal({
         }
         const periodKey =
             money.scope === 'INSTALLMENT' && money.installmentIndex
-                ? preferredPeriodKey || monthKeyFromExpenseDate(expense, money.installmentIndex)
+                ? preferredPeriodKey || monthKeyFromExpenseDate(splitExpense, money.installmentIndex)
                 : null;
         setSaving(true);
         setError(null);
         try {
             await createExpenseSplitRequest({
-                sourceExpenseId: expense.id,
+                sourceExpenseId: splitExpense.id,
                 recipientEmail: email,
                 amount: amt,
                 requesterCreditAccountId: creditAccountId,

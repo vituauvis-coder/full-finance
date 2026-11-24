@@ -1,6 +1,11 @@
 import { useCallback, useMemo, useState } from 'react';
 import { movementDate } from '../lib/period';
+import { readMovementLedgerSort, writeMovementLedgerSort } from '../lib/movementLedgerStorage';
 import type { Movement } from '../lib/types/finance';
+import {
+    expenseInstallmentRowDisplayDate,
+    isExpenseInstallmentTableRow
+} from '../frentes/dinheiro/domain/expenseInstallmentTableRows';
 
 export type SortDir = 'asc' | 'desc';
 
@@ -10,20 +15,45 @@ export type ExpenseSortKey = 'date' | 'description' | 'category' | 'account' | '
 export function useMovementSort<T extends string>(
     rows: Movement[],
     defaultKey: T,
-    compare: (a: Movement, b: Movement, key: T, dir: SortDir, accountLabel: (id?: string) => string) => number
+    compare: (a: Movement, b: Movement, key: T, dir: SortDir, accountLabel: (id?: string) => string) => number,
+    sortStorageKey?: string,
+    validSortKeys?: readonly T[]
 ) {
-    const [sortKey, setSortKey] = useState<T>(defaultKey);
-    const [sortDir, setSortDir] = useState<SortDir>('desc');
+    const [sortKey, setSortKey] = useState<T>(() => {
+        if (sortStorageKey && validSortKeys?.length) {
+            return readMovementLedgerSort(sortStorageKey, validSortKeys, defaultKey).key;
+        }
+        return defaultKey;
+    });
+    const [sortDir, setSortDir] = useState<SortDir>(() => {
+        if (sortStorageKey && validSortKeys?.length) {
+            return readMovementLedgerSort(sortStorageKey, validSortKeys, defaultKey).dir;
+        }
+        return defaultKey === 'date' || defaultKey === 'amount' ? 'desc' : 'asc';
+    });
+
+    const persistSort = useCallback(
+        (key: T, dir: SortDir) => {
+            if (!sortStorageKey) return;
+            writeMovementLedgerSort(sortStorageKey, { key, dir });
+        },
+        [sortStorageKey]
+    );
 
     const applySort = useCallback(
         (key: T) => {
-            if (key === sortKey) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
-            else {
+            if (key === sortKey) {
+                const nextDir: SortDir = sortDir === 'asc' ? 'desc' : 'asc';
+                setSortDir(nextDir);
+                persistSort(sortKey, nextDir);
+            } else {
+                const nextDir: SortDir = key === 'date' || key === 'amount' ? 'desc' : 'asc';
                 setSortKey(key);
-                setSortDir(key === 'date' || key === 'amount' ? 'desc' : 'asc');
+                setSortDir(nextDir);
+                persistSort(key, nextDir);
             }
         },
-        [sortKey]
+        [sortKey, sortDir, persistSort]
     );
 
     const toggleSort = applySort;
@@ -82,9 +112,16 @@ export function compareExpenseRows(
 ) {
     let cmp = 0;
     switch (key) {
-        case 'date':
-            cmp = movementDate(a).getTime() - movementDate(b).getTime();
+        case 'date': {
+            const da = isExpenseInstallmentTableRow(a)
+                ? expenseInstallmentRowDisplayDate(a)
+                : movementDate(a);
+            const db = isExpenseInstallmentTableRow(b)
+                ? expenseInstallmentRowDisplayDate(b)
+                : movementDate(b);
+            cmp = da.getTime() - db.getTime();
             break;
+        }
         case 'description':
             cmp = String(a.description ?? '').localeCompare(String(b.description ?? ''), 'pt-BR');
             break;

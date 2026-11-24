@@ -1,0 +1,117 @@
+/**
+ * Entradas / Saídas — header do shell + faixa de período integrados ao canvas.
+ */
+
+:is(#gains-page, #expenses-page).movements-page--modern {
+    --movements-chrome-shell: transparent;
+    --movements-chrome-border: color-mix(in srgb, var(--dash-border) 55%, transparent);
+    --movements-chrome-inset: color-mix(in srgb, var(--dash-text-primary) 4%, var(--dash-layer-canvas));
+    --movements-chrome-panel: color-mix(in srgb, var(--dash-text-primary) 3.5%, var(--dash-layer-canvas));
+}
+
+.page-content--dashboard-modern > .app-header.app-header--gains:has(+ #gains-page.movements-page--modern),
+.page-content--dashboard-modern > .app-header.app-header--expenses:has(+ #expenses-page.movements-page--modern) {
+    background: var(--movements-chrome-shell);
+    border: none;
+    border-bottom: 1px solid var(--movements-chrome-border);
+    border-radius: 0;
+    box-shadow: none;
+}
+
+:is(#gains-page, #expenses-page).movements-page--modern .civil-period-timeline.civil-period-timeline--surfaced {
+    background: var(--movements-chrome-shell) !important;
+    border: none !important;
+    border-bottom: 1px solid var(--movements-chrome-border) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+:is(#gains-page, #expenses-page).movements-page--modern .movements-toolbar {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+:is(#gains-page, #expenses-page).movements-page--modern
+    .civil-period-timeline--surfaced
+    .civil-period-timeline__year-stepper {
+    background: var(--movements-chrome-inset);
+    border-color: var(--movements-chrome-border);
+    box-shadow: none;
+}
+
+:is(#gains-page, #expenses-page).movements-page--modern
+    .civil-period-timeline--surfaced
+    .civil-period-timeline__year-btn {
+    background: transparent;
+}
+
+:is(#gains-page, #expenses-page).movements-page--modern
+    .civil-period-timeline--surfaced
+    .civil-period-timeline__year-btn:hover {
+    background: var(--movements-chrome-panel);
+}
+
+:is(#gains-page, #expenses-page).movements-page--modern
+    .civil-period-timeline--surfaced
+    .civil-period-timeline__month-btn {
+    border-color: var(--movements-chrome-border);
+    background: transparent;
+    box-shadow: none;
+}
+
+:is(#gains-page, #expenses-page).movements-page--modern
+    .civil-period-timeline--surfaced
+    .civil-period-timeline__month-btn:hover {
+    background: var(--movements-chrome-inset);
+    border-color: var(--dash-border-strong, var(--dash-border));
+}
+
+:is(#gains-page, #expenses-page).movements-page--modern .civil-period-timeline__scope-btn {
+    border-color: var(--movements-chrome-border);
+    background: transparent;
+}
+
+:is(#gains-page, #expenses-page).movements-page--modern .civil-period-timeline__scope-btn:hover {
+    background: var(--movements-chrome-inset);
+    border-color: var(--dash-border-strong, var(--dash-border));
+}
+
+:is(#gains-page, #expenses-page).movements-page--modern
+    .civil-period-timeline__year-stepper.is-year-scope {
+    border-color: color-mix(in srgb, var(--cpt-accent) 36%, var(--movements-chrome-border));
+}
+
+.page-content--dashboard-modern
+    > .app-header.app-header--gains:has(+ #gains-page.movements-page--modern)
+    #gains-header-actions
+    .header-quick-filter-btn--ghost:not(.active):not([aria-pressed='true']),
+.page-content--dashboard-modern
+    > .app-header.app-header--expenses:has(+ #expenses-page.movements-page--modern)
+    #expenses-header-actions
+    .header-quick-filter-btn--ghost:not(.active):not([aria-pressed='true']) {
+    border-color: var(--movements-chrome-border);
+    background: var(--movements-chrome-inset);
+}
+
+:is(#gains-page, #expenses-page).movements-page--modern .skeleton-timeline.civil-period-timeline--surfaced {
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 1px solid var(--movements-chrome-border) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+:is(#gains-page, #expenses-page).movements-page--modern .skeleton-timeline .civil-period-timeline__year-stepper {
+    background: var(--movements-chrome-inset);
+    border-color: var(--movements-chrome-border);
+}
+
+:is(#gains-page, #expenses-page).movements-page--modern .skeleton-timeline .civil-period-timeline__month-btn {
+    background: transparent !important;
+    border-color: var(--movements-chrome-border) !important;
+    box-shadow: none !important;
+}

@@ -23,6 +23,10 @@ import { useTablePagination } from '../../../hooks/useTablePagination';
 import { MovementsPageSkeleton } from '../../../components/skeleton/MovementsPageSkeleton';
 import { useFinanceShellVeil } from '../../../hooks/useFinanceShellVeil';
 import { compareGainRows, useMovementSort, type GainSortKey } from '../../../hooks/useMovementSort';
+import {
+    GAIN_SORT_KEYS,
+    GAINS_LEDGER_SORT_STORAGE_KEY
+} from '../../../lib/movementLedgerStorage';
 import { usePeriodSyncedDrawerDates } from '../../../hooks/usePeriodSyncedDrawerDates';
 import { GainBatchModal } from '../../../components/finance/GainBatchModal';
 import { useMovementListFilters } from '../context/MovementListFiltersContext';
@@ -104,7 +108,9 @@ export function EntradasPage() {
     const { sortKey, sortDir, toggleSort, sortRows } = useMovementSort<GainSortKey>(
         filtered,
         'date',
-        compareGainRows
+        compareGainRows,
+        GAINS_LEDGER_SORT_STORAGE_KEY,
+        GAIN_SORT_KEYS
     );
     const { viewMode, setViewMode } = useGainsLedgerViewMode();
 

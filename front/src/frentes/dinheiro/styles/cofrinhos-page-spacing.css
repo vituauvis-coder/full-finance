@@ -1317,7 +1317,10 @@
 
 /* —— Caixinhas em tabela —— */
 #cofrinhos-page .cofrinhos-buckets-table {
-    --cofrinhos-bucket-table-cols: minmax(0, 1.35fr) 6.85rem 6.85rem minmax(5.25rem, 0.9fr) 8.25rem;
+    --cofrinhos-bucket-table-cols:
+        minmax(9rem, 1.35fr) minmax(7rem, 1fr) minmax(7.5rem, 1.08fr) minmax(7rem, 1fr) minmax(7rem, 1fr) 12.25rem;
+    --cofrinhos-bucket-col-pad: 1rem;
+    --cofrinhos-bucket-divider: color-mix(in srgb, var(--dash-surface-border) 48%, transparent);
     width: 100%;
     border: 1px solid var(--dash-surface-border);
     border-radius: var(--dash-surface-radius);
@@ -1330,9 +1333,36 @@
 #cofrinhos-page .cofrinho-bucket-table__row {
     display: grid;
     grid-template-columns: var(--cofrinhos-bucket-table-cols);
-    column-gap: var(--cofrinhos-ledger-col-gap, 0.65rem);
-    align-items: center;
-    padding: 0.48rem 0.75rem;
+    column-gap: 0;
+    align-items: stretch;
+    padding: 0;
+}
+
+#cofrinhos-page .cofrinhos-buckets-table__header > *,
+#cofrinhos-page .cofrinho-bucket-table__row > * {
+    box-sizing: border-box;
+    min-width: 0;
+    padding-block: 0.62rem;
+    padding-inline: var(--cofrinhos-bucket-col-pad);
+}
+
+#cofrinhos-page .cofrinhos-buckets-table__header > * {
+    padding-block: 0.52rem;
+}
+
+#cofrinhos-page .cofrinhos-buckets-table__header > :first-child,
+#cofrinhos-page .cofrinho-bucket-table__row > :first-child {
+    padding-inline-start: 1.15rem;
+}
+
+#cofrinhos-page .cofrinhos-buckets-table__header > :last-child,
+#cofrinhos-page .cofrinho-bucket-table__row > :last-child {
+    padding-inline-end: 1.15rem;
+}
+
+#cofrinhos-page .cofrinhos-buckets-table__header > :not(:first-child),
+#cofrinhos-page .cofrinho-bucket-table__row > :not(:first-child) {
+    border-inline-start: 1px solid var(--cofrinhos-bucket-divider);
 }
 
 #cofrinhos-page .cofrinhos-buckets-table__header {
@@ -1346,8 +1376,29 @@
     background: color-mix(in srgb, var(--dash-layer-inset, var(--bg-color)) 38%, var(--dash-surface-bg));
 }
 
+#cofrinhos-page .cofrinhos-buckets-table__header [role='columnheader'] {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 1.75rem;
+}
+
+#cofrinhos-page .cofrinhos-buckets-table__th-name {
+    justify-content: flex-start;
+    text-align: start;
+}
+
+#cofrinhos-page .cofrinhos-buckets-table__th-num,
+#cofrinhos-page .cofrinhos-buckets-table__th-progress,
 #cofrinhos-page .cofrinhos-buckets-table__th-actions {
-    text-align: left;
+    justify-content: flex-end;
+    text-align: end;
+    letter-spacing: 0.03em;
+}
+
+#cofrinhos-page .cofrinhos-buckets-table__th-valor {
+    line-height: 1.2;
+    white-space: nowrap;
 }
 
 #cofrinhos-page .cofrinhos-buckets-table__body {
@@ -1359,7 +1410,7 @@
 #cofrinhos-page .cofrinhos-buckets-table__category {
     display: grid;
     grid-template-columns: var(--cofrinhos-bucket-table-cols);
-    column-gap: var(--cofrinhos-ledger-col-gap, 0.65rem);
+    column-gap: 0;
     margin: 0;
     list-style: none;
     border-bottom: 1px solid var(--dash-surface-border);
@@ -1422,7 +1473,6 @@
     align-items: center;
     gap: 0.55rem;
     margin: 0;
-    padding: 0;
     border: none;
     background: transparent;
     text-align: left;
@@ -1471,24 +1521,50 @@
     color: var(--text-muted, #6b7280);
 }
 
-#cofrinhos-page .cofrinho-bucket-table__valor,
-#cofrinhos-page .cofrinho-bucket-table__meta-amount {
-    font-size: 0.92rem;
-    font-weight: 700;
+#cofrinhos-page .cofrinho-bucket-table__cell--num {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    text-align: end;
     font-variant-numeric: tabular-nums;
-    letter-spacing: -0.02em;
-    white-space: nowrap;
 }
 
-#cofrinhos-page .cofrinho-bucket-table__cell--meta {
-    min-width: 0;
+#cofrinhos-page .cofrinho-bucket-table__valor {
+    display: block;
+    font-size: 1.02rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    white-space: nowrap;
+    color: var(--dash-text-primary);
+}
+
+#cofrinhos-page .cofrinho-bucket-table__meta-amount {
+    font-size: 0.84rem;
+    font-weight: 500;
+    white-space: nowrap;
+    color: var(--dash-text-secondary, var(--text-muted, #64748b));
+}
+
+#cofrinhos-page .cofrinho-bucket-table__yield {
+    font-size: 0.84rem;
+    font-weight: 500;
+    white-space: nowrap;
+    color: var(--dash-text-tertiary, var(--text-muted, #94a3b8));
+}
+
+#cofrinhos-page .cofrinho-bucket-table__yield.has-value {
+    font-weight: 600;
+    color: color-mix(in srgb, #15803d 88%, var(--dash-text-primary));
 }
 
 #cofrinhos-page .cofrinho-bucket-table__cell--progress {
     display: flex;
     flex-direction: column;
-    gap: 0.2rem;
+    align-items: stretch;
+    justify-content: center;
+    gap: 0.26rem;
     min-width: 0;
+    text-align: end;
 }
 
 #cofrinhos-page .cofrinho-bucket-table__progress-pct {
@@ -1496,16 +1572,17 @@
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     color: var(--dash-text-secondary, var(--text-muted, #94a3b8));
+    align-self: flex-end;
 }
 
 #cofrinhos-page .cofrinho-bucket-table__meta-unset {
-    font-size: 0.72rem;
-    font-style: italic;
+    font-size: 0.84rem;
+    font-weight: 500;
     color: var(--text-muted, #6b7280);
 }
 
 #cofrinhos-page .cofrinho-bucket-table__done {
-    align-self: flex-start;
+    align-self: flex-end;
     font-size: 0.58rem;
     font-weight: 700;
     text-transform: uppercase;
@@ -1517,9 +1594,9 @@
 }
 
 #cofrinhos-page .cofrinho-bucket-table__progress {
-    height: 0.28rem;
+    height: 0.32rem;
     width: 100%;
-    max-width: 7.5rem;
+    max-width: 100%;
     border-radius: 999px;
     background: var(--dash-layer-inset, #f3f4f6);
     overflow: hidden;
@@ -1535,7 +1612,7 @@
 #cofrinhos-page .cofrinho-bucket-table__cell--actions {
     display: flex;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: flex-end;
     gap: 0.35rem;
 }
 
@@ -1956,9 +2033,11 @@
         --cofrinhos-bucket-table-cols: minmax(0, 1fr) 5.5rem 5.5rem;
     }
 
-    #cofrinhos-page .cofrinhos-buckets-table__header span:nth-child(3),
+    #cofrinhos-page .cofrinhos-buckets-table__header span:nth-child(2),
     #cofrinhos-page .cofrinhos-buckets-table__header span:nth-child(4),
+    #cofrinhos-page .cofrinhos-buckets-table__header span:nth-child(5),
     #cofrinhos-page .cofrinho-bucket-table__cell--meta,
+    #cofrinhos-page .cofrinho-bucket-table__cell--yield,
     #cofrinhos-page .cofrinho-bucket-table__cell--progress {
         display: none;
     }

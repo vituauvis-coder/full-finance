@@ -12,12 +12,21 @@ import { formatBRL } from '../../../lib/format';
 import {
     ALL_YEARS_PERIOD,
     CIVIL_YEAR_PERIOD,
+    expenseInstallmentListPeriodForPills,
     getPeriodDateBounds,
     isAllYearsPeriod,
     isCivilYearPeriod,
+    isExpenseInstallmentMonthRingMode,
     MONTH_NAMES,
     monthIndexFromPeriod
 } from '../../../lib/period';
+import { resolveExpenseMovementAccount } from '../../../lib/expenseMovementAccount';
+import {
+    expandInstallmentRowsForExpenseList,
+    expenseInstallmentRowDisplayDate,
+    isExpenseInstallmentTableRow,
+    type ExpenseInstallmentTableRow
+} from '../domain/expenseInstallmentTableRows';
 import { useCivilPeriodState } from '../../../hooks/useCivilPeriodState';
 import { accountName, type ListFilter } from '../../../lib/movementList';
 import { expenseRowDisplayDate, filterExpensesInPeriod } from '../../../lib/filterExpensesInPeriod';
@@ -25,6 +34,10 @@ import { capCofrinhoTreemapBlocks, capTreemapBlocks, EXPENSE_TREEMAP_PALETTE } f
 import { buildExpenseTreemapBlocks } from '../../../lib/expenseTreemap';
 import { useTablePagination } from '../../../hooks/useTablePagination';
 import { compareExpenseRows, useMovementSort, type ExpenseSortKey } from '../../../hooks/useMovementSort';
+import {
+    EXPENSE_SORT_KEYS,
+    EXPENSES_LEDGER_SORT_STORAGE_KEY
+} from '../../../lib/movementLedgerStorage';
 import { useExpensesLedgerViewMode } from '../../../hooks/useExpensesLedgerViewMode';
 import {
     buildExpenseInvoiceBundles,
@@ -87,6 +100,16 @@ import { SummaryMomVariation } from '../../../components/finance/SummaryMomVaria
 import type { ExpenseSplitSeed, Movement } from '../../../lib/types/finance';
 import { useConfirm } from '../../../components/ui/confirm';
 import { isCreditCardType } from '../../../lib/accounts';
+import { getExpenseListRowDisplayAmount } from '@motor/dinheiro/expense-list-display-amount.js';
+import { expenseIdForSplitLookup } from '@motor/dinheiro/split-net.js';
+
+function resolveExpenseForSplit(row: Movement, userExpenses: Movement[] | undefined): Movement {
+    const baseId = expenseIdForSplitLookup(row);
+    const stored = userExpenses?.find((e) => e.id === baseId);
+    if (stored) return stored;
+    if (baseId === row.id) return row;
+    return { ...row, id: baseId };
+}
 
 export function SaidasPage() {
     const { confirm } = useConfirm();
@@ -105,6 +128,7 @@ export function SaidasPage() {
     const [outgoingSplitsOpen, setOutgoingSplitsOpen] = useState(false);
 
     const currency = data?.userProfile?.currency ?? 'BRL';
+    const userProfile = data?.userProfile ?? null;
     const pendingOutgoingCount = useMemo(() => {
         const outgoing = data?.expenseSplitRequests?.outgoing ?? [];
         return outgoing.filter((s) => s && String(s.status).toUpperCase() === 'PENDING').length;
@@ -174,33 +198,77 @@ export function SaidasPage() {
 
     const expenseDisplayDate = useCallback(
         (m: Movement) => {
-            const acc = m.accountId ? accountById.get(m.accountId) : undefined;
+            if (isExpenseInstallmentTableRow(m)) return expenseInstallmentRowDisplayDate(m);
+            const acc = resolveExpenseMovementAccount(m, data?.userAccounts);
             return expenseRowDisplayDate(m, acc, period, year);
         },
-        [accountById, period, year]
+        [data?.userAccounts, period, year]
     );
 
     const { sortKey, sortDir, toggleSort, sortRows } = useMovementSort<ExpenseSortKey>(
         filtered,
         'date',
-        compareExpenseRows
+        compareExpenseRows,
+        EXPENSES_LEDGER_SORT_STORAGE_KEY,
+        EXPENSE_SORT_KEYS
     );
-    const sorted = useMemo(() => sortRows(accountLabelFn), [sortRows, accountLabelFn]);
+    const sortedBase = useMemo(() => sortRows(accountLabelFn), [sortRows, accountLabelFn]);
     const { viewMode, setViewMode } = useExpensesLedgerViewMode();
+
+    const listPeriod = useMemo(() => getPeriodDateBounds(period, year), [period, year]);
+
+    const installmentListPeriod = useMemo(
+        () => expenseInstallmentListPeriodForPills(period, listPeriod),
+        [period, listPeriod]
+    );
+
+    const expenseMonthRingMode = useMemo(
+        () => isExpenseInstallmentMonthRingMode(period, year),
+        [period, year]
+    );
+
+    const sorted = useMemo(() => {
+        if (!data || expenseMonthRingMode) return sortedBase;
+        return expandInstallmentRowsForExpenseList(
+            sortedBase,
+            data.userAccounts,
+            userProfile,
+            installmentListPeriod
+        );
+    }, [sortedBase, data, expenseMonthRingMode, userProfile, installmentListPeriod]);
+
+    const acceptedSplitsForDisplay = useMemo(
+        () => acceptedOutgoingSplits(data?.expenseSplitRequests),
+        [data?.expenseSplitRequests]
+    );
 
     const ledgerSplit = useMemo(() => {
         const { essential, faturaLines, other, cofrinhos } = splitExpenseLedgerRows(sorted, accountById);
+        const allExpenses = data?.userExpenses ?? null;
         const bundles = buildExpenseInvoiceBundles(
             faturaLines,
             accountById,
             accountLabelFn,
-            (m) => expenseDisplayDate(m).toISOString()
+            (m) => {
+                const d = expenseDisplayDate(m);
+                return Number.isNaN(d.getTime()) ? '' : d.toISOString();
+            },
+            (m, acc) => getExpenseListRowDisplayAmount(m, acc, acceptedSplitsForDisplay, allExpenses)
         );
         const invoices = [...bundles.map((b) => b.summary)].sort((a, b) =>
             compareExpenseRows(a, b, sortKey, sortDir, accountLabelFn)
         );
         return { essential, other, faturaLines, bundles, invoices, cofrinhos };
-    }, [sorted, accountById, accountLabelFn, expenseDisplayDate, sortKey, sortDir]);
+    }, [
+        sorted,
+        accountById,
+        accountLabelFn,
+        expenseDisplayDate,
+        sortKey,
+        sortDir,
+        data?.userExpenses,
+        acceptedSplitsForDisplay
+    ]);
 
     const expensesLedgerControls = {
         sortKey,
@@ -209,8 +277,6 @@ export function SaidasPage() {
         viewMode,
         onViewModeChange: setViewMode
     };
-
-    const listPeriod = useMemo(() => getPeriodDateBounds(period, year), [period, year]);
 
     const periodLabel = useMemo(() => {
         if (isAllYearsPeriod(period)) return 'Todos os anos';
@@ -412,8 +478,6 @@ export function SaidasPage() {
     const [statusBusy, setStatusBusy] = useState<Set<string>>(() => new Set());
     const statusToggleBusy = useCallback((id: string) => statusBusy.has(id), [statusBusy]);
 
-    const userProfile = data?.userProfile ?? null;
-
     const onToggleStatus = useCallback(
         async (m: Movement) => {
             if (statusBusy.has(m.id)) return;
@@ -469,10 +533,34 @@ export function SaidasPage() {
         setModalOpen(true);
     }, []);
 
-    const openExpenseView = useCallback((m: Movement) => {
-        if (isCofrinhoApplicationExtratoRow(m)) return;
-        setDetailExpense(m);
-    }, []);
+    const resolveExpenseBaseRow = useCallback(
+        (m: Movement) => {
+            const id = m.id.includes('::inst-') ? m.id.split('::inst-')[0] : m.id;
+            return data?.userExpenses.find((e) => e.id === id) ?? m;
+        },
+        [data?.userExpenses]
+    );
+
+    const openExpenseView = useCallback(
+        (m: Movement) => {
+            if (isCofrinhoApplicationExtratoRow(m)) return;
+            setDetailExpense(resolveExpenseBaseRow(m));
+        },
+        [resolveExpenseBaseRow]
+    );
+
+    const expenseStatusLabel = useCallback(
+        (m: Movement) => {
+            if (isExpenseInstallmentTableRow(m)) {
+                return (m as ExpenseInstallmentTableRow).__instParcelPaid ? 'Pago' : 'Pendente';
+            }
+            const acc = resolveExpenseMovementAccount(m, data?.userAccounts);
+            return expenseRowAppearsPaid(m, acc, userProfile, installmentListPeriod ?? listPeriod)
+                ? 'Pago'
+                : 'Pendente';
+        },
+        [data?.userAccounts, userProfile, installmentListPeriod, listPeriod]
+    );
 
     useMovementHeaderAdd('add-expense-btn', openAddModal);
     const outgoingSplitsHeader = useMemo(() => {
@@ -675,20 +763,11 @@ export function SaidasPage() {
                     allExpenses={data.userExpenses}
                     acceptedSplits={acceptedOutgoingSplits(data.expenseSplitRequests)}
                     userProfile={userProfile}
-                    listPeriod={listPeriod}
+                    listPeriod={installmentListPeriod ?? listPeriod}
                     expenseDisplayDate={expenseDisplayDate}
                     accountById={accountById}
                     accountLabel={(id) => accountName(data.userAccounts, id)}
-                    statusLabel={(m) =>
-                        expenseRowAppearsPaid(
-                            m,
-                            accountById.get(String(m.accountId)),
-                            userProfile,
-                            listPeriod
-                        )
-                            ? 'Pago'
-                            : 'Pendente'
-                    }
+                    statusLabel={expenseStatusLabel}
                     onToggleStatus={(m) => void onToggleStatus(m)}
                     statusToggleBusy={statusToggleBusy}
                     selectedIds={selected}
@@ -701,13 +780,13 @@ export function SaidasPage() {
                         })
                     }
                     onSplit={(m) => {
-                        setSplitExpense(m);
+                        setSplitExpense(resolveExpenseForSplit(m, data.userExpenses));
                         setSplitModalOpen(true);
                     }}
                     onEdit={(m) => {
                         if (isCofrinhoApplicationExtratoRow(m)) return;
                         setSplitSeed(null);
-                        setEditing(m);
+                        setEditing(resolveExpenseBaseRow(m));
                         setModalOpen(true);
                     }}
                     onView={openExpenseView}
@@ -729,19 +808,10 @@ export function SaidasPage() {
                 allExpenses={data.userExpenses}
                 acceptedSplits={acceptedOutgoingSplits(data.expenseSplitRequests)}
                 userProfile={userProfile}
-                listPeriod={listPeriod}
+                listPeriod={installmentListPeriod ?? listPeriod}
                 expenseDisplayDate={expenseDisplayDate}
                 accountLabel={(id) => accountName(data.userAccounts, id)}
-                statusLabel={(m) =>
-                    expenseRowAppearsPaid(
-                        m,
-                        accountById.get(String(m.accountId)),
-                        userProfile,
-                        listPeriod
-                    )
-                        ? 'Pago'
-                        : 'Pendente'
-                }
+                statusLabel={expenseStatusLabel}
                 onToggleStatus={(m) => void onToggleStatus(m)}
                 statusToggleBusy={statusToggleBusy}
                 selectedIds={selected}
@@ -764,18 +834,18 @@ export function SaidasPage() {
                     })
                 }
                 onSplit={(m) => {
-                    setSplitExpense(m);
+                    setSplitExpense(resolveExpenseForSplit(m, data.userExpenses));
                     setSplitModalOpen(true);
                 }}
                 onEdit={(m) => {
                     if (isCofrinhoApplicationExtratoRow(m)) return;
                     setSplitSeed(null);
-                    setEditing(m);
+                    setEditing(resolveExpenseBaseRow(m));
                     setModalOpen(true);
                 }}
                 onDelete={(m) => {
                     if (isCofrinhoApplicationExtratoRow(m)) return;
-                    void onDelete(m);
+                    void onDelete(resolveExpenseBaseRow(m));
                 }}
                 onRowClick={openExpenseView}
                 rowClassName="expenses-detail-row"
@@ -786,7 +856,7 @@ export function SaidasPage() {
             <TablePaginationBar
                 page={pagination.page}
                 pageCount={pagination.pageCount}
-                total={sorted.length}
+                total={simpleListSource.length}
                 pageSize={pagination.pageSize}
                 onPageSizeChange={pagination.setPageSize}
                 onPrev={pagination.prev}
@@ -818,7 +888,7 @@ export function SaidasPage() {
                 onToggleStatus={(m) => void onToggleStatus(m)}
                 statusToggleBusy={statusToggleBusy}
                 onSplit={(m) => {
-                    setSplitExpense(m);
+                    setSplitExpense(resolveExpenseForSplit(m, data.userExpenses));
                     setSplitModalOpen(true);
                 }}
                 onEdit={(m) => {

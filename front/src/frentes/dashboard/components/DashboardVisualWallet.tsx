@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { MaterialIcon } from '../../../components/icons/MaterialIcon';
+import { EditBalanceModal } from '../../../components/finance/EditBalanceModal';
 import { ExpenseFormModal } from '../../../components/finance/ExpenseFormModal';
 import { GainFormModal } from '../../../components/finance/GainFormModal';
 import { useFinanceData } from '../../../app/FinanceDataProvider';
@@ -46,6 +46,7 @@ export function DashboardVisualWallet({
     const { refresh } = useFinanceData();
     const [expenseModalOpen, setExpenseModalOpen] = useState(false);
     const [gainModalOpen, setGainModalOpen] = useState(false);
+    const [balanceModalOpen, setBalanceModalOpen] = useState(false);
     const splits = useMemo(() => acceptedOutgoingSplits(data.expenseSplitRequests), [data.expenseSplitRequests]);
     const buckets = useMemo(
         () => computeDashboardWalletBuckets(data.userExpenses, data.userAccounts, period, civilYear, splits),
@@ -63,16 +64,6 @@ export function DashboardVisualWallet({
                         <MaterialIcon name="account_balance_wallet" variant="app" opticalSize={18} aria-hidden />
                         Carteira
                     </h2>
-                    {showCta ? (
-                        <Link
-                            className="dashboard-wallet__carteira-cta"
-                            to="/dinheiro/carteira"
-                            title="Abrir página da carteira"
-                            aria-label="Abrir carteira"
-                        >
-                            <MaterialIcon name="chevron_right" variant="app" opticalSize={16} aria-hidden />
-                        </Link>
-                    ) : null}
                 </div>
                 {showCta ? (
                     <div className="dashboard-wallet__head-actions">
@@ -122,7 +113,21 @@ export function DashboardVisualWallet({
                         <span className="dashboard-wallet__account-tag">Fluxo do período</span>
                     )}
                 </div>
-                <span className="dashboard-wallet__balance-value">{metrics.balance}</span>
+                <div className="dashboard-wallet__balance-row">
+                    <span className="dashboard-wallet__balance-value">{metrics.balance}</span>
+                    {showCta ? (
+                        <button
+                            type="button"
+                            className="dashboard-wallet__edit-balance-btn"
+                            title="Editar saldo"
+                            aria-label="Editar saldo"
+                            onClick={() => setBalanceModalOpen(true)}
+                        >
+                            <MaterialIcon name="edit" variant="app" opticalSize={16} aria-hidden />
+                            <span>Editar saldo</span>
+                        </button>
+                    ) : null}
+                </div>
             </div>
 
             <div className="dashboard-wallet__kpis">
@@ -182,6 +187,15 @@ export function DashboardVisualWallet({
                         editing={null}
                         accounts={data.userAccounts}
                         onClose={() => setGainModalOpen(false)}
+                        onSaved={refresh}
+                    />
+                    <EditBalanceModal
+                        open={balanceModalOpen}
+                        currency={currency}
+                        accountLabel={metrics.balanceAccountLabel}
+                        accountHolder={metrics.balanceAccountHolder}
+                        displayBalance={metrics.balance}
+                        onClose={() => setBalanceModalOpen(false)}
                         onSaved={refresh}
                     />
                 </>

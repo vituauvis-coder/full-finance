@@ -241,12 +241,58 @@
     color: var(--dash-text-tertiary);
 }
 
+#dashboard-page.dashboard-page--modern .dashboard-wallet__balance-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
 #dashboard-page.dashboard-page--modern .dashboard-wallet__balance-value {
     font-size: clamp(1.15rem, 2.2vw, 1.45rem);
     font-weight: 700;
     letter-spacing: -0.03em;
     color: var(--dash-text-primary);
     line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-wallet__edit-balance-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex-shrink: 0;
+    padding: 0.22rem 0.5rem;
+    border-radius: 8px;
+    border: 1px solid var(--dash-border);
+    background: var(--dash-layer-raised);
+    color: var(--dash-text-secondary);
+    font: inherit;
+    font-size: 0.66rem;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease,
+        transform 0.12s ease;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-wallet__edit-balance-btn:hover {
+    background: var(--dash-layer-control);
+    border-color: var(--dash-border-strong);
+    color: var(--dash-text-primary);
+    transform: translateY(-1px);
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-wallet__edit-balance-btn:active {
+    transform: translateY(0);
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-wallet__edit-balance-btn:focus-visible {
+    outline: 2px solid var(--dash-focus-ring);
+    outline-offset: 2px;
 }
 
 #dashboard-page.dashboard-page--modern .dashboard-wallet__kpis {

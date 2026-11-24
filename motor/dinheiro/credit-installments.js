@@ -368,7 +368,7 @@ export function getExpensePerInstallmentDisplayAmount(expense, account) {
     const n = Math.max(1, parseInt(String(expense?.installmentCount ?? '1'), 10) || 1);
     if (n < 2) return total;
     if (account && isCreditCardType(account.type)) return total / n;
-    if (isLoanExpense(expense) && account && !isCreditCardType(account.type)) return total / n;
+    if ((!account || !isCreditCardType(account.type)) && n >= 2) return total / n;
     return total;
 }
 
@@ -421,8 +421,12 @@ export function getLoanInstallmentState(expense, now = new Date(), userProfile =
 
 /** Estado unificado para UI: empréstimo em conta usa cronograma mensal; cartão usa ciclo da fatura. */
 export function getInstallmentState(expense, account, now = new Date(), userProfile = null) {
-    if (isLoanExpense(expense) && (!account || !isCreditCardType(account.type))) {
-        return getLoanInstallmentState(expense, now, userProfile, account);
+    const n = Math.max(1, parseInt(String(expense?.installmentCount ?? '1'), 10) || 1);
+    if (
+        (isLoanExpense(expense) || n >= 2) &&
+        (!account || !isCreditCardType(account.type))
+    ) {
+        if (n >= 2) return getLoanInstallmentState(expense, now, userProfile, account);
     }
     return getCreditInstallmentState(expense, account, now, userProfile);
 }

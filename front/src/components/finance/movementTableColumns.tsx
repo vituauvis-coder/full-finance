@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { getExpensePerInstallmentDisplayAmount } from '@motor/dinheiro/credit-installments.js';
-import { getNetExpenseTotalAmount } from '@motor/dinheiro/split-net.js';
+import { getExpenseListRowDisplayAmount } from '@motor/dinheiro/expense-list-display-amount.js';
 import type { Account, ExpenseSplitRequest, Movement, UserProfile } from '../../lib/types/finance';
 import type { InstallmentListPeriod } from '../../frentes/dinheiro/domain/expenseInstallmentLabel';
 import { expenseRowAppearsPaid } from '../../lib/expenseRowCashOut';
@@ -14,6 +14,10 @@ import { EditIcon } from '../icons/EditIcon';
 import { SplitIcon } from '../icons/SplitIcon';
 import { ExpenseInstallmentCell } from './ExpenseInstallmentCell';
 import { resolveExpenseMovementAccount } from '../../lib/expenseMovementAccount';
+import {
+    isExpenseInstallmentTableRow,
+    type ExpenseInstallmentTableRow
+} from '../../frentes/dinheiro/domain/expenseInstallmentTableRows';
 
 export type MovementSortKey = 'date' | 'description' | 'category' | 'account' | 'amount' | 'status';
 
@@ -133,17 +137,27 @@ export function buildMovementTableColumns(opts: GainsOpts | ExpensesOpts): DataT
             align: 'right',
             cellClassName: amountClass,
             render: (m) => {
-                const acc = m.accountId && accountById ? accountById.get(m.accountId) : undefined;
+                const acc =
+                    opts.kind === 'expense'
+                        ? resolveExpenseMovementAccount(m, opts.accounts)
+                        : m.accountId && accountById
+                          ? accountById.get(m.accountId)
+                          : undefined;
                 if (opts.kind !== 'expense') {
                     return <span>{formatBRL(Number(m.amount) || 0, currency)}</span>;
                 }
                 const splits = opts.acceptedSplits ?? [];
                 const allEx = opts.allExpenses ?? null;
-                const perGross = getExpensePerInstallmentDisplayAmount(m, acc);
+                const display = getExpenseListRowDisplayAmount(m, acc, splits, allEx);
+                const inst = m as ExerciseInstallmentTableRow;
                 const nParc = Math.max(1, parseInt(String(m.installmentCount ?? '1'), 10) || 1);
-                const netTotal = getNetExpenseTotalAmount(m, splits, allEx);
-                const display = nParc >= 2 ? netTotal / nParc : netTotal;
-                const gross = nParc >= 2 ? perGross : Number(m.amount) || 0;
+                const perGross = getExpensePerInstallmentDisplayAmount(m, acc);
+                const gross =
+                    inst.__instRow && Number(inst.__instParcelAmount) > 0
+                        ? Number(inst.__instParcelAmount)
+                        : nParc >= 2
+                          ? perGross
+                          : Number(m.amount) || 0;
                 const showStrike = display < gross - 0.0001;
                 const total = Number(m.amount) || 0;
                 const title =
@@ -176,14 +190,14 @@ export function buildMovementTableColumns(opts: GainsOpts | ExpensesOpts): DataT
                 const label = statusLabel(m);
                 const paid =
                     opts.kind === 'expense'
-                        ? expenseRowAppearsPaid(
-                              m,
-                              m.accountId && opts.accounts
-                                  ? opts.accounts.find((a) => a.id === m.accountId)
-                                  : undefined,
-                              opts.userProfile,
-                              opts.listPeriod
-                          )
+                        ? isExpenseInstallmentTableRow(m)
+                            ? !!(m as { __instParcelPaid?: boolean }).__instParcelPaid
+                            : expenseRowAppearsPaid(
+                                  m,
+                                  resolveExpenseMovementAccount(m, opts.accounts),
+                                  opts.userProfile,
+                                  opts.listPeriod
+                              )
                         : m.isPaid !== false;
                 const gainTitles = paid
                     ? { title: 'Marcar como pendente', aria: 'Marcar entrada como pendente (a receber)' }

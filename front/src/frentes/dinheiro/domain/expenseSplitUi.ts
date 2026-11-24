@@ -1,4 +1,4 @@
-import { normalizeSplitScope } from '@motor/dinheiro/split-net.js';
+import { expenseIdForSplitLookup, normalizeSplitScope } from '@motor/dinheiro/split-net.js';
 import type { ExpenseSplitRequest, Movement } from '../../../lib/types/finance';
 
 export function splitStatusLabel(st: unknown) {
@@ -44,10 +44,10 @@ export function sumAllocatedSplitForTarget(
     splitScope: string,
     targetInstallmentIndex: number | null = null
 ) {
-    const eid = String(expenseId ?? '');
+    const eid = expenseIdForSplitLookup(expenseId);
     const scope = normalizeSplitScope(splitScope);
     return (outgoing || [])
-        .filter((s) => String(s.sourceExpenseId ?? s.sourceExpense?.id ?? '') === eid)
+        .filter((s) => expenseIdForSplitLookup(s.sourceExpenseId ?? s.sourceExpense?.id) === eid)
         .filter((s) => ['PENDING', 'ACCEPTED'].includes(String(s.status ?? '').toUpperCase()))
         .filter((s) => normalizeSplitScope(s.splitScope) === scope)
         .filter((s) =>
@@ -79,8 +79,9 @@ export function computeSplitMoneyContext(
 }
 
 export function outgoingForExpense(outgoing: ExpenseSplitRequest[] | undefined, expenseId: string) {
+    const eid = expenseIdForSplitLookup(expenseId);
     return (outgoing || [])
-        .filter((s) => String(s.sourceExpenseId ?? s.sourceExpense?.id ?? '') === String(expenseId))
+        .filter((s) => expenseIdForSplitLookup(s.sourceExpenseId ?? s.sourceExpense?.id) === eid)
         .sort((a, b) => {
             const ta = new Date(a.createdAt ?? 0).getTime();
             const tb = new Date(b.createdAt ?? 0).getTime();

@@ -130,9 +130,16 @@ export function ExpenseFormModal({
         if (!open) return;
         setError(null);
         if (editing) {
+            const loanEdit = isLoanExpense(editing);
             setDescription(editing.description ?? '');
             setAmount(String(editing.amount ?? ''));
-            setPaymentMethodId(editing.accountId ?? '');
+            if (loanEdit) {
+                setPaymentMethodId(EXPENSE_LOAN_PAYMENT_VALUE);
+                setLoanAccountId(editing.accountId ?? '');
+            } else {
+                setPaymentMethodId(editing.accountId ?? '');
+                setLoanAccountId('');
+            }
             setCategory(editing.category ?? '');
             setSubcategory(editing.subcategory ?? '');
             setDate(movementFromFormDate(editing));
@@ -153,7 +160,6 @@ export function ExpenseFormModal({
                     editing.paidFromCofrinho === 'true'
             );
             setRecurringMonthly(false);
-            setLoanAccountId(editing.accountId ?? '');
             return;
         }
 

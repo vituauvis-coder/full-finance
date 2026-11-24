@@ -1,0 +1,94 @@
+/**
+ * Planejamento (Orçamento Base Zero) — fundo integrado ao canvas (paridade entradas/saídas/carteira).
+ */
+
+#zero-budget-page.zero-budget-page {
+    --zb-canvas-shell: transparent;
+    --zb-canvas-border: color-mix(in srgb, var(--dash-border) 55%, transparent);
+    --zb-canvas-inset: color-mix(in srgb, var(--dash-text-primary) 4%, var(--dash-layer-canvas));
+    --zb-canvas-panel: color-mix(in srgb, var(--dash-text-primary) 3.5%, var(--dash-layer-canvas));
+}
+
+.page-content--dashboard-modern > .app-header.app-header--zero-budget:has(+ #zero-budget-page.zero-budget-page) {
+    background: var(--zb-canvas-shell);
+    border: none;
+    border-bottom: 1px solid var(--zb-canvas-border);
+    border-radius: 0;
+    box-shadow: none;
+}
+
+#zero-budget-page.zero-budget-page .civil-period-timeline.civil-period-timeline--surfaced {
+    background: var(--zb-canvas-shell) !important;
+    border: none !important;
+    border-bottom: 1px solid var(--zb-canvas-border) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+#zero-budget-page.zero-budget-page
+    .civil-period-timeline--surfaced
+    .civil-period-timeline__year-stepper {
+    background: var(--zb-canvas-inset);
+    border-color: var(--zb-canvas-border);
+    box-shadow: none;
+}
+
+#zero-budget-page.zero-budget-page .civil-period-timeline--surfaced .civil-period-timeline__year-btn {
+    background: transparent;
+}
+
+#zero-budget-page.zero-budget-page .civil-period-timeline--surfaced .civil-period-timeline__year-btn:hover {
+    background: var(--zb-canvas-panel);
+}
+
+#zero-budget-page.zero-budget-page .civil-period-timeline--surfaced .civil-period-timeline__month-btn {
+    border-color: var(--zb-canvas-border);
+    background: transparent;
+    box-shadow: none;
+}
+
+#zero-budget-page.zero-budget-page .civil-period-timeline--surfaced .civil-period-timeline__month-btn:hover {
+    background: var(--zb-canvas-inset);
+    border-color: var(--dash-border-strong, var(--dash-border));
+}
+
+#zero-budget-page.zero-budget-page .zero-budget__summary,
+#zero-budget-page.zero-budget-page .zero-budget__summary--minimal {
+    background: var(--zb-canvas-panel);
+    border-color: var(--zb-canvas-border);
+    box-shadow: none;
+}
+
+#zero-budget-page.zero-budget-page .zero-budget__block-card {
+    background: var(--zb-canvas-panel);
+    border-color: var(--zb-canvas-border);
+    box-shadow: none;
+}
+
+#zero-budget-page.zero-budget-page .zero-budget__block-card:hover {
+    border-color: color-mix(in srgb, var(--dash-border-strong, var(--dash-border)) 85%, transparent);
+}
+
+#zero-budget-page.zero-budget-page .zero-budget__block-foot {
+    border-top-color: var(--zb-canvas-border);
+}
+
+#zero-budget-page.zero-budget-page .zero-budget__color-toggle,
+#zero-budget-page.zero-budget-page .zero-budget__block-list-btn {
+    border-color: var(--zb-canvas-border);
+    background: var(--zb-canvas-inset);
+}
+
+#zero-budget-page.zero-budget-page .zero-budget__empty {
+    background: var(--zb-canvas-panel);
+    border-color: var(--zb-canvas-border);
+    box-shadow: none;
+}
+
+#zero-budget-page.zero-budget-page .skeleton-timeline.civil-period-timeline--surfaced {
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 1px solid var(--zb-canvas-border) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}

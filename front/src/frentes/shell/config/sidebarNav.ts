@@ -11,7 +11,7 @@ export type SidebarLeaf = {
 };
 
 export type SidebarGroupConfig = {
-    id: 'financas' | 'viagens';
+    id: 'financas' | 'viagens' | 'estudos';
     label: string;
     subtitle: string;
     icon: string;
@@ -110,6 +110,24 @@ export const SIDEBAR_GROUPS: readonly SidebarGroupConfig[] = [
         to: '/viagens',
         pages: ['viagens', 'viagens-milhas'],
         items: []
+    },
+    {
+        id: 'estudos',
+        label: 'Estudos',
+        subtitle: 'Cursos e disciplinas',
+        icon: 'school',
+        to: '/estudos',
+        pages: ['estudos'],
+        items: [
+            {
+                to: '/estudos',
+                page: 'estudos',
+                icon: 'menu_book',
+                label: 'Meus cursos',
+                subtitle: 'Cards e progresso',
+                end: true
+            }
+        ]
     }
 ];
 
@@ -222,6 +240,7 @@ export function sidebarGroupLandingActive(
     search: string
 ): boolean {
     if (group.id === 'financas') return pathname === '/dashboard';
+    if (group.id === 'estudos') return pathname === '/estudos' || pathname.startsWith('/estudos/');
     if (pathname === '/viagens') return true;
     if (pathname === '/viagens/milhas') return false;
     const tripId = tripIdFromPathname(pathname);

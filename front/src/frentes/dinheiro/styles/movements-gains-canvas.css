@@ -1,0 +1,119 @@
+/**
+ * Entradas — blocos integrados ao canvas (paridade movements-expenses-canvas).
+ * Escopo: apenas #gains-page.
+ */
+
+#gains-page.movements-page--modern {
+    --gains-canvas-shell-bg: transparent;
+    --gains-canvas-shell-shadow: none;
+    --gains-canvas-panel-bg: color-mix(in srgb, var(--dash-text-primary) 3.5%, var(--dash-layer-canvas));
+    --gains-canvas-panel-border: color-mix(in srgb, var(--dash-border) 55%, transparent);
+    --gains-canvas-inset-bg: color-mix(in srgb, var(--dash-text-primary) 4%, var(--dash-layer-canvas));
+}
+
+#gains-page.movements-page--modern
+    .movements-treemap-hero__summary.movements-summary
+    .movement-summary-card {
+    border-color: var(--gains-canvas-panel-border);
+    background: var(--gains-canvas-panel-bg);
+    box-shadow: none;
+}
+
+#gains-page.movements-page--modern
+    .movements-treemap-hero__summary
+    .movement-summary-card:hover {
+    border-color: var(--dash-border-strong, var(--dash-border));
+    box-shadow: none;
+}
+
+#gains-page.movements-page--modern .treemap-container {
+    border-color: var(--gains-canvas-panel-border);
+    background: var(--gains-canvas-panel-bg);
+    box-shadow: none;
+}
+
+#gains-page.movements-page--modern .movement-treemap__footer {
+    border-top-color: var(--gains-canvas-panel-border);
+}
+
+#gains-page.movements-page--modern .movement-treemap__footer .chart-type-toggle {
+    border-color: var(--gains-canvas-panel-border);
+    background: var(--gains-canvas-inset-bg);
+}
+
+#gains-page.movements-page--modern .movements-extrato-panel {
+    background: var(--gains-canvas-shell-bg);
+    border: none;
+    border-top: 1px solid var(--gains-canvas-panel-border);
+    border-radius: 0;
+    box-shadow: var(--gains-canvas-shell-shadow);
+}
+
+#gains-page.movements-page--modern .movements-extrato-panel .movement-filter-ribbon {
+    background: var(--gains-canvas-shell-bg);
+    border-bottom-color: var(--gains-canvas-panel-border);
+    border-radius: 0;
+}
+
+#gains-page.movements-page--modern .movement-filter-ribbon {
+    border-top-color: var(--gains-canvas-panel-border);
+}
+
+#gains-page.movements-page--modern .movement-filter-ribbon__group,
+#gains-page.movements-page--modern .movement-filter-ribbon__clear,
+#gains-page.movements-page--modern .movement-status-pills,
+#gains-page.movements-page--modern .movement-filter-ribbon__icon-btn {
+    border-color: var(--gains-canvas-panel-border);
+    background: var(--gains-canvas-inset-bg);
+}
+
+#gains-page.movements-page--modern .movement-filter-ribbon__group:focus-within {
+    border-color: color-mix(in srgb, var(--gains-accent, #2ec4b6) 45%, var(--dash-border));
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--gains-accent, #2ec4b6) 16%, transparent);
+}
+
+#gains-page.movements-page--modern .movements-extrato-panel .gains-tabbed-ledger__tabs,
+#gains-page.movements-page--modern .movements-extrato-panel .expenses-tabbed-ledger__tabs,
+#gains-page.movements-page--modern .movements-extrato-panel .movements-tabbed-ledger__tabs {
+    border-bottom-color: var(--gains-canvas-panel-border);
+}
+
+#gains-page.movements-page--modern .movements-extrato-panel .gains-tabbed-ledger__panel > .table-pagination-bar,
+#gains-page.movements-page--modern .movements-extrato-panel .expenses-tabbed-ledger__panel > .table-pagination-bar,
+#gains-page.movements-page--modern .movements-extrato-panel .movements-tabbed-ledger__panel > .table-pagination-bar,
+#gains-page.movements-page--modern .movements-extrato-panel > .table-pagination-bar {
+    border-top-color: var(--gains-canvas-panel-border);
+}
+
+#gains-page.movements-page--modern .movement-category-tag--gains {
+    background: color-mix(in srgb, var(--gains-accent, #2ec4b6) 11%, var(--gains-canvas-panel-bg));
+    border-color: color-mix(in srgb, var(--gains-accent, #2ec4b6) 32%, var(--gains-canvas-panel-border));
+}
+
+#gains-page.movements-page--modern .skeleton-movement-summary-card {
+    --skeleton-base: color-mix(in srgb, var(--dash-text-secondary, #6e6e73) 16%, var(--gains-canvas-panel-bg));
+    --skeleton-highlight: color-mix(in srgb, var(--dash-text-secondary, #6e6e73) 8%, var(--gains-canvas-panel-bg));
+    background-color: var(--gains-canvas-panel-bg) !important;
+    border: 1px solid var(--gains-canvas-panel-border) !important;
+    border-radius: 12px !important;
+    box-shadow: none !important;
+}
+
+[data-theme='dark'] #gains-page.movements-page--modern .skeleton-movement-summary-card {
+    --skeleton-base: color-mix(in srgb, var(--dash-text-secondary, #86868b) 22%, var(--gains-canvas-panel-bg));
+    --skeleton-highlight: color-mix(in srgb, var(--dash-text-secondary, #86868b) 12%, var(--gains-canvas-panel-bg));
+}
+
+#gains-page.movements-page--modern .movements-treemap-hero__map.treemap-container {
+    border-color: var(--gains-canvas-panel-border);
+    background: var(--gains-canvas-panel-bg);
+    box-shadow: none;
+}
+
+#gains-page.movements-page--modern .skeleton-table-host {
+    border: none;
+    border-top: 1px solid var(--gains-canvas-panel-border);
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}

@@ -3,7 +3,7 @@ import { MovementsTable } from '../../../components/finance/MovementsTable';
 import { formatBRL } from '../../../lib/format';
 import type { Account, ExpenseSplitRequest, Movement, UserProfile } from '../../../lib/types/finance';
 import { DialogFrame } from '../../../components/ui/dialog';
-import { expenseListDisplayAmount } from '../../../lib/filterExpensesInPeriod';
+import { getExpenseListRowDisplayAmount } from '@motor/dinheiro/expense-list-display-amount.js';
 import type { InstallmentListPeriod } from '../domain/expenseInstallmentLabel';
 import type { ExpenseSortKey, SortDir } from '../../../hooks/useMovementSort';
 
@@ -60,9 +60,9 @@ export function ExpenseInvoiceDetailModal({
         () =>
             lines.reduce((s, m) => {
                 const acc = m.accountId ? accountById.get(String(m.accountId)) : undefined;
-                return s + expenseListDisplayAmount(m, acc);
+                return s + getExpenseListRowDisplayAmount(m, acc, acceptedSplits, allExpenses);
             }, 0),
-        [lines, accountById]
+        [lines, accountById, acceptedSplits, allExpenses]
     );
 
     const orderedLines = useMemo(

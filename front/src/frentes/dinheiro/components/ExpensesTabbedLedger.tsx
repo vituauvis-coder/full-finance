@@ -8,6 +8,11 @@ import type { InstallmentListPeriod } from '../domain/expenseInstallmentLabel';
 import { expenseInvoiceRowId, isExpenseInvoiceRowId } from '../domain/expenseLedgerBuckets';
 import { ExpenseInvoiceDetailModal } from './ExpenseInvoiceDetailModal';
 import type { ExpenseInvoiceBundle } from '../domain/expenseLedgerBuckets';
+import {
+    ledgerStablePanelStyle,
+    ledgerTabBodyRowCount,
+    maxLedgerTabBodyRows
+} from '../../../lib/tabbedLedgerStableHeight';
 
 type TabKey = 'essential' | 'invoices' | 'other' | 'cofrinhos';
 
@@ -166,7 +171,7 @@ export function ExpensesTabbedLedger({
     sortDir,
     onSort
 }: Props) {
-    const [tab, setTab] = useState<TabKey>(readStoredTab);
+    const [tab, setTab] = useState<TabKey>(() => readStoredTab());
     const [invoiceOpen, setInvoiceOpen] = useState(false);
     const [activeBundle, setActiveBundle] = useState<ExpenseInvoiceBundle | null>(null);
 
@@ -214,6 +219,29 @@ export function ExpensesTabbedLedger({
 
     const active = tabMeta[tab];
     const rows = active.rows.slice(active.pagination.start, active.pagination.end);
+
+    const stableBodyRows = useMemo(() => {
+        const keys = Object.keys(tabMeta) as TabKey[];
+        return maxLedgerTabBodyRows(
+            keys.map((key) => {
+                const { rows: tabRows, pagination } = tabMeta[key];
+                return ledgerTabBodyRowCount(tabRows.length, pagination.start, pagination.end);
+            })
+        );
+    }, [
+        essentialRows.length,
+        essentialPagination.start,
+        essentialPagination.end,
+        invoiceRows.length,
+        invoicesPagination.start,
+        invoicesPagination.end,
+        otherRows.length,
+        otherPagination.start,
+        otherPagination.end,
+        cofrinhoRows.length,
+        cofrinhosPagination.start,
+        cofrinhosPagination.end
+    ]);
 
     const selectTab = (next: TabKey) => {
         setTab(next);
@@ -278,7 +306,8 @@ export function ExpensesTabbedLedger({
 
             <div
                 id="expenses-tab-panel"
-                className="gains-tabbed-ledger__panel"
+                className="gains-tabbed-ledger__panel gains-tabbed-ledger__panel--stable"
+                style={ledgerStablePanelStyle(stableBodyRows)}
                 role="tabpanel"
                 aria-labelledby={active.tabId}
             >

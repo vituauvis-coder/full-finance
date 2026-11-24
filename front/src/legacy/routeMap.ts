@@ -8,6 +8,7 @@ export type LegacyPageId =
     | 'debts'
     | 'viagens'
     | 'viagens-milhas'
+    | 'estudos'
     | 'tools'
     | 'profile';
 
@@ -16,6 +17,7 @@ export function legacyPageIdFromPath(pathname: string): LegacyPageId | null {
     if (pathname.startsWith('/dashboard')) return 'dashboard';
     if (pathname.startsWith('/viagens/milhas')) return 'viagens-milhas';
     if (pathname.startsWith('/viagens')) return 'viagens';
+    if (pathname.startsWith('/estudos')) return 'estudos';
     if (pathname.startsWith('/ferramentas')) return 'tools';
     if (pathname.startsWith('/dinheiro/entradas')) return 'gains';
     if (pathname.startsWith('/dinheiro/saidas')) return 'expenses';
@@ -39,6 +41,7 @@ export const LEGACY_PAGE_HEADERS: Record<
     debts: { icon: 'fa-triangle-exclamation', title: 'Dívidas', headerClass: 'app-header--debts' },
     viagens: { icon: 'fa-map', materialIcon: 'flight', title: 'Viagens', headerClass: 'app-header--viagens' },
     'viagens-milhas': { icon: 'fa-map', materialIcon: 'loyalty', title: 'Milhas', headerClass: 'app-header--viagens' },
+    estudos: { icon: 'fa-graduation-cap', materialIcon: 'school', title: 'Estudos', headerClass: 'app-header--estudos' },
     tools: { icon: 'fa-tools', title: 'Ferramentas' },
     profile: { icon: 'fa-user', materialIcon: 'person', title: 'Meu Perfil' }
 };

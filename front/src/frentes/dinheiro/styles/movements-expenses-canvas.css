@@ -1,0 +1,123 @@
+/**
+ * Saídas — blocos integrados ao canvas (paridade com viagens-transporte-modern).
+ * Escopo: apenas #expenses-page; Entradas e demais páginas inalteradas.
+ */
+
+#expenses-page.movements-page--modern {
+    --expenses-shell-bg: transparent;
+    --expenses-shell-border: transparent;
+    --expenses-shell-shadow: none;
+    --expenses-panel-bg: color-mix(in srgb, var(--dash-text-primary) 3.5%, var(--dash-layer-canvas));
+    --expenses-panel-border: color-mix(in srgb, var(--dash-border) 55%, transparent);
+    --expenses-inset-bg: color-mix(in srgb, var(--dash-text-primary) 4%, var(--dash-layer-canvas));
+}
+
+#expenses-page.movements-page--modern .expense-splits-incoming--modern {
+    background: var(--expenses-shell-bg);
+    border: none;
+    border-top: 1px solid var(--expenses-panel-border);
+    border-radius: 0;
+    box-shadow: var(--expenses-shell-shadow);
+}
+
+#expenses-page.movements-page--modern .expense-splits-incoming--modern .expense-splits-incoming__head {
+    border-bottom-color: var(--expenses-panel-border);
+}
+
+#expenses-page.movements-page--modern
+    .movements-treemap-hero__summary.movements-summary
+    .movement-summary-card {
+    border-color: var(--expenses-panel-border);
+    background: var(--expenses-panel-bg);
+    box-shadow: none;
+}
+
+#expenses-page.movements-page--modern
+    .movements-treemap-hero__summary
+    .movement-summary-card:hover {
+    border-color: var(--dash-border-strong, var(--dash-border));
+    box-shadow: none;
+}
+
+#expenses-page.movements-page--modern .treemap-container {
+    border-color: var(--expenses-panel-border);
+    background: var(--expenses-panel-bg);
+    box-shadow: none;
+}
+
+#expenses-page.movements-page--modern .movements-extrato-panel {
+    background: var(--expenses-shell-bg);
+    border: none;
+    border-top: 1px solid var(--expenses-panel-border);
+    border-radius: 0;
+    box-shadow: var(--expenses-shell-shadow);
+}
+
+#expenses-page.movements-page--modern .movements-extrato-panel .movement-filter-ribbon {
+    background: var(--expenses-shell-bg);
+    border-bottom-color: var(--expenses-panel-border);
+    border-radius: 0;
+}
+
+#expenses-page.movements-page--modern .movement-filter-ribbon {
+    border-top-color: var(--expenses-panel-border);
+}
+
+#expenses-page.movements-page--modern .movement-filter-ribbon__group,
+#expenses-page.movements-page--modern .movement-filter-ribbon__clear,
+#expenses-page.movements-page--modern .movement-status-pills,
+#expenses-page.movements-page--modern .movement-filter-ribbon__icon-btn {
+    border-color: var(--expenses-panel-border);
+    background: var(--expenses-inset-bg);
+}
+
+#expenses-page.movements-page--modern .movement-filter-ribbon__group:focus-within {
+    border-color: color-mix(in srgb, var(--expenses-accent, #f43f5e) 45%, var(--dash-border));
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--expenses-accent, #f43f5e) 16%, transparent);
+}
+
+#expenses-page.movements-page--modern .movements-extrato-panel .gains-tabbed-ledger__tabs,
+#expenses-page.movements-page--modern .movements-extrato-panel .expenses-tabbed-ledger__tabs,
+#expenses-page.movements-page--modern .movements-extrato-panel .movements-tabbed-ledger__tabs {
+    border-bottom-color: var(--expenses-panel-border);
+}
+
+#expenses-page.movements-page--modern .movements-extrato-panel .gains-tabbed-ledger__panel > .table-pagination-bar,
+#expenses-page.movements-page--modern .movements-extrato-panel .expenses-tabbed-ledger__panel > .table-pagination-bar,
+#expenses-page.movements-page--modern .movements-extrato-panel .movements-tabbed-ledger__panel > .table-pagination-bar,
+#expenses-page.movements-page--modern .movements-extrato-panel > .table-pagination-bar {
+    border-top-color: var(--expenses-panel-border);
+}
+
+#expenses-page.movements-page--modern .movement-category-tag--expenses {
+    background: color-mix(in srgb, var(--expenses-accent, #f43f5e) 11%, var(--expenses-panel-bg));
+    border-color: color-mix(in srgb, var(--expenses-accent, #f43f5e) 32%, var(--expenses-panel-border));
+}
+
+#expenses-page.movements-page--modern .skeleton-movement-summary-card {
+    --skeleton-base: color-mix(in srgb, var(--dash-text-secondary, #6e6e73) 16%, var(--expenses-panel-bg));
+    --skeleton-highlight: color-mix(in srgb, var(--dash-text-secondary, #6e6e73) 8%, var(--expenses-panel-bg));
+    background-color: var(--expenses-panel-bg) !important;
+    border: 1px solid var(--expenses-panel-border) !important;
+    border-radius: 12px !important;
+    box-shadow: none !important;
+}
+
+[data-theme='dark'] #expenses-page.movements-page--modern .skeleton-movement-summary-card {
+    --skeleton-base: color-mix(in srgb, var(--dash-text-secondary, #86868b) 22%, var(--expenses-panel-bg));
+    --skeleton-highlight: color-mix(in srgb, var(--dash-text-secondary, #86868b) 12%, var(--expenses-panel-bg));
+}
+
+#expenses-page.movements-page--modern .movements-treemap-hero__map.treemap-container {
+    border-color: var(--expenses-panel-border);
+    background: var(--expenses-panel-bg);
+    box-shadow: none;
+}
+
+#expenses-page.movements-page--modern .skeleton-table-host {
+    border: none;
+    border-top: 1px solid var(--expenses-panel-border);
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}

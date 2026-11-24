@@ -15,7 +15,7 @@ function readStoredMode(): ExpensesLedgerViewMode {
 }
 
 export function useExpensesLedgerViewMode() {
-    const [viewMode, setViewModeState] = useState<ExpensesLedgerViewMode>(readStoredMode);
+    const [viewMode, setViewModeState] = useState<ExpensesLedgerViewMode>(() => readStoredMode());
 
     const setViewMode = useCallback((mode: ExpensesLedgerViewMode) => {
         setViewModeState(mode);

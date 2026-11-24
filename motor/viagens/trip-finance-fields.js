@@ -48,7 +48,8 @@ export function buildFinanceExpenseDraft(tripExpense, tripId, opts = {}) {
 
     const accountId = String(tripExpense?.accountId ?? tripExpense?.account_id ?? '').trim();
     const amount = Number(tripExpense?.amount);
-    const fromCofrinho = expensePaidFromCofrinho(tripExpense);
+    const isPix = method === 'pix';
+    const fromCofrinho = isPix && expensePaidFromCofrinho(tripExpense);
     if (!Number.isFinite(amount) || amount <= 0) return null;
     if (!fromCofrinho && !accountId) return null;
 
@@ -56,7 +57,6 @@ export function buildFinanceExpenseDraft(tripExpense, tripId, opts = {}) {
         String(tripExpense?.description ?? tripExpense?.title ?? '').trim() || 'Gasto da viagem';
     const spent = String(tripExpense?.spentOn ?? '').trim().slice(0, 10);
     const date = spent || new Date().toISOString().slice(0, 10);
-    const isPix = method === 'pix';
     const n = isPix ? 1 : installmentCount(tripExpense);
 
     return {

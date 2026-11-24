@@ -4,6 +4,8 @@ import { BrowserRouter } from 'react-router-dom';
 import { App } from './app/App';
 import { AuthProvider } from './app/AuthProvider';
 import { ensureChartsRegistered } from './app/registerCharts';
+import '@fontsource-variable/material-symbols-rounded/full.css';
+import './styles/material-symbols-base.css';
 import './styles/legacy-imports.css';
 import { applyTheme, readTheme } from './app/theme';
 

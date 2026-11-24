@@ -1,0 +1,66 @@
+/**
+ * Dívidas — fundo integrado ao canvas (paridade entradas/saídas/cofrinhos).
+ */
+
+#debts-page.debts-page--modern {
+    --debts-canvas-shell: transparent;
+    --debts-canvas-border: color-mix(in srgb, var(--dash-border) 55%, transparent);
+    --debts-canvas-inset: color-mix(in srgb, var(--dash-text-primary) 4%, var(--dash-layer-canvas));
+    --debts-canvas-panel: color-mix(in srgb, var(--dash-text-primary) 3.5%, var(--dash-layer-canvas));
+}
+
+.page-content--dashboard-modern > .app-header.app-header--debts:has(+ #debts-page.debts-page--modern) {
+    background: var(--debts-canvas-shell);
+    border: none;
+    border-bottom: 1px solid var(--debts-canvas-border);
+    border-radius: 0;
+    box-shadow: none;
+}
+
+#debts-page.debts-page--modern .movements-treemap-hero__summary.movements-summary .movement-summary-card,
+#debts-page.debts-page--modern .debts-summary-metrics--stack .movement-summary-card {
+    background: var(--debts-canvas-panel);
+    border-color: var(--debts-canvas-border);
+    box-shadow: none;
+}
+
+.page-content--dashboard-modern
+    #debts-page.debts-page--modern
+    .movements-treemap-hero__summary
+    .card-icon.debts {
+    background: color-mix(in srgb, var(--debts-accent, #ef4444) 14%, var(--debts-canvas-panel));
+}
+
+#debts-page.debts-page--modern .treemap-container,
+#debts-page.debts-page--modern .debts-hero__chart {
+    background: var(--debts-canvas-panel);
+    border-color: var(--debts-canvas-border);
+    box-shadow: none;
+}
+
+#debts-page.debts-page--modern .debt-bucket-card.zero-budget__block-card {
+    background: var(--debts-canvas-panel);
+    border-color: var(--debts-canvas-border);
+    box-shadow: none;
+}
+
+#debts-page.debts-page--modern .debt-bucket-card.zero-budget__block-card:hover {
+    border-color: color-mix(in srgb, var(--dash-border-strong, var(--dash-border)) 85%, transparent);
+}
+
+#debts-page.debts-page--modern .debt-bucket-card__foot,
+#debts-page.debts-page--modern .zero-budget__block-foot {
+    border-top-color: var(--debts-canvas-border);
+}
+
+#debts-page.debts-page--modern .zero-budget__color-toggle,
+#debts-page.debts-page--modern .zero-budget__block-list-btn {
+    border-color: var(--debts-canvas-border);
+    background: var(--debts-canvas-inset);
+}
+
+#debts-page.debts-page--modern .zero-budget__empty.goals-empty-state {
+    background: var(--debts-canvas-panel);
+    border-color: var(--debts-canvas-border);
+    box-shadow: none;
+}

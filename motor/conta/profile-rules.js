@@ -69,7 +69,12 @@ export function formatBalanceInputValue(amount) {
 
 /** @param {string} raw */
 export function parseBalanceSubmit(raw) {
-    const balance = parseFloat(String(raw));
+    const trimmed = String(raw ?? '').trim().replace(/\s+/g, '');
+    if (!trimmed) return { ok: false };
+    const normalized = trimmed.includes(',')
+        ? trimmed.replace(/\./g, '').replace(',', '.')
+        : trimmed;
+    const balance = Number(normalized);
     if (!Number.isFinite(balance)) {
         return { ok: false };
     }

@@ -9,6 +9,7 @@ import { dinheiroRoutes } from '../frentes/dinheiro/routes';
 import { viagensRoutes } from '../frentes/viagens/routes';
 import { ferramentasRoutes } from '../frentes/ferramentas/routes';
 import { perfilRoutes } from '../frentes/perfil/routes';
+import { estudosRoutes } from '../frentes/estudos/routes';
 import { ScreenLoader } from '../components/ui/ScreenLoader';
 import { ConfirmProvider } from '../components/ui/confirm';
 import { ThemeTransitionOverlay } from '../components/theme/ThemeTransitionOverlay';
@@ -43,6 +44,7 @@ export function App() {
                 {dinheiroRoutes}
                 {viagensRoutes}
                 {ferramentasRoutes}
+                {estudosRoutes}
                 {perfilRoutes}
                 <Route index element={<Navigate to="/dashboard" replace />} />
             </Route>

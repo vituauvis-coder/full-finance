@@ -66,6 +66,7 @@ export function CofrinhosPageWorkspace({
                 applications={applications}
                 expenses={expenses}
                 goals={goals}
+                monthlyBalances={monthlyBalances}
                 currency={currency}
                 goalYear={goalYear}
                 onEdit={onEditBucket}

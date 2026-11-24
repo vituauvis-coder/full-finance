@@ -1,9 +1,14 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { MovementsTable } from '../../../components/finance/MovementsTable';
 import { TablePaginationBar } from '../../../components/finance/TablePaginationBar';
 import { useTablePagination } from '../../../hooks/useTablePagination';
 import type { GainSortKey, SortDir } from '../../../hooks/useMovementSort';
 import type { Movement } from '../../../lib/types/finance';
+import {
+    ledgerStablePanelStyle,
+    ledgerTabBodyRowCount,
+    maxLedgerTabBodyRows
+} from '../../../lib/tabbedLedgerStableHeight';
 
 type TabKey = 'category' | 'estorno';
 
@@ -52,7 +57,7 @@ export function GainsTabbedLedger({
     sortDir,
     onSort
 }: Props) {
-    const [tab, setTab] = useState<TabKey>(readStoredTab);
+    const [tab, setTab] = useState<TabKey>(() => readStoredTab());
 
     const activeRows = tab === 'category' ? categoryRows : estornoRows;
 
@@ -61,6 +66,26 @@ export function GainsTabbedLedger({
     const pagination = tab === 'category' ? categoryPagination : estornoPagination;
 
     const rows = activeRows.slice(pagination.start, pagination.end);
+
+    const stableBodyRows = useMemo(
+        () =>
+            maxLedgerTabBodyRows([
+                ledgerTabBodyRowCount(
+                    categoryRows.length,
+                    categoryPagination.start,
+                    categoryPagination.end
+                ),
+                ledgerTabBodyRowCount(estornoRows.length, estornoPagination.start, estornoPagination.end)
+            ]),
+        [
+            categoryRows.length,
+            categoryPagination.start,
+            categoryPagination.end,
+            estornoRows.length,
+            estornoPagination.start,
+            estornoPagination.end
+        ]
+    );
 
     const selectTab = (next: TabKey) => {
         setTab(next);
@@ -102,7 +127,8 @@ export function GainsTabbedLedger({
 
             <div
                 id="gains-tab-panel"
-                className="gains-tabbed-ledger__panel"
+                className="gains-tabbed-ledger__panel gains-tabbed-ledger__panel--stable"
+                style={ledgerStablePanelStyle(stableBodyRows)}
                 role="tabpanel"
                 aria-labelledby={tab === 'category' ? 'gains-tab-category' : 'gains-tab-estorno'}
             >

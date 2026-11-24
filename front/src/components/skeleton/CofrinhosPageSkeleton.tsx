@@ -37,11 +37,14 @@ function CofrinhoBucketTableRowSkeleton({ nameWidth }: { nameWidth: string }) {
                     <Skeleton className="skeleton--line-sm" style={{ width: '3.25rem', marginTop: '0.2rem' }} />
                 </span>
             </span>
+            <span className="cofrinho-bucket-table__cell cofrinho-bucket-table__cell--meta" role="cell">
+                <Skeleton className="skeleton--line-sm" style={{ width: '3.75rem' }} />
+            </span>
             <span className="cofrinho-bucket-table__cell cofrinho-bucket-table__cell--valor" role="cell">
                 <Skeleton className="skeleton--line" style={{ width: '4.25rem' }} />
             </span>
-            <span className="cofrinho-bucket-table__cell cofrinho-bucket-table__cell--meta" role="cell">
-                <Skeleton className="skeleton--line-sm" style={{ width: '3.75rem' }} />
+            <span className="cofrinho-bucket-table__cell cofrinho-bucket-table__cell--yield" role="cell">
+                <Skeleton className="skeleton--line-sm" style={{ width: '3.35rem' }} />
             </span>
             <span className="cofrinho-bucket-table__cell cofrinho-bucket-table__cell--progress" role="cell">
                 <Skeleton className="skeleton--line-sm" style={{ width: '2.25rem' }} />
@@ -61,8 +64,9 @@ function CofrinhosBucketsTableSkeleton() {
             <div className="cofrinhos-buckets-table skeleton-cofrinhos-buckets-table" id="cofrinhos-goal-cards">
                 <div className="cofrinhos-buckets-table__header" role="row">
                     <Skeleton className="skeleton--line-sm" style={{ width: '3.6rem' }} />
-                    <Skeleton className="skeleton--line-sm" style={{ width: '2.35rem' }} />
                     <Skeleton className="skeleton--line-sm" style={{ width: '2.1rem' }} />
+                    <Skeleton className="skeleton--line-sm" style={{ width: '4.85rem' }} />
+                    <Skeleton className="skeleton--line-sm" style={{ width: '2.75rem' }} />
                     <Skeleton className="skeleton--line-sm" style={{ width: '4.1rem' }} />
                     <Skeleton className="skeleton--line-sm" style={{ width: '2.5rem' }} />
                 </div>

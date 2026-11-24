@@ -83,7 +83,9 @@ export function buildExpenseInvoiceBundles(
     faturaLines: Movement[],
     accountById: Map<string, Account>,
     accountLabel: (id?: string) => string,
-    displayDateIso: (m: Movement) => string
+    displayDateIso: (m: Movement) => string,
+    lineAmount: (m: Movement, account: Account | undefined) => number = (m, account) =>
+        expenseListDisplayAmount(m, account)
 ): ExpenseInvoiceBundle[] {
     const groups = new Map<string, Movement[]>();
     for (const m of faturaLines) {
@@ -101,8 +103,10 @@ export function buildExpenseInvoiceBundles(
         let allPaid = true;
         for (const m of lines) {
             const acc = accountById.get(accountId);
-            total += expenseListDisplayAmount(m, acc);
-            const ts = new Date(displayDateIso(m)).getTime();
+            total += lineAmount(m, acc);
+            const iso = displayDateIso(m);
+            if (!iso) continue;
+            const ts = new Date(iso).getTime();
             if (!Number.isNaN(ts) && ts > latest) latest = ts;
             if (m.isPaid === false) allPaid = false;
         }

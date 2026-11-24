@@ -26,6 +26,28 @@ export function defaultCivilYear(now = new Date()) {
     return now.getFullYear();
 }
 
+/** Mês civil atual no filtro padrão (anel da coluna Parcelas). */
+export function isExpenseInstallmentMonthRingMode(
+    period: string,
+    civilYear: number,
+    now = new Date()
+) {
+    return (
+        isMonthCivilPeriod(period) &&
+        period === defaultPeriod(now) &&
+        civilYear === defaultCivilYear(now)
+    );
+}
+
+/** Período das pílulas de parcelas (null = contrato inteiro no ano / todos os anos). */
+export function expenseInstallmentListPeriodForPills(period: string, bounds: {
+    startDate: Date;
+    endDate: Date;
+}) {
+    if (isCivilYearPeriod(period) || isAllYearsPeriod(period)) return null;
+    return bounds;
+}
+
 export function periodFromMonthIndex(monthIndex: number) {
     const mi = Math.min(11, Math.max(0, monthIndex));
     return `month-${mi}`;

@@ -989,6 +989,18 @@
     background: transparent;
 }
 
+/* Modo abas — altura estável ao trocar de aba (usa a maior página atual entre abas). */
+:is(#gains-page, #expenses-page).movements-page--modern .gains-tabbed-ledger__panel--stable {
+    --ledger-table-row-h: 2.75rem;
+    --ledger-table-head-h: 2.5rem;
+}
+
+:is(#gains-page, #expenses-page).movements-page--modern
+    .gains-tabbed-ledger__panel--stable
+    > .table-container.data-table-host {
+    min-height: calc(var(--ledger-table-head-h) + var(--ledger-stable-body-rows, 1) * var(--ledger-table-row-h));
+}
+
 /* Faixa de controles do mapa (legado — só se ainda usar toolbar separada) */
 
 #gains-page .movement-treemap__footer {

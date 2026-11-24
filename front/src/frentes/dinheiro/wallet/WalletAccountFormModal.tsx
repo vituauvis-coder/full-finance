@@ -230,21 +230,17 @@ export function WalletAccountFormModal({
             }
         >
             <DialogForm id={FORM_ID} onSubmit={(e) => void onSubmit(e)} className="wallet-account-form ui-form">
-                <p className="wallet-account-form__subtitle">{kindSummaryLabel(kinds)}</p>
-                {editing ? (
-                    <p className="wallet-account-form__identity">
+                <div className="wallet-account-form__meta-bar">
+                    <span className="wallet-account-form__subtitle">{kindSummaryLabel(kinds)}</span>
+                    {editing ? (
                         <span
-                            className="wallet-catalog-unified__id-tag wallet-catalog-unified__id-tag--form"
-                            title={accountIdTitle(editing.id)}
+                            className="wallet-account-form__id-badge"
+                            title={`${accountIdTitle(editing.id)} — Para adicionar funções (crédito, VA…), marque os tipos abaixo nesta mesma conta.`}
                         >
                             ID {accountShortId(editing.id)}
                         </span>
-                        <span className="wallet-account-form__identity-hint">
-                            Cada conta tem um identificador único. Para nova função (crédito, VA…), edite esta conta e
-                            marque os tipos — não crie outra com o mesmo nome.
-                        </span>
-                    </p>
-                ) : null}
+                    ) : null}
+                </div>
                 <FormAlert message={error} />
 
                 <div className="wallet-account-form__card wallet-account-form__card--head">

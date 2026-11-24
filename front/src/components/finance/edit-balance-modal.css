@@ -1,0 +1,136 @@
+.edit-balance-modal__form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+}
+
+.edit-balance-modal__summary {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.7rem 0.85rem;
+    border-radius: 12px;
+    border: 1px solid var(--dash-border, rgba(148, 163, 184, 0.2));
+    background: var(--dash-layer-inset, rgba(15, 23, 42, 0.35));
+}
+
+.edit-balance-modal__summary-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.edit-balance-modal__summary-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--dash-text-tertiary, var(--text-muted, #94a3b8));
+}
+
+.edit-balance-modal__account-pill {
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 0.14rem 0.5rem;
+    border-radius: 999px;
+    border: 1px solid var(--dash-border, rgba(148, 163, 184, 0.2));
+    background: var(--dash-layer-raised, rgba(30, 41, 59, 0.5));
+    color: var(--dash-text-secondary, var(--text-muted, #cbd5e1));
+    max-width: 60%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.edit-balance-modal__summary-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    color: var(--dash-text-primary, inherit);
+}
+
+.edit-balance-modal__field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.38rem;
+}
+
+.edit-balance-modal__field-label {
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: var(--dash-text-secondary, var(--text-muted, #94a3b8));
+}
+
+.edit-balance-modal__input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.55rem 0.8rem;
+    border-radius: 12px;
+    border: 1px solid var(--dash-border-strong, var(--dash-border, rgba(148, 163, 184, 0.28)));
+    background: var(--dash-layer-control, var(--dash-layer-inset, rgba(15, 23, 42, 0.45)));
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.edit-balance-modal__input-wrap:focus-within {
+    border-color: var(--accent-color, #3b82f6);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-color, #3b82f6) 18%, transparent);
+}
+
+.edit-balance-modal__prefix {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--dash-text-tertiary, var(--text-muted, #94a3b8));
+    user-select: none;
+}
+
+.edit-balance-modal__input {
+    width: 100%;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    font-size: 1.2rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    color: var(--dash-text-primary, inherit);
+}
+
+.edit-balance-modal__delta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    align-self: flex-start;
+    padding: 0.28rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.edit-balance-modal__delta--pos {
+    color: color-mix(in srgb, #22c55e 90%, var(--dash-text-primary, #fff));
+    background: color-mix(in srgb, #22c55e 14%, transparent);
+    border: 1px solid color-mix(in srgb, #22c55e 28%, transparent);
+}
+
+.edit-balance-modal__delta--neg {
+    color: color-mix(in srgb, #ff5a36 90%, var(--dash-text-primary, #fff));
+    background: color-mix(in srgb, #ff5a36 14%, transparent);
+    border: 1px solid color-mix(in srgb, #ff5a36 28%, transparent);
+}
+
+.edit-balance-modal__hint {
+    margin: 0;
+    font-size: 0.74rem;
+    line-height: 1.45;
+    color: var(--dash-text-tertiary, var(--text-muted, #94a3b8));
+}
+
+.edit-balance-modal__error {
+    margin: 0;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--dash-chart-expense, #ff5a36);
+}

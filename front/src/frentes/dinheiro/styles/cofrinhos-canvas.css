@@ -1,0 +1,109 @@
+/**
+ * Cofrinhos — fundo integrado ao canvas (paridade entradas/carteira).
+ */
+
+#cofrinhos-page.cofrinhos-page--modern {
+    --cofrinhos-canvas-shell: transparent;
+    --cofrinhos-canvas-border: color-mix(in srgb, var(--dash-border) 55%, transparent);
+    --cofrinhos-canvas-inset: color-mix(in srgb, var(--dash-text-primary) 4%, var(--dash-layer-canvas));
+    --cofrinhos-canvas-panel: color-mix(in srgb, var(--dash-text-primary) 3.5%, var(--dash-layer-canvas));
+}
+
+.page-content--dashboard-modern
+    > .app-header.app-header--cofrinhos:has(+ #cofrinhos-page.cofrinhos-page--modern) {
+    background: var(--cofrinhos-canvas-shell);
+    border: none;
+    border-bottom: 1px solid var(--cofrinhos-canvas-border);
+    border-radius: 0;
+    box-shadow: none;
+}
+
+#cofrinhos-page.cofrinhos-page--modern
+    .movements-treemap-hero__summary.movements-summary
+    .movement-summary-card,
+#cofrinhos-page.cofrinhos-page--modern .cofrinhos-page__summary .movement-summary-card {
+    border-color: var(--cofrinhos-canvas-border);
+    background: var(--cofrinhos-canvas-panel);
+    box-shadow: none;
+}
+
+.page-content--dashboard-modern
+    #cofrinhos-page.cofrinhos-page--modern
+    .cofrinhos-page__summary.movements-summary
+    .card-icon {
+    background: color-mix(in srgb, var(--cofrinhos-accent) 14%, var(--cofrinhos-canvas-panel));
+}
+
+#cofrinhos-page.cofrinhos-page--modern .treemap-container,
+#cofrinhos-page.cofrinhos-page--modern .cofrinhos-hero__chart {
+    border-color: var(--cofrinhos-canvas-border);
+    background: var(--cofrinhos-canvas-panel);
+    box-shadow: none;
+}
+
+#cofrinhos-page.cofrinhos-page--modern .cofrinhos-pending-strip.dashboard-pending-cash-outs--modern {
+    background: var(--cofrinhos-canvas-shell);
+    border: none;
+    border-top: 1px solid var(--cofrinhos-canvas-border);
+    border-radius: 0;
+    box-shadow: none;
+}
+
+#cofrinhos-page.cofrinhos-page--modern .cofrinhos-ledger {
+    background: var(--cofrinhos-canvas-shell);
+    border: none;
+    border-top: 1px solid var(--cofrinhos-canvas-border);
+    border-radius: 0;
+    box-shadow: none;
+}
+
+#cofrinhos-page.cofrinhos-page--modern .cofrinhos-ledger__footer {
+    border-top-color: var(--cofrinhos-canvas-border);
+}
+
+#cofrinhos-page.cofrinhos-page--modern .data-table-host,
+#cofrinhos-page.cofrinhos-page--modern .cofrinhos-page__chart-card {
+    background: var(--cofrinhos-canvas-panel);
+    border-color: var(--cofrinhos-canvas-border);
+    box-shadow: none;
+}
+
+#cofrinhos-page.cofrinhos-page--modern .cofrinho-bucket-card.zero-budget__block-card,
+#cofrinhos-page.cofrinhos-page--modern .cofrinho-bucket-card--modern {
+    background: var(--cofrinhos-canvas-panel);
+    border-color: var(--cofrinhos-canvas-border);
+    box-shadow: none;
+}
+
+#cofrinhos-page.cofrinhos-page--modern .cofrinhos-ledger-filter.movement-filter-ribbon {
+    background: transparent;
+    border-color: var(--cofrinhos-canvas-border);
+}
+
+#cofrinhos-page.cofrinhos-page--modern .cofrinhos-ledger-filter .movement-filter-ribbon__group,
+#cofrinhos-page.cofrinhos-page--modern .cofrinhos-ledger-filter .movement-status-pills,
+#cofrinhos-page.cofrinhos-page--modern .cofrinhos-ledger-filter .movement-filter-ribbon__clear {
+    border-color: var(--cofrinhos-canvas-border);
+    background: var(--cofrinhos-canvas-inset);
+}
+
+#cofrinhos-page.cofrinhos-page--modern .cofrinhos-ledger__summary-card {
+    border-color: var(--cofrinhos-canvas-border);
+    background: var(--cofrinhos-canvas-inset);
+}
+
+#cofrinhos-page.cofrinhos-page--modern .skeleton-cofrinhos-annual-chart,
+#cofrinhos-page.cofrinhos-page--modern .skeleton-zero-budget__block-card,
+#cofrinhos-page.cofrinhos-page--modern .skeleton-cofrinhos-ledger__summary-card {
+    background: var(--cofrinhos-canvas-panel);
+    border-color: var(--cofrinhos-canvas-border);
+    box-shadow: none;
+}
+
+#cofrinhos-page.cofrinhos-page--modern .skeleton-page .table-container.data-table-host {
+    border: none;
+    border-top: 1px solid var(--cofrinhos-canvas-border);
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}

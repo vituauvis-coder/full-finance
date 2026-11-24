@@ -25,7 +25,7 @@ export function ProfileBalanceCard({
     return (
         <ProfileCard
             slot={nested ? false : 'half'}
-            title="Ajuste de saldo"
+            title="Editar saldo"
             subtitle="Iguala o saldo do dashboard ao valor real (conta principal, se houver)"
             icon="payments"
         >
@@ -33,23 +33,28 @@ export function ProfileBalanceCard({
                 className="profile-modern__form profile-modern__form--balance"
                 onSubmit={onSubmit}
             >
-                <label className="profile-modern__field">
-                    <span>Saldo total atual ({currencySymbol})</span>
-                    <input
-                        type="number"
-                        step="0.01"
-                        inputMode="decimal"
-                        id="profile-current-balance"
-                        value={balance}
-                        onChange={(e) => onBalanceChange(e.target.value)}
-                        required
-                        placeholder="0,00"
-                        className="profile-modern__input"
-                    />
+                <label className="profile-modern__field" htmlFor="profile-current-balance">
+                    <span>Saldo real atual</span>
+                    <div className="profile-modern__currency-wrap">
+                        <span className="profile-modern__currency-prefix" aria-hidden>
+                            {currencySymbol}
+                        </span>
+                        <input
+                            type="text"
+                            inputMode="decimal"
+                            id="profile-current-balance"
+                            value={balance}
+                            onChange={(e) => onBalanceChange(e.target.value)}
+                            required
+                            placeholder="0,00"
+                            autoComplete="off"
+                            className="profile-modern__currency-input"
+                        />
+                    </div>
                 </label>
                 <button type="submit" className="profile-modern__btn" disabled={saving}>
-                    <MaterialIcon name="sync" variant="app" />
-                    {saving ? 'Atualizando…' : 'Atualizar'}
+                    <MaterialIcon name="check" variant="app" />
+                    {saving ? 'Salvando…' : 'Salvar saldo'}
                 </button>
                 <p className="profile-modern__field-hint profile-modern__field-hint--balance">
                     Com conta principal na Carteira, o ajuste vale só para ela. Caso contrário, corrige o total de

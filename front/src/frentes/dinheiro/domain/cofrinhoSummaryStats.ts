@@ -44,8 +44,8 @@ function totalNetAllBuckets(
     return roundMoney(sum);
 }
 
-function totalYieldRegistered(monthlyBalances: CofrinhoMonthlyBalance[]): number {
-    const snapshots = (monthlyBalances ?? []).map((b) => {
+function monthlyBalancesToYieldSnapshots(monthlyBalances: CofrinhoMonthlyBalance[]) {
+    return (monthlyBalances ?? []).map((b) => {
         const raw = b as CofrinhoMonthlyBalance & { reference_month?: string };
         return {
             id: b.id,
@@ -56,8 +56,28 @@ function totalYieldRegistered(monthlyBalances: CofrinhoMonthlyBalance[]): number
             accountId: b.accountId
         };
     });
+}
+
+function totalYieldRegistered(monthlyBalances: CofrinhoMonthlyBalance[]): number {
     return roundMoney(
-        buildCofrinhoMonthlyYieldEvents(snapshots).reduce((s, ev) => s + (Number(ev.amount) || 0), 0)
+        buildCofrinhoMonthlyYieldEvents(monthlyBalancesToYieldSnapshots(monthlyBalances)).reduce(
+            (s, ev) => s + (Number(ev.amount) || 0),
+            0
+        )
+    );
+}
+
+/** Rendimento acumulado registado nas reconciliações mensais de uma caixinha. */
+export function cofrinhoBucketRegisteredYield(
+    bucketId: string,
+    monthlyBalances: CofrinhoMonthlyBalance[] = []
+): number {
+    const id = String(bucketId ?? '').trim();
+    if (!id) return 0;
+    return roundMoney(
+        buildCofrinhoMonthlyYieldEvents(monthlyBalancesToYieldSnapshots(monthlyBalances))
+            .filter((ev) => String(ev.bucketId) === id)
+            .reduce((s, ev) => s + (Number(ev.amount) || 0), 0)
     );
 }
 

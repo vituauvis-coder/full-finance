@@ -1,0 +1,148 @@
+/**
+ * Carteira — fundo integrado ao canvas (paridade entradas/saídas).
+ */
+
+#wallet-page.wallet-page--modern {
+    --wallet-canvas-shell: transparent;
+    --wallet-canvas-border: color-mix(in srgb, var(--dash-border) 55%, transparent);
+    --wallet-canvas-inset: color-mix(in srgb, var(--dash-text-primary) 4%, var(--dash-layer-canvas));
+    --wallet-canvas-panel: color-mix(in srgb, var(--dash-text-primary) 3.5%, var(--dash-layer-canvas));
+}
+
+.page-content--dashboard-modern > .app-header.app-header--wallet:has(+ #wallet-page.wallet-page--modern) {
+    background: var(--wallet-canvas-shell);
+    border: none;
+    border-bottom: 1px solid var(--wallet-canvas-border);
+    border-radius: 0;
+    box-shadow: none;
+}
+
+#wallet-page.wallet-page--modern .movements-toolbar {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+#wallet-page.wallet-page--modern .civil-period-timeline.civil-period-timeline--surfaced {
+    background: var(--wallet-canvas-shell) !important;
+    border: none !important;
+    border-bottom: 1px solid var(--wallet-canvas-border) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+#wallet-page.wallet-page--modern
+    .civil-period-timeline--surfaced
+    .civil-period-timeline__year-stepper {
+    background: var(--wallet-canvas-inset);
+    border-color: var(--wallet-canvas-border);
+    box-shadow: none;
+}
+
+#wallet-page.wallet-page--modern .civil-period-timeline--surfaced .civil-period-timeline__year-btn {
+    background: transparent;
+}
+
+#wallet-page.wallet-page--modern .civil-period-timeline--surfaced .civil-period-timeline__year-btn:hover {
+    background: var(--wallet-canvas-panel);
+}
+
+#wallet-page.wallet-page--modern .civil-period-timeline--surfaced .civil-period-timeline__month-btn {
+    border-color: var(--wallet-canvas-border);
+    background: transparent;
+    box-shadow: none;
+}
+
+#wallet-page.wallet-page--modern .civil-period-timeline--surfaced .civil-period-timeline__month-btn:hover {
+    background: var(--wallet-canvas-inset);
+    border-color: var(--dash-border-strong, var(--dash-border));
+}
+
+#wallet-page.wallet-page--modern .civil-period-timeline__scope-btn {
+    border-color: var(--wallet-canvas-border);
+    background: transparent;
+}
+
+#wallet-page.wallet-page--modern .civil-period-timeline__scope-btn:hover {
+    background: var(--wallet-canvas-inset);
+    border-color: var(--dash-border-strong, var(--dash-border));
+}
+
+#wallet-page.wallet-page--modern .civil-period-timeline__year-stepper.is-year-scope {
+    border-color: color-mix(in srgb, var(--cpt-accent) 36%, var(--wallet-canvas-border));
+}
+
+.page-content--dashboard-modern
+    > .app-header.app-header--wallet:has(+ #wallet-page.wallet-page--modern)
+  #wallet-header-actions
+    .header-quick-filter-btn--ghost:not(.active):not([aria-pressed='true']) {
+    border-color: var(--wallet-canvas-border);
+    background: var(--wallet-canvas-inset);
+}
+
+#wallet-page.wallet-page--modern .wallet-tri-column .dashboard-tri-col,
+#wallet-page.wallet-page--modern .wallet-tri-column .wallet-embedded-ledger {
+    background: var(--wallet-canvas-panel);
+    border-color: var(--wallet-canvas-border);
+    box-shadow: none;
+}
+
+#wallet-page.wallet-page--modern .wallet-card-catalog {
+    background: var(--wallet-canvas-shell);
+    border: none;
+    border-top: 1px solid var(--wallet-canvas-border);
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.page-content--dashboard-modern #wallet-page.wallet-page--modern .movements-summary .movement-summary-card {
+    background: var(--wallet-canvas-panel);
+    border-color: var(--wallet-canvas-border);
+    box-shadow: none;
+}
+
+.page-content--dashboard-modern #wallet-page.wallet-page--modern .wallet-institution-row {
+    background: var(--wallet-canvas-panel);
+    border-color: var(--wallet-canvas-border);
+    box-shadow: none;
+}
+
+.page-content--dashboard-modern #wallet-page.wallet-page--modern .wallet-aside-card {
+    background: var(--wallet-canvas-panel);
+    border-color: var(--wallet-canvas-border);
+    box-shadow: none;
+}
+
+#wallet-page.wallet-page--modern .wallet-card-catalog__row.wallet-card-catalog__row--visual,
+#wallet-page.wallet-page--modern .skeleton-wallet-catalog-row {
+    background: var(--wallet-canvas-panel);
+    border-color: var(--wallet-canvas-border);
+    box-shadow: none;
+}
+
+#wallet-page.wallet-page--modern .wallet-tri-panel__tabs {
+    background: transparent;
+    border-bottom-color: var(--wallet-canvas-border);
+}
+
+#wallet-page.wallet-page--modern .wallet-embedded-ledger .dashboard-ledger-filter {
+    border-color: var(--wallet-canvas-border);
+    background: var(--wallet-canvas-inset);
+}
+
+#wallet-page.wallet-page--modern .skeleton-timeline.civil-period-timeline--surfaced {
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 1px solid var(--wallet-canvas-border) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+#wallet-page.wallet-page--modern.skeleton-page .skeleton-wallet-tri-col.dashboard-tri-col {
+    background: var(--wallet-canvas-panel);
+    border-color: var(--wallet-canvas-border);
+    box-shadow: none;
+}

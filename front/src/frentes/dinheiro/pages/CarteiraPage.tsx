@@ -9,7 +9,6 @@ import { useFinanceShellVeil } from '../../../hooks/useFinanceShellVeil';
 import type { Account } from '../../../lib/types/finance';
 import { WalletAccountFormModal } from '../wallet/WalletAccountFormModal';
 import { WalletCardCatalog } from '../components/wallet/WalletCardCatalog';
-import { WalletTriPanel } from '../components/wallet/WalletTriPanel';
 import type { WalletAccountKind } from '../wallet/walletAccountKind';
 import { useWalletHeaderRegistration } from '../context/WalletHeaderSlotContext';
 import { useWalletInstitutionListClicks } from '../hooks/useWalletInstitutionListClicks';
@@ -74,14 +73,6 @@ export function CarteiraPage() {
                 onYearChange={onYearChange}
                 inMovementsToolbar
                 onYearScopeSelect={onYearScopeSelect}
-            />
-
-            <WalletTriPanel
-                period={period}
-                civilYear={year}
-                data={data}
-                currency={currency}
-                onPeriodChange={onPeriodChange}
             />
 
             <WalletCardCatalog

@@ -10,6 +10,8 @@ import { bucketColorHex } from '../../domain/cofrinhoConstants';
 import { cofrinhoKindMeta } from '../../domain/cofrinhoBucketTypes';
 import type { Movement } from '../../../../lib/types/finance';
 import { MaterialIcon } from '../../../../components/icons/MaterialIcon';
+import type { CofrinhoMonthlyBalance } from '../../domain/cofrinhoMonthlyBalances';
+import { cofrinhoBucketRegisteredYield } from '../../domain/cofrinhoSummaryStats';
 
 type Props = {
     bucket: CofrinhoBucket;
@@ -17,6 +19,7 @@ type Props = {
     applications: CofrinhoApplication[];
     expenses: Movement[];
     goals: CofrinhoBucketGoal[];
+    monthlyBalances: CofrinhoMonthlyBalance[];
     currency: string;
     goalYear: number;
     onEdit: (bucket: CofrinhoBucket) => void;
@@ -31,6 +34,7 @@ export function CofrinhoBucketCard({
     applications,
     expenses,
     goals,
+    monthlyBalances,
     currency,
     goalYear,
     onEdit,
@@ -41,11 +45,14 @@ export function CofrinhoBucketCard({
     const name = bucket.name ?? 'Caixinha';
     const kindMeta = cofrinhoKindMeta(bucket);
     const hex = bucketColorHex(bucket.colorKey);
-    const resultado = sumAllocatedByBucket(expenses, bucket, applications, buckets);
+    const contributed = sumAllocatedByBucket(expenses, bucket, applications, buckets);
+    const rendeu = cofrinhoBucketRegisteredYield(bucket.id, monthlyBalances);
+    const accumulated = Math.round((contributed + rendeu) * 100) / 100;
     const goal = getBucketGoalForYear(goals, bucket.id, goalYear);
     const meta = goal ? Number(goal.targetAmount) || 0 : 0;
-    const perc = meta > 0 ? Math.min((resultado / meta) * 100, 100) : 0;
-    const done = meta > 0 && resultado >= meta;
+    const perc = meta > 0 ? Math.min((accumulated / meta) * 100, 100) : 0;
+    const done = meta > 0 && accumulated >= meta;
+    const hasYield = rendeu > 0.004;
 
     return (
         <li
@@ -71,15 +78,32 @@ export function CofrinhoBucketCard({
                 </span>
             </button>
 
-            <span className="cofrinho-bucket-table__cell cofrinho-bucket-table__cell--valor" role="cell">
-                <strong className="cofrinho-bucket-table__valor">{formatBRL(resultado, currency)}</strong>
-            </span>
-
-            <span className="cofrinho-bucket-table__cell cofrinho-bucket-table__cell--meta" role="cell">
+            <span
+                className="cofrinho-bucket-table__cell cofrinho-bucket-table__cell--meta cofrinho-bucket-table__cell--num"
+                role="cell"
+            >
                 {meta > 0 ? (
-                    <strong className="cofrinho-bucket-table__meta-amount">{formatBRL(meta, currency)}</strong>
+                    <span className="cofrinho-bucket-table__meta-amount">{formatBRL(meta, currency)}</span>
                 ) : (
                     <span className="cofrinho-bucket-table__meta-unset">—</span>
+                )}
+            </span>
+
+            <span
+                className="cofrinho-bucket-table__cell cofrinho-bucket-table__cell--valor cofrinho-bucket-table__cell--num"
+                role="cell"
+            >
+                <strong className="cofrinho-bucket-table__valor">{formatBRL(contributed, currency)}</strong>
+            </span>
+
+            <span
+                className="cofrinho-bucket-table__cell cofrinho-bucket-table__cell--yield cofrinho-bucket-table__cell--num"
+                role="cell"
+            >
+                {hasYield ? (
+                    <span className="cofrinho-bucket-table__yield has-value">+{formatBRL(rendeu, currency)}</span>
+                ) : (
+                    <span className="cofrinho-bucket-table__yield">—</span>
                 )}
             </span>
 

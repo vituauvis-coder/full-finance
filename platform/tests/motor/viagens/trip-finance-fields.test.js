@@ -91,6 +91,27 @@ test('buildFinanceExpenseDraft exige conta e valor no cartão', () => {
     );
 });
 
+test('buildFinanceExpenseDraft cartão ignora paidFromCofrinho (deve espelhar na fatura)', () => {
+    const draft = buildFinanceExpenseDraft(
+        {
+            id: 'e-esfera',
+            amount: 3605,
+            paymentMethod: 'credit_card',
+            accountId: 'card-1',
+            paidFromCofrinho: true,
+            installments: 12,
+            description: 'Pontos Esfera',
+            spentOn: '2026-10-01'
+        },
+        'trip-1',
+        { tripTitle: 'Minha viagem' }
+    );
+    assert.ok(draft);
+    assert.equal(draft.paidFromCofrinho, false);
+    assert.equal(draft.isPaid, false);
+    assert.equal(draft.installmentCount, 12);
+});
+
 test('buildFinanceExpenseDraft cartão usa nome da viagem como subcategoria', () => {
     const draft = buildFinanceExpenseDraft(
         {

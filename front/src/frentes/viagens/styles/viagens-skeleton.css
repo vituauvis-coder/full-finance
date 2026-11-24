@@ -384,9 +384,9 @@ section.viagens-page .viagens-route-pending-host {
 #viagens-page .skeleton-viagens-voos-resumo .voos-resumo__col {
     min-height: 8.5rem;
     padding: 0.8rem 0.85rem;
-    border-radius: var(--dash-surface-radius, 16px);
-    border: 1px solid var(--dash-border, var(--v-borda));
-    background: var(--dash-layer-inset, var(--v-campo));
+    border-radius: 12px;
+    border: 1px solid color-mix(in srgb, var(--dash-border, var(--v-borda)) 55%, transparent);
+    background: color-mix(in srgb, var(--dash-text-primary, #1c1c1e) 3.5%, var(--dash-layer-canvas, var(--v-campo)));
 }
 
 #viagens-page .skeleton-viagens-transporte-page .voos-home {
@@ -401,9 +401,10 @@ section.viagens-page .viagens-route-pending-host {
 #viagens-page .skeleton-viagens-voos-segment.voos-board {
     width: 100%;
     padding: 0.85rem 1rem;
-    border-radius: var(--dash-surface-radius, 16px);
-    border: 1px solid var(--dash-border, var(--v-borda));
-    background: var(--dash-surface-bg, var(--dash-layer-raised));
+    border-radius: 0;
+    border: none;
+    border-top: 1px solid color-mix(in srgb, var(--dash-border, var(--v-borda)) 55%, transparent);
+    background: transparent;
     min-height: 9rem;
 }
 

@@ -54,17 +54,12 @@ export function expenseMatchesListPeriod(expense, account, periodStart, periodEn
         return purchase >= start && purchase <= end;
     }
 
-    if (purchase >= start && purchase <= end) return true;
-
-    if (!account) return false;
-
-    if (isLoanExpense(expense) && !isCreditCardType(account.type)) {
-        if (n < 2) return false;
+    if (n >= 2 && (!account || !isCreditCardType(account.type))) {
         const dueDates = getLoanInstallmentDueDates(purchase, n);
-        return dueDates.some((d) => d >= start && d <= end);
+        if (dueDates.some((d) => d >= start && d <= end)) return true;
     }
 
-    return false;
+    return purchase >= start && purchase <= end;
 }
 
 /**

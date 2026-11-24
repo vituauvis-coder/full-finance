@@ -1,5 +1,26 @@
 import { movementDateToJsDate } from './movement-date.js';
 
+/** Linhas expandidas na lista (`id::inst-…`) usam o id da compra para splits. */
+export function expenseIdForSplitLookup(movementOrId) {
+    const id =
+        movementOrId != null && typeof movementOrId === 'object'
+            ? String(movementOrId.id ?? '')
+            : String(movementOrId ?? '');
+    const sep = id.indexOf('::inst-');
+    if (sep >= 0) return id.slice(0, sep);
+    return id;
+}
+
+export function installmentSplitPeriodKeyMatches(splitPeriodKey, rowPeriodKey) {
+    const sk = String(splitPeriodKey ?? '').trim();
+    const rk = String(rowPeriodKey ?? '').trim();
+    if (!sk || !rk) return false;
+    if (sk === rk) return true;
+    if (sk.length === 7 && /^\d{4}-\d{2}$/.test(sk) && rk.startsWith(`${sk}-`)) return true;
+    if (rk.length === 7 && /^\d{4}-\d{2}$/.test(rk) && sk.startsWith(`${rk}-`)) return true;
+    return false;
+}
+
 export function normalizeSplitScope(raw) {
     const scope = String(raw ?? 'FULL_EXPENSE').trim().toUpperCase();
     return scope === 'INSTALLMENT' ? 'INSTALLMENT' : 'FULL_EXPENSE';
@@ -32,9 +53,12 @@ export function isSplitReimbursementGain(gain) {
 }
 
 function acceptedForExpense(expenseId, splitRequests) {
-    const eid = String(expenseId ?? '');
+    const eid = expenseIdForSplitLookup(expenseId);
+    if (!eid) return [];
     return (splitRequests || []).filter(
-        (s) => isAcceptedSettledSplitRequest(s) && String(s.sourceExpenseId ?? s.sourceExpense?.id ?? '') === eid
+        (s) =>
+            isAcceptedSettledSplitRequest(s) &&
+            expenseIdForSplitLookup(s.sourceExpenseId ?? s.sourceExpense?.id) === eid
     );
 }
 
@@ -66,7 +90,7 @@ export function sumAcceptedSettledFullSplitForRelatedExpense(expense, splitReque
         if (!isAcceptedSettledSplitRequest(s) || normalizeSplitScope(s.splitScope) !== 'FULL_EXPENSE') {
             continue;
         }
-        if (groupIds.has(String(s.sourceExpenseId ?? s.sourceExpense?.id ?? ''))) {
+        if (groupIds.has(expenseIdForSplitLookup(s.sourceExpenseId ?? s.sourceExpense?.id))) {
             fromSeries += Number(s.amount) || 0;
         }
     }
@@ -87,7 +111,7 @@ export function sumAcceptedSettledInstallmentSplitForExpenseMonth(
     const mk = String(monthKey ?? '');
     return acceptedForExpense(expenseId, splitRequests)
         .filter((s) => normalizeSplitScope(s.splitScope) === 'INSTALLMENT')
-        .filter((s) => String(s.targetPeriodKey ?? '') === mk)
+        .filter((s) => installmentSplitPeriodKeyMatches(s.targetPeriodKey, mk))
         .reduce((sum, s) => sum + (Number(s.amount) || 0), 0);
 }
 

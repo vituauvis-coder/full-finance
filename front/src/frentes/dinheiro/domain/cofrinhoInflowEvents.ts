@@ -102,9 +102,15 @@ export function filterAllocatedCofrinhoMirrorsForSaidasTotals(
     return (expenses ?? []).filter((e) => !isAllocatedCofrinhoMirrorExpense(e, applications));
 }
 
-/** Gasto de viagem «debitar da meta» — não é saída de conta; só Cofrinhos + orçamento. */
+/** Pix «debitar da meta» (já quitado na meta). Cartão parcelado (`isPaid: false`) continua na fatura em Saídas. */
+export function tripMetaExpenseHiddenFromSaidasList(e: Movement): boolean {
+    if (!movementPaidFromTripCofrinho(e)) return false;
+    if (e.isPaid === false) return false;
+    return true;
+}
+
 export function excludeTripMetaExpensesFromSaidasList(expenses: Movement[]): Movement[] {
-    return (expenses ?? []).filter((e) => !movementPaidFromTripCofrinho(e));
+    return (expenses ?? []).filter((e) => !tripMetaExpenseHiddenFromSaidasList(e));
 }
 
 /** Lista Saídas: remove espelhos automáticos e gastos pagos da meta da viagem. */

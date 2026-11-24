@@ -1,5 +1,6 @@
 import { Fragment } from 'react';
 import type { CofrinhoApplication, CofrinhoBucket, CofrinhoBucketGoal } from '../../domain/cofrinhoAggregations';
+import type { CofrinhoMonthlyBalance } from '../../domain/cofrinhoMonthlyBalances';
 import type { Movement } from '../../../../lib/types/finance';
 import { groupCofrinhoBucketsForDisplay } from '../../domain/cofrinhoBucketGroups';
 import { CofrinhoBucketCard } from './CofrinhoBucketCard';
@@ -9,6 +10,7 @@ type Props = {
     applications: CofrinhoApplication[];
     expenses: Movement[];
     goals: CofrinhoBucketGoal[];
+    monthlyBalances: CofrinhoMonthlyBalance[];
     currency: string;
     goalYear: number;
     onEdit: (bucket: CofrinhoBucket) => void;
@@ -22,6 +24,7 @@ export function CofrinhoGoalCardsGrid({
     applications,
     expenses,
     goals,
+    monthlyBalances,
     currency,
     goalYear,
     onEdit,
@@ -51,10 +54,21 @@ export function CofrinhoGoalCardsGrid({
         <section className="zero-budget__blocks-section cofrinhos-page__section" aria-label="Caixinhas">
             <div className="cofrinhos-buckets-table" role="table" id="cofrinhos-goal-cards" aria-label="Caixinhas">
                 <div className="cofrinhos-buckets-table__header" role="row">
-                    <span role="columnheader">Caixinha</span>
-                    <span role="columnheader">Valor</span>
-                    <span role="columnheader">Meta</span>
-                    <span role="columnheader">Progresso</span>
+                    <span role="columnheader" className="cofrinhos-buckets-table__th-name">
+                        Caixinha
+                    </span>
+                    <span role="columnheader" className="cofrinhos-buckets-table__th-num">
+                        Meta
+                    </span>
+                    <span role="columnheader" className="cofrinhos-buckets-table__th-num cofrinhos-buckets-table__th-valor">
+                        Valor aportado
+                    </span>
+                    <span role="columnheader" className="cofrinhos-buckets-table__th-num">
+                        Rendeu
+                    </span>
+                    <span role="columnheader" className="cofrinhos-buckets-table__th-progress">
+                        Progresso
+                    </span>
                     <span className="cofrinhos-buckets-table__th-actions" role="columnheader">
                         Ação
                     </span>
@@ -83,6 +97,7 @@ export function CofrinhoGoalCardsGrid({
                                     applications={applications}
                                     expenses={expenses}
                                     goals={goals}
+                                    monthlyBalances={monthlyBalances}
                                     currency={currency}
                                     goalYear={goalYear}
                                     onEdit={onEdit}

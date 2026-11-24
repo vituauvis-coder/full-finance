@@ -15,7 +15,7 @@ function readStoredMode(): GainsLedgerViewMode {
 }
 
 export function useGainsLedgerViewMode() {
-    const [viewMode, setViewModeState] = useState<GainsLedgerViewMode>(readStoredMode);
+    const [viewMode, setViewModeState] = useState<GainsLedgerViewMode>(() => readStoredMode());
 
     const setViewMode = useCallback((mode: GainsLedgerViewMode) => {
         setViewModeState(mode);

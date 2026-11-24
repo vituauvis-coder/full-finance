@@ -11,6 +11,13 @@
     --transport-type-kicker: 0.6875rem;
     --transport-row-hover: color-mix(in srgb, var(--dash-text-primary) 7%, var(--dash-layer-control));
     --transport-pad: 0.95rem;
+    /* Painéis de página integrados ao canvas (sem “caixas dentro de caixas”). */
+    --transport-shell-bg: transparent;
+    --transport-shell-border: transparent;
+    --transport-shell-shadow: none;
+    --transport-panel-bg: color-mix(in srgb, var(--dash-text-primary) 3.5%, var(--dash-layer-canvas, transparent));
+    --transport-panel-border: color-mix(in srgb, var(--dash-border) 55%, transparent);
+    --transport-inset-bg: color-mix(in srgb, var(--dash-text-primary) 4%, var(--dash-layer-canvas, transparent));
 
     --v-painel: var(--dash-layer-raised);
     --v-janela: var(--dash-layer-inset);
@@ -46,10 +53,11 @@
     flex-shrink: 0;
     margin: 0;
     padding: 0.65rem 1rem 0.65rem 0.85rem;
-    border-radius: var(--dash-surface-radius, 16px);
-    border: 1px solid var(--dash-surface-border, var(--dash-border));
-    background: var(--dash-surface-bg, var(--dash-layer-raised));
-    box-shadow: var(--dash-surface-shadow, var(--dash-raised-ring));
+    border-radius: 0;
+    border: none;
+    border-bottom: 1px solid var(--transport-panel-border);
+    background: var(--transport-shell-bg);
+    box-shadow: var(--transport-shell-shadow);
 }
 
 #viagens-page.viagens-page--ficha .voos-page .transporte-page-header__inner {
@@ -89,7 +97,7 @@
     width: min(100%, 18.5rem);
     max-width: none;
     margin: 0;
-    background: var(--dash-layer-inset);
+    background: var(--transport-inset-bg);
 }
 
 #viagens-page.viagens-page--ficha .voos-page .transporte-header__lista-actions {
@@ -119,10 +127,10 @@
     flex-direction: column;
     gap: 0;
     padding: var(--transport-pad) clamp(0.85rem, 1.75vw, 1.35rem) 1.1rem;
-    border-radius: var(--dash-surface-radius, 16px);
-    border: 1px solid var(--dash-surface-border, var(--dash-border));
-    background: var(--dash-surface-bg, var(--dash-layer-raised));
-    box-shadow: var(--dash-surface-shadow, var(--dash-raised-ring));
+    border-radius: 0;
+    border: none;
+    background: var(--transport-shell-bg);
+    box-shadow: var(--transport-shell-shadow);
 }
 
 #viagens-page.viagens-page--ficha .voos-page .transporte-hero .voos-resumo {
@@ -137,7 +145,7 @@
     gap: 0.75rem 1.15rem;
     margin-top: 1rem;
     padding-top: 1rem;
-    border-top: 1px solid var(--dash-border);
+    border-top: 1px solid var(--transport-panel-border);
 }
 
 #viagens-page.viagens-page--ficha .voos-page .transporte-hero__lista-actions {
@@ -159,7 +167,8 @@
 }
 
 #viagens-page.viagens-page--ficha .voos-page .transporte-hero .voos-resumo__col {
-    background: var(--dash-layer-inset);
+    background: var(--transport-panel-bg);
+    border-color: var(--transport-panel-border);
 }
 
 #viagens-page.viagens-page--ficha .voos-page .transporte-hero .carteira-resumo__grid {
@@ -198,8 +207,8 @@
 #viagens-page.viagens-page--ficha .voos-page .transporte-hero--terrestre .terrestre-resumo__kpis .orc-kpi {
     padding: 0.55rem 0.65rem;
     border-radius: 10px;
-    border: 1px solid var(--dash-border);
-    background: var(--dash-layer-inset);
+    border: 1px solid var(--transport-panel-border);
+    background: var(--transport-panel-bg);
 }
 
 #viagens-page.viagens-page--ficha .voos-page .transporte-hero--terrestre .orc-kpi__label {
@@ -234,8 +243,8 @@
 }
 
 #viagens-page.viagens-page--ficha .voos-page .trip-ticket.terrestre-ticket {
-    --ticket-paper: var(--dash-layer-raised);
-    --ticket-stub-bg: var(--dash-layer-inset);
+    --ticket-paper: var(--transport-panel-bg);
+    --ticket-stub-bg: var(--transport-inset-bg);
     --ticket-ink: var(--dash-text-primary);
     --ticket-muted: var(--dash-text-secondary);
     --ticket-line: var(--dash-border);
@@ -297,8 +306,8 @@
 #viagens-page.viagens-page--ficha .voos-page .terrestre-empty {
     padding: 1.25rem 1rem;
     border-radius: var(--dash-surface-radius, 12px);
-    border: 1px dashed var(--dash-border);
-    background: var(--dash-layer-inset);
+    border: 1px dashed var(--transport-panel-border);
+    background: var(--transport-inset-bg);
     text-align: center;
 }
 
@@ -335,8 +344,8 @@
     margin-bottom: 0.15rem;
     padding: 0.22rem;
     border-radius: 10px;
-    border: 1px solid var(--dash-border);
-    background: var(--dash-layer-inset);
+    border: 1px solid var(--transport-panel-border);
+    background: var(--transport-inset-bg);
 }
 
 #viagens-page.viagens-page--ficha .voos-page .transporte-module-tab {
@@ -387,8 +396,8 @@
 #viagens-page.viagens-page--ficha .voos-page .voos-resumo__col {
     padding: var(--transport-pad);
     border-radius: 12px;
-    border: 1px solid var(--dash-border);
-    background: var(--dash-layer-raised);
+    border: 1px solid var(--transport-panel-border);
+    background: var(--transport-panel-bg);
     box-shadow: none;
 }
 
@@ -478,8 +487,20 @@
 #viagens-page.viagens-page--ficha .voos-page .voos-resumo__stats div,
 #viagens-page.viagens-page--ficha .voos-page .voos-scene__leg {
     border-radius: 10px;
-    border: 1px solid var(--dash-border);
-    background: var(--dash-layer-inset);
+    border: 1px solid var(--transport-panel-border);
+    background: var(--transport-panel-bg);
+}
+
+#viagens-page.viagens-page--ficha .voos-page .transporte-hero .voos-resumo__stats div,
+#viagens-page.viagens-page--ficha .voos-page .transporte-hero .voos-scene__leg,
+#viagens-page.viagens-page--ficha .voos-page .transporte-hero .voos-scene__total {
+    border-color: var(--transport-panel-border);
+    background: var(--transport-inset-bg);
+}
+
+#viagens-page.viagens-page--ficha .voos-page .transporte-hero .carteira-mini {
+    border-color: var(--transport-panel-border);
+    background: var(--transport-panel-bg);
 }
 
 #viagens-page.viagens-page--ficha .voos-page .voos-scene__legs {
@@ -514,8 +535,8 @@
 
 #viagens-page.viagens-page--ficha .voos-page .voos-scene__total {
     margin-top: 0.15rem;
-    border: 1px solid var(--dash-border);
-    background: var(--dash-layer-inset);
+    border: 1px solid var(--transport-panel-border);
+    background: var(--transport-panel-bg);
     border-radius: 10px;
 }
 
@@ -671,10 +692,11 @@
     flex-direction: column;
     gap: 0.65rem;
     padding: 0.65rem 1rem 0.65rem 0.85rem;
-    border-radius: var(--dash-surface-radius, 16px);
-    border: 1px solid var(--dash-surface-border, var(--dash-border));
-    background: var(--dash-surface-bg, var(--dash-layer-raised));
-    box-shadow: var(--dash-surface-shadow, var(--dash-raised-ring));
+    border-radius: 0;
+    border: none;
+    border-top: 1px solid var(--transport-panel-border);
+    background: var(--transport-shell-bg);
+    box-shadow: var(--transport-shell-shadow);
 }
 
 #viagens-page.viagens-page--ficha .voos-page .transporte-lista-intro .voos-board__head {
@@ -703,15 +725,17 @@
     flex-direction: column;
     gap: 0.65rem;
     padding: var(--transport-pad) clamp(0.85rem, 1.75vw, 1.35rem) 1.1rem;
-    border-radius: var(--dash-surface-radius, 16px);
-    border: 1px solid var(--dash-surface-border, var(--dash-border));
-    background: var(--dash-surface-bg, var(--dash-layer-raised));
-    box-shadow: var(--dash-surface-shadow, var(--dash-raised-ring));
+    border-radius: 0;
+    border: none;
+    border-top: 1px solid var(--transport-panel-border);
+    background: var(--transport-shell-bg);
+    box-shadow: var(--transport-shell-shadow);
 }
 
 #viagens-page.viagens-page--ficha .voos-page .transporte-segment-section.voos-segment {
-    border: 1px solid var(--dash-surface-border, var(--dash-border));
-    background: var(--dash-surface-bg, var(--dash-layer-raised));
+    border: none;
+    border-top: 1px solid var(--transport-panel-border);
+    background: var(--transport-shell-bg);
 }
 
 #viagens-page.viagens-page--ficha .voos-page .transporte-segment-section--empty .voos-board__head {
@@ -719,8 +743,8 @@
 }
 
 #viagens-page.viagens-page--ficha .voos-page .voos-empty.voos-empty--board {
-    border: 1px dashed var(--dash-border);
-    background: var(--dash-layer-inset);
+    border: 1px dashed var(--transport-panel-border);
+    background: var(--transport-inset-bg);
     border-radius: 10px;
 }
 
@@ -804,8 +828,8 @@
     gap: 0.7rem;
     padding: 0.95rem 1rem 1rem;
     border-radius: 12px;
-    border: 1px solid var(--dash-border);
-    background: var(--dash-layer-inset);
+    border: 1px solid var(--transport-panel-border);
+    background: var(--transport-panel-bg);
     transition:
         border-color 0.15s ease,
         background 0.15s ease;

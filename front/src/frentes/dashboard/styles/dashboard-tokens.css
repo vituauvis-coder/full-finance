@@ -16,7 +16,8 @@
 #gains-page.movements-page--modern,
 #expenses-page.movements-page--modern,
 #zero-budget-page.zero-budget-page,
-#profile-page.profile-page--modern {
+#profile-page.profile-page--modern,
+#estudos-page.estudos-page {
     --dash-text-primary: #1d1d1f;
     --dash-text-secondary: #6e6e73;
     --dash-text-tertiary: #86868b;
@@ -83,7 +84,8 @@
 [data-theme='dark'] #gains-page.movements-page--modern,
 [data-theme='dark'] #expenses-page.movements-page--modern,
 [data-theme='dark'] #zero-budget-page.zero-budget-page,
-[data-theme='dark'] #profile-page.profile-page--modern {
+[data-theme='dark'] #profile-page.profile-page--modern,
+[data-theme='dark'] #estudos-page.estudos-page {
     --dash-text-primary: #f5f5f7;
     --dash-text-secondary: #86868b;
     --dash-text-tertiary: #6e6e73;

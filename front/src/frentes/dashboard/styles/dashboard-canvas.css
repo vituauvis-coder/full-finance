@@ -1,0 +1,138 @@
+/**
+ * Dashboard principal — fundo integrado ao canvas.
+ */
+
+#dashboard-page.dashboard-page--modern {
+    --dashboard-canvas-shell: transparent;
+    --dashboard-canvas-border: color-mix(in srgb, var(--dash-border) 55%, transparent);
+    --dashboard-canvas-inset: color-mix(in srgb, var(--dash-text-primary) 4%, var(--dash-layer-canvas));
+    --dashboard-canvas-panel: color-mix(in srgb, var(--dash-text-primary) 3.5%, var(--dash-layer-canvas));
+}
+
+.page-content--dashboard-modern > .app-header:has(+ #dashboard-page.dashboard-page--modern) {
+    background: var(--dashboard-canvas-shell);
+    border: none;
+    border-bottom: 1px solid var(--dashboard-canvas-border);
+    border-radius: 0;
+    box-shadow: none;
+}
+
+#dashboard-page.dashboard-page--modern > .civil-period-timeline.civil-period-timeline--surfaced {
+    background: var(--dashboard-canvas-shell) !important;
+    border: none !important;
+    border-bottom: 1px solid var(--dashboard-canvas-border) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+#dashboard-page.dashboard-page--modern .civil-period-timeline--surfaced .civil-period-timeline__year-stepper {
+    background: var(--dashboard-canvas-inset);
+    border-color: var(--dashboard-canvas-border);
+    box-shadow: none;
+}
+
+#dashboard-page.dashboard-page--modern .civil-period-timeline--surfaced .civil-period-timeline__year-btn {
+    background: transparent;
+}
+
+#dashboard-page.dashboard-page--modern .civil-period-timeline--surfaced .civil-period-timeline__year-btn:hover {
+    background: var(--dashboard-canvas-panel);
+}
+
+#dashboard-page.dashboard-page--modern .civil-period-timeline--surfaced .civil-period-timeline__month-btn {
+    border-color: var(--dashboard-canvas-border);
+    background: transparent;
+    box-shadow: none;
+}
+
+#dashboard-page.dashboard-page--modern .civil-period-timeline--surfaced .civil-period-timeline__month-btn:hover {
+    background: var(--dashboard-canvas-inset);
+    border-color: var(--dash-border-strong, var(--dash-border));
+}
+
+#dashboard-page.dashboard-page--modern .civil-period-timeline__scope-btn {
+    border-color: var(--dashboard-canvas-border);
+    background: transparent;
+}
+
+#dashboard-page.dashboard-page--modern .civil-period-timeline__scope-btn:hover {
+    background: var(--dashboard-canvas-inset);
+    border-color: var(--dash-border-strong, var(--dash-border));
+}
+
+#dashboard-page.dashboard-page--modern .civil-period-timeline__year-stepper.is-year-scope {
+    border-color: color-mix(in srgb, var(--cpt-accent) 36%, var(--dashboard-canvas-border));
+}
+
+.page-content--dashboard-modern
+    > .app-header:has(+ #dashboard-page.dashboard-page--modern)
+    .dashboard-page-filter-ribbon
+    .movement-status-pills,
+.page-content--dashboard-modern
+    > .app-header:has(+ #dashboard-page.dashboard-page--modern)
+    .dashboard-page-filter-ribbon
+    .movement-filter-ribbon__group,
+.page-content--dashboard-modern
+    > .app-header:has(+ #dashboard-page.dashboard-page--modern)
+    .dashboard-page-filter-ribbon
+    .movement-filter-ribbon__icon-btn {
+    border-color: var(--dashboard-canvas-border);
+    background: var(--dashboard-canvas-inset);
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-tri-col {
+    background: var(--dashboard-canvas-panel);
+    border-color: var(--dashboard-canvas-border);
+    box-shadow: none;
+}
+
+#dashboard-page.dashboard-page--modern .reports-chart-container.dashboard-flux-chart-card,
+#dashboard-page.dashboard-page--modern .dashboard-flux-panel {
+    background: var(--dashboard-canvas-shell);
+    border: none;
+    border-top: 1px solid var(--dashboard-canvas-border);
+    border-radius: 0;
+    box-shadow: none;
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-flux-filter-ribbon.movement-filter-ribbon {
+    background: transparent;
+    border-bottom-color: var(--dashboard-canvas-border);
+}
+
+#dashboard-page.dashboard-page--modern .dashboard-flux-filter-ribbon .movement-status-pills,
+#dashboard-page.dashboard-page--modern .dashboard-flux-filter-ribbon .movement-filter-ribbon__group,
+#dashboard-page.dashboard-page--modern .dashboard-flux-filter-ribbon .movement-filter-ribbon__icon-btn,
+#dashboard-page.dashboard-page--modern .dashboard-flux-filter-ribbon .chart-type-toggle {
+    border-color: var(--dashboard-canvas-border);
+    background: var(--dashboard-canvas-inset);
+}
+
+#dashboard-page.dashboard-page--modern > .summary-cards.movements-summary .movement-summary-card {
+    background: var(--dashboard-canvas-panel);
+    border-color: var(--dashboard-canvas-border);
+    box-shadow: none;
+}
+
+#dashboard-page.dashboard-page--modern .skeleton-timeline.civil-period-timeline--surfaced {
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 1px solid var(--dashboard-canvas-border) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+#dashboard-page.dashboard-page--modern .skeleton-dashboard-tri-col.skeleton-panel,
+#dashboard-page.dashboard-page--modern .skeleton-dashboard-tri-col {
+    background: var(--dashboard-canvas-panel);
+    border-color: var(--dashboard-canvas-border);
+    box-shadow: none;
+}
+
+#dashboard-page.dashboard-page--modern .reports-chart-container.dashboard-flux-chart-card.skeleton-panel {
+    background: var(--dashboard-canvas-shell);
+    border: none;
+    border-top: 1px solid var(--dashboard-canvas-border);
+    border-radius: 0;
+    box-shadow: none;
+}
