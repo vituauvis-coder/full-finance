@@ -56,6 +56,7 @@ export function CofrinhoBucketModal({ open, onClose, editing, goals, goalYear, o
     const [tripId, setTripId] = useState('');
     const [trips, setTrips] = useState<{ id: string; title: string }[]>([]);
     const [tripsLoading, setTripsLoading] = useState(false);
+    const [tripsLoadError, setTripsLoadError] = useState<string | null>(null);
     const [colorKey, setColorKey] = useState<string>(defaultBucketColorKey());
     const [goalTarget, setGoalTarget] = useState('');
     const [goalDeadline, setGoalDeadline] = useState('');
@@ -67,6 +68,8 @@ export function CofrinhoBucketModal({ open, onClose, editing, goals, goalYear, o
     const title = editing ? 'Configurar caixinha' : 'Nova caixinha';
 
     const tripTitleById = useMemo(() => new Map(trips.map((t) => [t.id, t.title])), [trips]);
+
+    const selectableTrips = trips;
     const linkedTripId = tripLocked ? String(editing?.tripId ?? '').trim() : tripId;
     const linkedTripTitle =
         tripTitleById.get(linkedTripId) ||
@@ -100,6 +103,7 @@ export function CofrinhoBucketModal({ open, onClose, editing, goals, goalYear, o
         if (!open) return;
         let cancelled = false;
         setTripsLoading(true);
+        setTripsLoadError(null);
         void fetchTripsList()
             .then((res) => {
                 if (cancelled) return;
@@ -110,8 +114,13 @@ export function CofrinhoBucketModal({ open, onClose, editing, goals, goalYear, o
                     }))
                 );
             })
-            .catch(() => {
-                if (!cancelled) setTrips([]);
+            .catch((err) => {
+                if (!cancelled) {
+                    setTrips([]);
+                    setTripsLoadError(
+                        err instanceof Error ? err.message : 'Não foi possível carregar as viagens'
+                    );
+                }
             })
             .finally(() => {
                 if (!cancelled) setTripsLoading(false);
@@ -328,9 +337,13 @@ export function CofrinhoBucketModal({ open, onClose, editing, goals, goalYear, o
                                                 onChange={(e) => setTripId(e.target.value)}
                                             >
                                                 <option value="">
-                                                    {tripsLoading ? 'Carregando viagens…' : 'Selecione a viagem'}
+                                                    {tripsLoading
+                                                        ? 'Carregando viagens…'
+                                                        : selectableTrips.length === 0
+                                                          ? 'Nenhuma viagem disponível'
+                                                          : 'Selecione a viagem'}
                                                 </option>
-                                                {trips.map((t) => (
+                                                {selectableTrips.map((t) => (
                                                     <option key={t.id} value={t.id}>
                                                         {t.title}
                                                     </option>
@@ -340,7 +353,11 @@ export function CofrinhoBucketModal({ open, onClose, editing, goals, goalYear, o
                                                 ) : null}
                                             </FormSelect>
                                             <span className="ui-form-field__hint">
-                                                Uma caixinha por viagem — aparece em «Viagens» no painel.
+                                                {tripsLoadError
+                                                    ? tripsLoadError
+                                                    : !tripsLoading && selectableTrips.length === 0
+                                                      ? 'Crie uma viagem em Viagens ou vincule uma que ainda não tenha caixinha sua.'
+                                                      : 'Uma caixinha por viagem — aparece em «Viagens» no painel.'}
                                             </span>
                                         </>
                                     )}

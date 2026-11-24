@@ -31,6 +31,21 @@ async function backfillOrphanTrips(userId) {
     return hid;
 }
 
+/** Alinha viagens antigas (sem household_id) dos colegas de casa para a casa atual. */
+async function syncOrphanTripsForHouseholdMembers(userId) {
+    await query(
+        `UPDATE trips t
+         SET household_id = hm.household_id
+         FROM household_members hm
+         WHERE t.household_id IS NULL
+           AND t.user_id = hm.user_id
+           AND hm.household_id IN (
+               SELECT household_id FROM household_members WHERE user_id = $1
+           )`,
+        [userId]
+    );
+}
+
 /** @deprecated Prefer listTripsForUser — kept for scripts/admin. */
 export async function listTrips() {
     const { rows } = await query(
@@ -43,15 +58,15 @@ export async function listTrips() {
 }
 
 export async function listTripsForUser(userId) {
+    if (!userId) return [];
     await backfillOrphanTrips(userId);
+    await syncOrphanTripsForHouseholdMembers(userId);
+    // Paridade com canAccessTrip: qualquer login autenticado vê todas as viagens do app.
     const { rows } = await query(
         `SELECT ${SELECT_FIELDS}
          FROM trips t
          ${CREATOR_JOIN}
-         WHERE t.household_id IN ${householdIdsForUserSql(1)}
-            OR (t.household_id IS NULL AND t.user_id = $1)
-         ORDER BY t.updated_at DESC`,
-        [userId]
+         ORDER BY t.updated_at DESC`
     );
     return rows;
 }

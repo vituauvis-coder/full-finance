@@ -9,6 +9,7 @@ export type CofrinhoBucketKind = 'reserve' | 'viagem' | 'pool';
 
 export type CofrinhoBucket = {
     id: string;
+    userId?: string;
     name?: string;
     colorKey?: string;
     icon?: string;

@@ -19,6 +19,7 @@ import { ensureCofrinhoViagemLedgerColumns } from './migrations/cofrinho-viagem-
 import { ensureCofrinhoBucketGoalDeadlineColumn } from './migrations/cofrinho-bucket-goal-deadline.js';
 import { bucketKindForWrite } from '../motor/dinheiro/cofrinho-bucket-kind.js';
 import { ensureTripCofrinhoBucket } from './cofrinho-trip-bucket.js';
+import { assertTripAccess } from './trips-repository.js';
 
 export const COFRINHO_CATEGORY = 'Cofrinhos';
 
@@ -521,6 +522,7 @@ export function registerCofrinhoRoutes(app, requireAuth) {
         try {
             const row = await withTransaction(async (client) => {
                 if (tripId) {
+                    await assertTripAccess(uid, tripId);
                     const { rows: other } = await client.query(
                         `SELECT id FROM cofrinho_buckets WHERE user_id = $1 AND trip_id = $2 LIMIT 1`,
                         [uid, tripId]
