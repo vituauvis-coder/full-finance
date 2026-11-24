@@ -110,7 +110,14 @@ export function supplementTripAportesFromCofrinhoLedger(
         if (String(m?.category ?? '').trim() !== COFRINHO_CATEGORY) continue;
         if (isPoolExpense(m)) continue;
 
-        const resolved = resolveCofrinhoBucketForMovement(m, tripBuckets);
+        const mUserId = String(m?.userId ?? m?.user_id ?? '').trim();
+        const userTripBuckets = mUserId
+            ? tripBuckets.filter((b) => String(b?.userId ?? b?.user_id ?? '').trim() === mUserId)
+            : [];
+        const resolved = resolveCofrinhoBucketForMovement(
+            m,
+            userTripBuckets.length ? userTripBuckets : tripBuckets
+        );
         if (!resolved) continue;
         const delta = cofrinhoBucketDeltaForMovement(m, resolved);
         if (delta <= 0) continue;

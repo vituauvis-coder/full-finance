@@ -481,17 +481,14 @@ export async function fetchCofrinhoBundle(userId) {
     await normalizeLegacyAspirationBucket(userId);
     await withTransaction((client) => ensurePoolSubcategory(userId, client));
     const [bucketsRes, appsRes, goalsRes, balancesRes] = await Promise.all([
+        query(`${BUCKET_SELECT} WHERE user_id = $1 ORDER BY sort_order ASC, name ASC`, [userId]),
         query(
-            `${BUCKET_SELECT} WHERE user_id = $1 OR ${cofrinhoBucketAccessibleSql(1)} ORDER BY sort_order ASC, name ASC`,
-            [userId]
-        ),
-        query(
-            `${APPLICATION_SELECT} WHERE ${cofrinhoApplicationAccessibleSql(1)} ORDER BY reference_month DESC, created_at DESC`,
+            `${APPLICATION_SELECT} WHERE user_id = $1 ORDER BY reference_month DESC, created_at DESC`,
             [userId]
         ),
         query(`${GOAL_SELECT} WHERE user_id = $1 ORDER BY year DESC, bucket_id ASC`, [userId]),
         query(
-            `${MONTHLY_BALANCE_SELECT} WHERE ${cofrinhoMonthlyBalanceAccessibleSql(1)} ORDER BY reference_month DESC, bucket_id ASC`,
+            `${MONTHLY_BALANCE_SELECT} WHERE user_id = $1 ORDER BY reference_month DESC, bucket_id ASC`,
             [userId]
         )
     ]);

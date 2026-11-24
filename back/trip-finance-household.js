@@ -4,45 +4,13 @@ import { mergeTripFinanceView } from '../motor/viagens/trip-finance-household.js
 import { buildTripCofrinhoMeta } from '../motor/viagens/trip-cofrinho-meta.js';
 import { supplementTripAportesFromCofrinhoLedger } from '../motor/viagens/trip-cofrinho-supplement-aportes.js';
 import { COFRINHO_CATEGORY } from '../motor/dinheiro/cofrinho-movement-ledger.js';
-import {
-    cofrinhoBucketAccessibleSql,
-    expenseAccessibleToUserSql,
-    householdIdsForUserSql
-} from './household.js';
 
-function cofrinhoBucketRowAccessibleSql(uidParamIndex, alias = 'b') {
-    return `(
-        ${alias}.user_id = $${uidParamIndex}
-        OR (
-            ${alias}.trip_id IS NOT NULL
-            AND ${alias}.trip_id IN (
-                SELECT t.id FROM trips t
-                WHERE t.household_id IN ${householdIdsForUserSql(uidParamIndex)}
-            )
-        )
-    )`;
-}
-
-function cofrinhoApplicationRowAccessibleSql(uidParamIndex, alias = 'ca') {
-    return `(
-        ${alias}.user_id = $${uidParamIndex}
-        OR EXISTS (
-            SELECT 1 FROM expenses e
-            WHERE e.id = ${alias}.allocated_expense_id
-              AND ${expenseAccessibleToUserSql(uidParamIndex, 'e')}
-        )
-    )`;
-}
-
-function cofrinhoMonthlyBalanceRowAccessibleSql(uidParamIndex, alias = 'mb') {
-    return `(
-        ${alias}.user_id = $${uidParamIndex}
-        OR ${alias}.bucket_id IN (
-            SELECT id FROM cofrinho_buckets WHERE ${cofrinhoBucketAccessibleSql(uidParamIndex)}
-        )
-    )`;
-}
-
+/**
+ * Movimentos financeiros vinculados à viagem (orçamento + cofrinho compartilhado).
+ * Viagens são compartilhadas entre todos os logins: aportes, rendimentos e gastos
+ * de todos os participantes da viagem se somam aqui (enquanto a tela Cofrinhos
+ * pessoal de cada usuário mantém apenas a própria caixinha).
+ */
 export async function listTripFinanceMovements(userId, tripId) {
     const trip = await assertTripAccess(userId, tripId);
     const payload =
@@ -52,8 +20,6 @@ export async function listTripFinanceMovements(userId, tripId) {
 
     const { ensureTripCofrinhoBucket } = await import('./cofrinho-trip-bucket.js');
     await ensureTripCofrinhoBucket(userId, tripId, tripTitle);
-
-    const bucketAccessible = cofrinhoBucketRowAccessibleSql(1, 'b');
 
     const { rows } = await query(
         `SELECT DISTINCT ON (e.id)
@@ -72,36 +38,32 @@ export async function listTripFinanceMovements(userId, tripId) {
                 u.name AS "authorName"
          FROM expenses e
          JOIN users u ON u.id = e.user_id
-         WHERE ${expenseAccessibleToUserSql(1, 'e')}
-           AND (
-                e.trip_id = $2
-                OR (
-                    LOWER(TRIM(e.category)) = LOWER($3)
-                    AND (
-                        EXISTS (
-                            SELECT 1 FROM cofrinho_buckets b
-                            WHERE b.trip_id = $2
-                              AND ${bucketAccessible}
-                              AND LOWER(TRIM(b.name)) = LOWER(TRIM(COALESCE(e.subcategory, '')))
-                        )
-                        OR EXISTS (
-                            SELECT 1 FROM cofrinho_applications ca
-                            INNER JOIN cofrinho_buckets b ON b.id = ca.bucket_id
-                            WHERE b.trip_id = $2
-                              AND ${bucketAccessible}
-                              AND ca.allocated_expense_id = e.id
-                        )
+         WHERE e.trip_id = $1
+            OR (
+                LOWER(TRIM(e.category)) = LOWER($2)
+                AND (
+                    EXISTS (
+                        SELECT 1 FROM cofrinho_buckets b
+                        WHERE b.trip_id = $1
+                          AND b.user_id = e.user_id
+                          AND LOWER(TRIM(b.name)) = LOWER(TRIM(COALESCE(e.subcategory, '')))
+                    )
+                    OR EXISTS (
+                        SELECT 1 FROM cofrinho_applications ca
+                        INNER JOIN cofrinho_buckets b ON b.id = ca.bucket_id
+                        WHERE b.trip_id = $1
+                          AND ca.allocated_expense_id = e.id
                     )
                 )
-                OR (
-                    LOWER(TRIM(e.category)) = LOWER($3)
-                    AND $4 <> ''
-                    AND e.trip_id IS NULL
-                    AND LOWER(TRIM(e.subcategory)) = LOWER($4)
-                )
-           )
+            )
+            OR (
+                LOWER(TRIM(e.category)) = LOWER($2)
+                AND $3 <> ''
+                AND e.trip_id IS NULL
+                AND LOWER(TRIM(e.subcategory)) = LOWER($3)
+            )
          ORDER BY e.id, e.created_at ASC`,
-        [userId, tripId, COFRINHO_CATEGORY, tripTitle]
+        [tripId, COFRINHO_CATEGORY, tripTitle]
     );
 
     const householdExpenses = rows.map((r) => ({
@@ -125,16 +87,13 @@ export async function listTripFinanceMovements(userId, tripId) {
             query(
                 `SELECT id, user_id AS "userId", name, trip_id AS "tripId"
                  FROM cofrinho_buckets
-                 WHERE ${cofrinhoBucketAccessibleSql(1)}
-                   AND (
-                        trip_id = $2
-                        OR (
-                            $3 <> ''
-                            AND trip_id IS NULL
-                            AND lower(trim(name)) = lower($3)
-                        )
-                   )`,
-                [userId, tripId, tripTitle]
+                 WHERE trip_id = $1
+                    OR (
+                        $2 <> ''
+                        AND trip_id IS NULL
+                        AND lower(trim(name)) = lower($2)
+                    )`,
+                [tripId, tripTitle]
             ),
             query(
                 `SELECT ca.id,
@@ -147,16 +106,13 @@ export async function listTripFinanceMovements(userId, tripId) {
                  FROM cofrinho_applications ca
                  INNER JOIN cofrinho_buckets b ON b.id = ca.bucket_id
                  LEFT JOIN users u ON u.id = ca.user_id
-                 WHERE ${cofrinhoApplicationRowAccessibleSql(1, 'ca')}
-                   AND (
-                        b.trip_id = $2
-                        OR (
-                            $3 <> ''
-                            AND b.trip_id IS NULL
-                            AND lower(trim(b.name)) = lower($3)
-                        )
-                   )`,
-                [userId, tripId, tripTitle]
+                 WHERE b.trip_id = $1
+                    OR (
+                        $2 <> ''
+                        AND b.trip_id IS NULL
+                        AND lower(trim(b.name)) = lower($2)
+                    )`,
+                [tripId, tripTitle]
             ),
             query(
                 `SELECT e.id,
@@ -172,9 +128,20 @@ export async function listTripFinanceMovements(userId, tripId) {
                         u.name AS "authorName"
                  FROM expenses e
                  JOIN users u ON u.id = e.user_id
-                 WHERE ${expenseAccessibleToUserSql(1, 'e')}
-                   AND LOWER(TRIM(e.category)) = LOWER($2)`,
-                [userId, COFRINHO_CATEGORY]
+                 WHERE LOWER(TRIM(e.category)) = LOWER($1)
+                   AND (
+                        e.trip_id = $2
+                        OR e.user_id IN (
+                            SELECT b.user_id FROM cofrinho_buckets b
+                            WHERE b.trip_id = $2
+                               OR (
+                                    $3 <> ''
+                                    AND b.trip_id IS NULL
+                                    AND lower(trim(b.name)) = lower($3)
+                               )
+                        )
+                   )`,
+                [COFRINHO_CATEGORY, tripId, tripTitle]
             )
         ]);
 
@@ -199,10 +166,9 @@ export async function listTripFinanceMovements(userId, tripId) {
                 mb.balance_with_yield AS "balanceWithYield"
          FROM cofrinho_monthly_balances mb
          INNER JOIN cofrinho_buckets b ON b.id = mb.bucket_id
-         WHERE b.trip_id = $2
-           AND ${cofrinhoMonthlyBalanceRowAccessibleSql(1, 'mb')}
+         WHERE b.trip_id = $1
          ORDER BY mb.reference_month ASC`,
-        [userId, tripId]
+        [tripId]
     );
 
     const cofrinho = buildTripCofrinhoMeta(view.lines, snapRows);

@@ -56,7 +56,15 @@ export function useCofrinhosPageModel(data: FinanceData | null): CofrinhosPageMo
     const applications = (data?.cofrinhoApplications ?? []) as CofrinhoApplication[];
     const goals = (data?.cofrinhoBucketGoals ?? []) as CofrinhoBucketGoal[];
     const monthlyBalances = (data?.cofrinhoMonthlyBalances ?? []) as CofrinhoMonthlyBalance[];
-    const expenses = data?.userExpenses ?? [];
+    const myUserId = String(data?.userProfile?.id ?? '').trim();
+    const expenses = useMemo(() => {
+        const list = data?.userExpenses ?? [];
+        if (!myUserId) return list;
+        return list.filter((e) => {
+            const owner = String((e as Movement & { userId?: string }).userId ?? '').trim();
+            return !owner || owner === myUserId;
+        });
+    }, [data?.userExpenses, myUserId]);
     const tripPayloadOutflows = data?.cofrinhoTripPayloadOutflows ?? [];
     const accounts = data?.userAccounts ?? [];
 
