@@ -1,6 +1,8 @@
 import { apiFetch } from '../../../lib/http';
 import type { CofrinhoApplication, CofrinhoBucket, CofrinhoBucketGoal } from '../domain/cofrinhoAggregations';
 import type { CofrinhoMonthlyBalance } from '../domain/cofrinhoMonthlyBalances';
+import { getBucketGoalForYear } from '../domain/cofrinhoAggregations';
+import { cofrinhoGoalDeadlineFromGoal } from '../domain/cofrinhoGoalDeadline';
 
 export async function createCofrinhoBucket(body: {
     name: string;
@@ -37,33 +39,88 @@ export async function deleteCofrinhoBucket(id: string): Promise<void> {
     await apiFetch(`/api/cofrinho-buckets/${id}`, { method: 'DELETE' });
 }
 
-export async function upsertBucketGoal(body: {
-    bucketId: string;
-    year: number;
-    targetAmount: number;
-    goalId?: string | null;
-}): Promise<CofrinhoBucketGoal> {
-    if (body.goalId) {
-        return apiFetch<CofrinhoBucketGoal>(`/api/cofrinho-bucket-goals/${body.goalId}`, {
+export async function upsertBucketGoal(
+    body: {
+        bucketId: string;
+        year: number;
+        targetAmount: number;
+        targetDeadline?: string | null;
+        goalId?: string | null;
+    },
+    knownGoals?: CofrinhoBucketGoal[]
+): Promise<CofrinhoBucketGoal> {
+    const payload = {
+        bucketId: body.bucketId,
+        year: body.year,
+        targetAmount: body.targetAmount,
+        targetDeadline: body.targetDeadline ?? null
+    };
+
+    try {
+        return await apiFetch<CofrinhoBucketGoal>('/api/cofrinho-bucket-goals/by-bucket-year', {
             method: 'PUT',
-            body: JSON.stringify({ targetAmount: body.targetAmount, year: body.year })
+            body: JSON.stringify(payload)
+        });
+    } catch (byBucketErr) {
+        const byBucketMsg = byBucketErr instanceof Error ? byBucketErr.message : '';
+        const routeMissing =
+            byBucketMsg.includes('Cannot PUT') ||
+            byBucketMsg.includes('desatualizado') ||
+            byBucketMsg.includes('Não encontrado');
+
+        if (!routeMissing) {
+            throw byBucketErr;
+        }
+    }
+
+    const goalId =
+        body.goalId ??
+        getBucketGoalForYear(knownGoals ?? [], body.bucketId, body.year)?.id ??
+        null;
+
+    if (goalId) {
+        return apiFetch<CofrinhoBucketGoal>(`/api/cofrinho-bucket-goals/${goalId}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload)
         });
     }
+
     try {
         return await apiFetch<CofrinhoBucketGoal>('/api/cofrinho-bucket-goals', {
             method: 'POST',
-            body: JSON.stringify({
-                bucketId: body.bucketId,
-                year: body.year,
-                targetAmount: body.targetAmount
-            })
+            body: JSON.stringify(payload)
         });
-    } catch (e) {
-        if (e instanceof Error && e.message.includes('409')) {
-            throw e;
+    } catch (postErr) {
+        const postMsg = postErr instanceof Error ? postErr.message : '';
+        const duplicate =
+            postMsg.includes('Já existe meta') ||
+            postMsg.includes('409') ||
+            postMsg.toLowerCase().includes('already exists');
+        if (!duplicate) throw postErr;
+
+        let retryId = getBucketGoalForYear(knownGoals ?? [], body.bucketId, body.year)?.id ?? null;
+        if (!retryId) {
+            try {
+                const resolved = await apiFetch<CofrinhoBucketGoal>(
+                    `/api/cofrinho-bucket-goals/resolve?bucketId=${encodeURIComponent(body.bucketId)}&year=${body.year}`
+                );
+                retryId = resolved?.id ?? null;
+            } catch {
+                retryId = null;
+            }
         }
-        throw e;
+        if (retryId) {
+            return apiFetch<CofrinhoBucketGoal>(`/api/cofrinho-bucket-goals/${retryId}`, {
+                method: 'PUT',
+                body: JSON.stringify(payload)
+            });
+        }
+        throw postErr;
     }
+}
+
+export function bucketGoalHasDeadline(goal: CofrinhoBucketGoal | null | undefined): boolean {
+    return Boolean(cofrinhoGoalDeadlineFromGoal(goal));
 }
 
 export async function createCofrinhoApplication(body: {

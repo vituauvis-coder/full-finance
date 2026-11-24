@@ -57,8 +57,8 @@
     box-shadow: none;
 }
 
-#cofrinhos-page.cofrinhos-page--modern .cofrinhos-ledger__footer {
-    border-top-color: var(--cofrinhos-canvas-border);
+#cofrinhos-page.cofrinhos-page--modern .cofrinhos-ledger__footer--above-list {
+    border-bottom-color: var(--cofrinhos-canvas-border);
 }
 
 #cofrinhos-page.cofrinhos-page--modern .data-table-host,

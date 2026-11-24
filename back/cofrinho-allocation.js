@@ -16,6 +16,7 @@ import { ensureCofrinhoMonthlyBalancesTable } from './migrations/cofrinho-monthl
 import { referenceOnlyForUserMovement } from './reference-only.js';
 import { safeUpsertBalanceSnapshot } from './balance-snapshot.js';
 import { ensureCofrinhoViagemLedgerColumns } from './migrations/cofrinho-viagem-ledger.js';
+import { ensureCofrinhoBucketGoalDeadlineColumn } from './migrations/cofrinho-bucket-goal-deadline.js';
 import { bucketKindForWrite } from '../motor/dinheiro/cofrinho-bucket-kind.js';
 import { ensureTripCofrinhoBucket } from './cofrinho-trip-bucket.js';
 
@@ -78,6 +79,7 @@ const GOAL_SELECT = `SELECT
     year,
     target_amount AS "targetAmount",
     achieved_amount AS "achievedAmount",
+    CASE WHEN target_deadline IS NULL THEN NULL ELSE to_char(target_deadline, 'YYYY-MM-DD') END AS "targetDeadline",
     status,
     created_at AS "createdAt"
  FROM cofrinho_bucket_goals`;
@@ -93,6 +95,22 @@ const MONTHLY_BALANCE_SELECT = `SELECT
     created_at AS "createdAt",
     updated_at AS "updatedAt"
  FROM cofrinho_monthly_balances`;
+
+function parseGoalDeadline(raw) {
+    if (raw == null || raw === '') return null;
+    if (raw instanceof Date && !Number.isNaN(raw.getTime())) {
+        const y = raw.getFullYear();
+        const m = String(raw.getMonth() + 1).padStart(2, '0');
+        const d = String(raw.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+    const s = String(raw).trim();
+    const iso10 = s.length >= 10 ? s.slice(0, 10) : s;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(iso10)) return iso10;
+    const br = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (br) return `${br[3]}-${br[2]}-${br[1]}`;
+    return null;
+}
 
 function normalizeReferenceMonth(raw) {
     if (raw == null || raw === '') return null;
@@ -418,6 +436,7 @@ async function restorePoolAmount(client, uid, sourceExpenseId, amount, fallbackP
  */
 export async function ensureDefaultCofrinhoBuckets(userId) {
     await ensureCofrinhoViagemLedgerColumns();
+    await ensureCofrinhoBucketGoalDeadlineColumn();
     const { rows } = await query(`SELECT id FROM cofrinho_buckets WHERE user_id = $1 LIMIT 1`, [userId]);
     if (rows.length > 0) return;
 
@@ -995,6 +1014,7 @@ export function registerCofrinhoRoutes(app, requireAuth) {
 
     // --- Bucket goals ---
     app.post('/api/cofrinho-bucket-goals', requireAuth, async (req, res) => {
+        await ensureCofrinhoBucketGoalDeadlineColumn();
         const uid = req.session.userId;
         const bucketId = String(req.body.bucketId || '').trim();
         const year = parseInt(req.body.year, 10);
@@ -1009,34 +1029,137 @@ export function registerCofrinhoRoutes(app, requireAuth) {
         if (!bucketRows[0]) return res.status(400).json({ error: 'Caixinha inválida' });
 
         const id = crypto.randomUUID();
-        try {
+        const hasDeadlineField = Object.prototype.hasOwnProperty.call(req.body, 'targetDeadline');
+        const targetDeadline = hasDeadlineField ? parseGoalDeadline(req.body.targetDeadline) : null;
+        const incomingTarget = parseFloat(req.body.targetAmount) || 0;
+        const incomingAchieved = parseFloat(req.body.achievedAmount) || 0;
+        const incomingStatus = String(req.body.status || 'Em andamento').slice(0, 50);
+
+        const { rows } = await query(
+            `INSERT INTO cofrinho_bucket_goals (id, user_id, bucket_id, year, target_amount, achieved_amount, target_deadline, status)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+             ON CONFLICT (user_id, bucket_id, year) DO UPDATE SET
+                target_amount = CASE
+                    WHEN EXCLUDED.target_amount > 0 THEN EXCLUDED.target_amount
+                    ELSE cofrinho_bucket_goals.target_amount
+                END,
+                target_deadline = CASE
+                    WHEN $9::boolean THEN EXCLUDED.target_deadline
+                    ELSE cofrinho_bucket_goals.target_deadline
+                END
+             RETURNING
+                id, user_id AS "userId", bucket_id AS "bucketId", year,
+                target_amount AS "targetAmount", achieved_amount AS "achievedAmount",
+                CASE WHEN target_deadline IS NULL THEN NULL ELSE to_char(target_deadline, 'YYYY-MM-DD') END AS "targetDeadline",
+                status, created_at AS "createdAt"`,
+            [
+                id,
+                uid,
+                bucketId,
+                year,
+                incomingTarget,
+                incomingAchieved,
+                targetDeadline,
+                incomingStatus,
+                hasDeadlineField
+            ]
+        );
+        res.json(rows[0]);
+    });
+
+    app.get('/api/cofrinho-bucket-goals/resolve', requireAuth, async (req, res) => {
+        await ensureCofrinhoBucketGoalDeadlineColumn();
+        const uid = req.session.userId;
+        const bucketId = String(req.query.bucketId || '').trim();
+        const year = parseInt(String(req.query.year ?? ''), 10);
+        if (!bucketId || !Number.isFinite(year)) {
+            return res.status(400).json({ error: 'Caixinha e ano obrigatórios' });
+        }
+        const { rows } = await query(
+            `${GOAL_SELECT} WHERE user_id = $1 AND bucket_id = $2 AND year = $3`,
+            [uid, bucketId, year]
+        );
+        if (!rows[0]) return res.status(404).json({ error: 'Meta não encontrada' });
+        res.json(rows[0]);
+    });
+
+    /** Upsert por caixinha + ano (evita 409 e dispensa goalId no cliente). */
+    app.put('/api/cofrinho-bucket-goals/by-bucket-year', requireAuth, async (req, res) => {
+        await ensureCofrinhoBucketGoalDeadlineColumn();
+        const uid = req.session.userId;
+        const bucketId = String(req.body.bucketId || '').trim();
+        const year = parseInt(req.body.year, 10);
+        if (!bucketId || !Number.isFinite(year)) {
+            return res.status(400).json({ error: 'Caixinha e ano obrigatórios' });
+        }
+
+        const { rows: bucketRows } = await query(
+            `SELECT id FROM cofrinho_buckets WHERE id = $1 AND user_id = $2`,
+            [bucketId, uid]
+        );
+        if (!bucketRows[0]) return res.status(400).json({ error: 'Caixinha inválida' });
+
+        const hasDeadlineField = Object.prototype.hasOwnProperty.call(req.body, 'targetDeadline');
+        const parsedDeadline = hasDeadlineField ? parseGoalDeadline(req.body.targetDeadline) : undefined;
+
+        const { rows: existingRows } = await query(
+            `${GOAL_SELECT} WHERE user_id = $1 AND bucket_id = $2 AND year = $3`,
+            [uid, bucketId, year]
+        );
+        const existing = existingRows[0];
+
+        const incomingTarget = parseFloat(req.body.targetAmount);
+        const targetAmount =
+            Number.isFinite(incomingTarget) && incomingTarget > 0
+                ? incomingTarget
+                : existing
+                  ? Number(existing.targetAmount) || 0
+                  : Number.isFinite(incomingTarget)
+                    ? incomingTarget
+                    : 0;
+
+        if (existing) {
+            const targetDeadline = hasDeadlineField ? parsedDeadline : parseGoalDeadline(existing.targetDeadline);
             const { rows } = await query(
-                `INSERT INTO cofrinho_bucket_goals (id, user_id, bucket_id, year, target_amount, achieved_amount, status)
-                 VALUES ($1,$2,$3,$4,$5,$6,$7)
+                `UPDATE cofrinho_bucket_goals
+                 SET target_amount = $3, target_deadline = $4
+                 WHERE id = $1 AND user_id = $2
                  RETURNING
                     id, user_id AS "userId", bucket_id AS "bucketId", year,
                     target_amount AS "targetAmount", achieved_amount AS "achievedAmount",
+                    CASE WHEN target_deadline IS NULL THEN NULL ELSE to_char(target_deadline, 'YYYY-MM-DD') END AS "targetDeadline",
                     status, created_at AS "createdAt"`,
-                [
-                    id,
-                    uid,
-                    bucketId,
-                    year,
-                    parseFloat(req.body.targetAmount) || 0,
-                    parseFloat(req.body.achievedAmount) || 0,
-                    String(req.body.status || 'Em andamento').slice(0, 50)
-                ]
+                [existing.id, uid, targetAmount, targetDeadline]
             );
-            res.json(rows[0]);
-        } catch (e) {
-            if (e.code === '23505') {
-                return res.status(409).json({ error: 'Já existe meta para esta caixinha neste ano.' });
-            }
-            throw e;
+            return res.json(rows[0]);
         }
+
+        const id = crypto.randomUUID();
+        const targetDeadline = hasDeadlineField ? parsedDeadline : null;
+        const { rows } = await query(
+            `INSERT INTO cofrinho_bucket_goals (id, user_id, bucket_id, year, target_amount, achieved_amount, target_deadline, status)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+             RETURNING
+                id, user_id AS "userId", bucket_id AS "bucketId", year,
+                target_amount AS "targetAmount", achieved_amount AS "achievedAmount",
+                CASE WHEN target_deadline IS NULL THEN NULL ELSE to_char(target_deadline, 'YYYY-MM-DD') END AS "targetDeadline",
+                status, created_at AS "createdAt"`,
+            [
+                id,
+                uid,
+                bucketId,
+                year,
+                targetAmount,
+                0,
+                targetDeadline,
+                'Em andamento'
+            ]
+        );
+        res.json(rows[0]);
     });
 
     app.put('/api/cofrinho-bucket-goals/:id', requireAuth, async (req, res) => {
+        await ensureCofrinhoBucketGoalDeadlineColumn();
         const uid = req.session.userId;
         const { rows: existingRows } = await query(`${GOAL_SELECT} WHERE id = $1 AND user_id = $2`, [
             req.params.id,
@@ -1048,7 +1171,11 @@ export function registerCofrinhoRoutes(app, requireAuth) {
         const year = req.body.year !== undefined ? parseInt(req.body.year, 10) : existing.year;
         const targetAmount =
             req.body.targetAmount !== undefined
-                ? parseFloat(req.body.targetAmount) || 0
+                ? (() => {
+                      const n = parseFloat(req.body.targetAmount);
+                      if (!Number.isFinite(n) || n <= 0) return existing.targetAmount;
+                      return n;
+                  })()
                 : existing.targetAmount;
         const achievedAmount =
             req.body.achievedAmount !== undefined
@@ -1058,16 +1185,21 @@ export function registerCofrinhoRoutes(app, requireAuth) {
             req.body.status !== undefined
                 ? String(req.body.status || 'Em andamento').slice(0, 50)
                 : existing.status;
+        const targetDeadline =
+            req.body.targetDeadline !== undefined
+                ? parseGoalDeadline(req.body.targetDeadline)
+                : parseGoalDeadline(existing.targetDeadline);
 
         const { rows } = await query(
             `UPDATE cofrinho_bucket_goals
-             SET year = $3, target_amount = $4, achieved_amount = $5, status = $6
+             SET year = $3, target_amount = $4, achieved_amount = $5, target_deadline = $6, status = $7
              WHERE id = $1 AND user_id = $2
              RETURNING
                 id, user_id AS "userId", bucket_id AS "bucketId", year,
                 target_amount AS "targetAmount", achieved_amount AS "achievedAmount",
+                CASE WHEN target_deadline IS NULL THEN NULL ELSE to_char(target_deadline, 'YYYY-MM-DD') END AS "targetDeadline",
                 status, created_at AS "createdAt"`,
-            [req.params.id, uid, year, targetAmount, achievedAmount, status]
+            [req.params.id, uid, year, targetAmount, achievedAmount, targetDeadline, status]
         );
         res.json(rows[0]);
     });

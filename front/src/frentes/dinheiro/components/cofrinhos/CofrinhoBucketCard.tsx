@@ -12,6 +12,12 @@ import type { Movement } from '../../../../lib/types/finance';
 import { MaterialIcon } from '../../../../components/icons/MaterialIcon';
 import type { CofrinhoMonthlyBalance } from '../../domain/cofrinhoMonthlyBalances';
 import { cofrinhoBucketRegisteredYield } from '../../domain/cofrinhoSummaryStats';
+import {
+    cofrinhoGoalDeadlineFromGoal,
+    formatCofrinhoGoalDeadlineLabel
+} from '../../domain/cofrinhoGoalDeadline';
+import { cofrinhoGoalMonthsUntilDeadline } from '@motor/dinheiro/cofrinho-goal-pace.js';
+import { cofrinhoMonthlyPaceToGoal } from '@motor/dinheiro/cofrinho-goal-pace.js';
 
 type Props = {
     bucket: CofrinhoBucket;
@@ -50,9 +56,17 @@ export function CofrinhoBucketCard({
     const accumulated = Math.round((contributed + rendeu) * 100) / 100;
     const goal = getBucketGoalForYear(goals, bucket.id, goalYear);
     const meta = goal ? Number(goal.targetAmount) || 0 : 0;
+    const deadlineIso = cofrinhoGoalDeadlineFromGoal(goal);
+    const metaDeadline = deadlineIso ? formatCofrinhoGoalDeadlineLabel(deadlineIso) : '';
     const perc = meta > 0 ? Math.min((accumulated / meta) * 100, 100) : 0;
     const done = meta > 0 && accumulated >= meta;
     const hasYield = rendeu > 0.004;
+    const pace =
+        meta > 0 && deadlineIso
+            ? cofrinhoMonthlyPaceToGoal(meta, accumulated, deadlineIso, new Date())
+            : null;
+    const monthsUntilDeadline =
+        deadlineIso && !pace ? cofrinhoGoalMonthsUntilDeadline(deadlineIso, new Date()) : pace?.monthsLeft;
 
     return (
         <li
@@ -83,7 +97,20 @@ export function CofrinhoBucketCard({
                 role="cell"
             >
                 {meta > 0 ? (
-                    <span className="cofrinho-bucket-table__meta-amount">{formatBRL(meta, currency)}</span>
+                    <span className="cofrinho-bucket-table__meta-stack">
+                        <span className="cofrinho-bucket-table__meta-amount">{formatBRL(meta, currency)}</span>
+                        {metaDeadline ? (
+                            <span className="cofrinho-bucket-table__meta-deadline" title="Prazo da meta">
+                                até {metaDeadline}
+                            </span>
+                        ) : null}
+                    </span>
+                ) : metaDeadline ? (
+                    <span className="cofrinho-bucket-table__meta-stack">
+                        <span className="cofrinho-bucket-table__meta-deadline" title="Prazo da meta">
+                            até {metaDeadline}
+                        </span>
+                    </span>
                 ) : (
                     <span className="cofrinho-bucket-table__meta-unset">—</span>
                 )}
@@ -127,14 +154,46 @@ export function CofrinhoBucketCard({
                 )}
             </span>
 
+            <span
+                className="cofrinho-bucket-table__cell cofrinho-bucket-table__cell--pace cofrinho-bucket-table__cell--num"
+                role="cell"
+                title={
+                    pace && pace.monthsLeft > 0
+                        ? `Faltam ${formatBRL(pace.remaining, currency)} em ${pace.monthsLeft} mês(es)`
+                        : undefined
+                }
+            >
+                {done || pace?.perMonth === 0 ? (
+                    <span className="cofrinho-bucket-table__pace-done">—</span>
+                ) : pace && pace.perMonth > 0.004 ? (
+                    <span className="cofrinho-bucket-table__pace-stack">
+                        <strong className="cofrinho-bucket-table__pace-value">
+                            +{formatBRL(pace.perMonth, currency)}
+                        </strong>
+                        <span className="cofrinho-bucket-table__pace-hint">/mês · {pace.monthsLeft}m</span>
+                    </span>
+                ) : meta > 0 && deadlineIso && monthsUntilDeadline == null ? (
+                    <span className="cofrinho-bucket-table__meta-unset" title="Prazo já passou">
+                        Prazo vencido
+                    </span>
+                ) : meta > 0 && !deadlineIso ? (
+                    <span className="cofrinho-bucket-table__meta-unset" title="Defina o prazo na configuração da caixinha">
+                        Sem prazo
+                    </span>
+                ) : (
+                    <span className="cofrinho-bucket-table__meta-unset">—</span>
+                )}
+            </span>
+
             <span className="cofrinho-bucket-table__cell cofrinho-bucket-table__cell--actions" role="cell">
                 <button
                     type="button"
                     className="cofrinho-bucket-table__aportar"
+                    title="Aportar"
+                    aria-label={`Aportar — ${name}`}
                     onClick={() => onAllocate(bucket.id)}
                 >
                     <MaterialIcon name="add" variant="app" opticalSize={17} />
-                    Aportar
                 </button>
                 <button
                     type="button"

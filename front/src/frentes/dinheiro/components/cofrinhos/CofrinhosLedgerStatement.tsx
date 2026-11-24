@@ -23,6 +23,8 @@ import { CofrinhosLedgerFilterRibbon } from './CofrinhosLedgerFilterRibbon';
 import { CofrinhoLedgerInflowEditModal } from './CofrinhoLedgerInflowEditModal';
 import { cofrinhoPaymentAccounts } from '../../domain/cofrinhoPaymentAccounts';
 import { takeCofrinhosLedgerAccountNav } from '../../domain/cofrinhoLedgerNav';
+import { useTablePagination } from '../../../../hooks/useTablePagination';
+import { TablePaginationBar } from '../../../../components/finance/TablePaginationBar';
 
 type Props = {
     expenses: Movement[];
@@ -84,6 +86,12 @@ export function CofrinhosLedgerStatement({
         return filterCofrinhoLedgerRows(merged, filters);
     }, [accounts, applications, buckets, expenses, filters, monthlyBalances, scope, tripPayloadOutflows]);
 
+    const pagination = useTablePagination(rows.length, 'cofrinhos-ledger', 15);
+    const pageRows = useMemo(
+        () => rows.slice(pagination.start, pagination.end),
+        [rows, pagination.start, pagination.end]
+    );
+
     const totals = useMemo(() => {
         let inSum = 0;
         let outSum = 0;
@@ -96,8 +104,8 @@ export function CofrinhosLedgerStatement({
 
     const scopeLabel = ledgerFiltersScopeLabel(filters);
 
-    const summaryFooter = (
-        <footer className="cofrinhos-ledger__footer" aria-label="Resumo do extrato">
+    const summaryStrip = (
+        <div className="cofrinhos-ledger__footer cofrinhos-ledger__footer--above-list" aria-label="Resumo do extrato">
             <dl className="cofrinhos-ledger__summary">
                 <div className="cofrinhos-ledger__summary-card is-in">
                     <dt>
@@ -127,7 +135,7 @@ export function CofrinhosLedgerStatement({
                     <dd>{formatBRL(totals.net, currency)}</dd>
                 </div>
             </dl>
-        </footer>
+        </div>
     );
 
     return (
@@ -145,12 +153,12 @@ export function CofrinhosLedgerStatement({
                 accounts={accounts}
             />
 
+            {summaryStrip}
+
             {rows.length === 0 ? (
-                <>
-                    <p className="cofrinhos-ledger__empty">Nenhum aporte ou saída do cofrinho neste recorte.</p>
-                    {summaryFooter}
-                </>
+                <p className="cofrinhos-ledger__empty">Nenhum aporte ou saída do cofrinho neste recorte.</p>
             ) : (
+                <>
                 <div className="cofrinho-statement cofrinhos-ledger__statement" role="table">
                     <div className="cofrinho-statement__header cofrinhos-ledger__header" role="row">
                         <span role="columnheader">Mês</span>
@@ -164,7 +172,7 @@ export function CofrinhosLedgerStatement({
                         <span className="cofrinhos-ledger__th-actions" aria-hidden="true" />
                     </div>
                     <ul className="cofrinho-statement__rows cofrinhos-ledger__body" role="rowgroup">
-                        {rows.map((row) => {
+                        {pageRows.map((row) => {
                             const bucket = buckets.find((b) => b.id === row.bucketId);
                             const account = row.accountId
                                 ? accounts.find((a) => a.id === row.accountId)
@@ -283,8 +291,21 @@ export function CofrinhosLedgerStatement({
                         })}
                     </ul>
                 </div>
+                {pagination.pageCount > 1 ? (
+                    <TablePaginationBar
+                        compact
+                        page={pagination.page}
+                        pageCount={pagination.pageCount}
+                        total={rows.length}
+                        pageSize={pagination.pageSize}
+                        onPageSizeChange={pagination.setPageSize}
+                        onPrev={pagination.prev}
+                        onNext={pagination.next}
+                        ariaLabel="Paginação do extrato de cofrinhos"
+                    />
+                ) : null}
+                </>
             )}
-            {rows.length > 0 ? summaryFooter : null}
 
             <CofrinhoLedgerInflowEditModal
                 open={editRow != null}

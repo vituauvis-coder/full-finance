@@ -73,6 +73,13 @@ export function CofrinhoGoalCardsGrid({
                     <span role="columnheader" className="cofrinhos-buckets-table__th-progress">
                         Progresso
                     </span>
+                    <span
+                        role="columnheader"
+                        className="cofrinhos-buckets-table__th-num cofrinhos-buckets-table__th-pace"
+                        title="Aporte médio por mês até o prazo da meta"
+                    >
+                        Ritmo
+                    </span>
                     <span className="cofrinhos-buckets-table__th-actions" role="columnheader">
                         Ação
                     </span>

@@ -2,9 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { readBrandTablePageSize, writeBrandTablePageSize } from '../app/appBrand';
 import { TABLE_PAGE_SIZES, parseTablePageSize, tableSliceRange } from '../lib/tablePagination';
 
-export function useTablePagination(total: number, storageKey: string) {
+export function useTablePagination(total: number, storageKey: string, defaultPageSize = 25) {
     const [pageSize, setPageSizeState] = useState(() =>
-        parseTablePageSize(readBrandTablePageSize(storageKey), 25)
+        parseTablePageSize(readBrandTablePageSize(storageKey), defaultPageSize)
     );
     const [page, setPage] = useState(1);
     const prevTotal = useRef(total);

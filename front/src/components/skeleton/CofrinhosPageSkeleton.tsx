@@ -50,6 +50,9 @@ function CofrinhoBucketTableRowSkeleton({ nameWidth }: { nameWidth: string }) {
                 <Skeleton className="skeleton--line-sm" style={{ width: '2.25rem' }} />
                 <Skeleton className="skeleton-cofrinho-bucket-table__progress" />
             </span>
+            <span className="cofrinho-bucket-table__cell cofrinho-bucket-table__cell--pace" role="cell">
+                <Skeleton className="skeleton--line-sm" style={{ width: '3.5rem' }} />
+            </span>
             <span className="cofrinho-bucket-table__cell cofrinho-bucket-table__cell--actions" role="cell">
                 <Skeleton className="skeleton-cofrinho-bucket-table__action" />
                 <Skeleton className="skeleton--circle" style={{ width: '1.85rem', height: '1.85rem' }} />
@@ -68,6 +71,7 @@ function CofrinhosBucketsTableSkeleton() {
                     <Skeleton className="skeleton--line-sm" style={{ width: '4.85rem' }} />
                     <Skeleton className="skeleton--line-sm" style={{ width: '2.75rem' }} />
                     <Skeleton className="skeleton--line-sm" style={{ width: '4.1rem' }} />
+                    <Skeleton className="skeleton--line-sm" style={{ width: '2.75rem' }} />
                     <Skeleton className="skeleton--line-sm" style={{ width: '2.5rem' }} />
                 </div>
                 <ul className="cofrinhos-buckets-table__body" role="rowgroup">
@@ -114,6 +118,16 @@ function CofrinhosLedgerStatementSkeleton() {
                 </div>
             </header>
             <CofrinhosLedgerFilterSkeleton />
+            <footer className="cofrinhos-ledger__footer cofrinhos-ledger__footer--above-list">
+                <dl className="cofrinhos-ledger__summary">
+                    {['in', 'out', 'net'].map((tone) => (
+                        <div key={tone} className={`cofrinhos-ledger__summary-card is-${tone} skeleton-cofrinhos-ledger__summary-card`}>
+                            <Skeleton className="skeleton--line-sm" style={{ width: '4.25rem' }} />
+                            <Skeleton className="skeleton--metric" style={{ width: '5rem', height: '1.15rem', marginTop: '0.25rem' }} />
+                        </div>
+                    ))}
+                </dl>
+            </footer>
             <div className="cofrinho-statement cofrinhos-ledger__statement" role="table">
                 <div className="cofrinho-statement__header cofrinhos-ledger__header" role="row">
                     {[0, 1, 2, 3, 4, 5].map((i) => (
@@ -152,16 +166,6 @@ function CofrinhosLedgerStatementSkeleton() {
                     ))}
                 </ul>
             </div>
-            <footer className="cofrinhos-ledger__footer">
-                <dl className="cofrinhos-ledger__summary">
-                    {['in', 'out', 'net'].map((tone) => (
-                        <div key={tone} className={`cofrinhos-ledger__summary-card is-${tone} skeleton-cofrinhos-ledger__summary-card`}>
-                            <Skeleton className="skeleton--line-sm" style={{ width: '4.25rem' }} />
-                            <Skeleton className="skeleton--metric" style={{ width: '5rem', height: '1.15rem', marginTop: '0.25rem' }} />
-                        </div>
-                    ))}
-                </dl>
-            </footer>
         </section>
     );
 }

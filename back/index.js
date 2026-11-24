@@ -47,6 +47,7 @@ import { registerAuthRoutes } from './routes/auth.routes.js';
 import { registerDomainRoutes } from './routes/register-domain-routes.js';
 import { ensureExpenseTripLinkColumns } from './migrations/expense-trip-link.js';
 import { ensureCofrinhoViagemLedgerColumns } from './migrations/cofrinho-viagem-ledger.js';
+import { ensureCofrinhoBucketGoalDeadlineColumn } from './migrations/cofrinho-bucket-goal-deadline.js';
 import { ensureCofrinhoMonthlyBalancesTable } from './migrations/cofrinho-monthly-balances.js';
 import { ensureAccountWalletColumns } from './migrations/account-wallet-columns.js';
 import { ensureAgentIntegration } from './migrations/agent-integration.js';
@@ -226,6 +227,10 @@ void ensureExpenseTripLinkColumns().catch((e) => {
 
 void ensureCofrinhoViagemLedgerColumns().catch((e) => {
     console.error('[migration] cofrinho viagem ledger (boot):', e?.message || e);
+});
+
+void ensureCofrinhoBucketGoalDeadlineColumn().catch((e) => {
+    console.error('[migration] cofrinho goal deadline (boot):', e?.message || e);
 });
 
 void ensureCofrinhoMonthlyBalancesTable().catch((e) => {

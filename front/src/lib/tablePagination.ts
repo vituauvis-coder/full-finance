@@ -1,6 +1,6 @@
 /** Paridade com `legacy-web/js/shared/table-pagination.js`. */
 
-export const TABLE_PAGE_SIZES = [10, 25, 100] as const;
+export const TABLE_PAGE_SIZES = [10, 15, 25, 100] as const;
 
 export function parseTablePageSize(value: string | null | undefined, fallback = 25): number {
     const n = parseInt(String(value ?? ''), 10);

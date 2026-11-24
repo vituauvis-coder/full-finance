@@ -11,10 +11,12 @@ import {
     DialogTitle
 } from '../../../../components/ui/dialog/Dialog';
 import { FormField, FormInput, FormSelect } from '../../../../components/ui/form';
+import { DatePicker } from '../../../../components/ui/date-picker/DatePicker';
 import { MaterialIcon } from '../../../../components/icons/MaterialIcon';
 import { isPresetBucketColorKey } from '../../domain/cofrinhoConstants';
 import { CofrinhoBucketColorSwatches, defaultBucketColorKey } from './CofrinhoBucketColorSwatches';
 import {
+    bucketGoalHasDeadline,
     createCofrinhoBucket,
     deleteCofrinhoBucket,
     updateCofrinhoBucket,
@@ -35,6 +37,8 @@ import { CofrinhoBucketTypePicker } from './CofrinhoBucketTypePicker';
 import { formatBRL } from '../../../../lib/format';
 import { parseMoneyInput } from '../../domain/parseMoneyInput';
 import { fetchTripsList } from '../../../viagens/api/trips';
+import { cofrinhoGoalDeadlineInputValue } from '../../domain/cofrinhoGoalDeadline';
+import { coerceDayKey } from '../../../../lib/calendarUi';
 
 type Props = {
     open: boolean;
@@ -54,6 +58,7 @@ export function CofrinhoBucketModal({ open, onClose, editing, goals, goalYear, o
     const [tripsLoading, setTripsLoading] = useState(false);
     const [colorKey, setColorKey] = useState<string>(defaultBucketColorKey());
     const [goalTarget, setGoalTarget] = useState('');
+    const [goalDeadline, setGoalDeadline] = useState('');
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -80,12 +85,14 @@ export function CofrinhoBucketModal({ open, onClose, editing, goals, goalYear, o
             const goal = getBucketGoalForYear(goals, editing.id, goalYear);
             const target = goal?.targetAmount != null ? Number(goal.targetAmount) : 0;
             setGoalTarget(Number.isFinite(target) && target > 0 ? formatBRL(target, 'BRL') : '');
+            setGoalDeadline(cofrinhoGoalDeadlineInputValue(goal?.targetDeadline));
         } else {
             setName('');
             setKind('objetivo');
             setTripId('');
             setColorKey(COFRINHO_KIND_META.objetivo.defaultColor);
             setGoalTarget('');
+            setGoalDeadline('');
         }
     }, [editing, goalYear, goals, open, tripLocked]);
 
@@ -144,8 +151,14 @@ export function CofrinhoBucketModal({ open, onClose, editing, goals, goalYear, o
             return;
         }
         const yMult = Number(editing?.yieldMultiplier) || 1.02;
+        const existingGoal = editing ? getBucketGoalForYear(goals, editing.id, goalYear) : undefined;
         const parsedTarget = goalTarget.trim() ? parseMoneyInput(goalTarget) : null;
         const target = parsedTarget != null ? parsedTarget : 0;
+        const existingTarget =
+            existingGoal?.targetAmount != null ? Number(existingGoal.targetAmount) || 0 : 0;
+        const effectiveTarget =
+            Number.isFinite(target) && target > 0 ? target : existingTarget > 0 ? existingTarget : 0;
+        const deadline = coerceDayKey(goalDeadline.trim());
 
         setSaving(true);
         setError(null);
@@ -174,14 +187,20 @@ export function CofrinhoBucketModal({ open, onClose, editing, goals, goalYear, o
                 bucketId = created.id;
             }
 
-            if (bucketId && Number.isFinite(target) && target > 0) {
-                const existing = getBucketGoalForYear(goals, bucketId, goalYear);
-                await upsertBucketGoal({
-                    bucketId,
-                    year: goalYear,
-                    targetAmount: target,
-                    goalId: existing?.id ?? null
-                });
+            if (bucketId && (effectiveTarget > 0 || deadline)) {
+                const savedGoal = await upsertBucketGoal(
+                    {
+                        bucketId,
+                        year: goalYear,
+                        targetAmount: effectiveTarget,
+                        targetDeadline: deadline,
+                        goalId: getBucketGoalForYear(goals, bucketId, goalYear)?.id ?? null
+                    },
+                    goals
+                );
+                if (deadline && !bucketGoalHasDeadline(savedGoal)) {
+                    throw new Error('O prazo não foi gravado. Reinicie o servidor (back) e tente de novo.');
+                }
             }
 
             await onSaved();
@@ -262,6 +281,16 @@ export function CofrinhoBucketModal({ open, onClose, editing, goals, goalYear, o
                                         id="cofrinho-bucket-goal-target"
                                         value={goalTarget}
                                         onChange={setGoalTarget}
+                                    />
+                                </FormField>
+                                <FormField id="cofrinho-bucket-goal-deadline" label="Prazo">
+                                    <DatePicker
+                                        id="cofrinho-bucket-goal-deadline"
+                                        value={goalDeadline}
+                                        onChange={setGoalDeadline}
+                                        placeholder="Opcional"
+                                        className="cofrinho-bucket-form__date-picker"
+                                        aria-label="Prazo para bater a meta"
                                     />
                                 </FormField>
                             </div>

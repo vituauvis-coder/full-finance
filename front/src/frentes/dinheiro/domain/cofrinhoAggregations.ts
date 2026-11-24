@@ -33,6 +33,8 @@ export type CofrinhoBucketGoal = {
     year?: number;
     targetAmount?: number;
     achievedAmount?: number;
+    /** Prazo para atingir a meta (YYYY-MM-DD). */
+    targetDeadline?: string | null;
 };
 
 function applicationBucketId(app: CofrinhoApplication): string {
@@ -120,12 +122,18 @@ export function sumCofrinhoPoolAllYears(expenses: Movement[]): number {
     }, 0);
 }
 
+function goalBucketId(g: CofrinhoBucketGoal): string {
+    const raw = g as CofrinhoBucketGoal & { bucket_id?: string };
+    return String(g.bucketId ?? raw.bucket_id ?? '');
+}
+
 export function getBucketGoalForYear(
     bucketGoals: CofrinhoBucketGoal[],
     bucketId: string,
     year: number
 ): CofrinhoBucketGoal | undefined {
-    return (bucketGoals ?? []).find((g) => g.bucketId === bucketId && Number(g.year) === Number(year));
+    const bid = String(bucketId);
+    return (bucketGoals ?? []).find((g) => goalBucketId(g) === bid && Number(g.year) === Number(year));
 }
 
 export function filterApplications(

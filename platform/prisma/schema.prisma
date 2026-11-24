@@ -345,6 +345,7 @@ model CofrinhoBucketGoal {
   year           Int
   targetAmount   Float    @default(0) @map("target_amount")
   achievedAmount Float    @default(0) @map("achieved_amount")
+  targetDeadline DateTime? @map("target_deadline") @db.Date
   status         String   @default("Em andamento") @db.NVarChar(50)
   createdAt      DateTime @default(now()) @map("created_at")
 

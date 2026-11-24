@@ -9,6 +9,8 @@ type Props = {
     onPrev: () => void;
     onNext: () => void;
     ariaLabel?: string;
+    /** Barra baixa, sem cartão — útil antes de totais/resumo. */
+    compact?: boolean;
 };
 
 /**
@@ -22,7 +24,8 @@ export function TablePaginationBar({
     onPageSizeChange,
     onPrev,
     onNext,
-    ariaLabel = 'Paginação da tabela'
+    ariaLabel = 'Paginação da tabela',
+    compact = false
 }: Props) {
     const { start, end } = tableSliceRange(page, pageSize, total);
     const atStart = page <= 1 || total === 0;
@@ -34,8 +37,12 @@ export function TablePaginationBar({
             : `${start + 1}–${end} de ${total} · Página ${page} de ${pageCount}`;
 
     return (
-        <div className="table-pagination-host">
-            <div className="table-pagination table-pagination--modern" role="navigation" aria-label={ariaLabel}>
+        <div className={`table-pagination-host${compact ? ' table-pagination-host--compact' : ''}`}>
+            <div
+                className={`table-pagination table-pagination--modern${compact ? ' table-pagination--compact' : ''}`}
+                role="navigation"
+                aria-label={ariaLabel}
+            >
                 <label className="table-pagination__size">
                     <span className="table-pagination__size-label">Linhas por página</span>
                     <select

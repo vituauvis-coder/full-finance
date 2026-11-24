@@ -911,6 +911,65 @@
     color: var(--dash-text-secondary, var(--text-muted, #6b7280));
 }
 
+#cofrinhos-page .cofrinhos-ledger .table-pagination-host {
+    width: 100%;
+    margin-top: 0.2rem;
+    margin-bottom: 0.15rem;
+    padding: 0.25rem 0 0.15rem;
+    border-top: 1px solid color-mix(in srgb, var(--dash-surface-border) 45%, transparent);
+    box-sizing: border-box;
+}
+
+#cofrinhos-page .cofrinhos-ledger .table-pagination-host--compact .table-pagination--compact {
+    padding: 0.2rem 0;
+    gap: 0.35rem 0.75rem;
+    font-size: 0.72rem;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+#cofrinhos-page .cofrinhos-ledger .table-pagination-host--compact .table-pagination__size-label {
+    font-size: 0.68rem;
+    color: var(--dash-text-secondary, var(--text-muted, #6b7280));
+}
+
+#cofrinhos-page .cofrinhos-ledger .table-pagination-host--compact .table-pagination__select {
+    font-size: 0.72rem;
+    padding: 0.2rem 0.35rem;
+    min-width: 3.25rem;
+    min-height: 1.65rem;
+}
+
+#cofrinhos-page .cofrinhos-ledger .table-pagination-host--compact .table-pagination__info {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--dash-text-secondary, var(--text-muted, #6b7280));
+}
+
+#cofrinhos-page .cofrinhos-ledger .table-pagination-host--compact .table-pagination__btn {
+    width: 1.75rem;
+    height: 1.75rem;
+    font-size: 0.65rem;
+}
+
+.cofrinhos-ledger__footer--above-list {
+    margin-top: 0.65rem;
+    margin-bottom: 0.75rem;
+    padding-top: 0;
+    padding-bottom: 0.7rem;
+    border-top: none;
+    border-bottom: 1px solid var(--dash-surface-border);
+}
+
+/* Evita colapso se a barra ficar dentro do grid da tabela (legado/skeleton). */
+#cofrinhos-page .cofrinhos-ledger__statement > .table-pagination-host {
+    grid-column: 1 / -1;
+}
+
 .cofrinhos-ledger__footer {
     margin-top: 0.85rem;
     padding-top: 0.85rem;
@@ -1318,7 +1377,8 @@
 /* —— Caixinhas em tabela —— */
 #cofrinhos-page .cofrinhos-buckets-table {
     --cofrinhos-bucket-table-cols:
-        minmax(9rem, 1.35fr) minmax(7rem, 1fr) minmax(7.5rem, 1.08fr) minmax(7rem, 1fr) minmax(7rem, 1fr) 12.25rem;
+        minmax(7.5rem, 1.05fr) minmax(6.75rem, 0.95fr) minmax(7rem, 1fr) minmax(7rem, 0.95fr)
+        minmax(6.75rem, 0.9fr) minmax(6.5rem, 0.82fr) 8.5rem;
     --cofrinhos-bucket-col-pad: 1rem;
     --cofrinhos-bucket-divider: color-mix(in srgb, var(--dash-surface-border) 48%, transparent);
     width: 100%;
@@ -1547,11 +1607,27 @@
     color: var(--dash-text-primary);
 }
 
+#cofrinhos-page .cofrinho-bucket-table__meta-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.1rem;
+    max-width: 100%;
+}
+
 #cofrinhos-page .cofrinho-bucket-table__meta-amount {
     font-size: 0.84rem;
     font-weight: 500;
     white-space: nowrap;
     color: var(--dash-text-secondary, var(--text-muted, #64748b));
+}
+
+#cofrinhos-page .cofrinho-bucket-table__meta-deadline {
+    font-size: 0.66rem;
+    font-weight: 500;
+    line-height: 1.15;
+    white-space: nowrap;
+    color: var(--dash-text-tertiary, var(--text-muted, #94a3b8));
 }
 
 #cofrinhos-page .cofrinho-bucket-table__cell--yield {
@@ -1637,13 +1713,12 @@
 #cofrinhos-page .cofrinho-bucket-table__aportar {
     display: inline-flex;
     align-items: center;
-    gap: 0.25rem;
-    padding: 0.38rem 0.65rem;
+    justify-content: center;
+    width: 1.85rem;
+    height: 1.85rem;
+    padding: 0;
     border: none;
-    border-radius: 9px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    white-space: nowrap;
+    border-radius: 8px;
     cursor: pointer;
     color: #fff;
     background: var(--cofrinho-accent, var(--cofrinhos-accent));
@@ -2054,9 +2129,11 @@
     #cofrinhos-page .cofrinhos-buckets-table__header span:nth-child(2),
     #cofrinhos-page .cofrinhos-buckets-table__header span:nth-child(4),
     #cofrinhos-page .cofrinhos-buckets-table__header span:nth-child(5),
+    #cofrinhos-page .cofrinhos-buckets-table__header span:nth-child(6),
     #cofrinhos-page .cofrinho-bucket-table__cell--meta,
     #cofrinhos-page .cofrinho-bucket-table__cell--yield,
-    #cofrinhos-page .cofrinho-bucket-table__cell--progress {
+    #cofrinhos-page .cofrinho-bucket-table__cell--progress,
+    #cofrinhos-page .cofrinho-bucket-table__cell--pace {
         display: none;
     }
 }
@@ -2765,8 +2842,65 @@
 }
 
 .cofrinho-bucket-form__row--name-goal {
-    grid-template-columns: minmax(0, 1.35fr) minmax(6.75rem, 0.65fr);
+    grid-template-columns: minmax(0, 0.95fr) minmax(6.25rem, 7.75rem) minmax(8.25rem, 9.25rem);
     align-items: end;
+    gap: 0.65rem;
+}
+
+.cofrinho-bucket-form__row--name-goal .ui-form-field {
+    min-width: 0;
+    margin: 0;
+}
+
+.cofrinho-bucket-form__date-picker {
+    width: 100%;
+}
+
+.cofrinho-bucket-form__date-picker.ui-date-picker .ui-date-picker__trigger {
+    width: 100%;
+    min-height: 2.45rem;
+    justify-content: space-between;
+    padding-inline: 0.72rem 0.55rem;
+    font-size: 0.82rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.cofrinho-bucket-form__date-picker.ui-date-picker .ui-date-picker__label {
+    text-align: start;
+    flex: 1;
+    min-width: 0;
+}
+
+#cofrinhos-page .cofrinho-bucket-table__cell--pace {
+    align-items: center;
+    justify-content: flex-end;
+}
+
+#cofrinhos-page .cofrinho-bucket-table__pace-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.08rem;
+}
+
+#cofrinhos-page .cofrinho-bucket-table__pace-value {
+    font-size: 0.82rem;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+    color: var(--cofrinho-accent, var(--cofrinhos-accent));
+}
+
+#cofrinhos-page .cofrinho-bucket-table__pace-hint {
+    font-size: 0.62rem;
+    font-weight: 500;
+    line-height: 1.1;
+    white-space: nowrap;
+    color: var(--dash-text-tertiary, #94a3b8);
+}
+
+#cofrinhos-page .cofrinho-bucket-table__pace-done {
+    color: var(--dash-text-tertiary, #94a3b8);
 }
 
 .cofrinho-bucket-form__money-input {
